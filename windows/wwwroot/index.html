@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MIKU</title>
+<link rel="stylesheet" href="app.css?v=20261002j">
+<link rel="stylesheet" href="themes.css?v=20261002j">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("miku.theme")||"miku"}catch(e){document.documentElement.dataset.theme="miku"}</script>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand" id="brand"></div>
+    <nav class="nav" id="nav">
+      <a href="#/home" data-r="home"><svg class="i"><use href="#i-home"/></svg><span>首頁</span></a>
+      <div class="nav-label">音樂庫</div>
+      <a href="#/albums" data-r="albums"><svg class="i"><use href="#i-album"/></svg><span>專輯</span><em class="count" id="c-albums"></em></a>
+      <a href="#/artists" data-r="artists"><svg class="i"><use href="#i-artist"/></svg><span>演出者</span><em class="count" id="c-artists"></em></a>
+      <a href="#/tracks" data-r="tracks"><svg class="i"><use href="#i-list"/></svg><span>曲目</span><em class="count" id="c-tracks"></em></a>
+      <a href="#/ytmusic" data-r="ytmusic"><svg class="i"><use href="#i-yt"/></svg><span>YouTube Music</span></a>
+      <a href="#/favorites" data-r="favorites"><svg class="i"><use href="#i-heart"/></svg><span>我的最愛</span></a>
+      <div class="nav-label">系統</div>
+      <a href="#/settings" data-r="settings"><svg class="i"><use href="#i-gear"/></svg><span>設定</span></a>
+    </nav>
+    <div class="side-foot" id="sidefoot"></div>
+  </aside>
+
+  <section id="main">
+    <header id="topbar">
+      <button class="round-btn" id="back" title="上一頁"><svg class="i"><use href="#i-left"/></svg></button>
+      <button class="round-btn" id="fwd" title="下一頁"><svg class="i"><use href="#i-right"/></svg></button>
+      <label class="search"><svg class="i"><use href="#i-search"/></svg><input id="q" placeholder="搜尋專輯、演出者、曲目" spellcheck="false" autocomplete="off"><kbd>Ctrl F</kbd></label>
+    </header>
+    <div id="content"><div id="view"></div></div>
+  </section>
+
+  <footer id="bar">
+    <div class="np-mini">
+      <div class="art" id="b-art" title="正在播放"></div>
+      <div class="txt" id="b-txt"><div class="t" id="b-title"></div><div class="a" id="b-artist"></div></div>
+      <button class="icon-btn" id="b-fav" title="加入最愛"><svg class="i"><use href="#i-heart"/></svg></button>
+    </div>
+    <div class="transport">
+      <div class="btns">
+        <button class="icon-btn" id="b-shuffle" title="隨機播放"><svg class="i"><use href="#i-shuffle"/></svg></button>
+        <button class="icon-btn" id="b-prev" title="上一首"><svg class="i fill"><use href="#i-prev"/></svg></button>
+        <button class="playbtn" id="b-play" title="播放 (空白鍵)"><svg class="i fill"><use href="#i-play"/></svg></button>
+        <button class="icon-btn" id="b-next" title="下一首"><svg class="i fill"><use href="#i-next"/></svg></button>
+        <button class="icon-btn" id="b-repeat" title="重複播放"><svg class="i"><use href="#i-repeat"/></svg></button>
+      </div>
+      <div class="seek">
+        <span class="time num" id="b-pos">0:00</span>
+        <div class="slider" id="b-seek"><div class="track"><div class="fill"></div></div><div class="knob"></div><div class="hover-tip num"></div></div>
+        <span class="time num" id="b-dur">0:00</span>
+      </div>
+    </div>
+    <div class="right-tools">
+      <button class="icon-btn" id="b-queue" title="播放佇列 (Q)"><svg class="i"><use href="#i-queue"/></svg></button>
+      <button class="icon-btn" id="b-dsp" title="DSP 與等化器 (D)"><svg class="i"><use href="#i-sliders"/></svg></button>
+      <span class="tool-sep"></span>
+      <button class="sig" id="b-sig" title="訊號路徑"><i class="dot"></i><span id="b-sigtxt">未播放</span></button>
+      <button class="out-btn" id="b-out" title="切換輸出裝置"><svg class="i"><use href="#i-speaker"/></svg><span id="b-outname">輸出</span></button>
+      <div class="vol" id="b-vol">
+        <button class="icon-btn" id="b-mute" title="靜音 (M)"><svg class="i"><use href="#i-vol"/></svg></button>
+        <div class="slider" id="b-volslider"><div class="track"><div class="fill"></div></div><div class="knob"></div><div class="hover-tip num"></div></div>
+        <span class="db num" id="b-db"></span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="np" class="nolyrics">
+  <div class="np-bg"><div class="layer a"></div><div class="layer b"></div></div>
+  <div class="np-top">
+    <button class="icon-btn" id="np-close" title="收起 (Esc)"><svg class="i"><use href="#i-down"/></svg></button>
+    <div class="grow"></div>
+    <span class="src" id="np-src"></span>
+    <button class="pill" id="np-trans">翻譯</button>
+    <button class="pill on" id="np-lyr"><svg class="i" style="width:16px;height:16px"><use href="#i-lyrics"/></svg>歌詞</button>
+  </div>
+  <div class="np-wrap">
+    <div class="np-left">
+      <div class="np-cover" id="np-cover"></div>
+      <div class="np-info">
+        <div class="np-title" id="np-title"></div>
+        <div class="np-artist" id="np-artist"></div>
+        <div class="np-badges" id="np-badges"></div>
+        <div class="np-seek">
+          <div class="slider" id="np-seek"><div class="track"><div class="fill"></div></div><div class="knob"></div><div class="hover-tip num"></div></div>
+          <div class="times num"><span id="np-pos">0:00</span><span id="np-dur">0:00</span></div>
+        </div>
+        <div class="np-ctrl">
+          <button class="icon-btn" id="np-shuffle"><svg class="i"><use href="#i-shuffle"/></svg></button>
+          <button class="icon-btn" id="np-prev"><svg class="i fill"><use href="#i-prev"/></svg></button>
+          <button class="playbtn" id="np-play"><svg class="i fill"><use href="#i-play"/></svg></button>
+          <button class="icon-btn" id="np-next"><svg class="i fill"><use href="#i-next"/></svg></button>
+          <button class="icon-btn" id="np-repeat"><svg class="i"><use href="#i-repeat"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="np-right">
+      <div class="lyrics" id="lyrics"></div>
+      <div class="ly-offset"><span>歌詞時間</span><button id="ly-minus">−</button><span id="ly-off" class="num">0.0s</span><button id="ly-plus">+</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="queue">
+  <div class="drawer-head"><h2>播放佇列</h2><button class="icon-btn" data-close><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="drawer-body" id="queue-body"></div>
+</aside>
+<aside class="drawer wide" id="dsp">
+  <div class="drawer-head"><h2>DSP</h2><span class="switch" id="dsp-master" title="啟用 DSP"></span><button class="icon-btn" data-close><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="drawer-body" id="dsp-body"></div>
+</aside>
+<div id="toasts"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-brand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#39c5bb"/><stop offset="1" stop-color="#e5307e"/></linearGradient>
+  </defs>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-album" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.6"/></symbol>
+  <symbol id="i-artist" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.9-3.6 3.9-5.6 7.5-5.6s6.6 2 7.5 5.6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.6" cy="6.5" r=".9"/><circle cx="4.6" cy="12" r=".9"/><circle cx="4.6" cy="17.5" r=".9"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 19.6s-7.6-4.5-7.6-10.1A4.2 4.2 0 0 1 12 7.1a4.2 4.2 0 0 1 7.6 2.4c0 5.6-7.6 10.1-7.6 10.1z"/></symbol>
+  <symbol id="i-heartf" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" d="M12 19.6s-7.6-4.5-7.6-10.1A4.2 4.2 0 0 1 12 7.1a4.2 4.2 0 0 1 7.6 2.4c0 5.6-7.6 10.1-7.6 10.1z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.5h-4.2l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4.2l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4z"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7.5 4.9v14.2a1 1 0 0 0 1.5.86l11.6-7.1a1 1 0 0 0 0-1.72L9 4.04a1 1 0 0 0-1.5.86z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4.2" height="15" rx="1.3"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.3"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 6.2v11.6a.9.9 0 0 0 1.4.76l8.6-5.8a.9.9 0 0 0 0-1.52L6.4 5.44A.9.9 0 0 0 5 6.2z"/><rect x="16.6" y="5.2" width="2.6" height="13.6" rx="1.1"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 6.2v11.6a.9.9 0 0 1-1.4.76L9 12.76a.9.9 0 0 1 0-1.52l8.6-5.8A.9.9 0 0 1 19 6.2z"/><rect x="4.8" y="5.2" width="2.6" height="13.6" rx="1.1"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3.5 7h3.3c2 0 3.3 1 4.4 2.7l1.6 2.6c1.1 1.7 2.4 2.7 4.4 2.7h3.3M3.5 17h3.3c1.4 0 2.4-.5 3.3-1.4M13.9 8.4c.9-.9 1.9-1.4 3.3-1.4h3.3M18 4.5 20.5 7 18 9.5M18 14.5l2.5 2.5-2.5 2.5"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 3.5 19.5 6 17 8.5"/><path d="M4.5 11.5V10a4 4 0 0 1 4-4h11"/><path d="M7 20.5 4.5 18 7 15.5"/><path d="M19.5 12.5V14a4 4 0 0 1-4 4h-11"/></symbol>
+  <symbol id="i-repeat1" viewBox="0 0 24 24"><path d="M17 3.5 19.5 6 17 8.5"/><path d="M4.5 11.5V10a4 4 0 0 1 4-4h11"/><path d="M7 20.5 4.5 18 7 15.5"/><path d="M19.5 12.5V14a4 4 0 0 1-4 4h-11"/><path d="M11.2 10.6 12.4 10v4.2" stroke-width="1.6"/></symbol>
+  <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M4.5 6.5h10M4.5 11h7M4.5 15.5h5"/><circle cx="16.5" cy="16.5" r="2.4"/><path d="M18.9 16.5V8.2l2.1.8"/></symbol>
+  <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6.5h11M4 11h11M4 15.5h7"/><path d="M15 14v6.2l4.8-3.1z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M6 4v5M6 13v7M12 4v9M12 17v3M18 4v3M18 11v9"/><circle cx="6" cy="11" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="18" cy="9" r="2"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5v5h3.4L12 18.6V5.4L7.4 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-vollow" viewBox="0 0 24 24"><path d="M4 9.5v5h3.4L12 18.6V5.4L7.4 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.4L12 18.6V5.4L7.4 9.5z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18.5" cy="12" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2a1 1 0 0 0 1 .9h7.2a1 1 0 0 0 1-.9L17.5 7"/></symbol>
+  <symbol id="i-next-up" viewBox="0 0 24 24"><path d="M4 7h10M4 12h10M4 17h6"/><path d="M18 9v8M14.5 13h7"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 16-5-5-8 8.5"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V6.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-yt" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8v6.4l5.2-3.2z" fill="currentColor"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><rect x="5.5" y="2.8" width="13" height="18.4" rx="2.4"/><circle cx="12" cy="14.2" r="3.4"/><circle cx="12" cy="7.2" r="1.2"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></symbol>
+</svg>
+
+<script src="core.js?v=20261002j"></script>
+<script src="themes.js?v=20261002j"></script>
+<script src="views.js?v=20261002j"></script>
+<script src="nowplaying.js?v=20261002j"></script>
+<script src="dsp.js?v=20261002j"></script>
+<script src="qr.js?v=20261002j"></script>
+<script src="settings.js?v=20261002j"></script>
+<script src="art.js?v=20261002j"></script>
+<script>App.start();</script>
+</body>
+</html>

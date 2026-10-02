@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>MIKU</AssemblyName>
+    <RootNamespace>Miku</RootNamespace>
+    <Version>1.2.0</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <!-- don't ship IntelliSense .xml docs with the program -->
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+    <NoWarn>$(NoWarn);CA1416;WFO1000;SYSLIB0014</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- mock.js is only the browser preview backend, not needed inside the app -->
+    <None Include="wwwroot\**\*" Exclude="wwwroot\mock.js" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

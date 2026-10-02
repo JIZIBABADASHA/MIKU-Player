@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MIKU">
+<meta name="theme-color" content="#0d0f13">
+<meta name="format-detection" content="telephone=no">
+<title>MIKU 遙控</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="app.css?v=2">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-album" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></symbol>
+  <symbol id="i-artist" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></symbol>
+  <symbol id="i-queue" viewBox="0 0 24 24"><path d="M3 6h12M3 12h12M3 18h7"/><path d="M17 14v7l5-3.5z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 5.5v13a1 1 0 0 0 1.5.86L16 13.5V18a1 1 0 0 0 2 0V6a1 1 0 0 0-2 0v4.5L6.5 4.64A1 1 0 0 0 5 5.5z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M19 5.5v13a1 1 0 0 1-1.5.86L8 13.5V18a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v4.5l9.5-5.86A1 1 0 0 1 19 5.5z"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 1 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 23-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5s-8-4.7-8-10.6A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 8 2.9c0 5.9-8 10.6-8 10.6z"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 5 6M22 9l-5 6"/></symbol>
+  <symbol id="i-lyrics" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14"/></symbol>
+  <symbol id="i-yt" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M10 8.5v7l6-3.5z"/></symbol>
+  <symbol id="i-next-up" viewBox="0 0 24 24"><path d="M3 6h12M3 12h8M3 18h8"/><path d="M15 12h7M18.5 8.5 22 12l-3.5 3.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 15 7-7 7 7"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><rect x="5" y="2.5" width="14" height="19" rx="2"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1"/></symbol>
+</svg>
+
+<div id="app" hidden>
+  <header id="top">
+    <button class="ib" id="back" aria-label="返回"><svg class="i"><use href="#i-left"/></svg></button>
+    <h1 id="title">MIKU</h1>
+    <button class="ib" id="searchBtn" aria-label="搜尋"><svg class="i"><use href="#i-search"/></svg></button>
+  </header>
+  <div id="offline" hidden>無法連線到 MIKU，重新連線中…</div>
+  <main id="view"></main>
+  <div id="mini" hidden>
+    <div class="mprog"><i></i></div>
+    <div class="art sm" id="miniArt"></div>
+    <div class="mtxt"><b id="miniTitle"></b><small id="miniSub"></small></div>
+    <button class="ib" id="miniToggle" aria-label="播放/暫停"><svg class="i f"><use href="#i-play"/></svg></button>
+    <button class="ib" id="miniNext" aria-label="下一首"><svg class="i f"><use href="#i-next"/></svg></button>
+  </div>
+  <nav id="tabs">
+    <button data-tab="home"><svg class="i"><use href="#i-home"/></svg><span>首頁</span></button>
+    <button data-tab="albums"><svg class="i"><use href="#i-album"/></svg><span>專輯</span></button>
+    <button data-tab="artists"><svg class="i"><use href="#i-artist"/></svg><span>演出者</span></button>
+    <button data-tab="tracks"><svg class="i"><use href="#i-list"/></svg><span>曲目</span></button>
+    <button data-tab="queue"><svg class="i"><use href="#i-queue"/></svg><span>佇列</span></button>
+  </nav>
+</div>
+
+<section id="np" aria-hidden="true">
+  <div class="npbg" id="npBg"></div>
+  <div class="nphead">
+    <button class="ib" id="npClose" aria-label="關閉"><svg class="i"><use href="#i-down"/></svg></button>
+    <div class="npsrc" id="npSrc"></div>
+    <button class="ib" id="npMore" aria-label="更多"><svg class="i"><use href="#i-more"/></svg></button>
+  </div>
+  <div class="npbody">
+    <div class="npcover" id="npCover"></div>
+    <div class="nplyrics" id="npLyrics" hidden></div>
+  </div>
+  <div class="npinfo">
+    <div class="npt"><b id="npTitle"></b><small id="npSub"></small></div>
+    <button class="ib" id="npFav" aria-label="我的最愛"><svg class="i"><use href="#i-heart"/></svg></button>
+  </div>
+  <div class="npseek">
+    <input type="range" id="seek" min="0" max="1000" value="0" step="1">
+    <div class="times"><span id="tPos">0:00</span><span id="npSig"></span><span id="tDur">0:00</span></div>
+  </div>
+  <div class="npctl">
+    <button class="ib" id="npShuffle" aria-label="隨機"><svg class="i"><use href="#i-shuffle"/></svg></button>
+    <button class="ib big" id="npPrev" aria-label="上一首"><svg class="i f"><use href="#i-prev"/></svg></button>
+    <button class="play" id="npToggle" aria-label="播放/暫停"><svg class="i f"><use href="#i-play"/></svg></button>
+    <button class="ib big" id="npNext" aria-label="下一首"><svg class="i f"><use href="#i-next"/></svg></button>
+    <button class="ib" id="npRepeat" aria-label="重複"><svg class="i"><use href="#i-repeat"/></svg><em>1</em></button>
+  </div>
+  <div class="npvol" id="npVol">
+    <button class="ib" id="npMute" aria-label="靜音"><svg class="i"><use href="#i-vol"/></svg></button>
+    <input type="range" id="vol" min="-60" max="0" step="0.5" value="-20">
+    <span id="volTxt">-20 dB</span>
+  </div>
+  <div class="npfoot">
+    <button class="pill" id="npLyricsBtn"><svg class="i"><use href="#i-lyrics"/></svg>歌詞</button>
+    <button class="pill" id="npQueueBtn"><svg class="i"><use href="#i-queue"/></svg>佇列</button>
+  </div>
+</section>
+
+<div id="sheet" hidden><div class="sheetbg"></div><div class="sheetbox"></div></div>
+
+<section id="pair" hidden>
+  <div class="pairbox">
+    <img src="icon.png" alt="" width="84" height="84">
+    <h2>連線到 MIKU</h2>
+    <p id="pairHint">按下「取得配對碼」，電腦上的 MIKU 會顯示一組 4 位數配對碼。</p>
+    <label class="fld"><span>這台裝置的名稱</span><input id="pairName" maxlength="40" autocomplete="off"></label>
+    <button class="btn pri" id="pairReq">取得配對碼</button>
+    <div id="pairStep2" hidden>
+      <input id="pairCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" placeholder="••••">
+      <button class="btn pri" id="pairOk">配對</button>
+      <button class="link" id="pairAgain">重新取得配對碼</button>
+    </div>
+    <p class="err" id="pairErr"></p>
+  </div>
+</section>
+
+<div id="toasts"></div>
+<script src="app.js?v=2"></script>
+</body>
+</html>

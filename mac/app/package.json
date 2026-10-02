@@ -1,0 +1,8 @@
+{
+  "name": "miku",
+  "productName": "MIKU",
+  "version": "1.2.0",
+  "description": "MIKU high-resolution music player for macOS",
+  "main": "main/main.js",
+  "license": "UNLICENSED"
+}

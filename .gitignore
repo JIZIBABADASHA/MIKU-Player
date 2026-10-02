@@ -1,0 +1,26 @@
+# build output
+bin/
+obj/
+dist/
+/MIKU/
+/MIKU-Setup/
+/.tools/
+mac/build/work/
+mac/build/downloads/
+
+# build logs / helper flags
+build.log
+build-result.txt
+installer.log
+installer-result.txt
+rebuild.flag
+installer.flag
+ChineseTraditional.isl
+
+# installers go to GitHub Releases, not the repository
+*.exe
+*.pkg
+*.pkg.0*
+
+.DS_Store
+Thumbs.db
