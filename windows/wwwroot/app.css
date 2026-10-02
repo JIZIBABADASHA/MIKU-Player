@@ -727,3 +727,5 @@ a.link:hover { text-decoration: underline; }
 .row .n .eq { top: 50%; bottom: auto; height: 16px; margin-top: -8px; padding-bottom: 0; }
 /* hovering the playing song: show the play button instead of the equalizer bars */
 .row.playing:hover .n .eq { display: none; }
+/* now-playing row highlight (from the MIKU theme) for every theme, tinted with the theme's own accent colour */
+.row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .13), rgba(var(--teal-rgb), 0) 70%); }
