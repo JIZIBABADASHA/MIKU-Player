@@ -1,6 +1,8 @@
 # MIKU Player
 
 給高解析音樂收藏用的桌面播放器，支援 Windows 與 macOS。
+<img width="2149" height="1387" alt="image" src="https://github.com/user-attachments/assets/2f0d819d-c84d-4eca-abac-39c119c773fc" />
+
 
 ## 下載
 
