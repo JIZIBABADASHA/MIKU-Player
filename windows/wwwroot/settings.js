@@ -23,26 +23,9 @@ const Settings = {
     if (typeof Theme !== 'undefined') Theme.section(root);
 
     /* ── audio output ── */
-    const out = section('音訊輸出', '獨佔模式會繞過 Windows 混音器，讓 DAC 直接收到原始取樣率與位元深度。');
+    const out = section('音訊輸出', '獨佔模式可繞過 Windows 混音器；是否保持原始樣本，還取決於取樣率、DSP、音量與輸出格式。實際設定可查看訊號路徑。');
     if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, '找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。'));
-    /* playback core: MIKU's own NAudio core, or the Rplay core (RAAT architecture) */
-    const coreHost = h('div');
-    const drawCore = () => {
-      coreHost.textContent = '';
-      if (!App.rplay) return; // 這個版本沒有編進 Rplay 內核
-      const cur = App.settings.audioCore || 'miku';
-      coreHost.append(field('播放內核', cur === 'rplay'
-        ? 'Rplay：照 Roon 的 RAAT 架構重寫的內核（解碼、無縫、升頻、DSD 直送／DoP）。切換時會從目前的位置繼續播放。'
-        : 'MIKU：原本的播放內核（NAudio）。切換時會從目前的位置繼續播放。',
-        select([['miku', 'MIKU 內核（NAudio）'], ['rplay', 'Rplay 內核（RAAT 架構）']], cur, async v => { await this.set({ audioCore: v }); drawCore(); toast(v === 'rplay' ? '已切換到 Rplay 內核' : '已切換到 MIKU 內核'); })));
-      if (cur !== 'rplay') return;
-      coreHost.append(field('Roon 相容模式', '修正：把 Roon 的疑似 bug 改成正確的行為（建議）。照 Roon 原本：疑似 bug 也照做，用來和 Roon 比對。',
-        select([['roon_fix', '修正（roon_fix）'], ['roon_origin', '照 Roon 原本（roon_origin）']], App.settings.rplayProfile || 'roon_fix', v => this.set({ rplayProfile: v }))));
-      coreHost.append(field('最高 DSD 取樣率', '超過的 DSD 會轉成 PCM 播放。有些驅動程式回報的範圍比 DAC 實際支援的大，請依 DAC 規格設定。',
-        select([[64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], App.settings.rplayMaxDsd || 512, v => this.set({ rplayMaxDsd: +v }))));
-    };
-    drawCore();
-    out.append(coreHost);
+    out.append(field('播放核心', 'FFmpeg 解碼／NAudio 輸出。', h('span', { class: 'muted' }, 'NAudio')));
     const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); });
     out.append(field('輸出模式', null, modeSeg));
     const devHost = h('div');
@@ -81,13 +64,13 @@ const Settings = {
       r.onchange = () => this.set({ bufferMs: +r.value });
       return [r, v];
     })()));
-    out.append(field('升頻', '使用 SoX 高品質重新取樣。關閉時保持原始取樣率（Bit-perfect）。', [
+    out.append(field('FFmpeg 升頻', '使用 SoX 高品質重新取樣。關閉時優先使用原始取樣率，實際取樣率請查看訊號路徑。', [
       select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); fixedSel.style.display = v === 'fixed' ? '' : 'none'; }),
     ]));
     const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
     fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
     out.lastChild.querySelector('.ctl').append(fixedSel);
-    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。Rplay 內核用 ASIO 時，驅動程式支援原生 DSD 就會自動使用原生 DSD；打開這個選項則改用 DoP。', sw(s.dop, v => this.set({ dop: v }))));
+    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。', sw(s.dop, v => this.set({ dop: v }))));
     out.append(field('DSD 轉 PCM 取樣率', '關閉 DoP 或 DAC 不支援時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
     out.append(field('無縫播放', '同格式曲目之間沒有間隙（Live 專輯、古典樂）。', sw(s.gapless, v => this.set({ gapless: v }))));
 
@@ -98,8 +81,8 @@ const Settings = {
 
     /* ── volume ── */
     const vol = section('音量');
-    vol.append(field('音量控制方式', '數位音量在 64-bit 運算中處理；硬體音量交給 DAC；固定音量保持 Bit-perfect。',
-      select([['digital', '數位音量'], ['hardware', 'DAC 硬體音量'], ['fixed', '固定 0 dB（Bit-perfect）']], s.volumeMode, v => this.set({ volumeMode: v }))));
+    vol.append(field('音量控制方式', '數位音量在 64-bit 運算中處理；硬體音量交給 DAC；固定音量不調整數位增益。是否原樣輸出仍取決於其餘訊號路徑。',
+      select([['digital', '數位音量'], ['hardware', 'DAC 硬體音量'], ['fixed', '固定 0 dB（不調整數位增益）']], s.volumeMode, v => this.set({ volumeMode: v }))));
     vol.append(field('ReplayGain', '依標籤中的增益值讓曲目音量一致。', [
       select([['off', '關閉'], ['track', '依曲目'], ['album', '依專輯']], s.replayGain, v => this.set({ replayGain: v })),
     ]));
@@ -138,6 +121,20 @@ const Settings = {
       jobTxt.textContent = `已檢查 ${p.done} / ${p.total} 張，找到 ${p.found} 張封面`;
     });
     on.append(field('補齊所有缺少的封面', jobTxt, jobBtn));
+    const lyTxt = h('small', null, '一次為曲庫裡所有歌曲搜尋歌詞，已有歌詞的會略過。');
+    const lyBtn = h('button', { class: 'btn small', html: icon('search') + '開始搜尋' });
+    let lyRunning = false;
+    lyBtn.onclick = () => {
+      if (lyRunning) { Host.call('lyrics.cancel'); return; }
+      if (!App.settings.onlineLyrics) { toast('請先開啟「線上歌詞」'); return; }
+      lyRunning = true; lyBtn.innerHTML = '停止'; lyTxt.textContent = '準備中…'; Host.call('lyrics.fetchAll');
+    };
+    Host.on('lyricsJob', p => {
+      if (!lyTxt.isConnected) return;
+      if (p.done < 0) { lyRunning = false; lyBtn.innerHTML = icon('search') + '開始搜尋'; lyTxt.textContent += '（已結束）'; return; }
+      lyTxt.textContent = `已檢查 ${p.done} / ${p.total} 首，${p.found} 首有歌詞`;
+    });
+    on.append(field('搜尋所有歌詞', lyTxt, lyBtn));
 
     /* ── phone remote ── */
     const rm = section('手機遙控', '手機和這台電腦連同一個 Wi-Fi，用瀏覽器打開下面的網址就能選歌、控制播放。聲音一樣從這台電腦的 DAC 播出。');

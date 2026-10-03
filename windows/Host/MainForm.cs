@@ -28,12 +28,13 @@ public sealed class MainForm : Form
     readonly MusicLibrary _lib;
     readonly ArtworkService _art;
     readonly LyricsService _lyrics;
-    IAudioEngine _engine;
+    readonly AudioEngine _engine;
     readonly Player _player;
     readonly System.Windows.Forms.Timer _tick;
     readonly System.Windows.Forms.Timer _saveTimer;
     bool _ready;
     CancellationTokenSource _artJob;
+    CancellationTokenSource _lyricsJob;
     readonly string _debugDir;
     readonly System.Windows.Forms.Timer _debugTimer;
     bool _debugBusy;
@@ -66,7 +67,7 @@ public sealed class MainForm : Form
     /// Position of YouTube Music as heard from the DAC. The page reports currentTime only about every 0.5 s while the
     /// state goes out every 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old
     /// value is sent two or three times and the progress bar keeps jumping back). The page also runs ahead of what is
-    /// heard by the capture / output buffers (about 0.4 s with the MIKU core, 1 s with Rplay): that latency is
+    /// heard by the capture / output buffers: that latency is
     /// subtracted, smoothed so its natural ripple doesn't make the bar jitter, so the bar and lyrics follow the sound.
     /// </summary>
     double LivePosition(bool playing)
@@ -83,10 +84,7 @@ public sealed class MainForm : Form
 
     double LiveLatencyEstimate()
     {
-#if HAS_RPLAY
-        if (_engine is RplayEngine r) return r.LiveLatency;
-#endif
-        // MIKU core: LiveSource's fill (ring + its own buffer) + the output buffer
+        // NAudio core: LiveSource's fill (ring + its own buffer) + the output buffer
         return LiveBus.Fill + Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0;
     }
 
@@ -189,10 +187,40 @@ public sealed class MainForm : Form
     const bar = document.querySelector('ytmusic-player-bar');
     const q = s => bar && bar.querySelector(s);
     const img = q('img.image') || q('img');
-    wv.postMessage(JSON.stringify({ k: 'meta', t: v.currentTime || 0, d: isFinite(v.duration) ? v.duration : 0, p: !v.paused,
-      title: (q('.title') || {}).textContent || '', by: (q('.byline') || {}).textContent || '', img: img ? img.src : '', gap: Math.round(gapMax) }));
+    const title = (q('.title') || {}).textContent || '';
+    const [t, d] = trackTime(v, q, title);
+    wv.postMessage(JSON.stringify({ k: 'meta', t, d, p: !v.paused,
+      title, by: (q('.byline') || {}).textContent || '', img: img ? img.src : '', gap: Math.round(gapMax) }));
     gapMax = 0;
   }
+  // YouTube Music plays a queue gaplessly as one media stream: the <video> timeline does not restart at 0 for each
+  // song (currentTime / duration include the songs before it). The player bar's slider has the song's own position
+  // (whole seconds) and length, so use its length, and the song's start in the stream (currentTime - slider value,
+  // the smallest one seen for this song) to keep the exact, smooth currentTime.
+  let songKey = '', songStart = null;
+  function trackTime(v, q, title) {
+    const ct = v.currentTime || 0, vd = isFinite(v.duration) ? v.duration : 0;
+    const pb = q('#progress-bar');
+    const now = pb ? parseFloat(pb.getAttribute('aria-valuenow') ?? pb.value) : NaN;
+    const max = pb ? parseFloat(pb.getAttribute('aria-valuemax') ?? pb.max) : NaN;
+    if (!(max > 0) || !isFinite(now)) return [ct, vd];
+    const key = title + '|' + max;
+    if (key !== songKey) { songKey = key; songStart = null; }
+    const s = ct - now;   // the slider shows whole seconds: s overestimates the start by up to 1 s
+    if (songStart === null || s < songStart || s > songStart + 2) songStart = s;   // > 2 s: the stream jumped (same song again)
+    return [Math.min(max, Math.max(0, ct - songStart)), max];
+  }
+  // Seek to a position in the current song (the time MIKU shows). Use the player's own API, which maps the song time
+  // onto the gapless stream itself; setting video.currentTime directly bypasses YouTube Music's player (and it is in
+  // stream time, not song time). Fallback: the song's start in the stream + the song time.
+  window.__mikuSeek = sec => {
+    const p = document.getElementById('movie_player');
+    if (p && typeof p.seekTo === 'function') { p.seekTo(sec, true); return 'api'; }
+    const v = document.querySelector('video');
+    if (!v) return 'none';
+    v.currentTime = (songStart ?? 0) + sec;
+    return 'video';
+  };
   setInterval(() => { if (performance.now() - lastMeta > 450) meta(); }, 500);
 })();";
 
@@ -373,7 +401,7 @@ public sealed class MainForm : Form
         _lib = new MusicLibrary(_s);
         _art = new ArtworkService(_lib, _s);
         _lyrics = new LyricsService(_s);
-        _engine = CreateEngine();
+        _engine = new AudioEngine(_s, a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); });
         _player = new Player(_engine, _lib, _s);
         WireEngine(_engine);
         _player.NowChanged += () => PostSoon("state");
@@ -465,31 +493,6 @@ public sealed class MainForm : Form
         if (_s.Maximized) WindowState = FormWindowState.Maximized;
     }
 
-    // ───────────────────────────── playback core（Settings.AudioCore）─────────────────────────────
-
-    IAudioEngine CreateEngine()
-    {
-        Action<Action> ui = a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); };
-#if HAS_RPLAY
-        if (_s.AudioCore == "rplay")
-        {
-            try { return new RplayEngine(_s, ui); }
-            catch (Exception ex) { Log.Error("Rplay core", ex); _s.AudioCore = "miku"; }
-        }
-#else
-        // 這個版本沒有編進 Rplay 內核（建置時找不到 ../Rplay），設定成 rplay 也只能用 MIKU 內核
-        if (_s.AudioCore == "rplay") Log.Info("Rplay core is not included in this build, using the MIKU core");
-#endif
-        return new AudioEngine(_s, ui);
-    }
-
-    /// <summary>這個版本有沒有編進 Rplay 內核（MIKU.csproj：../Rplay 存在時定義 HAS_RPLAY）。</summary>
-#if HAS_RPLAY
-    static bool RplayIncluded => true;
-#else
-    static bool RplayIncluded => false;
-#endif
-
     void WireEngine(IAudioEngine engine)
     {
         engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
@@ -497,55 +500,6 @@ public sealed class MainForm : Form
         engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
     }
 
-    /// <summary>
-    /// 設定切換了播放內核：短暫停頓後從同一個位置繼續（原本在播就繼續播，YouTube Music 也接著播）。
-    /// 1. 先建立新內核、接上 Player 和介面，再停掉舊內核：舊內核在停止過程中發出的事件（例如 Ended）不會再讓 Player 換歌
-    /// 2. 舊內核放開 DAC 之後才開新的：回收殘留的 WASAPI / COM 物件，再等一下（獨佔模式、ASIO 都需要時間交接）
-    /// 3. 新內核開不到裝置時重試幾次
-    /// </summary>
-    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
-    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
-    volatile CoreSwitch _switching;
-
-    async Task SwitchCoreAsync()
-    {
-        var old = _engine;
-        var t = old.Track;
-        double pos = old.Position;
-        bool play = old.IsPlaying;
-        bool isLive = t?.IsLive == true;
-        // until the new core has loaded the track, the state keeps showing it (otherwise the empty new core makes the
-        // UI fall back to the queue's local track for a moment, or show "paused" at 0:00)
-        _switching = t == null ? null : new CoreSwitch(t, play, pos, old.Signal);
-        try
-        {
-            var engine = CreateEngine();
-            _engine = engine;
-            _player.ReplaceEngine(engine);
-            WireEngine(engine);
-            Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : "Rplay")} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
-
-            try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
-            try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-            await Task.Delay(300);
-
-            if (t != null)
-            {
-                for (int attempt = 1; attempt <= 3; attempt++)
-                {
-                    await engine.LoadAsync(t, isLive ? 0 : pos, play);
-                    if (!play || engine.IsLoaded || !engine.LastFailureWasDevice) break;
-                    Log.Info($"Switch core: the DAC is not free yet (attempt {attempt}), retrying");
-                    await Task.Delay(500);
-                }
-            }
-        }
-        finally { _switching = null; }
-        PostSoon("state");
-    }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
@@ -821,7 +775,8 @@ public sealed class MainForm : Form
                 if (LiveActive)
                 {
                     string pos = D(a, "pos").ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    await YtScript("(() => { const v = document.querySelector('video'); if (v) v.currentTime = " + pos + "; })()");
+                    // song time (what MIKU shows), through the player's API: see __mikuSeek in the tap script
+                    await YtScript("window.__mikuSeek ? window.__mikuSeek(" + pos + ") : (() => { const v = document.querySelector('video'); if (v) v.currentTime = " + pos + "; })()");
                     return null;
                 }
                 await _player.Seek(D(a, "pos")); return null;
@@ -910,6 +865,39 @@ public sealed class MainForm : Form
                 var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
                 return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
             }
+            case "lyrics.candidates":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                return t == null ? null : await _lyrics.Candidates(t);
+            }
+            case "lyrics.apply":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t == null) return null;
+                var r = await _lyrics.Apply(t, S(a, "key"));
+                if (r == null) return null;
+                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
+                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+            }
+            case "lyrics.clear":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t != null) await _lyrics.Clear(t);
+                return null;
+            }
+            case "lyrics.autoAlign":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t == null) return null;
+                var ly = await _lyrics.GetAsync(t);
+                if (!ly.Synced || ly.Lines.Count < 4) return new { ok = false, reason = "這首歌沒有同步歌詞" };
+                var r = await Task.Run(() => LyricAlign.Estimate(t, ly.Lines.Where(l => l.Text.Length > 0).Select(l => l.T).ToList()));
+                if (r == null) return new { ok = false, reason = "無法分析這首歌的音訊" };
+                if (!r.Ok) return new { ok = false, reason = "分析結果不夠可靠，請手動調整", offset = r.Offset, confidence = r.Confidence };
+                _s.LyricOffsets[t.Id] = r.Offset;
+                SaveSoon();
+                return new { ok = true, offset = r.Offset, confidence = r.Confidence };
+            }
             case "lyricsOffset":
                 _s.LyricOffsets[S(a, "id")] = D(a, "offset");
                 SaveSoon();
@@ -986,6 +974,19 @@ public sealed class MainForm : Form
                 return null;
             }
             case "art.cancel": _artJob?.Cancel(); return null;
+            case "lyrics.fetchAll":
+            {
+                _lyricsJob?.Cancel();
+                var cts = _lyricsJob = new CancellationTokenSource();
+                var progress = new Progress<(int done, int total, int found)>(p => Post("lyricsJob", new { p.done, p.total, p.found }));
+                _ = Task.Run(async () =>
+                {
+                    try { await _lyrics.FetchAll(_lib.AllTracks, progress, cts.Token); } catch (Exception ex) { Log.Info("Lyrics job: " + ex.Message); }
+                    Post("lyricsJob", new { done = -1 });
+                });
+                return null;
+            }
+            case "lyrics.cancel": _lyricsJob?.Cancel(); return null;
             case "track":
             {
                 var t = _lib.GetTrack(S(a, "id"));
@@ -1042,7 +1043,6 @@ public sealed class MainForm : Form
         settings = _s,
         version = Application.ProductVersion,
         ffmpeg = Ffmpeg.Available,
-        rplay = RplayIncluded,
         asio = Devices.AsioDrivers(),
         scan = _lib.Progress,
         state = State(),
@@ -1052,11 +1052,11 @@ public sealed class MainForm : Form
     object State()
     {
         var meter = _engine.Meter();
-        var sw = _switching;
-        var current = _engine.Track ?? sw?.Track;
-        bool playing = _engine.IsPlaying || sw?.Playing == true;
-        bool loaded = _engine.IsLoaded || sw != null;
-        var signal = _engine.Signal ?? sw?.Signal;
+        var resampling = _engine.ResamplingMeter();
+        var current = _engine.Track;
+        bool playing = _engine.IsPlaying;
+        bool loaded = _engine.IsLoaded;
+        var signal = _engine.Signal;
         if (current?.IsLive == true)
         {
             var m = _ytMeta;
@@ -1077,7 +1077,7 @@ public sealed class MainForm : Form
                 signal,
                 live = new { title = m.Title, artist = parts.Length > 0 ? parts[0] : "", album = parts.Length > 1 ? parts[1] : "", img = m.Img },
                 liveStats = new { fill = Math.Round(LiveBus.Fill, 3), adj = Math.Round(LiveBus.Adj * 1000, 2), resyncs = LiveBus.Resyncs, starves = LiveBus.Starves, rate = LiveBus.SourceRate, sink = _ytSink, gap = m.Gap },
-                meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
+                meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns, resampleOverloads = resampling.overloads, resamplePeak = _engine.ResamplingMeterAvailable ? (double?)resampling.peak : null, resampleMeterAvailable = _engine.ResamplingMeterAvailable },
             };
         }
         var t = current ?? _player.Current;
@@ -1087,7 +1087,7 @@ public sealed class MainForm : Form
             trackId = t?.Id,
             playing,
             loaded,
-            pos = sw != null && !_engine.IsLoaded ? sw.Pos : _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
+            pos = _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
             dur = t?.Duration ?? 0,
             index = _player.Index,
             volumeDb = _s.VolumeDb,
@@ -1096,7 +1096,7 @@ public sealed class MainForm : Form
             repeat = _s.Repeat,
             shuffle = _s.Shuffle,
             signal,
-            meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
+            meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns, resampleOverloads = resampling.overloads, resamplePeak = _engine.ResamplingMeterAvailable ? (double?)resampling.peak : null, resampleMeterAvailable = _engine.ResamplingMeterAvailable },
         };
     }
 
@@ -1122,11 +1122,11 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp" };
 
     object ApplySettings(JsonElement patch)
     {
-        bool reconfigure = false, volume = false, remote = false, core = false;
+        bool reconfigure = false, volume = false, remote = false;
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
@@ -1136,15 +1136,13 @@ public sealed class MainForm : Form
             if (Equals(old, value)) continue;
             pi.SetValue(_s, value);
             if (OutputKeys.Contains(prop.Name)) reconfigure = true;
-            if (pi.Name == nameof(Settings.AudioCore)) core = true;
             if (pi.Name == nameof(Settings.VolumeMode)) { volume = true; reconfigure = true; }
             if (pi.Name is nameof(Settings.RemoteEnabled) or nameof(Settings.RemotePort)) remote = true;
             if (pi.Name == nameof(Settings.AutoContinue) && _engine.IsPlaying) _player.EnsureAutoNext();
         }
         SaveSoon();
         if (remote) StartRemote();
-        if (core) _ = Task.Run(async () => { try { await SwitchCoreAsync(); } catch (Exception ex) { Log.Error("Switch core", ex); Post("error", new { message = "切換播放內核失敗：" + ex.Message }); } });
-        else if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
+        if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
         else if (volume) _engine.ApplyVolume();
         return _s;
     }

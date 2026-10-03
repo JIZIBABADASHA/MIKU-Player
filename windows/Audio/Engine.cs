@@ -32,6 +32,8 @@ public sealed class SignalInfo
     public bool Lossy { get; set; }
     public bool Dop { get; set; }
     public bool Resampled { get; set; }
+    public bool DsdDirect { get; set; }
+    public string DsdTransport { get; set; }
     public int OutputRate { get; set; }
     public string OutputFormat { get; set; }
     public int OutputBits { get; set; }
@@ -43,6 +45,15 @@ public sealed class SignalInfo
     public double? ReplayGainDb { get; set; }
     public string Quality { get; set; } // bitperfect | enhanced | high | low
     public string Note { get; set; }
+    public string Decoder { get; set; }
+    public string Resampler { get; set; }
+    public double? ResamplerBandwidth { get; set; }
+    public double? ResamplerGainDb { get; set; }
+    public string Quantization { get; set; }
+    public bool? EventDriven { get; set; }
+    public int SourceChannels { get; set; }
+    public bool SourceFloatingPoint { get; set; }
+    public bool OutputFloatingPoint { get; set; }
 }
 
 public sealed class AudioEngine : IAudioEngine
@@ -336,6 +347,7 @@ public sealed class AudioEngine : IAudioEngine
             {
                 TearDown();
                 OpenOutput(plan);
+                plan = _plan; // ASIO may select a different output sample format.
             }
             Track = t;
             _lastAudible = null;
@@ -802,7 +814,15 @@ public sealed class AudioEngine : IAudioEngine
     public (double l, double r, long clips, long underruns) Meter()
     {
         var c = _chain;
-        return c == null ? (0, 0, 0, 0) : (c.Dsp.PeakL, c.Dsp.PeakR, c.Dsp.Clips, c.Underruns);
+        return c == null ? (0, 0, 0, 0) : (c.Dsp.PeakL, c.Dsp.PeakR, c.Dsp.Clips + c.QuantizationClips, c.Underruns);
+    }
+
+    public bool ResamplingMeterAvailable => _chain?.Current?.ResamplingMeterAvailable == true;
+
+    public (long overloads, double peak) ResamplingMeter()
+    {
+        var src = _chain?.Current;
+        return src == null || !src.ResamplingMeterAvailable ? (0, 0) : (src.OverloadSamples, src.ResamplerPeak);
     }
 
     bool _endedRaised;
@@ -883,6 +903,13 @@ public sealed class AudioEngine : IAudioEngine
             Device = plan.Mode == "asio" ? plan.AsioDriver : (_caps?.Name ?? ""),
             DspActive = _s.Dsp.Enabled && !plan.Dop,
             DspSummary = plan.Dop ? null : DspSummary(),
+            Decoder = plan.Dop ? "MIKU 既有 DoP 封裝" : t.IsLive ? "WebView 音訊" : "FFmpeg",
+            Resampler = "FFmpeg / SoX",
+            ResamplerGainDb = t.IsLive || plan.Dop ? null : -1,
+            Quantization = "既有量化規則",
+            EventDriven = false,
+            SourceChannels = t.Channels,
+            OutputFloatingPoint = plan.Format == SampleFormat.Float32,
             VolumeMode = plan.Dop && _s.VolumeMode == "digital" ? (_caps != null && _caps.HardwareVolume ? "hardware" : "none") : _s.VolumeMode,
         };
         if (_s.ReplayGain != "off" && !plan.Dop)
@@ -905,6 +932,9 @@ public sealed class AudioEngine : IAudioEngine
         if (i.DspActive || i.ReplayGainDb.HasValue) return "enhanced";
         if (i.Resampled) return "enhanced";
         if (volumeTouches) return "enhanced";
+        if (_s.Muted && !i.Dop) return "enhanced";
+        int precision = i.OutputFloatingPoint ? 24 : i.OutputBits;
+        if (!i.Dop && (i.SourceBits > precision || i.SourceChannels != 2)) return "enhanced";
         return "bitperfect";
     }
 

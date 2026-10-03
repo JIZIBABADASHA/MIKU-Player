@@ -717,6 +717,9 @@ a.link:hover { text-decoration: underline; }
 .yt-bar .yt-title { font: 650 18px var(--font-display); margin: 0 8px 0 6px; }
 .yt-bar .chip svg.i { width: 15px; height: 15px; }
 .yt-frame { flex: 1; min-height: 0; margin: 0 0 0 0; background: #030303; display: grid; place-items: center; }
+/* YouTube Music page: no library search bar, the page (and its native panel) moves up to the top */
+#main.yt-mode #topbar { display: none; }
+#main.yt-mode #view { padding-top: 0; }
 
 /* larger play hit area: the whole number column (full row height, out to the row's left edge) starts the song */
 .row .n, .row .n:has(.thumb) { align-self: stretch; height: auto; margin: 0 -6px 0 -12px; padding-left: 6px; border-radius: 12px 0 0 12px; }

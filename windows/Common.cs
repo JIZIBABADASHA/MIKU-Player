@@ -14,7 +14,15 @@ namespace Miku;
 
 public static class AppPaths
 {
-    public static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MIKU");
+    // The preview launcher can use an isolated profile. Normal launches keep the installed app's profile.
+    public static readonly string Root = ProfileRoot();
+    static string ProfileRoot()
+    {
+        string path = Environment.GetEnvironmentVariable("MIKU_DATA_DIR");
+        return !string.IsNullOrWhiteSpace(path) && Path.IsPathFullyQualified(path)
+            ? Path.GetFullPath(path)
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MIKU");
+    }
     public static readonly string Art = Path.Combine(Root, "Art");
     public static readonly string OnlineArt = Path.Combine(Root, "Art", "Online");
     public static readonly string Thumbs = Path.Combine(Root, "Art", "Thumbs");

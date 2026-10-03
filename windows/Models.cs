@@ -91,9 +91,6 @@ public sealed class Settings
 {
     public List<string> Folders { get; set; } = new();
     // Output
-    public string AudioCore { get; set; } = "miku";       // miku（MIKU 原本的 NAudio 內核）| rplay（Rplay / RAAT 架構內核）
-    public string RplayProfile { get; set; } = "roon_fix"; // Rplay：roon_fix（修正 Roon 的疑似 bug）| roon_origin（照 Roon 原本的做法）
-    public int RplayMaxDsd { get; set; } = 512;           // Rplay：最高 DSD 倍數（64 / 128 / 256 / 512），超過的轉 PCM
     public string OutputMode { get; set; } = "exclusive"; // exclusive | shared | asio
     public string DeviceId { get; set; }
     public string AsioDriver { get; set; }

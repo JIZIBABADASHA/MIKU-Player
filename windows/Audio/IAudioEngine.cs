@@ -4,9 +4,7 @@ using System.Threading.Tasks;
 namespace Miku.Audio;
 
 /// <summary>
-/// The playback core used by Player / MainForm. Two implementations:
-/// <see cref="AudioEngine"/> (MIKU's own NAudio core) and <see cref="RplayEngine"/> (the Rplay core, RAAT architecture).
-/// Settings.AudioCore picks one ("miku" | "rplay").
+/// Playback operations used by Player and implemented by the NAudio-based <see cref="AudioEngine"/>.
 /// </summary>
 public interface IAudioEngine : IDisposable
 {
@@ -41,5 +39,8 @@ public interface IAudioEngine : IDisposable
     void ApplyVolume();
     void ApplyDsp();
     (double l, double r, long clips, long underruns) Meter();
+    /// <summary>Pre-quantization SRC peak data, when the core exposes it.</summary>
+    (long overloads, double peak) ResamplingMeter() => (0, 0);
+    bool ResamplingMeterAvailable => false;
     void RefreshSignal();
 }

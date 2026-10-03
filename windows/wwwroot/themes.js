@@ -9,6 +9,7 @@ const Theme = {
     { id: 'flat',  name: '極簡平面', en: 'MINIMAL',  desc: '亮色、無陰影、直角。黑白為主，只用一種鈷藍。' },
     { id: 'neon',  name: '霓虹賽博', en: 'NEON',     desc: '深夜網格、電光青與洋紅發光，等寬數字。' },
     { id: 'washi', name: '和紙',     en: 'WASHI',    desc: '米白紙紋、明朝體，藍染為主色、朱印點綴。' },
+    { id: 'vinyl', name: '黑膠',     en: 'VINYL',    desc: '七〇年代音響：鼠尾草綠的房間、松木深綠側欄、焦橙與芥末黃。專輯是唱片封套，滑過會抽出黑膠；播放中的唱片會轉，暫停就停住。' },
   ],
   cur: null,
   key: 'miku.theme',
