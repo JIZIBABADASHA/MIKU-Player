@@ -378,6 +378,7 @@ public static class TagReader
             Size = f.Length,
             Mtime = f.LastWriteTimeUtc.Ticks,
             Codec = CodecFromExt(f.Extension),
+            ReadVer = Version,
         };
         string ext = f.Extension.ToLowerInvariant();
         bool ok = false;
@@ -388,7 +389,8 @@ public static class TagReader
             {
                 using var file = TagLib.File.Create(f.FullName, TagLib.ReadStyle.Average);
                 ApplyTag(t, file.Tag);
-                if (file is TagLib.Riff.File riff) FixRiffInfo(t, riff);
+                if (file is TagLib.Riff.File riff) { FixRiffInfo(t, riff); RestoreLost(t, riff.GetTag(TagLib.TagTypes.Id3v2, false), true); }
+                else RestoreLost(t, null, false);
                 var props = file.Properties;
                 if (props != null)
                 {
@@ -455,18 +457,21 @@ public static class TagReader
 
     static TagReader() { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); }
 
+    /// <summary>Version of the reading rules; raise it when a change should reach tracks already in the library.</summary>
+    public const int Version = 1;
+
     /// <summary>
-    /// WAV files read before the RIFF INFO fixes whose tags came out garbled (U+FFFD) or with '?' for lost characters:
-    /// read them again on the next scan even though the file itself didn't change. (Not for a missing album: most WAVs
-    /// without one simply have no tags, and they would be read again on every scan. A WAV whose tag really contains '?'
-    /// is read again on each scan; there are few of them.)
+    /// Tracks read with older rules whose tags may read differently now: read them again on the next scan even though
+    /// the file itself didn't change, once (<see cref="Track.ReadVer"/>). Garbled (U+FFFD) WAV INFO; '?' for
+    /// characters a tagging program couldn't encode (<see cref="RestoreLost"/>); tags from the ffprobe fallback read
+    /// before it was decoded as UTF-8 (UTF-8 read as Big5 gives private-use characters, "未来古代楽団" → "?芣?支誨璆賢";
+    /// real tags hardly ever have them). Not for a missing album: most WAVs without one simply have no tags.
     /// </summary>
     public static bool NeedsReread(Track t)
     {
+        if (t.ReadVer >= Version) return false;
         string all = $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}";
-        // any format: tags from the ffprobe fallback read before it was decoded as UTF-8 (UTF-8 read as Big5 etc.
-        // gives private-use characters, "未来古代楽団" → "?芣?支誨璆賢"; real tags hardly ever have them)
-        return (t.Codec == "WAV" && all.AsSpan().IndexOfAny('�', '?') >= 0) || all.Any(c => c >= '' && c <= '');
+        return all.AsSpan().IndexOfAny('\uFFFD', '?') >= 0 || all.Any(c => c >= '\uE000' && c <= '\uF8FF');
     }
 
     /// <summary>
@@ -475,11 +480,7 @@ public static class TagReader
     /// to the album artist). ID3 values are fine and are kept; a value that was filled from INFO and came out garbled is
     /// decoded again from the raw bytes. TagLib doesn't read the album from INFO at all (IPRD): use it when there is no
     /// other album.
-    /// Tagging programs also write INFO in a code page that can't hold every character and store each missing one as
-    /// '?' (Big5: "獅子神レオナ" → "獅子神???", "さユり" → "???"). Such a value from INFO is replaced by a correct value of
-    /// the same file that fits it, one character per '?' (the ID3 artist, title…, or a folder / file name: Roon shows
-    /// the ID3 text of these files); with nothing that fits, a value that is mostly '?' is dropped (the artist, album
-    /// artist and title then fall back to each other / the file name), except the album, which groups the tracks.
+    /// Characters the code page couldn't hold, stored as '?', are handled afterwards by <see cref="RestoreLost"/>.
     /// </summary>
     static void FixRiffInfo(Track t, TagLib.Riff.File riff)
     {
@@ -493,7 +494,7 @@ public static class TagReader
             }
             return "";
         }
-        static bool Garbled(string s) => s.Contains('�');
+        static bool Garbled(string s) => s.Contains('\uFFFD');
         if (Garbled(t.Title)) t.Title = Info("INAM");
         if (Garbled(t.Artist)) t.Artist = Info("ISTR");
         if (Garbled(t.AlbumArtist)) t.AlbumArtist = Info("IART");
@@ -501,22 +502,37 @@ public static class TagReader
         if (Garbled(t.Composer)) t.Composer = Info("IWRI");
         if (t.Album == "") t.Album = Info("IPRD");
 
-        // '?' for characters the code page couldn't hold: only in values that came from INFO (ID3 is Unicode)
-        var id3 = riff.GetTag(TagLib.TagTypes.Id3v2, false);
-        static string Id3(TagLib.Tag tag, Func<TagLib.Tag, string> get) => tag == null ? "" : Clean(get(tag));
+    }
+
+    static readonly Regex NameSeparators = new(@"\s*(?:[;/、,&＆×]|\bfeat\.?(?=\s)|\bft\.|[()（）])\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// Text whose tagging program stored characters it couldn't encode as '?' ("初音ミク" → "初音??", Big5 RIFF INFO
+    /// "獅子神レオナ" → "獅子神???"): replace it with a value of the same file that fits it, one non-ASCII character per
+    /// '?' (the artist, title…, a part of them such as the "初音ミク" of "黒うさP feat. 初音ミク", or a folder / file name;
+    /// names in a list are matched one by one). Only non-ASCII characters get lost this way, so a real '?' ("Why?")
+    /// never fits. <paramref name="unicode"/>: a tag stored as Unicode (a WAV's ID3); a value equal to its value is kept.
+    /// With <paramref name="dropLost"/> (RIFF INFO), a value that is mostly '?' and fits nothing is dropped (the artist,
+    /// album artist and title then fall back to each other / the file name), except the album, which groups the tracks.
+    /// </summary>
+    static void RestoreLost(Track t, TagLib.Tag unicode, bool dropLost)
+    {
+        if (!$"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".Contains('?')) return;
+        static string Uni(TagLib.Tag tag, Func<TagLib.Tag, string> get) => tag == null ? null : Clean(get(tag));
         var dirs = Path.GetDirectoryName(t.Path)?.Split(Path.DirectorySeparatorChar) ?? Array.Empty<string>();
         var known = new[] { t.Artist, t.AlbumArtist, t.Title, t.Album, t.Composer, Path.GetFileNameWithoutExtension(t.Path) }
             .Concat(dirs.Reverse().Take(4)).Where(s => s != "" && !s.Contains('?')).ToList();
-        var knownParts = known.SelectMany(k => k.Split(new[] { ';', '/' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).ToList();
+        var knownParts = known.SelectMany(k => NameSeparators.Split(k)).Select(p => p.Trim()).Where(p => p != "").Distinct().ToList();
         static string Fit(string s, List<string> candidates)
         {
-            var fit = new Regex("^" + string.Concat(s.Select(c => c == '?' ? "." : Regex.Escape(c.ToString()))) + "$");
+            if (s.All(c => c == '?' || char.IsWhiteSpace(c)) && s.Count(c => c == '?') < 2) return null;
+            var fit = new Regex("^" + string.Concat(s.Select(c => c == '?' ? @"[^\x00-\x7F]" : Regex.Escape(c.ToString()))) + "$");
             return candidates.FirstOrDefault(fit.IsMatch);
         }
-        string Fix(string s, string fromId3, bool drop)
+        string Fix(string s, string fromUnicode, bool drop)
         {
-            if (!s.Contains('?') || s == fromId3) return s;
-            if (Fit(s, known) is string whole) return whole;
+            if (!s.Contains('?') || s == fromUnicode) return s;
+            if ((Fit(s, known) ?? Fit(s, knownParts)) is string whole) return whole;
             // several names whose separators differ between INFO and ID3 ("和氣??未/高野麻里佳" vs "和氣あず未; 高野麻里佳")
             var parts = Regex.Split(s, @"(\s*[;/]\s*)");
             if (parts.Length > 1)
@@ -527,12 +543,12 @@ public static class TagReader
             }
             return drop && Lost(s) ? "" : s;
         }
-        t.Title = Fix(t.Title, Id3(id3, g => g.Title), true);
-        t.Artist = Fix(t.Artist, Id3(id3, g => g.JoinedPerformers), true);
-        t.AlbumArtist = Fix(t.AlbumArtist, Id3(id3, g => g.JoinedAlbumArtists), true);
-        t.Album = Fix(t.Album, Id3(id3, g => g.Album), false);
-        t.Genre = Fix(t.Genre, Id3(id3, g => g.JoinedGenres), true);
-        t.Composer = Fix(t.Composer, Id3(id3, g => g.JoinedComposers), true);
+        t.Title = Fix(t.Title, Uni(unicode, g => g.Title), dropLost);
+        t.Artist = Fix(t.Artist, Uni(unicode, g => g.JoinedPerformers), dropLost);
+        t.AlbumArtist = Fix(t.AlbumArtist, Uni(unicode, g => g.JoinedAlbumArtists), dropLost);
+        t.Album = Fix(t.Album, Uni(unicode, g => g.Album), false);
+        t.Genre = Fix(t.Genre, Uni(unicode, g => g.JoinedGenres), dropLost);
+        t.Composer = Fix(t.Composer, Uni(unicode, g => g.JoinedComposers), dropLost);
     }
 
     /// <summary>Mostly '?': two or more making up at least half of the text, or a run of three.</summary>

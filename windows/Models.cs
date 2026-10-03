@@ -29,6 +29,8 @@ public sealed class Track
     public bool HasPic { get; set; }
     public double? RgTrack { get; set; }
     public double? RgAlbum { get; set; }
+    /// <summary>Version of the tag reading rules this was read with (<see cref="Library.TagReader.Version"/>); 0 = before versions.</summary>
+    public int ReadVer { get; set; }
     [JsonIgnore] public string AlbumId { get; set; }
 
     [JsonIgnore] public bool IsDsd => Codec == "DSF" || Codec == "DFF";
