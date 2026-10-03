@@ -163,6 +163,23 @@ function artBox(cls, kind, id, size, label) {
 }
 
 /* ═════════════════════════════ library store ═════════════════════════════ */
+/** Artist and genre tags: ';' separates several values ("ほぼ日P ;  初音ミク", "Niconico; Vocaloid"). */
+const splitNames = s => (s || '').split(';').map(x => x.trim()).filter(Boolean);
+/** Several values shown as one text. */
+const joinNames = names => names.join(' / ');
+const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
+/** The artist page for a track: its album's artist (unless a compilation), else the track's first artist. */
+const mainArtist = t => (t.album?.artists || []).find(realArtist) || t.artists?.[0] || t.artist;
+/** Names as links to their artist pages, separated like joinNames. */
+function artistLinks(names, before) {
+  const out = [];
+  names.forEach((n, i) => {
+    if (i) out.push(' / ');
+    out.push(realArtist(n) ? h('a', { onclick: () => { before && before(); go('#/artist/' + encodeURIComponent(n)); } }, n) : n);
+  });
+  return out;
+}
+
 const Lib = {
   albums: [], tracks: [], albumById: new Map(), trackById: new Map(), artists: [], artistMap: new Map(), loaded: false,
   async load() {
@@ -172,11 +189,13 @@ const Lib = {
     } catch (e) { console.error(e); data = { albums: [], tracks: [] }; }
     const albums = [], albumById = new Map(), trackById = new Map(), tracks = [];
     for (const a of data.albums) {
-      const al = { id: a[0], title: a[1], artist: a[2], year: a[3], genre: a[4], added: a[5], hasArt: !!a[6], loose: !!a[7], tracks: [], dur: 0 };
+      const artists = splitNames(a[2]);
+      const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], tracks: [], dur: 0 };
       albums.push(al); albumById.set(al.id, al);
     }
     for (const r of data.tracks) {
-      const t = { id: r[0], title: r[1], artist: r[2], albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: r[11] };
+      const artists = splitNames(r[2]);
+      const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: r[11] };
       const al = albumById.get(t.albumId);
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
@@ -188,9 +207,10 @@ const Lib = {
       al.q = f ? fmtQuality(f.codec, f.rate, f.bits) : '';
       al.qc = f ? qualityClass(f.codec, f.rate, f.bits) : '';
       al.s = norm(al.title + ' ' + al.artist);
-      if (al.artist && al.artist !== 'Various Artists' && al.artist !== '未知演出者') {
-        let ar = artistMap.get(al.artist);
-        if (!ar) artistMap.set(al.artist, ar = { name: al.artist, albums: [], s: norm(al.artist) });
+      // each of several album artists ("Various Artists ; 初音ミク") gets the album
+      for (const name of al.artists.filter(realArtist)) {
+        let ar = artistMap.get(name);
+        if (!ar) artistMap.set(name, ar = { name, albums: [], s: norm(name) });
         ar.albums.push(al);
       }
     }
@@ -444,7 +464,7 @@ const App = {
     $('#b-fav').onclick = () => { const t = this.track(); if (t) this.toggleFav(t.id); };
     $('#b-art').onclick = () => NowPlaying.show();
     $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
-    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(t.album?.artist && t.album.artist !== 'Various Artists' ? t.album.artist : t.artist)); };
+    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
     $('#b-queue').onclick = () => Drawer.toggle('queue');
     $('#b-dsp').onclick = () => Drawer.toggle('dsp');
     $('#b-sig').onclick = e => SignalPop.toggle(e.currentTarget);
@@ -642,10 +662,16 @@ function trackMenu(t, anchor, list) {
     '-',
     { label: App.favs.has(t.id) ? '從最愛移除' : '加入我的最愛', icon: 'heart', run: () => App.toggleFav(t.id) },
     { label: '前往專輯', icon: 'album', run: () => go('#/album/' + t.albumId) },
-    { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(t.artist)) },
+    ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
+}
+
+/** "Go to artist" menu items: one per artist when there are several. */
+function artistItems(names) {
+  names = names.filter(Boolean);
+  return names.map(n => ({ label: names.length > 1 ? `前往演出者：${n}` : '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
 function albumMenu(al, anchor) {
@@ -655,7 +681,7 @@ function albumMenu(al, anchor) {
     { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast('已排在下一首'); } },
     { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
     '-',
-    { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(al.artist)) },
+    ...artistItems(al.artists.filter(realArtist)),
     { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',

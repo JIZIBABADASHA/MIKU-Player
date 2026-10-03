@@ -5,7 +5,7 @@ const ArtPicker = {
   open(al) {
     this.show({
       heading: `更換封面 · ${al.title}`,
-      query: `${al.artist === 'Various Artists' ? '' : al.artist} ${al.title}`.trim(),
+      query: `${(al.artists || [al.artist]).find(realArtist) || ''} ${al.title}`.trim(),
       searching: '搜尋中…（Apple Music、Deezer、MusicBrainz）',
       info: () => Host.call('art.info', { id: al.id }),
       candidates: q => Host.call('art.candidates', { id: al.id, q }),

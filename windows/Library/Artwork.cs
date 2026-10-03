@@ -154,7 +154,7 @@ public sealed class ArtworkService
     static bool RecentlyMissed(string file) =>
         File.Exists(file) && DateTime.UtcNow - File.GetLastWriteTimeUtc(file) < TimeSpan.FromDays(5);
 
-    static string CleanArtist(string s) => s is null or "Various Artists" or "未知演出者" ? "" : s.Trim().Trim('【', '】', '[', ']', '(', ')').Trim();
+    static string CleanArtist(string s) => Text.FirstArtist(s).Trim('【', '】', '[', ']', '(', ')').Trim();
 
     /// <summary>Automatic search: album + artist, album alone, folder name, then each track as a song.</summary>
     async Task<string> FindAlbumUrl(Album a)

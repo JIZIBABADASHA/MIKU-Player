@@ -385,7 +385,7 @@ const Views = {
     const meta = h('div', { class: 'meta' },
         h('div', { class: 'kind' }, al.loose ? '資料夾' : '專輯'),
         h('h1', { title: al.title }, al.title),
-        h('div', { class: 'by' }, h('a', { onclick: () => go('#/artist/' + encodeURIComponent(al.artist)) }, al.artist)),
+        h('div', { class: 'by' }, ...artistLinks(al.artists.length ? al.artists : [al.artist])),
         h('div', { class: 'facts num' },
           al.year ? h('span', null, al.year) : null,
           h('span', null, `${al.tracks.length} 首 · ${fmtLong(al.dur)}`),
@@ -409,10 +409,11 @@ const Views = {
       list.append(row);
     });
     view.append(list);
-    // more by this artist
-    const more = (Lib.artistMap.get(al.artist)?.albums || []).filter(a => a !== al);
-    if (more.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${al.artist} 的作品`)));
+    // more by this artist (each of them when there are several)
+    for (const name of al.artists.filter(realArtist).slice(0, 3)) {
+      const more = (Lib.artistMap.get(name)?.albums || []).filter(a => a !== al);
+      if (!more.length) continue;
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${name} 的作品`)));
       const r = h('div', { class: 'rail' });
       more.slice(0, 20).forEach(a => r.append(albumCard(a, 176)));
       view.append(r);

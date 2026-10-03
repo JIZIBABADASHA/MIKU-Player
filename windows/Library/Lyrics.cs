@@ -339,7 +339,8 @@ public sealed class LyricsService
 
     static async Task<LyricsResult> LrcLib(Track t)
     {
-        string artist = string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist;
+        // the first of several artists ("ほぼ日P ;  初音ミク"): the services match one name
+        string artist = Text.FirstArtist(string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist);
         string url = "https://lrclib.net/api/get?artist_name=" + Uri.EscapeDataString(artist ?? "") +
                      "&track_name=" + Uri.EscapeDataString(t.Title) +
                      "&album_name=" + Uri.EscapeDataString(t.Album ?? "") +
@@ -383,7 +384,8 @@ public sealed class LyricsService
 
     static async Task<LyricsResult> NetEase(Track t)
     {
-        string artist = string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist;
+        // the first of several artists ("ほぼ日P ;  初音ミク"): the services match one name
+        string artist = Text.FirstArtist(string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist);
         string q = Uri.EscapeDataString((t.Title + " " + artist).Trim());
         using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get,
             $"https://music.163.com/api/search/get/web?csrf_token=&hlpretag=&hlposttag=&s={q}&type=1&offset=0&total=true&limit=12");
