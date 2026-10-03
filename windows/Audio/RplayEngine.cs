@@ -26,12 +26,12 @@ namespace Miku.Audio;
 ///     device (like Roon's [volume/software]) so changes are heard immediately; bit-perfect while it is transparent
 ///   • hardware volume → the WASAPI endpoint volume (also used for DSD like the MIKU core)
 ///   • ReplayGain → Core gain stage, decided per stream from the stream's first track
-///   • YouTube live audio is not a file: it is played by the MIKU core, which takes the DAC while it plays
+///   • YouTube Music (captured from the page into LiveBus) is played by Rplay too, through LiveDecoder:
+///     a live source with small buffers (0.6 s stream buffer) and the same drift control as the MIKU core's LiveSource
 /// </summary>
 public sealed class RplayEngine : IAudioEngine
 {
     readonly Settings _s;
-    readonly AudioEngine _live;          // MIKU's own core, only for YouTube live tracks
     readonly SemaphoreSlim _gate = new(1, 1);
     readonly object _stackLock = new();
 
@@ -42,7 +42,6 @@ public sealed class RplayEngine : IAudioEngine
     string _deviceId;
     MMDevice _hwDevice;
     double? _hwRestoreDb;
-    bool _liveActive;
     SignalInfo _signal;
     double? _rgDb;
     DeviceCaps _caps;
@@ -60,26 +59,20 @@ public sealed class RplayEngine : IAudioEngine
     public RplayEngine(Settings settings, Action<Action> uiInvoke)
     {
         _s = settings;
-        _live = new AudioEngine(settings, uiInvoke);
-        _live.PeekNext = () => null;
-        _live.TrackStarted += t => { if (_liveActive) TrackStarted?.Invoke(t); };
-        _live.Ended += () => { if (_liveActive) Ended?.Invoke(); };
-        _live.Failed += m => { if (_liveActive) Failed?.Invoke(m); };
-        _live.Changed += () => { if (_liveActive) Changed?.Invoke(); };
         FfmpegDecoder.FfmpegPath = Ffmpeg.Path;
     }
 
     // ───────────────────────────── state ─────────────────────────────
 
-    public SignalInfo Signal => _liveActive ? _live.Signal : _signal;
+    public SignalInfo Signal => _signal;
     public bool LastFailureWasDevice { get; private set; }
     Track _track;
-    public Track Track => _liveActive ? _live.Track : _rp?.Track ?? _track;
-    public bool IsPlaying => _liveActive ? _live.IsPlaying : _rp?.IsPlaying ?? false;
-    public bool IsLoaded => _liveActive ? _live.IsLoaded : _rp?.IsLoaded ?? false;
-    public DeviceCaps Caps => _liveActive ? _live.Caps : _caps;
+    public Track Track => _rp?.Track ?? _track;
+    public bool IsPlaying => _rp?.IsPlaying ?? false;
+    public bool IsLoaded => _rp?.IsLoaded ?? false;
+    public DeviceCaps Caps => _caps;
     double _pausedAt;
-    public double Position => _liveActive ? _live.Position : _rp != null && _rp.Track != null ? _rp.Position : _pausedAt;
+    public double Position => _rp != null && _rp.Track != null ? _rp.Position : _pausedAt;
 
     // ───────────────────────────── the Rplay stack ─────────────────────────────
 
@@ -124,6 +117,14 @@ public sealed class RplayEngine : IAudioEngine
             var rp = new RaatAudioEngine<Track>(t => t.Path, () => ZonePlayer.ConnectAsync("127.0.0.1", srv.ControlPort));
             rp.PeekNext = () => { var n = PeekNext?.Invoke(); return n == null || n.IsLive ? null : n; };
             rp.ConfigureDsp = ConfigureStream;
+            rp.SourceFor = t => t.IsLive ? new SourceOptions
+            {
+                Decoder = new LiveDecoder(),
+                // 下游的緩衝要小而固定：LiveDecoder 依共享記憶體的水位微調速度，下游如果能一直把資料搬走，水位就量不到
+                PrebufferMs = LiveDecoder.PrebufferMs, PrebufferFill = 0.2,
+                StreamBufferSeconds = 0.6, StreamReadySeconds = 0.3,
+                Live = true,
+            } : null;
             rp.TrackStarted += t => { _signal = BuildSignal(t); TrackStarted?.Invoke(t); };
             rp.Ended += () => Ended?.Invoke();
             rp.Failed += m => { Log.Info("[rplay] " + m); Failed?.Invoke(m); };
@@ -173,19 +174,8 @@ public sealed class RplayEngine : IAudioEngine
     {
         LastFailureWasDevice = false;
         if (t == null) return;
-        if (t.IsLive)
-        {
-            // YouTube live：交給 MIKU 原本的內核，先放開 DAC
-            await _gate.WaitAsync();
-            try { _rp?.Stop(); TearDownStack(); _liveActive = true; }
-            finally { _gate.Release(); }
-            await _live.LoadAsync(t, seek, play);
-            LastFailureWasDevice = _live.LastFailureWasDevice;
-            return;
-        }
         Loading?.Invoke(t);
-        if (_liveActive) { _live.Stop(); _liveActive = false; }
-        if (play && ReleaseOthers != null)
+        if (play && !t.IsLive && ReleaseOthers != null)
         {
             try { await Task.WhenAny(ReleaseOthers(), Task.Delay(1500)); } catch (Exception ex) { Log.Error("ReleaseOthers", ex); }
         }
@@ -203,7 +193,7 @@ public sealed class RplayEngine : IAudioEngine
                 return;
             }
             _track = t;
-            _pausedAt = seek;
+            _pausedAt = t.IsLive ? 0 : seek;
             await _rp.LoadAsync(t, seek, play);
             LastFailureWasDevice = _rp.LastFailureWasDevice;
             _signal = _rp.IsLoaded ? BuildSignal(t) : null;
@@ -214,14 +204,12 @@ public sealed class RplayEngine : IAudioEngine
 
     public void Pause()
     {
-        if (_liveActive) { _live.Pause(); return; }
         _rp?.Pause();
         Changed?.Invoke();
     }
 
     public void Resume()
     {
-        if (_liveActive) { _live.Resume(); return; }
         if (_rp != null && _rp.Track != null) { _rp.Resume(); Changed?.Invoke(); return; }
         var t = _track;
         if (t != null) _ = LoadAsync(t, _pausedAt, true);
@@ -229,14 +217,13 @@ public sealed class RplayEngine : IAudioEngine
 
     public Task SeekAsync(double pos)
     {
-        if (_liveActive) return _live.SeekAsync(pos);
+        if (Track?.IsLive == true) return Task.CompletedTask;   // 即時串流不能 seek
         if (_rp == null || _rp.Track == null) { _pausedAt = pos; return Task.CompletedTask; }
         return _rp.SeekAsync(pos).ContinueWith(_ => { _signal = _rp?.IsLoaded == true ? BuildSignal(_rp.Track) : _signal; Changed?.Invoke(); });
     }
 
     public void Stop()
     {
-        if (_liveActive) { _live.Stop(); _liveActive = false; }
         _rp?.Stop();
         _track = null; _signal = null; _pausedAt = 0;
         RestoreHardwareVolume();
@@ -245,7 +232,6 @@ public sealed class RplayEngine : IAudioEngine
 
     public async Task ReconfigureAsync()
     {
-        if (_liveActive) { await _live.ReconfigureAsync(); return; }
         var t = Track; double pos = Position; bool play = IsPlaying;
         await _gate.WaitAsync();
         try { _rp?.Stop(); TearDownStack(); }
@@ -256,7 +242,6 @@ public sealed class RplayEngine : IAudioEngine
     public void InvalidateNext()
     {
         _rp?.InvalidateNext();
-        _live.InvalidateNext();
     }
 
     // ───────────────────────────── volume & dsp ─────────────────────────────
@@ -272,7 +257,6 @@ public sealed class RplayEngine : IAudioEngine
 
     public void ApplyVolume()
     {
-        if (_liveActive) { _live.ApplyVolume(); return; }
         _proc?.SetGain(DigitalGain());
         ApplyHardwareVolume();
         if (_signal != null && _rp?.Track != null) _signal = BuildSignal(_rp.Track);
@@ -304,7 +288,6 @@ public sealed class RplayEngine : IAudioEngine
 
     public void ApplyDsp()
     {
-        if (_liveActive) { _live.ApplyDsp(); return; }
         _proc?.SetConfig(_s.Dsp);
         if (_signal != null && _rp?.Track != null) _signal = BuildSignal(_rp.Track);
         Changed?.Invoke();
@@ -312,7 +295,6 @@ public sealed class RplayEngine : IAudioEngine
 
     public (double l, double r, long clips, long underruns) Meter()
     {
-        if (_liveActive) return _live.Meter();
         var p = _proc;
         if (p == null || !IsLoaded) return (0, 0, 0, 0);
         return (p.PeakL, p.PeakR, p.Clips, 0);
@@ -329,7 +311,7 @@ public sealed class RplayEngine : IAudioEngine
         bool dsdOut = wire.IsDsd;
         bool encapsulated = dsdOut && output.ActiveDsdMode is DsdMode.Dop or DsdMode.Dcs;
         bool isDsd = t.IsDsd;
-        int srcRate = src?.SampleRate ?? t.SampleRate;
+        int srcRate = t.IsLive ? LiveBus.SourceRate : src?.SampleRate ?? t.SampleRate;
         string mode = _s.OutputMode switch { "asio" => "ASIO", "shared" => "WASAPI 共享", _ => "WASAPI 獨佔" };
         var info = new SignalInfo
         {
@@ -385,7 +367,6 @@ public sealed class RplayEngine : IAudioEngine
 
     public void RefreshSignal()
     {
-        if (_liveActive) { _live.RefreshSignal(); return; }
         if (_signal != null) _signal.Quality = Quality(_signal);
     }
 
@@ -393,7 +374,6 @@ public sealed class RplayEngine : IAudioEngine
     {
         try { _rp?.Stop(); } catch { }
         TearDownStack();
-        _live.Dispose();
     }
 
     /// <summary>MIKU 的 DspProcessor（音量、EQ、Crossfeed、平衡、反相、音量表），在 Rplay 輸出端處理即將送進裝置的樣本。</summary>
@@ -425,4 +405,111 @@ public sealed class RplayEngine : IAudioEngine
         public void SetGain(double g) { _gain = g; _p?.SetGain(g); }
         public void SetConfig(DspConfig cfg) => _p?.SetConfig(cfg);
     }
+}
+
+/// <summary>
+/// YouTube Music for the Rplay core: reads the audio the page writes into LiveBus (see MainForm's tap script), the same
+/// way as the MIKU core's LiveSource — 4-point Hermite resampling with a tiny rate correction (at most ±0.5 %) so the
+/// browser's clock and the DAC's clock don't drift apart, never dropping or repeating samples.
+///
+/// Differences for Rplay: downstream of the decoder there is a small prebuffer (<see cref="PrebufferMs"/>) and the Core
+/// pushes about half its stream buffer (0.3 s) ahead of the DAC. Both fill from the ring as fast as they can, so the
+/// decoder first waits for <see cref="Prime"/> seconds (= Core lead + prebuffer + setpoint) and then holds the ring at
+/// about <see cref="Setpoint"/> seconds. The rate correction only works when the downstream buffers are small and fixed:
+/// with a large one the ring is always empty and the control loop would stretch the audio.
+/// Output: 48 kHz, int32 (the page delivers float32, so nothing is lost at 32-bit).
+/// </summary>
+sealed unsafe class LiveDecoder : IAudioDecoder
+{
+    public const int PrebufferMs = 250;                       // Rplay BufferedSource in front of the Core (≥ its 0.2 s chunk)
+    const double Setpoint = 0.2;                              // seconds of audio we keep in the ring afterwards
+    const double Prime = 0.3 + PrebufferMs / 1000.0 + Setpoint;   // Core lead + prebuffer + setpoint
+    const double Overflow = 1.2;   // beyond this something stalled: resynchronise once
+
+    uint _read;
+    double _frac, _adj;
+    bool _synced, _primed;
+    volatile bool _disposed;
+
+    public StreamFormat Format { get; } = StreamFormat.Pcm(LiveBus.Rate, 32, 2);
+    public long TotalFrames => -1;
+    public string Codec => "YouTube";
+
+    public int Read(Span<int> dst, int frames)
+    {
+        while (!_disposed)
+        {
+            if (!LiveBus.Ready) { Thread.Sleep(20); continue; }
+            uint* hdr = (uint*)LiveBus.Ptr;
+            float* ring = (float*)((byte*)LiveBus.Ptr + 16);
+            uint cap = (uint)LiveBus.CapFrames;
+            uint w = Volatile.Read(ref *hdr);
+            double rate = LiveBus.SourceRate;
+
+            if (!_synced || w < _read || w - _read > cap - 4096)
+            {
+                // first read, page reloaded, or the writer lapped us: restart close to the writer
+                if (_synced) LiveBus.Resyncs++;
+                _read = w; _frac = 0; _synced = true; _primed = false; _adj = 0;
+                continue;
+            }
+            int avail = (int)(w - _read);
+            if (!_primed)
+            {
+                if (avail < Prime * rate) { Thread.Sleep(5); continue; }
+                _primed = true;
+            }
+            double fill = avail / rate;
+            LiveBus.Fill = fill;
+            if (fill > Overflow)
+            {
+                LiveBus.Resyncs++;
+                _read = w - (uint)(Setpoint * rate); _frac = 0; _adj = 0;
+                continue;
+            }
+            if (avail < 4) { LiveBus.Starves++; Thread.Sleep(3); continue; }
+
+            // proportional control of the ring level through a tiny rate change (as in LiveSource)
+            double err = fill - Setpoint;
+            double want = Math.Clamp(err * 0.02, -0.005, 0.005);
+            _adj += (want - _adj) * 0.02;
+            LiveBus.Adj = _adj;
+            double step = rate / LiveBus.Rate * (1 + _adj);
+
+            int produced = 0;
+            while (produced < frames)
+            {
+                int i0 = (int)_frac;
+                if (i0 + 2 >= avail) break;
+                double t = _frac - i0;
+                uint b = _read + (uint)i0;
+                int pm = (int)((b - 1) % cap) * 2, p0 = (int)(b % cap) * 2, p1 = (int)((b + 1) % cap) * 2, p2 = (int)((b + 2) % cap) * 2;
+                dst[2 * produced] = ToInt(Hermite(ring[pm], ring[p0], ring[p1], ring[p2], t));
+                dst[2 * produced + 1] = ToInt(Hermite(ring[pm + 1], ring[p0 + 1], ring[p1 + 1], ring[p2 + 1], t));
+                produced++;
+                _frac += step;
+            }
+            int whole = (int)_frac;
+            _read += (uint)whole;
+            _frac -= whole;
+            if (produced > 0) return produced;
+            Thread.Sleep(3);
+        }
+        return 0;
+    }
+
+    static int ToInt(double x) => x >= 1.0 ? int.MaxValue : x <= -1.0 ? int.MinValue : (int)(x * 2147483648.0);
+
+    /// <summary>4-point, 3rd-order Hermite interpolation (same as LiveSource).</summary>
+    static double Hermite(double xm1, double x0, double x1, double x2, double t)
+    {
+        double c1 = 0.5 * (x1 - xm1);
+        double c2 = xm1 - 2.5 * x0 + 2 * x1 - 0.5 * x2;
+        double c3 = 0.5 * (x2 - xm1) + 1.5 * (x0 - x1);
+        return ((c3 * t + c2) * t + c1) * t + x0;
+    }
+
+    public int ReadDsd(Span<byte> dst, int frames) => throw new NotSupportedException();
+    public void Seek(long frame) { }
+    public void Dispose() => _disposed = true;
 }
