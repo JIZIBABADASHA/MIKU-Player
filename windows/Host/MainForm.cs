@@ -69,11 +69,11 @@ public sealed class MainForm : Form
     /// heard by the capture / output buffers (about 0.4 s with the MIKU core, 1 s with Rplay): that latency is
     /// subtracted, smoothed so its natural ripple doesn't make the bar jitter, so the bar and lyrics follow the sound.
     /// </summary>
-    double LivePosition()
+    double LivePosition(bool playing)
     {
         var m = _ytMeta;
         double t = m.T;
-        if (m.P && _engine.IsPlaying && _ytMetaAt != 0)
+        if (m.P && playing && _ytMetaAt != 0)
             t += Math.Min(1.5, (Stopwatch.GetTimestamp() - _ytMetaAt) / (double)Stopwatch.Frequency);
         if (m.D > 0) t = Math.Min(t, m.D);
         double lat = LiveLatencyEstimate();
@@ -503,6 +503,10 @@ public sealed class MainForm : Form
     /// 2. 舊內核放開 DAC 之後才開新的：回收殘留的 WASAPI / COM 物件，再等一下（獨佔模式、ASIO 都需要時間交接）
     /// 3. 新內核開不到裝置時重試幾次
     /// </summary>
+    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
+    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
+    volatile CoreSwitch _switching;
+
     async Task SwitchCoreAsync()
     {
         var old = _engine;
@@ -510,30 +514,36 @@ public sealed class MainForm : Form
         double pos = old.Position;
         bool play = old.IsPlaying;
         bool isLive = t?.IsLive == true;
-
-        var engine = CreateEngine();
-        _engine = engine;
-        _player.ReplaceEngine(engine);
-        WireEngine(engine);
-        Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : "Rplay")} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
-
-        try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
-        try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-        await Task.Delay(300);
-
-        if (t != null)
+        // until the new core has loaded the track, the state keeps showing it (otherwise the empty new core makes the
+        // UI fall back to the queue's local track for a moment, or show "paused" at 0:00)
+        _switching = t == null ? null : new CoreSwitch(t, play, pos, old.Signal);
+        try
         {
-            for (int attempt = 1; attempt <= 3; attempt++)
+            var engine = CreateEngine();
+            _engine = engine;
+            _player.ReplaceEngine(engine);
+            WireEngine(engine);
+            Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : "Rplay")} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
+
+            try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
+            try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            await Task.Delay(300);
+
+            if (t != null)
             {
-                await engine.LoadAsync(t, isLive ? 0 : pos, play);
-                if (!play || engine.IsLoaded || !engine.LastFailureWasDevice) break;
-                Log.Info($"Switch core: the DAC is not free yet (attempt {attempt}), retrying");
-                await Task.Delay(500);
+                for (int attempt = 1; attempt <= 3; attempt++)
+                {
+                    await engine.LoadAsync(t, isLive ? 0 : pos, play);
+                    if (!play || engine.IsLoaded || !engine.LastFailureWasDevice) break;
+                    Log.Info($"Switch core: the DAC is not free yet (attempt {attempt}), retrying");
+                    await Task.Delay(500);
+                }
             }
         }
+        finally { _switching = null; }
         PostSoon("state");
     }
 
@@ -1042,16 +1052,21 @@ public sealed class MainForm : Form
     object State()
     {
         var meter = _engine.Meter();
-        if (_engine.Track?.IsLive == true)
+        var sw = _switching;
+        var current = _engine.Track ?? sw?.Track;
+        bool playing = _engine.IsPlaying || sw?.Playing == true;
+        bool loaded = _engine.IsLoaded || sw != null;
+        var signal = _engine.Signal ?? sw?.Signal;
+        if (current?.IsLive == true)
         {
             var m = _ytMeta;
             var parts = (m.By ?? "").Split('•', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             return new
             {
                 trackId = "yt-live",
-                playing = _engine.IsPlaying,
-                loaded = _engine.IsLoaded,
-                pos = LivePosition(),
+                playing,
+                loaded,
+                pos = LivePosition(playing),
                 dur = m.D,
                 index = _player.Index,
                 volumeDb = _s.VolumeDb,
@@ -1059,20 +1074,20 @@ public sealed class MainForm : Form
                 volumeMode = _s.VolumeMode,
                 repeat = _s.Repeat,
                 shuffle = _s.Shuffle,
-                signal = _engine.Signal,
+                signal,
                 live = new { title = m.Title, artist = parts.Length > 0 ? parts[0] : "", album = parts.Length > 1 ? parts[1] : "", img = m.Img },
                 liveStats = new { fill = Math.Round(LiveBus.Fill, 3), adj = Math.Round(LiveBus.Adj * 1000, 2), resyncs = LiveBus.Resyncs, starves = LiveBus.Starves, rate = LiveBus.SourceRate, sink = _ytSink, gap = m.Gap },
                 meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
             };
         }
-        var t = _engine.Track ?? _player.Current;
+        var t = current ?? _player.Current;
         return new
         {
 
             trackId = t?.Id,
-            playing = _engine.IsPlaying,
-            loaded = _engine.IsLoaded,
-            pos = _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
+            playing,
+            loaded,
+            pos = sw != null && !_engine.IsLoaded ? sw.Pos : _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
             dur = t?.Duration ?? 0,
             index = _player.Index,
             volumeDb = _s.VolumeDb,
@@ -1080,7 +1095,7 @@ public sealed class MainForm : Form
             volumeMode = _s.VolumeMode,
             repeat = _s.Repeat,
             shuffle = _s.Shuffle,
-            signal = _engine.Signal,
+            signal,
             meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
         };
     }
