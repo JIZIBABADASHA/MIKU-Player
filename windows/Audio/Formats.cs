@@ -108,6 +108,9 @@ public static class Ffmpeg
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = false,
+            // ffmpeg / ffprobe write text (tags in ffprobe's JSON, messages) as UTF-8, not in the system code page
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
         return Process.Start(psi);

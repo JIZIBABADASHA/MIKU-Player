@@ -412,8 +412,13 @@ public static class TagReader
     /// without one simply have no tags, and they would be read again on every scan. A WAV whose tag really contains '?'
     /// is read again on each scan; there are few of them.)
     /// </summary>
-    public static bool NeedsReread(Track t) =>
-        t.Codec == "WAV" && $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".AsSpan().IndexOfAny('�', '?') >= 0;
+    public static bool NeedsReread(Track t)
+    {
+        string all = $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}";
+        // any format: tags from the ffprobe fallback read before it was decoded as UTF-8 (UTF-8 read as Big5 etc.
+        // gives private-use characters, "未来古代楽団" → "?芣?支誨璆賢"; real tags hardly ever have them)
+        return (t.Codec == "WAV" && all.AsSpan().IndexOfAny('�', '?') >= 0) || all.Any(c => c >= '' && c <= '');
+    }
 
     /// <summary>
     /// RIFF INFO text is usually written in the system ANSI code page (Big5, Shift-JIS, GBK…), but TagLib decodes it as
