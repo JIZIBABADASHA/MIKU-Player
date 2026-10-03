@@ -83,16 +83,45 @@ public sealed class MusicLibrary
         return dir;
     }
 
+    /// <summary>
+    /// Discs of one album in sibling folders whose names don't say "Disc 2" ("Selection Story Disc" and
+    /// "Secret Story Disc"), found from the tags: folders under the same parent holding the same album title and
+    /// album artist, each with its own disc numbers (none shared, so two sibling folders that are both disc 1 stay two
+    /// albums). Returns folder → the parent folder to group them under.
+    /// </summary>
+    static Dictionary<string, string> DiscSiblings(List<Track> tracks)
+    {
+        var merge = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var candidates = tracks
+            .Where(t => t?.Path != null && !string.IsNullOrWhiteSpace(t.Album))
+            .Select(t => (t, dir: Path.GetDirectoryName(t.Path) ?? ""))
+            .Where(x => string.Equals(AlbumFolder(x.t.Path), x.dir, StringComparison.OrdinalIgnoreCase))   // not a "Disc 2" folder already
+            .GroupBy(x => (Path.GetDirectoryName(x.dir) ?? "").ToLowerInvariant() + "|" + Text.Norm(x.t.Album) + "|" + Text.Norm(x.t.AlbumArtist ?? ""));
+        foreach (var g in candidates)
+        {
+            var folders = g.GroupBy(x => x.dir, StringComparer.OrdinalIgnoreCase).ToList();
+            if (folders.Count < 2) continue;
+            string parent = Path.GetDirectoryName(folders[0].Key);
+            if (string.IsNullOrEmpty(parent)) continue;
+            var discs = folders.SelectMany(f => f.Select(x => x.t.DiscNo).Distinct()).ToList();
+            if (discs.Distinct().Count() != discs.Count) continue;   // a disc number in two folders: separate albums
+            foreach (var f in folders) merge[f.Key] = parent;
+        }
+        return merge;
+    }
+
     void Build(List<Track> tracks, Dictionary<string, string> folderArt)
     {
         var albums = new Dictionary<string, Album>();
         var byId = new Dictionary<string, Track>();
+        var discSiblings = DiscSiblings(tracks);
         foreach (var t in tracks)
         {
             if (t?.Path == null) continue;
             t.Id ??= Text.Hash(t.Path.ToLowerInvariant());
             byId[t.Id] = t;
             string folder = AlbumFolder(t.Path);
+            if (discSiblings.TryGetValue(folder, out var parentFolder)) folder = parentFolder;
             bool loose = string.IsNullOrWhiteSpace(t.Album);
             string title = loose ? Path.GetFileName(folder) : t.Album.Trim();
             string key = folder.ToLowerInvariant() + "|" + Text.Norm(title);
