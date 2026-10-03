@@ -283,6 +283,7 @@ const App = {
     Host.on('remotePaired', p => toast(`「${p.name}」已配對，可以用手機遙控了`));
     Host.on('favs', f => { this.favs = new Set(f || []); this.renderFav(); });
     Host.on('scan', p => this.scan(p));
+    Host.on('fullscreen', ({ on }) => { this.fullscreen = on; document.documentElement.classList.toggle('fullscreen', on); });
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       await Lib.load();
@@ -562,8 +563,9 @@ const App = {
       const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
       if (e.ctrlKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#q').focus(); $('#q').select(); return; }
       if (e.key === 'F12') { Host.call('devtools'); return; }
+      if (e.key === 'F11') { e.preventDefault(); Host.call('fullscreen'); return; }
       if (typing) return;
-      if (e.key === 'Escape') { if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); }
+      if (e.key === 'Escape') { if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); }
       if (e.key === ' ') { e.preventDefault(); this.toggle(); }
       else if (e.key === 'ArrowRight' && !e.altKey) { e.preventDefault(); this.seek(Math.min(this.state.dur, this.pos + (e.shiftKey ? 30 : 5))); }
       else if (e.key === 'ArrowLeft' && !e.altKey) { e.preventDefault(); this.seek(Math.max(0, this.pos - (e.shiftKey ? 30 : 5))); }
