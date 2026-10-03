@@ -407,12 +407,13 @@ public static class TagReader
     static TagReader() { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); }
 
     /// <summary>
-    /// WAV files read before the RIFF INFO fix whose tags came out garbled (U+FFFD): read them again on the next scan
-    /// even though the file itself didn't change. (Not for a missing album: most WAVs without one simply have no tags,
-    /// and they would be read again on every scan.)
+    /// WAV files read before the RIFF INFO fixes whose tags came out garbled (U+FFFD) or with '?' for lost characters:
+    /// read them again on the next scan even though the file itself didn't change. (Not for a missing album: most WAVs
+    /// without one simply have no tags, and they would be read again on every scan. A WAV whose tag really contains '?'
+    /// is read again on each scan; there are few of them.)
     /// </summary>
     public static bool NeedsReread(Track t) =>
-        t.Codec == "WAV" && $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".Contains('\uFFFD');
+        t.Codec == "WAV" && $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".AsSpan().IndexOfAny('�', '?') >= 0;
 
     /// <summary>
     /// RIFF INFO text is usually written in the system ANSI code page (Big5, Shift-JIS, GBK…), but TagLib decodes it as
@@ -420,6 +421,11 @@ public static class TagReader
     /// to the album artist). ID3 values are fine and are kept; a value that was filled from INFO and came out garbled is
     /// decoded again from the raw bytes. TagLib doesn't read the album from INFO at all (IPRD): use it when there is no
     /// other album.
+    /// Tagging programs also write INFO in a code page that can't hold every character and store each missing one as
+    /// '?' (Big5: "獅子神レオナ" → "獅子神???", "さユり" → "???"). Such a value from INFO is replaced by a correct value of
+    /// the same file that fits it, one character per '?' (the ID3 artist, title…, or a folder / file name: Roon shows
+    /// the ID3 text of these files); with nothing that fits, a value that is mostly '?' is dropped (the artist, album
+    /// artist and title then fall back to each other / the file name), except the album, which groups the tracks.
     /// </summary>
     static void FixRiffInfo(Track t, TagLib.Riff.File riff)
     {
@@ -433,13 +439,53 @@ public static class TagReader
             }
             return "";
         }
-        static bool Garbled(string s) => s.Contains('\uFFFD');
+        static bool Garbled(string s) => s.Contains('�');
         if (Garbled(t.Title)) t.Title = Info("INAM");
         if (Garbled(t.Artist)) t.Artist = Info("ISTR");
         if (Garbled(t.AlbumArtist)) t.AlbumArtist = Info("IART");
         if (Garbled(t.Genre)) t.Genre = Info("IGNR");
         if (Garbled(t.Composer)) t.Composer = Info("IWRI");
         if (t.Album == "") t.Album = Info("IPRD");
+
+        // '?' for characters the code page couldn't hold: only in values that came from INFO (ID3 is Unicode)
+        var id3 = riff.GetTag(TagLib.TagTypes.Id3v2, false);
+        static string Id3(TagLib.Tag tag, Func<TagLib.Tag, string> get) => tag == null ? "" : Clean(get(tag));
+        var dirs = Path.GetDirectoryName(t.Path)?.Split(Path.DirectorySeparatorChar) ?? Array.Empty<string>();
+        var known = new[] { t.Artist, t.AlbumArtist, t.Title, t.Album, t.Composer, Path.GetFileNameWithoutExtension(t.Path) }
+            .Concat(dirs.Reverse().Take(4)).Where(s => s != "" && !s.Contains('?')).ToList();
+        var knownParts = known.SelectMany(k => k.Split(new[] { ';', '/' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)).ToList();
+        static string Fit(string s, List<string> candidates)
+        {
+            var fit = new Regex("^" + string.Concat(s.Select(c => c == '?' ? "." : Regex.Escape(c.ToString()))) + "$");
+            return candidates.FirstOrDefault(fit.IsMatch);
+        }
+        string Fix(string s, string fromId3, bool drop)
+        {
+            if (!s.Contains('?') || s == fromId3) return s;
+            if (Fit(s, known) is string whole) return whole;
+            // several names whose separators differ between INFO and ID3 ("和氣??未/高野麻里佳" vs "和氣あず未; 高野麻里佳")
+            var parts = Regex.Split(s, @"(\s*[;/]\s*)");
+            if (parts.Length > 1)
+            {
+                for (int i = 0; i < parts.Length; i += 2)
+                    if (parts[i].Contains('?') && Fit(parts[i], knownParts) is string p) parts[i] = p;
+                if (parts.Where((_, i) => i % 2 == 0).All(p => !p.Contains('?'))) return string.Concat(parts);
+            }
+            return drop && Lost(s) ? "" : s;
+        }
+        t.Title = Fix(t.Title, Id3(id3, g => g.Title), true);
+        t.Artist = Fix(t.Artist, Id3(id3, g => g.JoinedPerformers), true);
+        t.AlbumArtist = Fix(t.AlbumArtist, Id3(id3, g => g.JoinedAlbumArtists), true);
+        t.Album = Fix(t.Album, Id3(id3, g => g.Album), false);
+        t.Genre = Fix(t.Genre, Id3(id3, g => g.JoinedGenres), true);
+        t.Composer = Fix(t.Composer, Id3(id3, g => g.JoinedComposers), true);
+    }
+
+    /// <summary>Mostly '?': two or more making up at least half of the text, or a run of three.</summary>
+    static bool Lost(string s)
+    {
+        int q = s.Count(c => c == '?');
+        return q >= 2 && (q * 2 >= s.Count(c => !char.IsWhiteSpace(c)) || s.Contains("???"));
     }
 
     /// <summary>Text from a RIFF INFO chunk: UTF-8 when it is valid UTF-8, otherwise the system ANSI code page.</summary>
