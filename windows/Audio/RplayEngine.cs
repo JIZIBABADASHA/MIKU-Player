@@ -74,6 +74,14 @@ public sealed class RplayEngine : IAudioEngine
     double _pausedAt;
     public double Position => _rp != null && _rp.Track != null ? _rp.Position : _pausedAt;
 
+    /// <summary>
+    /// YouTube Music: seconds from the page's currentTime to the DAC — audio waiting in the ring, the prebuffer in
+    /// front of the Core, the Core's lead (half the 0.6 s stream buffer) and the output device, plus 0.14 s for the
+    /// Core's packets (about 0.16 s each at 48 kHz / 32-bit) and the endpoint's start margin. The 0.14 s was measured
+    /// (page write → device, 6 markers over 60 s: the other terms alone came out 0.12–0.18 s short).
+    /// </summary>
+    public double LiveLatency => LiveBus.Fill + LiveDecoder.PrebufferMs / 1000.0 + 0.3 + 0.14 + (_output?.GetOutputDelay() ?? 0) / 1e9;
+
     // ───────────────────────────── the Rplay stack ─────────────────────────────
 
     void EnsureStack()

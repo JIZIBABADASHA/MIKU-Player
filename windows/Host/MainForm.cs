@@ -60,11 +60,14 @@ public sealed class MainForm : Form
     }
     string _ytSink;
     long _ytMetaAt;          // Stopwatch timestamp when _ytMeta arrived
+    double _liveLatency;     // smoothed seconds from the page's currentTime to the DAC
 
     /// <summary>
-    /// Position of YouTube Music. The page reports currentTime only about every 0.5 s while the state goes out every
-    /// 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old value is sent two or
-    /// three times and the progress bar keeps jumping back).
+    /// Position of YouTube Music as heard from the DAC. The page reports currentTime only about every 0.5 s while the
+    /// state goes out every 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old
+    /// value is sent two or three times and the progress bar keeps jumping back). The page also runs ahead of what is
+    /// heard by the capture / output buffers (about 0.4 s with the MIKU core, 1 s with Rplay): that latency is
+    /// subtracted, smoothed so its natural ripple doesn't make the bar jitter, so the bar and lyrics follow the sound.
     /// </summary>
     double LivePosition()
     {
@@ -73,7 +76,18 @@ public sealed class MainForm : Form
         if (m.P && _engine.IsPlaying && _ytMetaAt != 0)
             t += Math.Min(1.5, (Stopwatch.GetTimestamp() - _ytMetaAt) / (double)Stopwatch.Frequency);
         if (m.D > 0) t = Math.Min(t, m.D);
-        return Math.Max(0, t);
+        double lat = LiveLatencyEstimate();
+        _liveLatency = _liveLatency <= 0 ? lat : _liveLatency + (lat - _liveLatency) * 0.1;   // ~2 s time constant at 5 Hz
+        return Math.Max(0, t - _liveLatency);
+    }
+
+    double LiveLatencyEstimate()
+    {
+#if HAS_RPLAY
+        if (_engine is RplayEngine r) return r.LiveLatency;
+#endif
+        // MIKU core: LiveSource's fill (ring + its own buffer) + the output buffer
+        return LiveBus.Fill + Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0;
     }
 
     const string YtTapScript = @"(() => {
