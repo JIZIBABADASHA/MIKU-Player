@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Miku.Library;
@@ -31,6 +32,20 @@ public sealed class LyricsResult
     public bool Instrumental { get; set; }
     public List<LyricLine> Lines { get; set; } = new();
     public DateTime Fetched { get; set; }
+    /// <summary>The user picked this result by hand (or said "none of these"): never replace it automatically.</summary>
+    public bool Manual { get; set; }
+}
+
+public sealed class LyricCandidate
+{
+    public string Key { get; set; }
+    public string Source { get; set; }
+    public string Title { get; set; }
+    public string Artist { get; set; }
+    public string Album { get; set; }
+    public double Duration { get; set; }
+    public double Diff { get; set; }
+    public bool Synced { get; set; }
 }
 
 public static class Lrc
@@ -153,7 +168,107 @@ public sealed class LyricsService
         }));
     }
 
-    static string CachePath(Track t) => Path.Combine(AppPaths.Lyrics, t.Id + ".json");
+    /// <summary>Look up lyrics for every track in the library (local files and cache first, online only when needed).</summary>
+    public async Task FetchAll(IEnumerable<Track> tracks, IProgress<(int done, int total, int found)> progress, CancellationToken ct)
+    {
+        var list = tracks.ToList();
+        int done = 0, found = 0;
+        progress?.Report((0, list.Count, 0));
+        foreach (var t in list)
+        {
+            if (ct.IsCancellationRequested) break;
+            bool hadCache = File.Exists(CachePath(t));
+            var r = await GetAsync(t);
+            if (r.Lines.Count > 0 || r.Instrumental) found++;
+            done++;
+            if (done % 5 == 0 || done == list.Count) progress?.Report((done, list.Count, found));
+            // only pause after a real network lookup, to stay polite to LRCLIB / NetEase
+            if (!hadCache && File.Exists(CachePath(t)))
+                try { await Task.Delay(350, ct); } catch (OperationCanceledException) { break; }
+        }
+    }
+
+    /* ── manual choice: loose search the user picks from ── */
+
+    /// <summary>All plausible matches from LRCLIB and NetEase, without the strict length filter, closest first.</summary>
+    public async Task<List<LyricCandidate>> Candidates(Track t)
+    {
+        string artist = string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist;
+        var list = new List<LyricCandidate>();
+        var lrclib = Task.Run(async () =>
+        {
+            var r = new List<LyricCandidate>();
+            string url = "https://lrclib.net/api/search?track_name=" + Uri.EscapeDataString(t.Title) + "&artist_name=" + Uri.EscapeDataString(artist ?? "");
+            using var res = await Net.Http.GetAsync(url);
+            if (!res.IsSuccessStatusCode) return r;
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            foreach (var e in doc.RootElement.EnumerateArray())
+            {
+                if (Str(e, "syncedLyrics") == null && Str(e, "plainLyrics") == null) continue;
+                double dur = e.TryGetProperty("duration", out var dd) && dd.ValueKind == JsonValueKind.Number ? dd.GetDouble() : 0;
+                r.Add(new LyricCandidate { Key = "lrclib:" + e.GetProperty("id").GetRawText(), Source = "LRCLIB", Title = Str(e, "trackName"), Artist = Str(e, "artistName"),
+                    Album = Str(e, "albumName"), Duration = dur, Synced = Str(e, "syncedLyrics") != null });
+            }
+            return r;
+        });
+        var netease = Task.Run(async () =>
+        {
+            var r = new List<LyricCandidate>();
+            string q = Uri.EscapeDataString((t.Title + " " + artist).Trim());
+            using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get,
+                $"https://music.163.com/api/search/get/web?csrf_token=&hlpretag=&hlposttag=&s={q}&type=1&offset=0&total=true&limit=12");
+            req.Headers.Referrer = new Uri("https://music.163.com/");
+            using var res = await Net.Http.SendAsync(req);
+            if (!res.IsSuccessStatusCode) return r;
+            using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            if (!doc.RootElement.TryGetProperty("result", out var result) || !result.TryGetProperty("songs", out var songs)) return r;
+            foreach (var s in songs.EnumerateArray())
+            {
+                if (Text.Similarity(Str(s, "name"), t.Title) < 0.5) continue;
+                string ar = s.TryGetProperty("artists", out var arr) ? string.Join(", ", arr.EnumerateArray().Select(a => Str(a, "name"))) : "";
+                string al = s.TryGetProperty("album", out var alb) ? Str(alb, "name") : null;
+                double dur = s.TryGetProperty("duration", out var d) && d.ValueKind == JsonValueKind.Number ? d.GetDouble() / 1000 : 0;
+                r.Add(new LyricCandidate { Key = "ne:" + s.GetProperty("id").GetInt64(), Source = "網易雲音樂", Title = Str(s, "name"), Artist = ar, Album = al, Duration = dur, Synced = true });
+            }
+            return r;
+        });
+        try { list.AddRange(await lrclib); } catch (Exception ex) { Log.Info("LRCLIB candidates: " + ex.Message); }
+        try { list.AddRange(await netease); } catch (Exception ex) { Log.Info("NetEase candidates: " + ex.Message); }
+        foreach (var c in list) c.Diff = t.Duration > 0 && c.Duration > 0 ? Math.Round(c.Duration - t.Duration, 1) : 0;
+        return list.OrderBy(c => c.Duration > 0 && t.Duration > 0 ? Math.Abs(c.Diff) : 30).ThenBy(c => c.Synced ? 0 : 1).Take(15).ToList();
+    }
+
+    /// <summary>Download the chosen candidate and pin it as this track's lyrics.</summary>
+    public async Task<LyricsResult> Apply(Track t, string key)
+    {
+        LyricsResult r = null;
+        if (key.StartsWith("lrclib:"))
+        {
+            using var res = await Net.Http.GetAsync("https://lrclib.net/api/get/" + key[7..]);
+            if (res.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+                var h = doc.RootElement;
+                string synced = Str(h, "syncedLyrics"), plain = Str(h, "plainLyrics");
+                if (synced != null) r = new LyricsResult { Source = "LRCLIB", Synced = true, Lines = Lrc.Parse(synced) };
+                else if (plain != null) r = new LyricsResult { Source = "LRCLIB", Lines = Lrc.Plain(plain) };
+            }
+        }
+        else if (key.StartsWith("ne:") && long.TryParse(key[3..], out var id)) r = await NetEaseLyric(id);
+        if (r == null) return null;
+        r.Manual = true; r.Fetched = DateTime.UtcNow;
+        try { await File.WriteAllTextAsync(CachePath(t), Json.Serialize(r)); } catch { }
+        return r;
+    }
+
+    /// <summary>"None of these are right": remember that, so the wrong lyrics never come back on their own.</summary>
+    public async Task Clear(Track t)
+    {
+        var r = new LyricsResult { Source = "已標記為錯誤", Manual = true, Fetched = DateTime.UtcNow };
+        try { await File.WriteAllTextAsync(CachePath(t), Json.Serialize(r)); } catch { }
+    }
+
+    static string CachePath(Track t) => Path.Combine(AppPaths.Lyrics, t.Id + ".v2.json") /* v2: stricter length matching, old caches re-fetched */;
 
     async Task<LyricsResult> Resolve(Track t)
     {
@@ -182,8 +297,10 @@ public sealed class LyricsService
             try
             {
                 var c = Json.Deserialize<LyricsResult>(await File.ReadAllTextAsync(cache));
+                if (c.Manual) return c.Lines.Count > 0 ? c : (plainFallback ?? c);
                 if (c.Synced && c.Lines.Count > 0) return c;
-                if (c.Lines.Count > 0 || c.Instrumental || DateTime.UtcNow - c.Fetched < TimeSpan.FromDays(3))
+                // a previous "not found" is only trusted for a few minutes: opening the song again searches online again
+                if (c.Lines.Count > 0 || c.Instrumental || DateTime.UtcNow - c.Fetched < TimeSpan.FromMinutes(10))
                     return plainFallback ?? c;
             }
             catch { }
@@ -247,7 +364,7 @@ public sealed class LyricsService
                 foreach (var e in doc.RootElement.EnumerateArray())
                 {
                     double d = e.TryGetProperty("duration", out var dd) && dd.ValueKind == JsonValueKind.Number ? Math.Abs(dd.GetDouble() - t.Duration) : 50;
-                    if (t.Duration > 0 && d > 4) continue;
+                    if (t.Duration > 0 && d > 2.5) continue;
                     if (Text.Similarity(Str(e, "trackName"), t.Title) < 0.7) continue;
                     if (Str(e, "syncedLyrics") != null) d -= 10;
                     if (d < bestDiff) { bestDiff = d; best = e.Clone(); }
@@ -282,12 +399,18 @@ public sealed class LyricsService
             string ar = s.TryGetProperty("artists", out var arr) ? string.Join(" ", arr.EnumerateArray().Select(a => Str(a, "name"))) : "";
             double artistSim = string.IsNullOrWhiteSpace(artist) ? 0.5 : Math.Max(Text.Similarity(artist, ar), Text.Similarity(artist, ar, false));
             double dur = s.TryGetProperty("duration", out var d) && d.ValueKind == JsonValueKind.Number ? d.GetDouble() / 1000 : 0;
-            double durScore = t.Duration <= 0 || dur <= 0 ? 0.5 : Math.Abs(dur - t.Duration) <= 3 ? 1 : Math.Abs(dur - t.Duration) <= 8 ? 0.4 : 0;
+            // a different length means a different cut (longer intro, radio edit, TV size...) whose timings won't line up: reject it
+            double durScore = t.Duration <= 0 || dur <= 0 ? 0.5 : Math.Abs(dur - t.Duration) <= 1.5 ? 1 : Math.Abs(dur - t.Duration) <= 3 ? 0.6 : 0;
             if (titleSim < 0.7 || durScore == 0) continue;
             double score = titleSim * 0.45 + artistSim * 0.3 + durScore * 0.25;
             if (score > bestScore) { bestScore = score; bestId = s.GetProperty("id").GetInt64(); }
         }
         if (bestId == 0 || bestScore < 0.62) return null;
+        return await NetEaseLyric(bestId);
+    }
+
+    static async Task<LyricsResult> NetEaseLyric(long bestId)
+    {
         using var req2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, $"https://music.163.com/api/song/lyric?id={bestId}&lv=1&kv=1&tv=-1");
         req2.Headers.Referrer = new Uri("https://music.163.com/");
         using var res2 = await Net.Http.SendAsync(req2);

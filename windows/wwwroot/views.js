@@ -152,7 +152,11 @@ function albumCard(al, size) {
   art.dataset.album = al.id;
   const play = h('button', { class: 'play', title: '播放', html: icon('play', true), onclick: e => { e.stopPropagation(); App.playTracks(al.tracks, 0, false); } });
   art.append(play);
-  const c = h('div', { class: 'card', onclick: () => { Flip.capture(al.id, art); go('#/album/' + al.id); } },
+  const c = h('div', { class: 'card', onclick: () => {
+    const open = () => { Flip.capture(al.id, art); go('#/album/' + al.id); };
+    if (typeof Vinyl !== 'undefined' && Vinyl.pullOut(c, open)) return;   // VINYL: pull the record out of the sleeve first
+    open();
+  } },
     art, h('div', { class: 't1', title: al.title }, al.title), h('div', { class: 't2' }, al.artist + (al.year ? ' · ' + al.year : '')));
   c.oncontextmenu = e => { e.preventDefault(); albumMenu(al, { x: e.clientX, y: e.clientY }); };
   // keep play button alive across art refreshes
@@ -393,6 +397,7 @@ const Views = {
           h('button', { class: 'icon-btn', title: '更多', html: icon('more'), onclick: e => albumMenu(al, e.currentTarget) })));
     const hero = h('div', { class: 'hero album' }, heroBg(kind, artId), cover, meta);
     view.append(hero);
+    if (typeof Vinyl !== 'undefined') Vinyl.mount(hero, cover, al);
     Flip.play(al.id, cover);
     artNote(al, meta);
     const list = h('div', { class: 'tracks' }, thead('作曲'));

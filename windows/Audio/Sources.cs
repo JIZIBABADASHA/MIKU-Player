@@ -22,6 +22,11 @@ public abstract class PcmSource : IDisposable
     public int Rate { get; protected set; }
     public double Gain { get; set; } = 1.0;
     public string Error { get; protected set; }
+    public virtual string DecoderName => Track.IsLive ? "WebView 音訊" : Track.IsDsd ? "MIKU 既有 DoP 封裝" : "FFmpeg";
+    public virtual string ResamplerName => null;
+    public virtual long OverloadSamples => 0;
+    public virtual double ResamplerPeak => 0;
+    public virtual bool ResamplingMeterAvailable => false;
 
     readonly object _lock = new();
     double[] _ring;
@@ -154,10 +159,18 @@ public sealed class FfmpegSource : PcmSource
     readonly StringBuilder _stderr = new();
     readonly byte[] _bytes = new byte[8192 * Channels * 8];
     int _carry;
+    readonly bool _resample;
+    long _overloadSamples;
+    double _resamplerPeak;
+    public override string ResamplerName => _resample ? "FFmpeg / SoX" : null;
+    public override bool ResamplingMeterAvailable => _resample;
+    public override long OverloadSamples => Interlocked.Read(ref _overloadSamples);
+    public override double ResamplerPeak => Volatile.Read(ref _resamplerPeak);
 
     public FfmpegSource(Track track, double seek, int outRate, bool resample, double gain = 1) : base(track, seek, outRate)
     {
         Gain = gain;
+        _resample = resample;
         var args = new List<string> { "-nostdin", "-hide_banner", "-loglevel", "error" };
         if (seek > 0.01) { args.Add("-ss"); args.Add(seek.ToString("0.000", CultureInfo.InvariantCulture)); }
         args.AddRange(new[] { "-i", track.Path, "-map", "0:a:0", "-vn", "-sn", "-dn" });
@@ -195,6 +208,22 @@ public sealed class FfmpegSource : PcmSource
             if (whole == 0) { _carry = total; continue; }
             var src = MemoryMarshal.Cast<byte, double>(_bytes.AsSpan(0, whole));
             src.CopyTo(buffer);
+            // Observe FFmpeg's output after its existing SRC/headroom and before ReplayGain/DSP.
+            // The decoder reads ahead; these are accumulated decoded-sample statistics, not a DAC meter.
+            if (_resample)
+            {
+                long overloads = 0;
+                double peak = Volatile.Read(ref _resamplerPeak);
+                foreach (double sample in src)
+                {
+                    double magnitude = Math.Abs(sample);
+                    if (!double.IsFinite(magnitude)) continue;
+                    peak = Math.Max(peak, magnitude);
+                    if (magnitude > 1) overloads++;
+                }
+                Interlocked.Add(ref _overloadSamples, overloads);
+                Volatile.Write(ref _resamplerPeak, peak);
+            }
             _carry = total - whole;
             if (_carry > 0) Buffer.BlockCopy(_bytes, whole, _bytes, 0, _carry);
             return whole / frameBytes;

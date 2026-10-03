@@ -34,6 +34,7 @@ public sealed class MainForm : Form
     readonly System.Windows.Forms.Timer _saveTimer;
     bool _ready;
     CancellationTokenSource _artJob;
+    CancellationTokenSource _lyricsJob;
     readonly string _debugDir;
     readonly System.Windows.Forms.Timer _debugTimer;
     bool _debugBusy;
@@ -60,20 +61,31 @@ public sealed class MainForm : Form
     }
     string _ytSink;
     long _ytMetaAt;          // Stopwatch timestamp when _ytMeta arrived
+    double _liveLatency;     // smoothed seconds from the page's currentTime to the DAC
 
     /// <summary>
-    /// Position of YouTube Music. The page reports currentTime only about every 0.5 s while the state goes out every
-    /// 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old value is sent two or
-    /// three times and the progress bar keeps jumping back).
+    /// Position of YouTube Music as heard from the DAC. The page reports currentTime only about every 0.5 s while the
+    /// state goes out every 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old
+    /// value is sent two or three times and the progress bar keeps jumping back). The page also runs ahead of what is
+    /// heard by the capture / output buffers: that latency is
+    /// subtracted, smoothed so its natural ripple doesn't make the bar jitter, so the bar and lyrics follow the sound.
     /// </summary>
-    double LivePosition()
+    double LivePosition(bool playing)
     {
         var m = _ytMeta;
         double t = m.T;
-        if (m.P && _engine.IsPlaying && _ytMetaAt != 0)
+        if (m.P && playing && _ytMetaAt != 0)
             t += Math.Min(1.5, (Stopwatch.GetTimestamp() - _ytMetaAt) / (double)Stopwatch.Frequency);
         if (m.D > 0) t = Math.Min(t, m.D);
-        return Math.Max(0, t);
+        double lat = LiveLatencyEstimate();
+        _liveLatency = _liveLatency <= 0 ? lat : _liveLatency + (lat - _liveLatency) * 0.1;   // ~2 s time constant at 5 Hz
+        return Math.Max(0, t - _liveLatency);
+    }
+
+    double LiveLatencyEstimate()
+    {
+        // NAudio core: LiveSource's fill (ring + its own buffer) + the output buffer
+        return LiveBus.Fill + Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0;
     }
 
     const string YtTapScript = @"(() => {
@@ -391,10 +403,7 @@ public sealed class MainForm : Form
         _lyrics = new LyricsService(_s);
         _engine = new AudioEngine(_s, a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); });
         _player = new Player(_engine, _lib, _s);
-
-        _engine.Changed += () => { PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
-        _engine.Loading += t => { if (t != null && !t.IsLive && LiveActive) PauseYt(); };
-        _engine.Failed += msg => Post("error", new { message = msg });
+        WireEngine(_engine);
         _player.NowChanged += () => PostSoon("state");
         _player.QueueChanged += () => PostSoon("queue");
         _lib.ProgressChanged += p =>
@@ -483,6 +492,14 @@ public sealed class MainForm : Form
         }
         if (_s.Maximized) WindowState = FormWindowState.Maximized;
     }
+
+    void WireEngine(IAudioEngine engine)
+    {
+        engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
+        engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; if (t != null && !t.IsLive && LiveActive) PauseYt(); };
+        engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
+    }
+
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
@@ -848,6 +865,39 @@ public sealed class MainForm : Form
                 var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
                 return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
             }
+            case "lyrics.candidates":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                return t == null ? null : await _lyrics.Candidates(t);
+            }
+            case "lyrics.apply":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t == null) return null;
+                var r = await _lyrics.Apply(t, S(a, "key"));
+                if (r == null) return null;
+                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
+                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+            }
+            case "lyrics.clear":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t != null) await _lyrics.Clear(t);
+                return null;
+            }
+            case "lyrics.autoAlign":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t == null) return null;
+                var ly = await _lyrics.GetAsync(t);
+                if (!ly.Synced || ly.Lines.Count < 4) return new { ok = false, reason = "這首歌沒有同步歌詞" };
+                var r = await Task.Run(() => LyricAlign.Estimate(t, ly.Lines.Where(l => l.Text.Length > 0).Select(l => l.T).ToList()));
+                if (r == null) return new { ok = false, reason = "無法分析這首歌的音訊" };
+                if (!r.Ok) return new { ok = false, reason = "分析結果不夠可靠，請手動調整", offset = r.Offset, confidence = r.Confidence };
+                _s.LyricOffsets[t.Id] = r.Offset;
+                SaveSoon();
+                return new { ok = true, offset = r.Offset, confidence = r.Confidence };
+            }
             case "lyricsOffset":
                 _s.LyricOffsets[S(a, "id")] = D(a, "offset");
                 SaveSoon();
@@ -924,6 +974,19 @@ public sealed class MainForm : Form
                 return null;
             }
             case "art.cancel": _artJob?.Cancel(); return null;
+            case "lyrics.fetchAll":
+            {
+                _lyricsJob?.Cancel();
+                var cts = _lyricsJob = new CancellationTokenSource();
+                var progress = new Progress<(int done, int total, int found)>(p => Post("lyricsJob", new { p.done, p.total, p.found }));
+                _ = Task.Run(async () =>
+                {
+                    try { await _lyrics.FetchAll(_lib.AllTracks, progress, cts.Token); } catch (Exception ex) { Log.Info("Lyrics job: " + ex.Message); }
+                    Post("lyricsJob", new { done = -1 });
+                });
+                return null;
+            }
+            case "lyrics.cancel": _lyricsJob?.Cancel(); return null;
             case "track":
             {
                 var t = _lib.GetTrack(S(a, "id"));
@@ -989,16 +1052,21 @@ public sealed class MainForm : Form
     object State()
     {
         var meter = _engine.Meter();
-        if (_engine.Track?.IsLive == true)
+        var resampling = _engine.ResamplingMeter();
+        var current = _engine.Track;
+        bool playing = _engine.IsPlaying;
+        bool loaded = _engine.IsLoaded;
+        var signal = _engine.Signal;
+        if (current?.IsLive == true)
         {
             var m = _ytMeta;
             var parts = (m.By ?? "").Split('•', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             return new
             {
                 trackId = "yt-live",
-                playing = _engine.IsPlaying,
-                loaded = _engine.IsLoaded,
-                pos = LivePosition(),
+                playing,
+                loaded,
+                pos = LivePosition(playing),
                 dur = m.D,
                 index = _player.Index,
                 volumeDb = _s.VolumeDb,
@@ -1006,19 +1074,19 @@ public sealed class MainForm : Form
                 volumeMode = _s.VolumeMode,
                 repeat = _s.Repeat,
                 shuffle = _s.Shuffle,
-                signal = _engine.Signal,
+                signal,
                 live = new { title = m.Title, artist = parts.Length > 0 ? parts[0] : "", album = parts.Length > 1 ? parts[1] : "", img = m.Img },
                 liveStats = new { fill = Math.Round(LiveBus.Fill, 3), adj = Math.Round(LiveBus.Adj * 1000, 2), resyncs = LiveBus.Resyncs, starves = LiveBus.Starves, rate = LiveBus.SourceRate, sink = _ytSink, gap = m.Gap },
-                meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
+                meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns, resampleOverloads = resampling.overloads, resamplePeak = _engine.ResamplingMeterAvailable ? (double?)resampling.peak : null, resampleMeterAvailable = _engine.ResamplingMeterAvailable },
             };
         }
-        var t = _engine.Track ?? _player.Current;
+        var t = current ?? _player.Current;
         return new
         {
 
             trackId = t?.Id,
-            playing = _engine.IsPlaying,
-            loaded = _engine.IsLoaded,
+            playing,
+            loaded,
             pos = _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
             dur = t?.Duration ?? 0,
             index = _player.Index,
@@ -1027,8 +1095,8 @@ public sealed class MainForm : Form
             volumeMode = _s.VolumeMode,
             repeat = _s.Repeat,
             shuffle = _s.Shuffle,
-            signal = _engine.Signal,
-            meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
+            signal,
+            meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns, resampleOverloads = resampling.overloads, resamplePeak = _engine.ResamplingMeterAvailable ? (double?)resampling.peak : null, resampleMeterAvailable = _engine.ResamplingMeterAvailable },
         };
     }
 

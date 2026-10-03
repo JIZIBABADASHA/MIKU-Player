@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MIKU</title>
-<link rel="stylesheet" href="app.css?v=20261002j">
-<link rel="stylesheet" href="themes.css?v=20261002j">
+<link rel="stylesheet" href="app.css?v=20261004merged1">
+<link rel="stylesheet" href="themes.css?v=20261004merged1">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem("miku.theme")||"miku"}catch(e){document.documentElement.dataset.theme="miku"}</script>
 </head>
 <body>
@@ -76,6 +76,10 @@
     <button class="icon-btn" id="np-close" title="收起 (Esc)"><svg class="i"><use href="#i-down"/></svg></button>
     <div class="grow"></div>
     <span class="src" id="np-src"></span>
+    <div class="ly-pick-wrap">
+      <button class="pill" id="np-cand" style="display:none"></button>
+      <div class="ly-pick" id="ly-pick" hidden></div>
+    </div>
     <button class="pill" id="np-trans">翻譯</button>
     <button class="pill on" id="np-lyr"><svg class="i" style="width:16px;height:16px"><use href="#i-lyrics"/></svg>歌詞</button>
   </div>
@@ -101,7 +105,7 @@
     </div>
     <div class="np-right">
       <div class="lyrics" id="lyrics"></div>
-      <div class="ly-offset"><span>歌詞時間</span><button id="ly-minus">−</button><span id="ly-off" class="num">0.0s</span><button id="ly-plus">+</button></div>
+      <div class="ly-offset"><span>歌詞時間</span><button id="ly-minus">−</button><span id="ly-off" class="num">0.0s</span><button id="ly-plus">+</button><button id="ly-auto" class="auto" title="分析音訊，自動對齊歌詞時間">自動</button></div>
     </div>
   </div>
 </div>
@@ -162,14 +166,15 @@
   <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></symbol>
 </svg>
 
-<script src="core.js?v=20261002j"></script>
-<script src="themes.js?v=20261002j"></script>
-<script src="views.js?v=20261002j"></script>
-<script src="nowplaying.js?v=20261002j"></script>
-<script src="dsp.js?v=20261002j"></script>
-<script src="qr.js?v=20261002j"></script>
-<script src="settings.js?v=20261002j"></script>
-<script src="art.js?v=20261002j"></script>
+<script src="core.js?v=20261004merged1"></script>
+<script src="themes.js?v=20261004merged1"></script>
+<script src="views.js?v=20261004merged1"></script>
+<script src="vinyl.js?v=20261004merged1"></script>
+<script src="nowplaying.js?v=20261004merged1"></script>
+<script src="dsp.js?v=20261004merged1"></script>
+<script src="qr.js?v=20261004merged1"></script>
+<script src="settings.js?v=20261004merged1"></script>
+<script src="art.js?v=20261004merged1"></script>
 <script>App.start();</script>
 </body>
 </html>

@@ -33,6 +33,7 @@ public sealed class PlaybackChain : IWaveProvider
     long _framesOut;
     double[] _work = new double[0];
     uint _rng = 0x9E3779B9;
+    public long QuantizationClips;
     public long Underruns;
     public volatile bool Ended;
 
@@ -177,6 +178,7 @@ public sealed class PlaybackChain : IWaveProvider
                         for (int c = 0; c < outCh; c++)
                         {
                             double x = c < 2 ? work[2 * f + c] : 0;
+                            if (x > 1 || x < -1) QuantizationClips++;
                             if (dither) x += Tpdf(1.0 / 32768);
                             double v = Math.Round(x * 32768.0);
                             p[f * outCh + c] = (short)(v > 32767 ? 32767 : v < -32768 ? -32768 : v);
@@ -192,6 +194,7 @@ public sealed class PlaybackChain : IWaveProvider
                         for (int c = 0; c < outCh; c++)
                         {
                             double x = c < 2 ? work[2 * f + c] : 0;
+                            if (x > 1 || x < -1) QuantizationClips++;
                             if (dither) x += Tpdf(1.0 / 8388608);
                             double v = Math.Round(x * 8388608.0);
                             int i = (int)(v > 8388607 ? 8388607 : v < -8388608 ? -8388608 : v);
@@ -209,6 +212,7 @@ public sealed class PlaybackChain : IWaveProvider
                         for (int c = 0; c < outCh; c++)
                         {
                             double x = c < 2 ? work[2 * f + c] : 0;
+                            if (x > 1 || x < -1) QuantizationClips++;
                             if (dither) x += Tpdf(1.0 / 8388608);
                             double v = Math.Round(x * 8388608.0);
                             int i = (int)(v > 8388607 ? 8388607 : v < -8388608 ? -8388608 : v);
@@ -225,6 +229,7 @@ public sealed class PlaybackChain : IWaveProvider
                         for (int c = 0; c < outCh; c++)
                         {
                             double x = c < 2 ? work[2 * f + c] : 0;
+                            if (x > 1 || x < -1) QuantizationClips++;
                             double v = Math.Round(x * 2147483648.0);
                             p[f * outCh + c] = (int)(v > 2147483647.0 ? 2147483647.0 : v < -2147483648.0 ? -2147483648.0 : v);
                         }

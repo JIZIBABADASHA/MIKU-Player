@@ -238,7 +238,7 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .rail .card { position: relative; scroll-snap-align: start; }
 
 /* ───────────── album page ───────────── */
-.hero { position: relative; padding: 92px 36px 30px; display: flex; gap: 34px; align-items: flex-end; overflow: hidden; margin-top: -64px; }
+.hero { position: relative; padding: 92px 36px 30px; display: flex; gap: 34px; align-items: flex-end; overflow: visible; margin-top: -64px; }
 .hero-bg { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(60px) saturate(1.6) brightness(var(--hero-dim, .62)); opacity: var(--hero-op, .95); transform: scale(1.1); transition: opacity .8s; }
 .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(var(--bg-rgb), .25) 0%, rgba(var(--bg-rgb), .6) 60%, var(--bg) 100%); }
 .hero > * { position: relative; z-index: 1; }
@@ -512,6 +512,8 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .np-right:hover .ly-offset { opacity: 1; }
 .ly-offset button { width: 26px; height: 26px; border-radius: 50%; background: rgba(var(--np-ink), .1); }
 .ly-offset button:hover { background: rgba(var(--np-ink), .2); }
+.ly-offset button.auto { width: auto; padding: 0 10px; border-radius: 13px; font-size: 12px; color: inherit; }
+.ly-offset button.auto:disabled { opacity: .6; }
 .np-right { position: relative; height: calc(100vh - var(--bar) - 100px); min-width: 0; }
 
 /* ───────────── settings & forms ───────────── */
@@ -637,7 +639,7 @@ a.link:hover { text-decoration: underline; }
 .seg button:active { transform: scale(.95); }
 .chip:active { transform: scale(.95); }
 :focus-visible { outline: 2px solid rgba(var(--teal-rgb), .7); outline-offset: 2px; }
-.flip-ghost { position: fixed; z-index: 70; border-radius: 10px; overflow: hidden; pointer-events: none; box-shadow: 0 24px 60px rgba(var(--shadow-rgb), calc(.5 * var(--sh))); transition: transform .5s cubic-bezier(.2,.8,.2,1), border-radius .5s; transform-origin: 0 0; }
+.flip-ghost { position: fixed; z-index: 70; box-sizing: border-box; overflow: hidden; pointer-events: none; transition: left .5s cubic-bezier(.2,.8,.2,1), top .5s cubic-bezier(.2,.8,.2,1), width .5s cubic-bezier(.2,.8,.2,1), height .5s cubic-bezier(.2,.8,.2,1), border-width .5s cubic-bezier(.2,.8,.2,1), border-radius .5s, box-shadow .5s; }
 .flip-ghost img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hero .cover.flip-hide { visibility: hidden; }
 .play-pulse { animation: pulse .35s var(--spring); }
@@ -732,3 +734,25 @@ a.link:hover { text-decoration: underline; }
 .row.playing:hover .n .eq { display: none; }
 /* now-playing row highlight (from the MIKU theme) for every theme, tinted with the theme's own accent colour */
 .row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .13), rgba(var(--teal-rgb), 0) 70%); }
+
+/* lyric candidate picker (now playing, top right) */
+.ly-pick-wrap { position: relative; }
+.ly-pick { position: absolute; right: 0; top: calc(100% + 8px); width: 340px; max-height: 60vh; overflow: auto; padding: 8px; border-radius: 14px;
+  background: var(--surface, #fff); color: var(--text); box-shadow: 0 18px 50px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); z-index: 10; animation: popIn .18s; }
+.ly-pick-head { font-size: 12px; color: var(--text-2); padding: 6px 10px 8px; }
+.ly-pick-msg { padding: 14px 10px; color: var(--text-2); font-size: 13px; }
+.ly-cand { display: block; width: 100%; text-align: left; padding: 9px 10px; border-radius: 10px; background: transparent; color: inherit; }
+.ly-cand:hover { background: rgba(var(--ink), .06); }
+.ly-cand .c1 { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+.ly-cand .tag { font-size: 10.5px; padding: 1px 6px; border-radius: 6px; background: rgba(var(--ink), .08); color: var(--text-2); }
+.ly-cand .c2, .ly-cand .c3 { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+.ly-cand .c3.warn { color: #c0603c; }
+.ly-pick-foot { border-top: 1px solid rgba(var(--ink), .08); margin-top: 6px; padding-top: 6px; text-align: right; }
+
+.flip-under { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero .cover img:not(.flip-under), .card .art img:not(.flip-under) { position: relative; z-index: 1; }
+#view.enter-flip > :not(.hero), #view.enter-flip .hero > :not(.cover) { animation: viewFwd .26s var(--ease) both; }
+/* hero glow: fade out softly instead of being cut off by a hard line, and never clip a flying cover */
+.hero-bg { -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); pointer-events: none; z-index: 0; }
+.flip-fly .t1, .flip-fly .t2 { display: none; }
+.flip-fly, .flip-fly:hover { background: none !important; box-shadow: none !important; }

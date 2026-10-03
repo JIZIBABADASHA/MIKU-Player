@@ -697,3 +697,153 @@
 .tp-screen[data-theme="glass"] .tp-side { background: rgba(16,21,48,.42); }
 
 :root[data-theme="flat"] .result-sec h2, :root[data-theme="flat"] .rail-head h2 { font-weight: 700; }
+
+
+/* ═════════════════════════════ VINYL 黑膠 ═════════════════════════════
+   Warm listening-room dark: charcoal, cream, amber. Albums are record sleeves — hover one and the
+   record slides out; the playing record spins (and stops exactly where it is when you pause).
+   Every animation is transform/opacity only, so it stays smooth.                                 */
+[data-theme="vinyl"] {
+  /* 70s hi-fi: sage-green room, deep pine ink, burnt-orange + mustard accents */
+  --bg: #e3e8dc; --bg-rgb: 227, 232, 220; --bg-2: #dbe1d3;
+  --surface: #f2f5ee; --surface-2: #d6ddcd; --surface-3: #c7d0bc;
+  --ink: 28, 44, 36; --line: rgba(28,44,36,.10); --line-2: rgba(28,44,36,.18);
+  --text: #1e2b24; --text-hi: #111a15; --text-sub: #34463b; --text-2: #5b6d61; --text-3: #8b9a8f;
+  --teal: #d0612e; --teal-rgb: 208, 97, 46; --teal-2: #b34f20; --teal-dim: rgba(208,97,46,.13);
+  --pink: #d9a521; --pink-dim: rgba(217,165,33,.16); --pink-line: rgba(217,165,33,.6); --pink-text: #a77c0f;
+  --amber: #d9a521; --on-accent: #fff8ee;
+  --play-bg: #1e2b24; --play-ink: #eef2e8; --knob: #1e2b24; --knob-off: #8b9a8f;
+  --bar-bg: linear-gradient(180deg, #e9ede3, #dde3d5); --pop-bg: rgba(242,245,238,.98); --drawer-bg: rgba(236,240,231,.98); --toast-bg: rgba(30,43,36,.96); --modal-bg: #f2f5ee;
+  --shadow-rgb: 22, 38, 30; --sh: .55;
+  --np-base: #dbe1d3; --np-ink: 30, 43, 36; --np-pill-ink: #eef2e8; --np-dim: .5;
+  --np-veil: radial-gradient(circle at 30% 50%, rgba(227,232,220,.35), rgba(227,232,220,.9) 70%);
+  --ph-s1: 22%; --ph-l1: 74%; --ph-s2: 18%; --ph-l2: 62%;
+  --brand-ink: #1e2b24; --brand-track: #c7d0bc;
+  --hero-dim: 1.05; --hero-op: .45;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1 0 0 0 0 .2 0 0 0 0 .15 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --app-bg: var(--grain), radial-gradient(1100px 600px at 88% -12%, rgba(217,165,33,.16), transparent 60%), radial-gradient(900px 500px at -10% 112%, rgba(208,97,46,.10), transparent 60%), #e3e8dc;
+  --sidebar-bg: var(--grain), linear-gradient(180deg, #1f2c25, #18231d);
+  --font-display: "Georgia", "Noto Serif TC", "Microsoft JhengHei UI", serif;
+  --groove: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 1px, transparent 1px 3px);
+  color-scheme: light;
+}
+/* dark pine sidebar against the sage room — the "wood cabinet" of the hi-fi */
+:root[data-theme="vinyl"] #sidebar { color: #e4eadf; --text: #e4eadf; --text-2: #a9b8ac; --text-3: #7f9184; --ink: 228, 234, 223; }
+:root[data-theme="vinyl"] #sidebar .nav a { color: #c9d4cb; }
+:root[data-theme="vinyl"] #sidebar .nav a.on { color: #fff; }
+:root[data-theme="vinyl"] .brand, :root[data-theme="vinyl"] #sidebar .logo { --brand-ink: #eef2e8; --brand-track: #3a4a40; }
+:root[data-theme="vinyl"] .page-head h1, :root[data-theme="vinyl"] .hero h1 { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
+:root[data-theme="vinyl"] .nav-label { color: var(--teal); letter-spacing: .22em; font-size: 10.5px; }
+:root[data-theme="vinyl"] .nav-pill { border-radius: 10px; background: rgba(240,166,74,.12); }
+:root[data-theme="vinyl"] .nav-pill::before { background: var(--teal); }
+:root[data-theme="vinyl"] #sidebar { border-right: 0; }
+:root[data-theme="vinyl"] #bar { border-top: 1px solid rgba(28,44,36,.10); }
+:root[data-theme="vinyl"] .btn.primary { background: var(--teal); color: var(--on-accent); }
+:root[data-theme="vinyl"] .slider .fill { background: var(--teal); }
+:root[data-theme="vinyl"] .row.playing .tt div:first-child { color: var(--teal); }
+:root[data-theme="vinyl"] .sect { background: rgba(242,245,238,.92); border: 1px solid rgba(28,44,36,.08); }
+
+/* ── album cards are sleeves: the record slides out on hover ── */
+:root[data-theme="vinyl"] .card:not(.artist) { isolation: isolate; }
+:root[data-theme="vinyl"] .card:not(.artist)::before {
+  content: ""; position: absolute; top: 3%; left: 3%; width: 94%; aspect-ratio: 1; border-radius: 50%; z-index: -1;
+  background:
+    radial-gradient(circle, #0c0a08 0 2.2%, var(--teal) 2.3% 15%, #d9583b 15.1% 16%, transparent 16.1%),
+    var(--groove),
+    conic-gradient(from 30deg, rgba(255,255,255,.10), transparent 12%, transparent 45%, rgba(255,255,255,.08) 55%, transparent 68%),
+    radial-gradient(circle, #1a1612 0 30%, #0d0b09 70%);
+  box-shadow: none;                                            /* inside the sleeve: no shadow of its own */
+  transform: translate3d(0,0,0) rotate(0deg); transition: transform .8s cubic-bezier(.25,.8,.25,1), box-shadow .5s ease;
+  will-change: transform; backface-visibility: hidden; }
+:root[data-theme="vinyl"] .card:not(.artist):hover { z-index: 2; }
+/* clicked: the record is pulled out of the sleeve before it flies to the turntable */
+:root[data-theme="vinyl"] .card.vpull { z-index: 3; }
+:root[data-theme="vinyl"] .card.vpull:not(.artist)::before, :root[data-theme="vinyl"] .card.vpull:not(.artist):hover::before { transform: translate3d(72%,0,0) rotate(320deg); box-shadow: 0 8px 20px rgba(22,38,30,.35);
+  transition: transform .34s cubic-bezier(.3,.6,.3,1), box-shadow .3s ease; }
+:root[data-theme="vinyl"] .card.flip-dest::before { visibility: hidden; transition: none; }
+:root[data-theme="vinyl"] .card:not(.artist):hover::before { transform: translate3d(34%,0,0) rotate(180deg); box-shadow: 0 8px 20px rgba(22,38,30,.35); }
+:root[data-theme="vinyl"] .card .art { border-radius: 4px; box-shadow: 0 10px 22px rgba(22,38,30,.25), inset 0 0 0 1px rgba(0,0,0,.04); transition: transform .6s cubic-bezier(.25,.8,.25,1), box-shadow .6s ease; }
+:root[data-theme="vinyl"] .card:not(.artist):hover .art { transform: translateX(-4%) rotate(-1.5deg); box-shadow: 0 18px 34px rgba(22,38,30,.35); }
+/* sleeve edge wear + light sweep */
+:root[data-theme="vinyl"] .card .art::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.28) 48%, transparent 60%); transform: translateX(-120%); transition: transform .9s cubic-bezier(.22,1,.36,1); }
+:root[data-theme="vinyl"] .card:hover .art::after { transform: translateX(120%); }
+:root[data-theme="vinyl"] .card .play { background: var(--play-bg); color: var(--play-ink); }
+:root[data-theme="vinyl"] .card.artist .art { border-radius: 50%; }
+
+/* ── the playing record spins (33⅓ feel); pausing freezes it where it is ── */
+@keyframes vinylSpin { to { transform: rotate(360deg); } }
+:root[data-theme="vinyl"] .np-mini .art { border-radius: 50%; }
+:root[data-theme="vinyl"] .np-mini .art::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #0c0a08 0 6%, rgba(243,231,211,.9) 6.5% 9%, transparent 9.5%), var(--groove); }
+:root[data-theme="vinyl"] .np-mini .art img { animation: vinylSpin 5s linear infinite; }
+:root[data-theme="vinyl"] .paused .np-mini .art img, :root[data-theme="vinyl"] body.paused .np-mini .art img { animation-play-state: paused; }
+
+:root[data-theme="vinyl"] .np-cover { border-radius: 50%; box-shadow: 0 40px 80px rgba(22,38,30,.45), 0 0 0 10px #15110d, 0 0 0 11px rgba(0,0,0,.2); }
+:root[data-theme="vinyl"] .np-cover img { animation: vinylSpin 9s linear infinite; }
+:root[data-theme="vinyl"] .np-cover::after { content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(circle, #0c0a08 0 2.5%, rgba(243,231,211,.92) 2.7% 4.2%, rgba(0,0,0,.35) 4.4% 5%, transparent 5.2% 30%, rgba(0,0,0,.18) 30.5%, transparent 31.5%),
+    var(--groove),
+    conic-gradient(from 20deg, rgba(255,255,255,.12), transparent 10%, transparent 48%, rgba(255,255,255,.09) 55%, transparent 65%); }
+:root[data-theme="vinyl"] #np.paused .np-cover img, :root[data-theme="vinyl"] body.paused .np-cover img { animation-play-state: paused; }
+:root[data-theme="vinyl"] .np-cover { transition: transform .8s cubic-bezier(.25,.8,.25,1); }
+:root[data-theme="vinyl"] #np.paused .np-cover { transform: scale(.96); }
+:root[data-theme="vinyl"] .np-cover img, :root[data-theme="vinyl"] .np-mini .art img { will-change: transform; backface-visibility: hidden; }
+
+/* hero: the album page shows the empty sleeve; the record sits on a turntable right of the text */
+:root[data-theme="vinyl"] .hero.album .cover { position: relative; overflow: hidden; background: var(--surface-2); border-radius: 4px; box-shadow: 0 24px 48px rgba(22,38,30,.35), inset 0 0 0 1px rgba(0,0,0,.05); }
+:root[data-theme="vinyl"] .hero.album .cover > img { border-radius: 4px; }
+
+/* ── records (turntable + flying copies) ── */
+.vrec { position: absolute; border-radius: 50%; container-type: inline-size; transform-origin: 50% 50%; will-change: transform; backface-visibility: hidden;
+  background: repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.055) 0 1px, transparent 1px 3px), radial-gradient(circle, #1c1814 0 33%, #0e0c0a 34% 100%);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 10px 26px rgba(22,38,30,.35); }
+.vrec-lbl { position: absolute; left: 33%; top: 33%; width: 34%; height: 34%; border-radius: 50%; background: radial-gradient(circle, transparent 0 60%, rgba(0,0,0,.12) 61% 63%, transparent 64%), #d0612e;
+  color: #fff6ea; font: 700 4.2cqw/1 "Georgia", serif; letter-spacing: .12em; text-align: center; }
+.vrec-lbl span { position: absolute; left: 0; right: 0; top: 20%; }
+.vrec-lbl b { position: absolute; left: 0; right: 0; bottom: 20%; font-size: 3.4cqw; font-weight: 600; letter-spacing: .04em; opacity: .9; }
+.vrec-lbl i { position: absolute; left: 50%; top: 50%; width: 7%; height: 7%; min-width: 4px; min-height: 4px; margin: -3.5% 0 0 -3.5%; border-radius: 50%; background: #0c0a08; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+.vrec-lbl::after { content: ""; position: absolute; left: 50%; top: 58%; width: 26%; height: 2px; margin-left: -13%; background: rgba(255,246,234,.55); border-radius: 1px; }
+.vrec-fly { position: fixed; z-index: 120; pointer-events: none; }
+.hero > .vrec-ret { position: absolute; z-index: 2; pointer-events: none; }
+
+/* ── turntable ── */
+.tt-deck { display: none; }
+:root[data-theme="vinyl"] .hero.album .tt-deck { display: block; position: relative; flex: none; width: 380px; height: 290px; margin-left: auto; margin-right: 12px; border-radius: 16px;
+  background: repeating-linear-gradient(92deg, rgba(255,255,255,.035) 0 2px, transparent 2px 9px), linear-gradient(160deg, #6b4529, #4a2f1b 55%, #3b2414);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -3px 0 rgba(0,0,0,.25), 0 26px 50px rgba(22,38,30,.35), 0 3px 8px rgba(22,38,30,.25); }
+.tt-platter { position: absolute; left: 20px; top: 20px; width: 250px; height: 250px; border-radius: 50%;
+  background: radial-gradient(circle, #3a3a3a 0 8%, #232323 9% 100%); box-shadow: inset 0 0 0 4px #4b4b4b, inset 0 0 0 6px #1a1a1a, 0 4px 10px rgba(0,0,0,.45); }
+.tt-deck .tt-rec { left: 27px; top: 27px; width: 236px; height: 236px; transition: opacity .2s; }
+.tt-deck .tt-rec.away { opacity: 0; transition: none; }
+.tt-sheen { position: absolute; left: 27px; top: 27px; width: 236px; height: 236px; border-radius: 50%; pointer-events: none; transition: opacity .3s;
+  background: conic-gradient(from 25deg, rgba(255,255,255,.13), transparent 9%, transparent 46%, rgba(255,255,255,.10) 54%, transparent 63%); }
+.tt-deck.tt-empty .tt-sheen { opacity: 0; }
+.tt-pivot { position: absolute; left: 304px; top: 34px; width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f4f6f7, #a8aeb2 45%, #5d6367 100%); box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+.tt-arm { position: absolute; left: 330px; top: 60px; width: 0; height: 0; transform-origin: 0 0; transform: rotate(3deg); transition: transform .9s cubic-bezier(.45,.05,.3,1); }
+.tt-arm.cue { transform: rotate(36.5deg); }
+.tt-arm.quick { transition-duration: .45s; }
+.tt-rod { position: absolute; left: -3px; top: -36px; width: 6px; height: 226px; border-radius: 3px;
+  background: linear-gradient(90deg, #8d9397, #f1f3f4 45%, #7f858a); box-shadow: 7px 11px 10px rgba(0,0,0,.28); transition: box-shadow .25s; }
+.tt-weight { position: absolute; left: -11px; top: -60px; width: 22px; height: 30px; border-radius: 5px; background: linear-gradient(90deg, #2a2a2a, #575757 50%, #222); box-shadow: 4px 6px 8px rgba(0,0,0,.3); }
+.tt-head { position: absolute; left: -12px; top: 184px; width: 22px; height: 38px; border-radius: 4px; transform: rotate(-20deg); transform-origin: 50% 0;
+  background: linear-gradient(90deg, #1d1d1d, #3c3c3c 50%, #1a1a1a); box-shadow: 7px 11px 10px rgba(0,0,0,.32); transition: box-shadow .25s, transform .25s; }
+.tt-head::after { content: ""; position: absolute; left: 9px; bottom: -4px; width: 4px; height: 6px; border-radius: 0 0 2px 2px; background: #c9cdd0; }
+.tt-arm.down .tt-rod { box-shadow: 3px 5px 5px rgba(0,0,0,.3); }
+.tt-arm.down .tt-head { box-shadow: 2px 3px 4px rgba(0,0,0,.35); transform: rotate(-20deg) scale(.97); }
+.tt-led { position: absolute; left: 22px; bottom: 14px; width: 8px; height: 8px; border-radius: 50%; background: #3a2a1e; box-shadow: inset 0 1px 1px rgba(0,0,0,.5); transition: background .4s, box-shadow .4s; }
+.tt-deck.on .tt-led { background: #ff8a3d; box-shadow: 0 0 8px #ff8a3d, 0 0 2px #fff; }
+.tt-knob { position: absolute; right: 22px; bottom: 16px; width: 30px; height: 30px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f4f6f7, #a8aeb2 50%, #6a7074); box-shadow: 0 3px 6px rgba(0,0,0,.4); }
+.tt-knob::after { content: ""; position: absolute; left: 14px; top: 3px; width: 2px; height: 9px; background: #3b3f42; border-radius: 1px; transform-origin: 1px 12px; transform: rotate(-40deg); transition: transform .5s; }
+.tt-deck.on .tt-knob::after { transform: rotate(40deg); }
+@media (max-width: 1150px) { :root[data-theme="vinyl"] .hero.album .tt-deck { display: none; } }
+
+/* lyrics: warm, calm */
+:root[data-theme="vinyl"] .ly-line.on { color: var(--text-hi); }
+:root[data-theme="vinyl"] .ly-line .w { background-image: linear-gradient(90deg, #d0612e 0, #d0612e var(--p, 0%), rgba(30,43,36,.35) var(--p, 0%)); }
+:root[data-theme="vinyl"] .hero::after { background: linear-gradient(180deg, rgba(227,232,220,.2) 0%, rgba(227,232,220,.65) 60%, rgba(227,232,220,0) 100%); }
+:root[data-theme="vinyl"] .thead { background: #e3e8dc; }
+:root[data-theme="vinyl"] .row:hover { background: rgba(28,44,36,.05); }
+:root[data-theme="vinyl"] .nav-pill { background: rgba(208,97,46,.22); }

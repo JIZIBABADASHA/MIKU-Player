@@ -279,6 +279,10 @@ const App = {
     if (!this.seeking && !settling) { this.posBase = s.pos; this.posAt = performance.now(); }
     const key = s.trackId + '|' + (s.live ? s.live.title + '|' + s.live.artist : '');
     if (this.trackKey !== key) { this.trackKey = key; this.trackChanged(); }
+    if (s.playing && s.meter && s.meter.resampleMeterAvailable === true && s.meter.resampleOverloads > 0 && this.overloadWarningTrack !== key) {
+      this.overloadWarningTrack = key;
+      toast('重取樣輸出峰值超過 0 dBFS。請在訊號路徑查看已解碼區段的量測，並自行調整數位音量或前級增益。', { error: true, ms: 9000 });
+    }
     // states arrive before the library has loaded at startup (library.json can take a moment): a local track that
     // isn't in Lib yet was drawn empty, so don't remember it as drawn and try again with the next state
     if (s.trackId && !s.live && !Lib.trackById.has(s.trackId)) this.trackKey = null;
@@ -660,7 +664,7 @@ function albumMenu(al, anchor) {
 /* ═════════════════════════════ signal path ═════════════════════════════ */
 const QLabel = { bitperfect: 'Bit-perfect', enhanced: '已處理', high: '高品質', low: '有損來源' };
 const QLead = {
-  bitperfect: '音訊原封不動送到 DAC，沒有任何重新取樣或數位處理。',
+  bitperfect: '依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。',
   enhanced: '訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。',
   high: 'Windows 混音器會依系統格式處理音訊。改用獨佔模式可達到 Bit-perfect。',
   low: '來源為有損壓縮格式。',
@@ -678,9 +682,14 @@ const SignalPop = {
       const stage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
       const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
       box.append(stage('來源', src, false));
-      if (sg.dop) box.append(stage('DSD', `DoP 封裝 → ${khz(sg.outputRate)} kHz`, false));
-      else if (sg.dsd) box.append(stage('DSD 轉 PCM', `${khz(sg.outputRate)} kHz · SoX 高品質 · 預留 1 dB`, true));
-      else if (sg.resampled) box.append(stage('重新取樣', `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz · SoX 高品質 · 預留 1 dB 防削波`, true));
+      if (sg.decoder) box.append(stage('解碼器', sg.decoder, false));
+      const gain = sg.resamplerGainDb;
+      const gainText = gain == null ? '' : Math.abs(gain) < 1e-9 ? ' · 維持原音量' : ` · ${gain > 0 ? '+' : ''}${gain} dB`;
+      const bandwidthText = sg.resamplerBandwidth ? ` · 頻寬 ${Math.round(sg.resamplerBandwidth * 100)}%` : '';
+      if (sg.dsdDirect) box.append(stage('DSD', `${sg.dsdTransport === 'Dop' ? 'DoP 封裝' : sg.dsdTransport === 'Dcs' ? 'dCS 封裝' : 'DSD 原生直送'} → ${khz(sg.outputRate)} kHz`, false));
+      else if (sg.dop) box.append(stage('DSD', `DoP 封裝 → ${khz(sg.outputRate)} kHz`, false));
+      else if (sg.dsd) box.append(stage('DSD 轉 PCM', `${khz(sg.outputRate)} kHz · ${sg.resampler || 'FFmpeg / SoX'}${gainText}`, true));
+      else if (sg.resampled) box.append(stage('重新取樣', `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz · ${sg.resampler || 'FFmpeg / SoX'}${bandwidthText}${gainText}`, true));
       if (sg.replayGainDb != null) box.append(stage('ReplayGain', `${sg.replayGainDb > 0 ? '+' : ''}${sg.replayGainDb.toFixed(1)} dB`, true));
       if (sg.dspActive && sg.dspSummary) box.append(stage('DSP', sg.dspSummary, true));
       const vm = sg.volumeMode;
@@ -688,6 +697,16 @@ const SignalPop = {
       box.append(stage('音量', vm === 'digital' ? (Math.abs(db) < 1e-9 ? '數位音量 · 0 dB（不處理）' : `數位音量 · ${db.toFixed(1)} dB`) : vm === 'hardware' ? `DAC 硬體音量 · ${db.toFixed(1)} dB` : vm === 'none' ? '無（請使用 DAC 旋鈕）' : '固定 0 dB', vm === 'digital' && Math.abs(db) > 1e-9));
       box.append(stage('輸出', `${sg.mode} · ${sg.device}`, false));
       box.append(stage('格式', `${sg.outputFormat} / ${khz(sg.outputRate)} kHz`, false));
+      if (sg.mode && sg.mode.startsWith('WASAPI') && sg.eventDriven != null) box.append(stage('補充音訊方式', sg.eventDriven ? '事件驅動' : '定時喚醒', false));
+      if (sg.quantization) box.append(stage('量化', sg.quantization, false));
+      const meter = App.state.meter;
+      if (sg.resampled && meter && meter.resampleMeterAvailable === true) {
+        const peak = Number(meter.resamplePeak || 0);
+        const db = peak > 0 ? (20 * Math.log10(peak)).toFixed(2) + ' dBFS' : '−∞ dBFS';
+        box.append(stage('重取樣輸出峰值', db + ' · 已解碼區段，ReplayGain／DSP 前', peak > 1));
+        box.append(h('div', { class: 'note' }, '解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。'));
+        if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, `已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
+      } else if (sg.resampled) box.append(stage('重取樣峰值量測', '此播放內核未提供', false));
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
     }
     Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
@@ -891,6 +910,8 @@ const Router = {
     return { name: parts[0] || 'home', arg: parts.slice(1).map(decodeURIComponent).join('/') };
   },
   render(keepScroll, dir = 'fade') {
+    // VINYL theme: put the record back in its sleeve before leaving the album page
+    if (!keepScroll && this.cur.name === 'album' && typeof Vinyl !== 'undefined' && Vinyl.beforeLeave(() => this.render(keepScroll, dir))) return;
     const content = $('#content');
     // leaving an album page: remember its cover so it can fly back into the grid
     if (this.cur.name === 'album' && !keepScroll) Flip.captureBack(this.cur.arg, $('.hero.album .cover'));
@@ -905,9 +926,11 @@ const Router = {
     if (r.name !== 'search' && document.activeElement !== $('#q')) $('#q').value = '';
     const view = $('#view');
     view.textContent = '';
-    view.classList.remove('enter', 'enter-fwd', 'enter-back', 'enter-fade');
+    view.classList.remove('enter', 'enter-fwd', 'enter-back', 'enter-fade', 'enter-flip');
     void view.offsetWidth;
-    if (Flip.from && r.name === 'album' && Flip.from.id === r.arg) dir = 'fade';
+    // a cover is flying: never fade the element it lands on (a fading parent is what made it flash)
+    if (Flip.from && r.name === 'album' && Flip.from.id === r.arg) dir = 'flip';
+    else if (Flip.back && r.name !== 'album') dir = 'none';
     Motion.quiet = dir === 'none';
     if (dir !== 'none' && (!keepScroll || !same)) view.classList.add('enter-' + dir);
     const fn = Views[r.name] || Views.home;
@@ -950,7 +973,122 @@ function onUserScroll(f) {
   return off;
 }
 
-/** Shared-element transition: the clicked album cover flies into the album page header. */
+/** Shared-element transition: the clicked album cover flies into the album page header.
+ *  No copy is made and nothing is swapped at the end: the REAL destination element is moved
+ *  (FLIP: start where the source was, transform back to its own place). Under the destination's
+ *  <img> we lay the already-loaded small picture, so it is visible from the first frame and the
+ *  full-size image simply appears on top of an identical picture. Nothing can flash. */
+function flipInto(el, from, src) {
+  const t = el.getBoundingClientRect();
+  if (!t.width || !from.width) return;
+  let under = null;
+  if (src) {
+    under = h('img', { class: 'flip-under', src });
+    el.prepend(under);
+  }
+  const dx = from.left - t.left, dy = from.top - t.top, sx = from.width / t.width, sy = from.height / t.height;
+  Object.assign(el.style, { transition: 'none', transformOrigin: '0 0', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, zIndex: 60, position: el.style.position || '' });
+  // z-index only works inside the nearest stacking context: lift every positioned ancestor (card, grid row…)
+  // up to the scroller as well, otherwise neighbouring cards painted later cover the flying cover
+  const lifted = [];
+  for (let p = el.parentElement; p && p.id !== 'content' && p !== document.body; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (cs.position !== 'static' || cs.transform !== 'none' || cs.zIndex !== 'auto' || +cs.opacity < 1) {
+      lifted.push([p, p.style.zIndex, p.style.position]);
+      if (cs.position === 'static') p.style.position = 'relative';
+      p.style.zIndex = 60;
+    }
+  }
+  void el.offsetWidth;
+  const wild = typeof Blast !== 'undefined' && Blast.on;
+  requestAnimationFrame(() => {
+    let anim = null;
+    if (wild) {
+      // BLAST theme: a random, different crazy trajectory every time
+      el.style.transform = '';
+      const tm = Blast.flightTiming();
+      anim = el.animate(Blast.flight(dx, dy, sx, sy), tm);
+      anim.onfinish = () => end();
+      setTimeout(() => end(), tm.duration + 200);
+    } else {
+      el.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+      el.style.transform = '';
+    }
+    let finished = false;
+    const end = () => {
+      if (finished) return; finished = true;
+      stop();
+      Object.assign(el.style, { transition: '', transformOrigin: '', zIndex: '' });
+      lifted.forEach(([p, z, pos]) => { p.style.zIndex = z; p.style.position = pos; });
+      if (under) {
+        // drop the stand-in only once the real picture is fully shown on top of it
+        const img = [...el.querySelectorAll('img')].find(i => i !== under);
+        const drop = () => under.remove();
+        if (!img) return;
+        if (img.classList.contains('ok')) setTimeout(drop, 600);
+        else { img.addEventListener('load', () => setTimeout(drop, 600), { once: true }); setTimeout(drop, 3000); }
+      }
+    };
+    const stop = onUserScroll(() => { if (anim) anim.cancel(); el.style.transition = 'none'; el.style.transform = ''; end(); });
+    if (!wild) {
+      el.addEventListener('transitionend', e => { if (e.target === el && e.propertyName === 'transform') end(); });
+      setTimeout(end, 650);
+    }
+  });
+}
+/** Flying back into a list: the card sits deep inside grid rows / rails with their own stacking and
+ *  clipping, so instead of moving it in place we fly an exact clone of it (wrapped in .card so every theme
+ *  rule still matches) on top of the whole page, then show the real card and drop the clone in the same frame. */
+function flyBackClone(target, b) {
+  const t = target.getBoundingClientRect();
+  if (!t.width) return;
+  const clone = target.cloneNode(true);
+  clone.querySelectorAll('.play, .flip-under').forEach(n => n.remove());
+  let img = clone.querySelector('img');
+  if (!img) { img = h('img'); clone.append(img); }
+  if (!img.classList.contains('ok')) { img.src = b.src; img.classList.add('ok'); }
+  img.style.transition = 'none';
+  Object.assign(clone.style, { width: t.width + 'px', height: t.height + 'px', margin: 0, transition: 'none', transform: 'none', animation: 'none' });
+  const card = target.closest('.card');
+  const wrap = h('div', { class: (card ? card.className : 'card') + ' flip-fly' }, clone);
+  wrap.classList.remove('pop-in', 'playing');
+  Object.assign(wrap.style, { position: 'fixed', left: t.left + 'px', top: t.top + 'px', width: t.width + 'px', margin: 0, zIndex: 300,
+    pointerEvents: 'none', transformOrigin: '0 0', animation: 'none',
+    transform: `translate(${b.rect.left - t.left}px, ${b.rect.top - t.top}px) scale(${b.rect.width / t.width}, ${b.rect.height / t.height})` });
+  document.body.append(wrap);
+  target.style.visibility = 'hidden';
+  if (card) card.classList.add('flip-dest');                 // VINYL: the record travels inside the flying sleeve, not ahead of it
+  const ti = target.querySelector('img'); if (ti) ti.style.transition = 'none';
+  void wrap.offsetWidth;
+  const wild = typeof Blast !== 'undefined' && Blast.on;
+  requestAnimationFrame(() => {
+    if (wild) {
+      const start = wrap.style.transform, tm = Blast.flightTiming();
+      wrap.style.transform = 'none';
+      const kf = Blast.flight(b.rect.left - t.left, b.rect.top - t.top, b.rect.width / t.width, b.rect.height / t.height);
+      kf[0] = { transform: start };
+      const an = wrap.animate(kf, tm);
+      an.onfinish = () => end();
+      setTimeout(() => end(), tm.duration + 200);
+    } else {
+      wrap.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+      wrap.style.transform = 'none';
+    }
+    let finished = false;
+    const end = () => {
+      if (finished) return; finished = true;
+      stop();
+      target.style.visibility = '';
+      if (card) card.classList.remove('flip-dest');
+      requestAnimationFrame(() => wrap.remove());
+    };
+    const stop = onUserScroll(end);
+    if (!wild) {
+      wrap.addEventListener('transitionend', e => { if (e.target === wrap) end(); });
+      setTimeout(end, 650);
+    }
+  });
+}
 const Flip = {
   from: null,
   capture(id, artEl) {
@@ -967,72 +1105,28 @@ const Flip = {
     const b = this.back;
     this.back = null;
     if (!b) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    // the album grid is virtualised: its cards are created a frame or two after the view, so wait for ours
+    let tries = 0;
+    const find = () => {
       const content = $('#content').getBoundingClientRect();
       const target = [...document.querySelectorAll(`[data-album="${CSS.escape(b.id)}"]`)].find(el => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.bottom > content.top && r.top < content.bottom;
       });
-      if (!target) return;
-      const t = target.getBoundingClientRect();
-      const ghost = h('div', { class: 'flip-ghost' }, h('img', { src: b.src }));
-      Object.assign(ghost.style, { left: b.rect.left + 'px', top: b.rect.top + 'px', width: b.rect.width + 'px', height: b.rect.height + 'px', borderRadius: '12px' });
-      document.body.append(ghost);
-      target.style.visibility = 'hidden';
-      requestAnimationFrame(() => {
-        const sx = t.width / b.rect.width, sy = t.height / b.rect.height;
-        ghost.style.transform = `translate(${t.left - b.rect.left}px, ${t.top - b.rect.top}px) scale(${sx}, ${sy})`;
-        ghost.style.borderRadius = (10 / sx) + 'px';
-        let finished = false;
-        const done = quick => {
-          if (finished) return; finished = true;
-          stop();
-          target.style.visibility = '';
-          // scrolling moves the cards under the (fixed) flying picture: drop it at once instead of landing in the wrong place
-          if (quick === true) { ghost.remove(); return; }
-          ghost.style.transition = 'opacity .2s'; ghost.style.opacity = 0;
-          setTimeout(() => ghost.remove(), 220);
-        };
-        const stop = onUserScroll(() => done(true));
-        ghost.addEventListener('transitionend', done, { once: true });
-        setTimeout(done, 650);
-      });
-    }));
+      if (!target) { if (++tries < 20) requestAnimationFrame(find); return; }
+      const card = target.closest('.card');
+      if (card) { card.classList.remove('pop-in'); card.style.animation = 'none'; }
+      flyBackClone(target, b);
+    };
+    requestAnimationFrame(find);
   },
   play(id, coverEl) {
     const f = this.from;
     this.from = null;
     if (!f || f.id !== id || !coverEl) return;
-    const ghost = h('div', { class: 'flip-ghost' }, h('img', { src: f.src }));
-    Object.assign(ghost.style, { left: f.rect.left + 'px', top: f.rect.top + 'px', width: f.rect.width + 'px', height: f.rect.height + 'px' });
-    document.body.append(ghost);
-    coverEl.classList.add('flip-hide');
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      // measure the cover's final resting place (the page fade has no movement, so this is exact)
-      const t = coverEl.getBoundingClientRect();
-      const sx = t.width / f.rect.width, sy = t.height / f.rect.height;
-      ghost.style.transform = `translate(${t.left - f.rect.left}px, ${t.top - f.rect.top}px) scale(${sx}, ${sy})`;
-      ghost.style.borderRadius = (12 / sx) + 'px';
-      let finished = false;
-      const stop = onUserScroll(() => { if (finished) return; finished = true; coverEl.classList.remove('flip-hide'); ghost.remove(); });
-      const reveal = () => {
-        if (finished) return; finished = true;
-        stop();
-        coverEl.classList.remove('flip-hide');
-        ghost.style.transition = 'opacity .3s'; ghost.style.opacity = 0;
-        setTimeout(() => ghost.remove(), 320);
-      };
-      // keep the flying picture until the full-size cover has actually loaded, then cross-fade
-      const whenCover = () => {
-        const img = coverEl.querySelector('img');
-        if (!img || img.classList.contains('ok')) return reveal();
-        img.addEventListener('load', () => setTimeout(reveal, 30), { once: true });
-        img.addEventListener('error', reveal, { once: true });
-        setTimeout(reveal, 1500);
-      };
-      ghost.addEventListener('transitionend', whenCover, { once: true });
-      setTimeout(whenCover, 650);
-    }));
+    // the router resets the scroll position right after the view is built; measure only after that,
+    // otherwise the start point is off by the old scroll distance (the cover came "from below")
+    Promise.resolve().then(() => flipInto(coverEl, f.rect, f.src));
   },
 };
 

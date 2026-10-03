@@ -57,6 +57,7 @@ public sealed class MusicLibrary
     public Album GetAlbum(string id) { lock (_lock) return id != null && _albums.TryGetValue(id, out var a) ? a : null; }
     public List<Album> Albums { get { lock (_lock) return _albums.Values.ToList(); } }
     public int Count { get { lock (_lock) return _byId.Count; } }
+    public List<Track> AllTracks { get { lock (_lock) return _byId.Values.ToList(); } }
 
     public void Load()
     {
