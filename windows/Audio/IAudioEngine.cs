@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 namespace Miku.Audio;
 
 /// <summary>
-/// Playback operations used by Player and implemented by the NAudio-based <see cref="AudioEngine"/>.
+/// The playback core used by Player / MainForm. Two implementations:
+/// <see cref="AudioEngine"/> (MIKU's own NAudio core) and <see cref="RplayEngine"/> (the optional Rplay core, from a private submodule).
+/// Settings.AudioCore picks one ("miku" | "rplay").
 /// </summary>
 public interface IAudioEngine : IDisposable
 {

@@ -25,7 +25,16 @@ const Settings = {
     /* ── audio output ── */
     const out = section('音訊輸出', '獨佔模式可繞過 Windows 混音器；是否保持原始樣本，還取決於取樣率、DSP、音量與輸出格式。實際設定可查看訊號路徑。');
     if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, '找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。'));
-    out.append(field('播放核心', 'FFmpeg 解碼／NAudio 輸出。', h('span', { class: 'muted' }, 'NAudio')));
+    const usingRplay = (s.audioCore || 'miku') === 'rplay';
+    const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
+    out.append(field('播放方案', '切換時會從目前位置繼續播放。',
+      select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); })));
+    if (usingRplay) {
+      out.append(field('Rplay 相容模式', '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
+        select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
+      out.append(field('最高 DSD 取樣率', '超過此上限的 DSD 會轉成 PCM。請依 DAC 與驅動實際支援的格式選擇。',
+        select([[64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], s.rplayMaxDsd || 512, v => this.set({ rplayMaxDsd: +v }))));
+    }
     const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); });
     out.append(field('輸出模式', null, modeSeg));
     const devHost = h('div');
@@ -64,14 +73,15 @@ const Settings = {
       r.onchange = () => this.set({ bufferMs: +r.value });
       return [r, v];
     })()));
-    out.append(field('FFmpeg 升頻', '使用 SoX 高品質重新取樣。關閉時優先使用原始取樣率，實際取樣率請查看訊號路徑。', [
+    out.append(field(usingRplay ? 'Rplay 升頻' : 'FFmpeg 升頻', usingRplay ? '使用 Rplay 的重取樣處理；關閉時優先使用原始取樣率。' : '使用 SoX 高品質重新取樣。關閉時優先使用原始取樣率，實際取樣率請查看訊號路徑。', [
       select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); fixedSel.style.display = v === 'fixed' ? '' : 'none'; }),
     ]));
     const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
     fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
     out.lastChild.querySelector('.ctl').append(fixedSel);
-    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。', sw(s.dop, v => this.set({ dop: v }))));
-    out.append(field('DSD 轉 PCM 取樣率', '關閉 DoP 或 DAC 不支援時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。Rplay 內核用 ASIO 時，驅動程式支援原生 DSD 就會自動使用原生 DSD；打開這個選項則改用 DoP。', sw(s.dop, v => this.set({ dop: v }))));
+    if (usingRplay) out.append(field('DSD 轉 PCM', '使用 Rplay 的轉換策略，再依輸出裝置支援的取樣率調整。', h('span', { class: 'muted' }, 'Rplay 自動選擇')));
+    else out.append(field('DSD 轉 PCM 取樣率', '關閉 DoP 或 DAC 不支援時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
     out.append(field('無縫播放', '同格式曲目之間沒有間隙（Live 專輯、古典樂）。', sw(s.gapless, v => this.set({ gapless: v }))));
 
     /* ── auto continue ── */
