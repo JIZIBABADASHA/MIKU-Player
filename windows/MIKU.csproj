@@ -25,6 +25,11 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Rplay playback core (Settings.AudioCore = "rplay"): git submodule ../Rplay (private repo cychang-ykc/Rplay) -->
+    <ProjectReference Include="..\Rplay\src\Rplay.Core\Rplay.Core.csproj" />
+    <ProjectReference Include="..\Rplay\src\Rplay.Endpoint\Rplay.Endpoint.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- mock.js is only the browser preview backend, not needed inside the app -->
     <None Include="wwwroot\**\*" Exclude="wwwroot\mock.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

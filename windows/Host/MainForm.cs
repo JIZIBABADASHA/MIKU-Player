@@ -28,7 +28,7 @@ public sealed class MainForm : Form
     readonly MusicLibrary _lib;
     readonly ArtworkService _art;
     readonly LyricsService _lyrics;
-    readonly AudioEngine _engine;
+    IAudioEngine _engine;
     readonly Player _player;
     readonly System.Windows.Forms.Timer _tick;
     readonly System.Windows.Forms.Timer _saveTimer;
@@ -342,12 +342,9 @@ public sealed class MainForm : Form
         _lib = new MusicLibrary(_s);
         _art = new ArtworkService(_lib, _s);
         _lyrics = new LyricsService(_s);
-        _engine = new AudioEngine(_s, a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); });
+        _engine = CreateEngine();
         _player = new Player(_engine, _lib, _s);
-
-        _engine.Changed += () => { PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
-        _engine.Loading += t => { if (t != null && !t.IsLive && LiveActive) PauseYt(); };
-        _engine.Failed += msg => Post("error", new { message = msg });
+        WireEngine(_engine);
         _player.NowChanged += () => PostSoon("state");
         _player.QueueChanged += () => PostSoon("queue");
         _lib.ProgressChanged += p =>
@@ -435,6 +432,45 @@ public sealed class MainForm : Form
             Bounds = new Rectangle(wa.X + (wa.Width - width) / 2, wa.Y + (wa.Height - height) / 2, width, height);
         }
         if (_s.Maximized) WindowState = FormWindowState.Maximized;
+    }
+
+    // ───────────────────────────── playback core（Settings.AudioCore）─────────────────────────────
+
+    IAudioEngine CreateEngine()
+    {
+        Action<Action> ui = a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); };
+        if (_s.AudioCore == "rplay")
+        {
+            try { return new RplayEngine(_s, ui); }
+            catch (Exception ex) { Log.Error("Rplay core", ex); _s.AudioCore = "miku"; }
+        }
+        return new AudioEngine(_s, ui);
+    }
+
+    void WireEngine(IAudioEngine engine)
+    {
+        engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
+        engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; if (t != null && !t.IsLive && LiveActive) PauseYt(); };
+        engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
+    }
+
+    /// <summary>設定切換了播放內核：停掉舊的、建立新的，從同一個位置繼續（原本在播就繼續播）。</summary>
+    async Task SwitchCoreAsync()
+    {
+        var old = _engine;
+        var t = old.Track;
+        double pos = old.Position;
+        bool play = old.IsPlaying;
+        bool isLive = t?.IsLive == true;
+        try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
+        try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
+        var engine = CreateEngine();
+        _engine = engine;
+        _player.ReplaceEngine(engine);
+        WireEngine(engine);
+        Log.Info("Playback core: " + (engine is RplayEngine ? "Rplay" : "MIKU"));
+        if (t != null && !isLive) await engine.LoadAsync(t, pos, play);
+        PostSoon("state");
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -1006,11 +1042,11 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
 
     object ApplySettings(JsonElement patch)
     {
-        bool reconfigure = false, volume = false, remote = false;
+        bool reconfigure = false, volume = false, remote = false, core = false;
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
@@ -1020,13 +1056,15 @@ public sealed class MainForm : Form
             if (Equals(old, value)) continue;
             pi.SetValue(_s, value);
             if (OutputKeys.Contains(prop.Name)) reconfigure = true;
+            if (pi.Name == nameof(Settings.AudioCore)) core = true;
             if (pi.Name == nameof(Settings.VolumeMode)) { volume = true; reconfigure = true; }
             if (pi.Name is nameof(Settings.RemoteEnabled) or nameof(Settings.RemotePort)) remote = true;
             if (pi.Name == nameof(Settings.AutoContinue) && _engine.IsPlaying) _player.EnsureAutoNext();
         }
         SaveSoon();
         if (remote) StartRemote();
-        if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
+        if (core) _ = Task.Run(async () => { try { await SwitchCoreAsync(); } catch (Exception ex) { Log.Error("Switch core", ex); Post("error", new { message = "切換播放內核失敗：" + ex.Message }); } });
+        else if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
         else if (volume) _engine.ApplyVolume();
         return _s;
     }

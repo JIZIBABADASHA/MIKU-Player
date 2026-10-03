@@ -45,7 +45,7 @@ public sealed class SignalInfo
     public string Note { get; set; }
 }
 
-public sealed class AudioEngine : IDisposable
+public sealed class AudioEngine : IAudioEngine
 {
     readonly Settings _s;
     readonly Action<Action> _ui;
@@ -66,9 +66,9 @@ public sealed class AudioEngine : IDisposable
     bool _reopenFailed;   // the DAC couldn't be reopened recently: prefer keeping the open output over reopening
     bool _sharedFallback; // last open fell back to shared mode because another program held the DAC
 
-    public Func<Track> PeekNext;
+    public Func<Track> PeekNext { get; set; }
     /// <summary>Asks other audio inside MIKU (the YouTube Music page) to let go of the DAC before a local track opens it.</summary>
-    public Func<Task> ReleaseOthers;
+    public Func<Task> ReleaseOthers { get; set; }
     public event Action<Track> TrackStarted;  // gapless transition
     public event Action Ended;
     public event Action<string> Failed;

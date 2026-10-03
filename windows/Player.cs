@@ -12,7 +12,7 @@ public sealed class Player
 {
     readonly MusicLibrary _lib;
     readonly Settings _s;
-    public AudioEngine Engine { get; }
+    public IAudioEngine Engine { get; private set; }
     readonly object _lock = new();
     List<string> _queue = new();
     List<string> _unshuffled;
@@ -23,15 +23,35 @@ public sealed class Player
     public event Action NowChanged;
     public event Action<string> Error;
 
-    public Player(AudioEngine engine, MusicLibrary lib, Settings s)
+    public Player(IAudioEngine engine, MusicLibrary lib, Settings s)
     {
-        Engine = engine; _lib = lib; _s = s;
+        _lib = lib; _s = s;
         _queue = s.Queue?.ToList() ?? new();
         _index = Math.Clamp(s.QueueIndex, -1, _queue.Count - 1);
+        Attach(engine);
+    }
+
+    void Attach(IAudioEngine engine)
+    {
+        Engine = engine;
         engine.PeekNext = PeekNext;
         engine.TrackStarted += OnGaplessStart;
         engine.Ended += OnEnded;
         engine.Failed += OnFailed;
+    }
+
+    /// <summary>Switch to another playback core (Settings.AudioCore). The old engine must be stopped by the caller.</summary>
+    public void ReplaceEngine(IAudioEngine engine)
+    {
+        var old = Engine;
+        if (old != null)
+        {
+            old.PeekNext = null;
+            old.TrackStarted -= OnGaplessStart;
+            old.Ended -= OnEnded;
+            old.Failed -= OnFailed;
+        }
+        Attach(engine);
     }
 
     public List<string> Queue { get { lock (_lock) return _queue.ToList(); } }
