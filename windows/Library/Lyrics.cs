@@ -193,7 +193,8 @@ public sealed class LyricsService
     /// <summary>All plausible matches from LRCLIB and NetEase, without the strict length filter, closest first.</summary>
     public async Task<List<LyricCandidate>> Candidates(Track t)
     {
-        string artist = string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist;
+        // the first of several artists ("ほぼ日P ;  初音ミク"), like the automatic search
+        string artist = Text.FirstArtist(string.IsNullOrWhiteSpace(t.Artist) ? t.AlbumArtist : t.Artist);
         var list = new List<LyricCandidate>();
         var lrclib = Task.Run(async () =>
         {
