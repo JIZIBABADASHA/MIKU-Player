@@ -59,6 +59,22 @@ public sealed class MainForm : Form
         public double Gap { get; set; }
     }
     string _ytSink;
+    long _ytMetaAt;          // Stopwatch timestamp when _ytMeta arrived
+
+    /// <summary>
+    /// Position of YouTube Music. The page reports currentTime only about every 0.5 s while the state goes out every
+    /// 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old value is sent two or
+    /// three times and the progress bar keeps jumping back).
+    /// </summary>
+    double LivePosition()
+    {
+        var m = _ytMeta;
+        double t = m.T;
+        if (m.P && _engine.IsPlaying && _ytMetaAt != 0)
+            t += Math.Min(1.5, (Stopwatch.GetTimestamp() - _ytMetaAt) / (double)Stopwatch.Frequency);
+        if (m.D > 0) t = Math.Min(t, m.D);
+        return Math.Max(0, t);
+    }
 
     const string YtTapScript = @"(() => {
   if (window.top !== window) return;
@@ -210,6 +226,7 @@ public sealed class MainForm : Form
                         meta.Title = meta.Title?.Trim(); meta.By = meta.By?.Trim();
                         bool changed = meta.Title != _ytMeta.Title || meta.By != _ytMeta.By;
                         _ytMeta = meta;
+                        _ytMetaAt = Stopwatch.GetTimestamp();
                         if (changed && _engine.Track?.IsLive == true) PostSoon("state");
                     }
                 }
@@ -950,7 +967,7 @@ public sealed class MainForm : Form
                 trackId = "yt-live",
                 playing = _engine.IsPlaying,
                 loaded = _engine.IsLoaded,
-                pos = m.T,
+                pos = LivePosition(),
                 dur = m.D,
                 index = _player.Index,
                 volumeDb = _s.VolumeDb,
