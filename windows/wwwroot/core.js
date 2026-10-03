@@ -232,6 +232,7 @@ const App = {
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       await Lib.load();
+      this.trackKey = null; // the track objects were rebuilt: redraw the now-playing bar with the new ones
       // during a scan only refresh pages that list the library, and do it silently
       if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks'].includes(Router.cur.name)) Router.render(true, 'none');
     });
@@ -245,6 +246,7 @@ const App = {
     this.version = init.version;
     this.scan(init.scan);
     await Lib.load();
+    this.trackKey = null; // states received while the library was loading may have drawn an empty now-playing bar
     this.setState(init.state);
     this.renderFav();
     Outputs.refresh();
@@ -277,6 +279,9 @@ const App = {
     if (!this.seeking && !settling) { this.posBase = s.pos; this.posAt = performance.now(); }
     const key = s.trackId + '|' + (s.live ? s.live.title + '|' + s.live.artist : '');
     if (this.trackKey !== key) { this.trackKey = key; this.trackChanged(); }
+    // states arrive before the library has loaded at startup (library.json can take a moment): a local track that
+    // isn't in Lib yet was drawn empty, so don't remember it as drawn and try again with the next state
+    if (s.trackId && !s.live && !Lib.trackById.has(s.trackId)) this.trackKey = null;
     // 最近聆聽: a local track counts once it actually starts playing
     if (s.playing && s.trackId && !s.live && s.trackId !== 'yt-live' && this.lastRecent !== s.trackId) {
       this.lastRecent = s.trackId;

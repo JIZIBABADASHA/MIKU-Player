@@ -59,6 +59,22 @@ public sealed class MainForm : Form
         public double Gap { get; set; }
     }
     string _ytSink;
+    long _ytMetaAt;          // Stopwatch timestamp when _ytMeta arrived
+
+    /// <summary>
+    /// Position of YouTube Music. The page reports currentTime only about every 0.5 s while the state goes out every
+    /// 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old value is sent two or
+    /// three times and the progress bar keeps jumping back).
+    /// </summary>
+    double LivePosition()
+    {
+        var m = _ytMeta;
+        double t = m.T;
+        if (m.P && _engine.IsPlaying && _ytMetaAt != 0)
+            t += Math.Min(1.5, (Stopwatch.GetTimestamp() - _ytMetaAt) / (double)Stopwatch.Frequency);
+        if (m.D > 0) t = Math.Min(t, m.D);
+        return Math.Max(0, t);
+    }
 
     const string YtTapScript = @"(() => {
   if (window.top !== window) return;
@@ -159,10 +175,40 @@ public sealed class MainForm : Form
     const bar = document.querySelector('ytmusic-player-bar');
     const q = s => bar && bar.querySelector(s);
     const img = q('img.image') || q('img');
-    wv.postMessage(JSON.stringify({ k: 'meta', t: v.currentTime || 0, d: isFinite(v.duration) ? v.duration : 0, p: !v.paused,
-      title: (q('.title') || {}).textContent || '', by: (q('.byline') || {}).textContent || '', img: img ? img.src : '', gap: Math.round(gapMax) }));
+    const title = (q('.title') || {}).textContent || '';
+    const [t, d] = trackTime(v, q, title);
+    wv.postMessage(JSON.stringify({ k: 'meta', t, d, p: !v.paused,
+      title, by: (q('.byline') || {}).textContent || '', img: img ? img.src : '', gap: Math.round(gapMax) }));
     gapMax = 0;
   }
+  // YouTube Music plays a queue gaplessly as one media stream: the <video> timeline does not restart at 0 for each
+  // song (currentTime / duration include the songs before it). The player bar's slider has the song's own position
+  // (whole seconds) and length, so use its length, and the song's start in the stream (currentTime - slider value,
+  // the smallest one seen for this song) to keep the exact, smooth currentTime.
+  let songKey = '', songStart = null;
+  function trackTime(v, q, title) {
+    const ct = v.currentTime || 0, vd = isFinite(v.duration) ? v.duration : 0;
+    const pb = q('#progress-bar');
+    const now = pb ? parseFloat(pb.getAttribute('aria-valuenow') ?? pb.value) : NaN;
+    const max = pb ? parseFloat(pb.getAttribute('aria-valuemax') ?? pb.max) : NaN;
+    if (!(max > 0) || !isFinite(now)) return [ct, vd];
+    const key = title + '|' + max;
+    if (key !== songKey) { songKey = key; songStart = null; }
+    const s = ct - now;   // the slider shows whole seconds: s overestimates the start by up to 1 s
+    if (songStart === null || s < songStart || s > songStart + 2) songStart = s;   // > 2 s: the stream jumped (same song again)
+    return [Math.min(max, Math.max(0, ct - songStart)), max];
+  }
+  // Seek to a position in the current song (the time MIKU shows). Use the player's own API, which maps the song time
+  // onto the gapless stream itself; setting video.currentTime directly bypasses YouTube Music's player (and it is in
+  // stream time, not song time). Fallback: the song's start in the stream + the song time.
+  window.__mikuSeek = sec => {
+    const p = document.getElementById('movie_player');
+    if (p && typeof p.seekTo === 'function') { p.seekTo(sec, true); return 'api'; }
+    const v = document.querySelector('video');
+    if (!v) return 'none';
+    v.currentTime = (songStart ?? 0) + sec;
+    return 'video';
+  };
   setInterval(() => { if (performance.now() - lastMeta > 450) meta(); }, 500);
 })();";
 
@@ -210,6 +256,7 @@ public sealed class MainForm : Form
                         meta.Title = meta.Title?.Trim(); meta.By = meta.By?.Trim();
                         bool changed = meta.Title != _ytMeta.Title || meta.By != _ytMeta.By;
                         _ytMeta = meta;
+                        _ytMetaAt = Stopwatch.GetTimestamp();
                         if (changed && _engine.Track?.IsLive == true) PostSoon("state");
                     }
                 }
@@ -711,7 +758,8 @@ public sealed class MainForm : Form
                 if (LiveActive)
                 {
                     string pos = D(a, "pos").ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    await YtScript("(() => { const v = document.querySelector('video'); if (v) v.currentTime = " + pos + "; })()");
+                    // song time (what MIKU shows), through the player's API: see __mikuSeek in the tap script
+                    await YtScript("window.__mikuSeek ? window.__mikuSeek(" + pos + ") : (() => { const v = document.querySelector('video'); if (v) v.currentTime = " + pos + "; })()");
                     return null;
                 }
                 await _player.Seek(D(a, "pos")); return null;
@@ -950,7 +998,7 @@ public sealed class MainForm : Form
                 trackId = "yt-live",
                 playing = _engine.IsPlaying,
                 loaded = _engine.IsLoaded,
-                pos = m.T,
+                pos = LivePosition(),
                 dur = m.D,
                 index = _player.Index,
                 volumeDb = _s.VolumeDb,

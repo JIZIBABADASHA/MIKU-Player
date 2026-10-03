@@ -544,10 +544,12 @@ const Views = {
     const frame = h('div', { class: 'yt-frame' }, h('div', { class: 'muted' }, '載入 YouTube Music…'));
     view.append(bar, frame);
     view.classList.add('yt-view');
+    // the library search bar has nothing to do with YouTube Music: hide the top bar and let the page move up into its place
+    $('#main').classList.add('yt-mode');
     YT.frame = frame;
     const ro = new ResizeObserver(() => YT.sync());
     ro.observe(frame);
     YT.sync();
-    return () => { ro.disconnect(); YT.frame = null; view.classList.remove('yt-view'); YT.sync(); };
+    return () => { ro.disconnect(); YT.frame = null; view.classList.remove('yt-view'); $('#main').classList.remove('yt-mode'); YT.sync(); };
   },
 };
