@@ -195,9 +195,10 @@ const NowPlaying = {
       small.src = t.live ? bigYtImg(t.img, 120) : artUrl(kind, id, 64);
     }
     $('#np-title').textContent = t.title;
-    const artist = h('a', { onclick: () => { this.hide(); go(t.live ? '#/ytmusic' : '#/artist/' + encodeURIComponent(t.artist)); } }, t.artist || '');
+    const artist = t.live ? [h('a', { onclick: () => { this.hide(); go('#/ytmusic'); } }, t.artist || '')]
+      : artistLinks(t.artists?.length ? t.artists : [t.artist || ''], () => this.hide());
     const album = h('a', { onclick: () => { this.hide(); go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); } }, t.album?.title || '');
-    $('#np-artist').replaceChildren(artist, ' — ', album);
+    $('#np-artist').replaceChildren(...artist, ' — ', album);
     const b = $('#np-badges');
     b.textContent = '';
     b.append(h('span', { class: 'badge' }, t.codec));

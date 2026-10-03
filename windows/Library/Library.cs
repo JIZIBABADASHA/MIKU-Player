@@ -48,6 +48,8 @@ public sealed class MusicLibrary
 
     public ScanProgress Progress { get; private set; } = new();
     public event Action Changed;
+    /// <summary>Tracks whose tags were read again (changed files in a scan, a re-read album): their pictures may differ now.</summary>
+    public event Action<List<Track>> TracksRead;
     public event Action<ScanProgress> ProgressChanged;
     public int Revision { get; private set; }
 
@@ -81,16 +83,111 @@ public sealed class MusicLibrary
         return dir;
     }
 
+    /// <summary>
+    /// Discs of one album in sibling folders whose names don't say "Disc 2" ("Selection Story Disc" and
+    /// "Secret Story Disc"), found from the tags: folders under the same parent holding the same album title and
+    /// album artist, each with its own disc numbers (none shared, so two sibling folders that are both disc 1 stay two
+    /// albums). Returns folder → the parent folder to group them under.
+    /// </summary>
+    static Dictionary<string, string> DiscSiblings(List<Track> tracks)
+    {
+        var merge = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var candidates = tracks
+            .Where(t => t?.Path != null && !string.IsNullOrWhiteSpace(t.Album))
+            .Select(t => (t, dir: Path.GetDirectoryName(t.Path) ?? ""))
+            .Where(x => string.Equals(AlbumFolder(x.t.Path), x.dir, StringComparison.OrdinalIgnoreCase))   // not a "Disc 2" folder already
+            .GroupBy(x => (Path.GetDirectoryName(x.dir) ?? "").ToLowerInvariant() + "|" + Text.Norm(x.t.Album) + "|" + Text.Norm(x.t.AlbumArtist ?? ""));
+        foreach (var g in candidates)
+        {
+            var folders = g.GroupBy(x => x.dir, StringComparer.OrdinalIgnoreCase).ToList();
+            if (folders.Count < 2) continue;
+            string parent = Path.GetDirectoryName(folders[0].Key);
+            if (string.IsNullOrEmpty(parent)) continue;
+            var discs = folders.SelectMany(f => f.Select(x => x.t.DiscNo).Distinct()).ToList();
+            if (discs.Distinct().Count() != discs.Count) continue;   // a disc number in two folders: separate albums
+            foreach (var f in folders) merge[f.Key] = parent;
+        }
+        return merge;
+    }
+
+    /// <summary>
+    /// The same album in several folders, e.g. in several formats ("OST" FLAC 24/96 and a DSD128 folder,
+    /// "CD_RIP" and "24_48 HR\Roman [Re：Master Production]"): albums with the same title whose album artist is the
+    /// same, or whose folders are near each other (at most two levels below a common folder, which isn't a drive root):
+    /// the album artist is often written differently ("kensuke ushio" / "牛尾憲輔"). For a compilation's "Various
+    /// Artists" only near folders count. And the same music: track lengths that match (SameMusic). They are kept as
+    /// albums of their own and marked with a common VersionGroup.
+    /// </summary>
+    static void GroupVersions(IEnumerable<Album> all)
+    {
+        foreach (var bucket in all.Where(a => !a.Loose).GroupBy(a => Text.Norm(a.Title)))
+        {
+            var list = bucket.ToList();
+            foreach (var a in list) a.VersionGroup = null;
+            if (list.Count < 2) continue;
+            var parent = list.ToDictionary(a => a, a => a);
+            Album Find(Album a) { while (parent[a] != a) a = parent[a] = parent[parent[a]]; return a; }
+            static bool Compilation(string artist) => artist is "Various Artists" or "未知演出者" || string.IsNullOrWhiteSpace(artist);
+            static bool Near(string x, string y)
+            {
+                var p = x.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                var q = y.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                int c = 0;
+                while (c < p.Length && c < q.Length && string.Equals(p[c], q[c], StringComparison.OrdinalIgnoreCase)) c++;
+                return c >= 2 && p.Length - c <= 2 && q.Length - c <= 2;
+            }
+            // the same recordings: at least half of the smaller one's tracks have a counterpart in the other, each used
+            // once: the same (or containing) title and a length within 2 s (remasters here differ by up to 2.0 s; two
+            // different "TOKYO" 2.5 s apart must not match), or a
+            // length within 0.5 s whatever the title (titles written differently). Keeps apart same-title releases with
+            // other songs (the 2009 and 2010 "イメージソング": lengths 1–2 s apart by chance, other titles; a
+            // soundtrack's singles by different singers)
+            static bool SameMusic(Album x, Album y)
+            {
+                var (small, large) = x.Tracks.Count <= y.Tracks.Count ? (x, y) : (y, x);
+                var pool = large.Tracks.Where(t => t.Duration > 0).ToList();
+                static bool SameTitle(string a, string b)
+                {
+                    string p = Text.Norm(a, true), q = Text.Norm(b, true);
+                    return p.Length > 0 && q.Length > 0 && (p == q || (Math.Min(p.Length, q.Length) >= 2 && (p.Contains(q) || q.Contains(p))));
+                }
+                int hits = 0;
+                foreach (var t in small.Tracks.Where(t => t.Duration > 0))
+                {
+                    double d = t.Duration;
+                    int k = pool.FindIndex(p => Math.Abs(p.Duration - d) <= 0.5);
+                    if (k < 0) k = pool.FindIndex(p => Math.Abs(p.Duration - d) <= 2.0 && SameTitle(p.Title, t.Title));
+                    if (k >= 0) { hits++; pool.RemoveAt(k); }
+                }
+                return hits > 0 && hits * 2 >= small.Tracks.Count;
+            }
+            for (int i = 0; i < list.Count; i++)
+                for (int j = i + 1; j < list.Count; j++)
+                {
+                    Album x = list[i], y = list[j];
+                    bool sameArtist = !Compilation(x.Artist) && Text.Norm(x.Artist) == Text.Norm(y.Artist);
+                    if ((sameArtist || Near(x.Folder, y.Folder)) && SameMusic(x, y)) parent[Find(x)] = Find(y);
+                }
+            foreach (var g in list.GroupBy(Find).Where(g => g.Count() > 1))
+            {
+                string id = Text.Hash("versions|" + string.Join("|", g.Select(a => a.Id).OrderBy(s => s, StringComparer.Ordinal)));
+                foreach (var a in g) a.VersionGroup = id;
+            }
+        }
+    }
+
     void Build(List<Track> tracks, Dictionary<string, string> folderArt)
     {
         var albums = new Dictionary<string, Album>();
         var byId = new Dictionary<string, Track>();
+        var discSiblings = DiscSiblings(tracks);
         foreach (var t in tracks)
         {
             if (t?.Path == null) continue;
             t.Id ??= Text.Hash(t.Path.ToLowerInvariant());
             byId[t.Id] = t;
             string folder = AlbumFolder(t.Path);
+            if (discSiblings.TryGetValue(folder, out var parentFolder)) folder = parentFolder;
             bool loose = string.IsNullOrWhiteSpace(t.Album);
             string title = loose ? Path.GetFileName(folder) : t.Album.Trim();
             string key = folder.ToLowerInvariant() + "|" + Text.Norm(title);
@@ -128,6 +225,7 @@ public sealed class MusicLibrary
             if (albumsPerFolder.TryGetValue(a.Folder, out int n) && n == 1 && folderArt.TryGetValue(a.Folder, out var art)) a.ArtPath = art;
             else if (folderArt.TryGetValue(Path.GetDirectoryName(a.Tracks[0].Path) ?? "", out var art2) && albumsPerFolder.GetValueOrDefault(a.Folder) == 1) a.ArtPath = art2;
         }
+        GroupVersions(albums.Values);
         lock (_lock)
         {
             _byId = byId;
@@ -220,6 +318,9 @@ public sealed class MusicLibrary
                 Build(list, folderArt);
                 Save(list);
                 Changed?.Invoke();
+                // files read again that were already known: thumbnails made from their old pictures are stale
+                var again = new HashSet<string>(todo.Where(f => existing.ContainsKey(f.FullName)).Select(f => f.FullName), StringComparer.OrdinalIgnoreCase);
+                if (again.Count > 0) TracksRead?.Invoke(list.Where(t => again.Contains(t.Path)).ToList());
             }
             else if (!folderArt.SequenceEqual(_folderArt))
             {
@@ -238,11 +339,68 @@ public sealed class MusicLibrary
         }
     }
 
+    /// <summary>
+    /// Read the tags of one album again (album page menu), even when the files didn't change: every audio file in the
+    /// folders holding its tracks (so other albums sharing those folders, added and removed files are updated too), and
+    /// the folder pictures. Returns the album's id afterwards (it changes with the album title) and the track count.
+    /// </summary>
+    public (string AlbumId, int Tracks) RereadAlbum(string albumId)
+    {
+        if (Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再試");
+        Album album = GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
+        List<string> paths;
+        lock (_lock) paths = album.Tracks.Select(t => t.Path).ToList();
+        var dirs = new HashSet<string>(paths.Select(p => Path.GetDirectoryName(p) ?? ""), StringComparer.OrdinalIgnoreCase);
+        var files = new List<FileInfo>();
+        var art = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in dirs)
+        {
+            if (Directory.Exists(d)) ScanFolder(new DirectoryInfo(d), files, art);
+        }
+        var fresh = new ConcurrentBag<Track>();
+        Parallel.ForEach(files.DistinctBy(f => f.FullName, StringComparer.OrdinalIgnoreCase), new ParallelOptions { MaxDegreeOfParallelism = 4 }, f =>
+        {
+            var t = TagReader.Read(f);
+            if (t != null) fresh.Add(t);
+        });
+        List<Track> list;
+        Dictionary<string, string> folderArt;
+        lock (_lock)
+        {
+            list = _byId.Values.Where(t => !dirs.Contains(Path.GetDirectoryName(t.Path) ?? "")).Concat(fresh).ToList();
+            folderArt = new Dictionary<string, string>(_folderArt, StringComparer.OrdinalIgnoreCase);
+        }
+        foreach (var d in dirs) folderArt.Remove(d);
+        foreach (var (d, a) in art) folderArt[d] = a;
+        Build(list, folderArt);
+        Save(list);
+        Changed?.Invoke();
+        TracksRead?.Invoke(fresh.ToList());
+        // the same album afterwards: the one holding most of its former tracks
+        string newId = paths.Select(p => GetTrack(Text.Hash(p.ToLowerInvariant()))?.AlbumId).Where(id => id != null)
+            .GroupBy(id => id).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
+        return (newId, newId == null ? 0 : GetAlbum(newId)?.Tracks.Count ?? 0);
+    }
+
     static void Walk(DirectoryInfo dir, List<FileInfo> files, Dictionary<string, string> folderArt, CancellationToken ct, ScanProgress p)
     {
         ct.ThrowIfCancellationRequested();
+        if (!ScanFolder(dir, files, folderArt)) return;
+        if (files.Count - p.Found > 500) { p.Found = files.Count; }
+        DirectoryInfo[] subs;
+        try { subs = dir.GetDirectories(); } catch { return; }
+        foreach (var s in subs)
+        {
+            if ((s.Attributes & (FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint)) != 0) continue;
+            Walk(s, files, folderArt, ct, p);
+        }
+    }
+
+    /// <summary>The audio files of one folder (not its subfolders) and its album picture. False when it can't be read.</summary>
+    static bool ScanFolder(DirectoryInfo dir, List<FileInfo> files, Dictionary<string, string> folderArt)
+    {
         FileInfo[] entries;
-        try { entries = dir.GetFiles(); } catch { return; }
+        try { entries = dir.GetFiles(); } catch { return false; }
         FileInfo bestArt = null; int bestRank = int.MaxValue;
         var images = new List<FileInfo>();
         foreach (var f in entries)
@@ -261,14 +419,7 @@ public sealed class MusicLibrary
         }
         if (bestArt == null && images.Count == 1 && images[0].Length > 15_000) bestArt = images[0];
         if (bestArt != null) folderArt[dir.FullName] = bestArt.FullName;
-        if (files.Count - p.Found > 500) { p.Found = files.Count; }
-        DirectoryInfo[] subs;
-        try { subs = dir.GetDirectories(); } catch { return; }
-        foreach (var s in subs)
-        {
-            if ((s.Attributes & (FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint)) != 0) continue;
-            Walk(s, files, folderArt, ct, p);
-        }
+        return true;
     }
 
     // ───────────────────────────── export for the UI ─────────────────────────────
@@ -286,12 +437,14 @@ public sealed class MusicLibrary
             w.WriteStartArray("albums");
             foreach (var a in albums)
             {
-                // [id, title, artist, year, genre, added, hasLocalArt, loose]
+                // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
                 w.WriteStartArray();
                 w.WriteStringValue(a.Id); w.WriteStringValue(a.Title); w.WriteStringValue(a.Artist);
                 w.WriteNumberValue(a.Year); w.WriteStringValue(a.Genre); w.WriteNumberValue(a.Added / TimeSpan.TicksPerSecond);
                 w.WriteNumberValue(a.ArtPath != null || a.Tracks.Any(t => t.HasPic) ? 1 : 0);
                 w.WriteNumberValue(a.Loose ? 1 : 0);
+                w.WriteStringValue(a.VersionGroup ?? "");
+                w.WriteStringValue(Path.GetFileName(a.Folder ?? ""));
                 w.WriteEndArray();
             }
             w.WriteEndArray();
@@ -329,6 +482,7 @@ public static class TagReader
             Size = f.Length,
             Mtime = f.LastWriteTimeUtc.Ticks,
             Codec = CodecFromExt(f.Extension),
+            ReadVer = Version,
         };
         string ext = f.Extension.ToLowerInvariant();
         bool ok = false;
@@ -339,7 +493,8 @@ public static class TagReader
             {
                 using var file = TagLib.File.Create(f.FullName, TagLib.ReadStyle.Average);
                 ApplyTag(t, file.Tag);
-                if (file is TagLib.Riff.File riff) FixRiffInfo(t, riff);
+                if (file is TagLib.Riff.File riff) { FixRiffInfo(t, riff); RestoreLost(t, riff.GetTag(TagLib.TagTypes.Id3v2, false), true); }
+                else RestoreLost(t, null, false);
                 var props = file.Properties;
                 if (props != null)
                 {
@@ -406,13 +561,22 @@ public static class TagReader
 
     static TagReader() { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); }
 
+    /// <summary>Version of the reading rules; raise it when a change should reach tracks already in the library.</summary>
+    public const int Version = 1;
+
     /// <summary>
-    /// WAV files read before the RIFF INFO fix whose tags came out garbled (U+FFFD): read them again on the next scan
-    /// even though the file itself didn't change. (Not for a missing album: most WAVs without one simply have no tags,
-    /// and they would be read again on every scan.)
+    /// Tracks read with older rules whose tags may read differently now: read them again on the next scan even though
+    /// the file itself didn't change, once (<see cref="Track.ReadVer"/>). Garbled (U+FFFD) WAV INFO; '?' for
+    /// characters a tagging program couldn't encode (<see cref="RestoreLost"/>); tags from the ffprobe fallback read
+    /// before it was decoded as UTF-8 (UTF-8 read as Big5 gives private-use characters, "未来古代楽団" → "?芣?支誨璆賢";
+    /// real tags hardly ever have them). Not for a missing album: most WAVs without one simply have no tags.
     /// </summary>
-    public static bool NeedsReread(Track t) =>
-        t.Codec == "WAV" && $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".Contains('\uFFFD');
+    public static bool NeedsReread(Track t)
+    {
+        if (t.ReadVer >= Version) return false;
+        string all = $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}";
+        return all.AsSpan().IndexOfAny('\uFFFD', '?') >= 0 || all.Any(c => c >= '\uE000' && c <= '\uF8FF');
+    }
 
     /// <summary>
     /// RIFF INFO text is usually written in the system ANSI code page (Big5, Shift-JIS, GBK…), but TagLib decodes it as
@@ -420,6 +584,7 @@ public static class TagReader
     /// to the album artist). ID3 values are fine and are kept; a value that was filled from INFO and came out garbled is
     /// decoded again from the raw bytes. TagLib doesn't read the album from INFO at all (IPRD): use it when there is no
     /// other album.
+    /// Characters the code page couldn't hold, stored as '?', are handled afterwards by <see cref="RestoreLost"/>.
     /// </summary>
     static void FixRiffInfo(Track t, TagLib.Riff.File riff)
     {
@@ -440,6 +605,61 @@ public static class TagReader
         if (Garbled(t.Genre)) t.Genre = Info("IGNR");
         if (Garbled(t.Composer)) t.Composer = Info("IWRI");
         if (t.Album == "") t.Album = Info("IPRD");
+
+    }
+
+    static readonly Regex NameSeparators = new(@"\s*(?:[;/、,&＆×]|\bfeat\.?(?=\s)|\bft\.|[()（）])\s*", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// Text whose tagging program stored characters it couldn't encode as '?' ("初音ミク" → "初音??", Big5 RIFF INFO
+    /// "獅子神レオナ" → "獅子神???"): replace it with a value of the same file that fits it, one non-ASCII character per
+    /// '?' (the artist, title…, a part of them such as the "初音ミク" of "黒うさP feat. 初音ミク", or a folder / file name;
+    /// names in a list are matched one by one). Only non-ASCII characters get lost this way, so a real '?' ("Why?")
+    /// never fits. <paramref name="unicode"/>: a tag stored as Unicode (a WAV's ID3); a value equal to its value is kept.
+    /// With <paramref name="dropLost"/> (RIFF INFO), a value that is mostly '?' and fits nothing is dropped (the artist,
+    /// album artist and title then fall back to each other / the file name), except the album, which groups the tracks.
+    /// </summary>
+    static void RestoreLost(Track t, TagLib.Tag unicode, bool dropLost)
+    {
+        if (!$"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".Contains('?')) return;
+        static string Uni(TagLib.Tag tag, Func<TagLib.Tag, string> get) => tag == null ? null : Clean(get(tag));
+        var dirs = Path.GetDirectoryName(t.Path)?.Split(Path.DirectorySeparatorChar) ?? Array.Empty<string>();
+        var known = new[] { t.Artist, t.AlbumArtist, t.Title, t.Album, t.Composer, Path.GetFileNameWithoutExtension(t.Path) }
+            .Concat(dirs.Reverse().Take(4)).Where(s => s != "" && !s.Contains('?')).ToList();
+        var knownParts = known.SelectMany(k => NameSeparators.Split(k)).Select(p => p.Trim()).Where(p => p != "").Distinct().ToList();
+        static string Fit(string s, List<string> candidates)
+        {
+            if (s.All(c => c == '?' || char.IsWhiteSpace(c)) && s.Count(c => c == '?') < 2) return null;
+            var fit = new Regex("^" + string.Concat(s.Select(c => c == '?' ? @"[^\x00-\x7F]" : Regex.Escape(c.ToString()))) + "$");
+            return candidates.FirstOrDefault(fit.IsMatch);
+        }
+        string Fix(string s, string fromUnicode, bool drop)
+        {
+            if (!s.Contains('?') || s == fromUnicode) return s;
+            if ((Fit(s, known) ?? Fit(s, knownParts)) is string whole) return whole;
+            // several names whose separators differ between INFO and ID3 ("和氣??未/高野麻里佳" vs "和氣あず未; 高野麻里佳")
+            var parts = Regex.Split(s, @"(\s*[;/]\s*)");
+            if (parts.Length > 1)
+            {
+                for (int i = 0; i < parts.Length; i += 2)
+                    if (parts[i].Contains('?') && Fit(parts[i], knownParts) is string p) parts[i] = p;
+                if (parts.Where((_, i) => i % 2 == 0).All(p => !p.Contains('?'))) return string.Concat(parts);
+            }
+            return drop && Lost(s) ? "" : s;
+        }
+        t.Title = Fix(t.Title, Uni(unicode, g => g.Title), dropLost);
+        t.Artist = Fix(t.Artist, Uni(unicode, g => g.JoinedPerformers), dropLost);
+        t.AlbumArtist = Fix(t.AlbumArtist, Uni(unicode, g => g.JoinedAlbumArtists), dropLost);
+        t.Album = Fix(t.Album, Uni(unicode, g => g.Album), false);
+        t.Genre = Fix(t.Genre, Uni(unicode, g => g.JoinedGenres), dropLost);
+        t.Composer = Fix(t.Composer, Uni(unicode, g => g.JoinedComposers), dropLost);
+    }
+
+    /// <summary>Mostly '?': two or more making up at least half of the text, or a run of three.</summary>
+    static bool Lost(string s)
+    {
+        int q = s.Count(c => c == '?');
+        return q >= 2 && (q * 2 >= s.Count(c => !char.IsWhiteSpace(c)) || s.Contains("???"));
     }
 
     /// <summary>Text from a RIFF INFO chunk: UTF-8 when it is valid UTF-8, otherwise the system ANSI code page.</summary>

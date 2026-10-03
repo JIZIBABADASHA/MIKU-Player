@@ -400,6 +400,7 @@ public sealed class MainForm : Form
 
         _lib = new MusicLibrary(_s);
         _art = new ArtworkService(_lib, _s);
+        ArtworkService.DropOldThumbs();
         _lyrics = new LyricsService(_s);
         _engine = new AudioEngine(_s, a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); });
         _player = new Player(_engine, _lib, _s);
@@ -852,6 +853,12 @@ public sealed class MainForm : Form
                 _lib.StartScan();
                 return _s.Folders;
             case "rescan": _lib.StartScan(B(a, "full")); return null;
+            case "album.reread":
+            {
+                string id = S(a, "id");
+                var (newId, count) = await Task.Run(() => _lib.RereadAlbum(id));   // thumbnails: ArtworkService (TracksRead)
+                return new { albumId = newId, tracks = count };
+            }
             case "suggestFolders":
                 return new[] { @"D:\MUSIC", @"D:\Music", @"E:\Music", @"E:\MUSIC", Environment.GetFolderPath(Environment.SpecialFolder.MyMusic) }
                     .Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -987,6 +994,17 @@ public sealed class MainForm : Form
                 return null;
             }
             case "lyrics.cancel": _lyricsJob?.Cancel(); return null;
+            case "artistArt.info": return new { source = _art.ArtistSourceOf(S(a, "name")) };
+            case "artistArt.candidates": return await _art.ArtistCandidates(S(a, "name"), S(a, "q"));
+            case "artistArt.setUrl": return await _art.SetArtistOverrideFromUrl(S(a, "name"), S(a, "url"));
+            case "artistArt.setData":
+            {
+                string data = S(a, "data") ?? "";
+                int comma = data.IndexOf(',');
+                if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
+                return _art.SetArtistOverride(S(a, "name"), Convert.FromBase64String(data));
+            }
+            case "artistArt.clear": _art.ClearArtistOverride(S(a, "name")); return null;
             case "track":
             {
                 var t = _lib.GetTrack(S(a, "id"));

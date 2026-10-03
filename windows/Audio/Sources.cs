@@ -173,7 +173,8 @@ public sealed class FfmpegSource : PcmSource
         _resample = resample;
         var args = new List<string> { "-nostdin", "-hide_banner", "-loglevel", "error" };
         if (seek > 0.01) { args.Add("-ss"); args.Add(seek.ToString("0.000", CultureInfo.InvariantCulture)); }
-        args.AddRange(new[] { "-i", track.Path, "-map", "0:a:0", "-vn", "-sn", "-dn" });
+        // over 127.0.0.1 HTTP, not by path: FFmpeg's open would keep the file from being deleted while it plays
+        args.AddRange(new[] { "-i", FileServer.Url(track.Path), "-map", "0:a:0", "-vn", "-sn", "-dn" });
         // 1 dB of headroom when resampling: the band-limited reconstruction can overshoot 0 dBFS (inter-sample peaks)
         if (resample) { args.Add("-af"); args.Add($"volume=-1dB:precision=double,aresample={outRate}:resampler=soxr:precision=28:cheby=1"); }
         args.AddRange(new[] { "-ac", "2", "-c:a", "pcm_f64le", "-f", "f64le", "pipe:1" });

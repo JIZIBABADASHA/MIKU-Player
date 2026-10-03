@@ -385,12 +385,15 @@ const Views = {
     const meta = h('div', { class: 'meta' },
         h('div', { class: 'kind' }, al.loose ? '資料夾' : '專輯'),
         h('h1', { title: al.title }, al.title),
-        h('div', { class: 'by' }, h('a', { onclick: () => go('#/artist/' + encodeURIComponent(al.artist)) }, al.artist)),
+        h('div', { class: 'by' }, ...artistLinks(al.artists.length ? al.artists : [al.artist])),
         h('div', { class: 'facts num' },
           al.year ? h('span', null, al.year) : null,
           h('span', null, `${al.tracks.length} 首 · ${fmtLong(al.dur)}`),
           al.genre ? h('span', null, '· ' + al.genre) : null,
-          h('span', { class: 'badge ' + al.qc }, (f.codec === 'DSF' || f.codec === 'DFF') ? al.q : `${f.codec} ${al.q}`)),
+          al.versions
+            ? h('button', { class: 'badge ver ' + al.qc, title: `這張專輯有 ${al.versions.length} 個版本，點一下切換`, onclick: e => versionMenu(al, e.currentTarget) },
+              qualityLabel(al), h('span', { class: 'ver-n' }, `${al.versions.length} 個版本`), h('span', { class: 'caret', html: icon('down') }))
+            : h('span', { class: 'badge ' + al.qc }, qualityLabel(al))),
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary', html: icon('play', true) + '播放', onclick: () => App.playTracks(al.tracks, 0, false) }),
           h('button', { class: 'btn', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(al.tracks, -1, true) }),
@@ -409,10 +412,11 @@ const Views = {
       list.append(row);
     });
     view.append(list);
-    // more by this artist
-    const more = (Lib.artistMap.get(al.artist)?.albums || []).filter(a => a !== al);
-    if (more.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${al.artist} 的作品`)));
+    // more by this artist (each of them when there are several)
+    for (const name of al.artists.filter(realArtist).slice(0, 3)) {
+      const more = (Lib.artistMap.get(name)?.albums || []).filter(a => a !== al && !(al.versions || []).includes(a));
+      if (!more.length) continue;
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${name} 的作品`)));
       const r = h('div', { class: 'rail' });
       more.slice(0, 20).forEach(a => r.append(albumCard(a, 176)));
       view.append(r);
@@ -433,7 +437,7 @@ const Views = {
     const tracks = own.flatMap(a => a.tracks);
     const hero = h('div', { class: 'hero artist' },
       first ? heroBg('a', first.id) : null,
-      artBox('cover', 'r', name, 260, name),
+      Object.assign(artBox('cover', 'r', name, 260, name), { onclick: () => ArtPicker.openArtist(name) }),
       h('div', { class: 'meta' },
         h('div', { class: 'kind' }, '演出者'),
         h('h1', null, name),

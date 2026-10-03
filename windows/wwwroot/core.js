@@ -75,6 +75,20 @@ function fmtQuality(codec, rate, bits) {
   if (!rate) return codec;
   return `${bits || 16}/${khz(rate)}`;
 }
+/** An album's format as shown on its page: "FLAC 24/96", "DSD128", "MP3". */
+function qualityLabel(al) {
+  const f = al.tracks[0];
+  if (!f) return '';
+  return f.codec === 'DSF' || f.codec === 'DFF' || al.q === f.codec ? al.q : `${f.codec} ${al.q}`;
+}
+/** Sort key for an album's versions, best first: DSD, then lossless by bits and rate, then lossy. */
+function qualityRank(al) {
+  const f = al.tracks[0];
+  if (!f) return 0;
+  if (f.codec === 'DSF' || f.codec === 'DFF') return 3e9 + f.rate;
+  if (['MP3', 'AAC', 'OGG', 'OPUS', 'WMA'].includes(f.codec)) return f.rate || 0;
+  return (f.bits || 16) * 1e7 + (f.rate || 0);
+}
 function qualityClass(codec, rate, bits) {
   if (codec === 'DSF' || codec === 'DFF') return 'dsd';
   if (bits > 16 || rate > 48000) return 'hi';
@@ -92,11 +106,15 @@ function toast(msg, opts = {}) {
 
 /* ═════════════════════════════ artwork ═════════════════════════════ */
 const ArtVer = {};
+/** ArtworkService.Rules: a picture cached by WebView2 under older rules isn't used. */
+const ART_RULES = 2;
+/** Changes counted in ArtVer start again at every start, while WebView2 keeps pictures cached for a day: make each start's URLs its own. */
+const ART_BOOT = Date.now().toString(36);
 function artUrl(kind, id, size) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const s = Math.round(size * dpr);
   const v = ArtVer[kind + id] || 0;
-  return `${MEDIA}/art/${kind}/${encodeURIComponent(id)}?s=${s}${v ? '&v=' + v : ''}`;
+  return `${MEDIA}/art/${kind}/${encodeURIComponent(id)}?s=${s}&r=${ART_RULES}${v ? `&v=${ART_BOOT}.${v}` : ''}`;
 }
 /** Fills `box` with a placeholder and lazily fades the real image in on top. */
 function fillArt(box, kind, id, size, label, opts = {}) {
@@ -163,6 +181,23 @@ function artBox(cls, kind, id, size, label) {
 }
 
 /* ═════════════════════════════ library store ═════════════════════════════ */
+/** Artist and genre tags: ';' separates several values ("ほぼ日P ;  初音ミク", "Niconico; Vocaloid"). */
+const splitNames = s => (s || '').split(';').map(x => x.trim()).filter(Boolean);
+/** Several values shown as one text. */
+const joinNames = names => names.join(' / ');
+const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
+/** The artist page for a track: its album's artist (unless a compilation), else the track's first artist. */
+const mainArtist = t => (t.album?.artists || []).find(realArtist) || t.artists?.[0] || t.artist;
+/** Names as links to their artist pages, separated like joinNames. */
+function artistLinks(names, before) {
+  const out = [];
+  names.forEach((n, i) => {
+    if (i) out.push(' / ');
+    out.push(realArtist(n) ? h('a', { onclick: () => { before && before(); go('#/artist/' + encodeURIComponent(n)); } }, n) : n);
+  });
+  return out;
+}
+
 const Lib = {
   albums: [], tracks: [], albumById: new Map(), trackById: new Map(), artists: [], artistMap: new Map(), loaded: false,
   async load() {
@@ -172,37 +207,56 @@ const Lib = {
     } catch (e) { console.error(e); data = { albums: [], tracks: [] }; }
     const albums = [], albumById = new Map(), trackById = new Map(), tracks = [];
     for (const a of data.albums) {
-      const al = { id: a[0], title: a[1], artist: a[2], year: a[3], genre: a[4], added: a[5], hasArt: !!a[6], loose: !!a[7], tracks: [], dur: 0 };
+      const artists = splitNames(a[2]);
+      const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], vg: a[8] || '', folder: a[9] || '', tracks: [], dur: 0 };
       albums.push(al); albumById.set(al.id, al);
     }
     for (const r of data.tracks) {
-      const t = { id: r[0], title: r[1], artist: r[2], albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: r[11] };
+      const artists = splitNames(r[2]);
+      const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: r[11] };
       const al = albumById.get(t.albumId);
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
     }
-    const artistMap = new Map();
     for (const al of albums) {
       const f = al.tracks[0];
       al.q = f ? fmtQuality(f.codec, f.rate, f.bits) : '';
       al.qc = f ? qualityClass(f.codec, f.rate, f.bits) : '';
+      al.versions = null; al.hidden = false;
       al.s = norm(al.title + ' ' + al.artist);
-      if (al.artist && al.artist !== 'Various Artists' && al.artist !== '未知演出者') {
-        let ar = artistMap.get(al.artist);
-        if (!ar) artistMap.set(al.artist, ar = { name: al.artist, albums: [], s: norm(al.artist) });
+    }
+    // the same album in several folders / formats (Library.GroupVersions): each knows the others, best first. Lists
+    // show the album once, as its best version (that's the one opened); the others are reached from its version menu.
+    const groups = new Map();
+    for (const al of albums) if (al.vg) (groups.get(al.vg) || groups.set(al.vg, []).get(al.vg)).push(al);
+    for (const g of groups.values()) {
+      g.sort((x, y) => qualityRank(y) - qualityRank(x) || y.tracks.length - x.tracks.length);
+      for (const al of g) { al.versions = g; al.hidden = al !== g[0]; }
+    }
+    const shown = albums.filter(al => !al.hidden);
+    const artistMap = new Map();
+    for (const al of shown) {
+      // each of several album artists ("Various Artists ; 初音ミク") gets the album, and so do the artists of its other
+      // versions, written otherwise ("kensuke ushio" / "牛尾憲輔")
+      const names = new Set((al.versions || [al]).flatMap(v => v.artists).filter(realArtist));
+      for (const name of names) {
+        let ar = artistMap.get(name);
+        if (!ar) artistMap.set(name, ar = { name, albums: [], s: norm(name) });
         ar.albums.push(al);
       }
     }
     for (const t of tracks) t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : ''));
+    const shownTracks = tracks.filter(t => !t.album?.hidden);
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
-      albums, tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
+      // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
+      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
       artists: [...artistMap.values()].sort((a, b) => coll.compare(a.name, b.name)),
     });
-    $('#c-albums').textContent = albums.length || '';
+    $('#c-albums').textContent = shown.length || '';
     $('#c-artists').textContent = this.artists.length || '';
-    $('#c-tracks').textContent = tracks.length || '';
+    $('#c-tracks').textContent = shownTracks.length || '';
   },
   artistAlbums(name) {
     const own = this.artistMap.get(name)?.albums || [];
@@ -444,7 +498,7 @@ const App = {
     $('#b-fav').onclick = () => { const t = this.track(); if (t) this.toggleFav(t.id); };
     $('#b-art').onclick = () => NowPlaying.show();
     $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
-    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(t.album?.artist && t.album.artist !== 'Various Artists' ? t.album.artist : t.artist)); };
+    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
     $('#b-queue').onclick = () => Drawer.toggle('queue');
     $('#b-dsp').onclick = () => Drawer.toggle('dsp');
     $('#b-sig').onclick = e => SignalPop.toggle(e.currentTarget);
@@ -642,10 +696,27 @@ function trackMenu(t, anchor, list) {
     '-',
     { label: App.favs.has(t.id) ? '從最愛移除' : '加入我的最愛', icon: 'heart', run: () => App.toggleFav(t.id) },
     { label: '前往專輯', icon: 'album', run: () => go('#/album/' + t.albumId) },
-    { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(t.artist)) },
+    ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
+}
+
+/** The album's versions (other folders / formats) to switch to, from the format badge on its page. */
+function versionMenu(al, anchor) {
+  const vs = al.versions || [al];
+  const artists = new Set(vs.map(v => v.artist));
+  menu(vs.map(v => ({
+    label: [qualityLabel(v), `${v.tracks.length} 首`, v.folder, artists.size > 1 ? v.artist : ''].filter(Boolean).join(' · '),
+    icon: v === al ? 'check' : 'album',
+    run: () => { if (v !== al) go('#/album/' + v.id); },
+  })), anchor);
+}
+
+/** "Go to artist" menu items: one per artist when there are several. */
+function artistItems(names) {
+  names = names.filter(Boolean);
+  return names.map(n => ({ label: names.length > 1 ? `前往演出者：${n}` : '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
 function albumMenu(al, anchor) {
@@ -655,10 +726,30 @@ function albumMenu(al, anchor) {
     { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast('已排在下一首'); } },
     { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
     '-',
-    { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(al.artist)) },
+    ...artistItems(al.artists.filter(realArtist)),
     { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
+    '-',
+    { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
   ], anchor);
+}
+
+/** Read the album's tags again (after editing them in another program) and show the page with the new data. */
+async function rereadAlbum(al) {
+  toast('正在重新讀取專輯資訊…');
+  let r;
+  try { r = await Host.call('album.reread', { id: al.id }); }
+  catch (e) { toast('重新讀取失敗：' + e.message, { error: true }); return; }
+  await Lib.load();
+  App.trackKey = null;   // the track objects were rebuilt: the now-playing bar redraws with the new ones
+  if (!r || !r.albumId) { toast('這張專輯的檔案已經不在了'); if (Router.cur.name === 'album') history.back(); return; }
+  toast(`已重新讀取 ${r.tracks} 首`);
+  const hash = '#/album/' + r.albumId;
+  if (location.hash.startsWith('#/album/')) {
+    // the id changes with the album title: replace the page instead of adding a history entry
+    if (location.hash !== hash) history.replaceState({ i: Router.idx }, '', hash);
+    Router.render(true, 'none');
+  }
 }
 
 /* ═════════════════════════════ signal path ═════════════════════════════ */

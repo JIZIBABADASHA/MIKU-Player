@@ -97,6 +97,14 @@ public static class Text
         return Convert.ToHexString(bytes, 0, 8).ToLowerInvariant();
     }
 
+    /// <summary>
+    /// The first real name of an artist tag: ';' separates several ("ほぼ日P ;  初音ミク"), and a compilation's
+    /// "Various Artists" or "未知演出者" is skipped ("Various Artists ; 初音ミク" → "初音ミク"). "" when there is none.
+    /// </summary>
+    public static string FirstArtist(string s) =>
+        (s ?? "").Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(n => n is not ("Various Artists" or "未知演出者")) ?? "";
+
     static readonly Regex Brackets = new(@"[\(\[（【［〔「『<].*?[\)\]）】］〕」』>]", RegexOptions.Compiled);
     static readonly Regex NonWord = new(@"[\s\p{P}\p{S}]+", RegexOptions.Compiled);
 
