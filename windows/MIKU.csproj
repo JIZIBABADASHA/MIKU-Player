@@ -24,11 +24,27 @@
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
-  <ItemGroup>
-    <!-- Rplay playback core (Settings.AudioCore = "rplay"): git submodule ../Rplay (private repo cychang-ykc/Rplay) -->
-    <ProjectReference Include="..\Rplay\src\Rplay.Core\Rplay.Core.csproj" />
-    <ProjectReference Include="..\Rplay\src\Rplay.Endpoint\Rplay.Endpoint.csproj" />
+  <!--
+    Rplay playback core (Settings.AudioCore = "rplay"): git submodule ../Rplay (private repo cychang-ykc/Rplay).
+    Optional: when ../Rplay/src is missing MIKU builds with only its own core (HAS_RPLAY is not defined,
+    RplayEngine.cs is left out and the setting page hides the core switch).
+  -->
+  <PropertyGroup>
+    <RplayDir Condition="'$(RplayDir)' == ''">$(MSBuildThisFileDirectory)..\Rplay\src</RplayDir>
+    <HasRplay Condition="Exists('$(RplayDir)\Rplay.Core\Rplay.Core.csproj') And Exists('$(RplayDir)\Rplay.Endpoint\Rplay.Endpoint.csproj')">true</HasRplay>
+    <DefineConstants Condition="'$(HasRplay)' == 'true'">$(DefineConstants);HAS_RPLAY</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(HasRplay)' == 'true'">
+    <ProjectReference Include="$(RplayDir)\Rplay.Core\Rplay.Core.csproj" />
+    <ProjectReference Include="$(RplayDir)\Rplay.Endpoint\Rplay.Endpoint.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(HasRplay)' != 'true'">
+    <Compile Remove="Audio\RplayEngine.cs" />
+  </ItemGroup>
+  <Target Name="ReportRplay" BeforeTargets="CoreCompile">
+    <Message Importance="high" Text="MIKU: Rplay core $(HasRplay)" Condition="'$(HasRplay)' == 'true'" />
+    <Message Importance="high" Text="MIKU: Rplay core not found at $(RplayDir), building with the MIKU core only" Condition="'$(HasRplay)' != 'true'" />
+  </Target>
   <ItemGroup>
     <!-- mock.js is only the browser preview backend, not needed inside the app -->
     <None Include="wwwroot\**\*" Exclude="wwwroot\mock.js" CopyToOutputDirectory="PreserveNewest" />

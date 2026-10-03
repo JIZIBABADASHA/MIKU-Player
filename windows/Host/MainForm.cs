@@ -439,13 +439,25 @@ public sealed class MainForm : Form
     IAudioEngine CreateEngine()
     {
         Action<Action> ui = a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); };
+#if HAS_RPLAY
         if (_s.AudioCore == "rplay")
         {
             try { return new RplayEngine(_s, ui); }
             catch (Exception ex) { Log.Error("Rplay core", ex); _s.AudioCore = "miku"; }
         }
+#else
+        // 這個版本沒有編進 Rplay 內核（建置時找不到 ../Rplay），設定成 rplay 也只能用 MIKU 內核
+        if (_s.AudioCore == "rplay") Log.Info("Rplay core is not included in this build, using the MIKU core");
+#endif
         return new AudioEngine(_s, ui);
     }
+
+    /// <summary>這個版本有沒有編進 Rplay 內核（MIKU.csproj：../Rplay 存在時定義 HAS_RPLAY）。</summary>
+#if HAS_RPLAY
+    static bool RplayIncluded => true;
+#else
+    static bool RplayIncluded => false;
+#endif
 
     void WireEngine(IAudioEngine engine)
     {
@@ -468,7 +480,7 @@ public sealed class MainForm : Form
         _engine = engine;
         _player.ReplaceEngine(engine);
         WireEngine(engine);
-        Log.Info("Playback core: " + (engine is RplayEngine ? "Rplay" : "MIKU"));
+        Log.Info("Playback core: " + (engine is AudioEngine ? "MIKU" : "Rplay"));
         if (t != null && !isLive) await engine.LoadAsync(t, pos, play);
         PostSoon("state");
     }
@@ -968,6 +980,7 @@ public sealed class MainForm : Form
         settings = _s,
         version = Application.ProductVersion,
         ffmpeg = Ffmpeg.Available,
+        rplay = RplayIncluded,
         asio = Devices.AsioDrivers(),
         scan = _lib.Progress,
         state = State(),

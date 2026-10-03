@@ -29,6 +29,7 @@ const Settings = {
     const coreHost = h('div');
     const drawCore = () => {
       coreHost.textContent = '';
+      if (!App.rplay) return; // 這個版本沒有編進 Rplay 內核
       const cur = App.settings.audioCore || 'miku';
       coreHost.append(field('播放內核', cur === 'rplay'
         ? 'Rplay：照 Roon 的 RAAT 架構重寫的內核（解碼、無縫、升頻、DSD 直送／DoP）。切換時會從目前的位置繼續播放。'
