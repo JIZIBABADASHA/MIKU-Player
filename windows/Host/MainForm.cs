@@ -852,6 +852,16 @@ public sealed class MainForm : Form
                 _lib.StartScan();
                 return _s.Folders;
             case "rescan": _lib.StartScan(B(a, "full")); return null;
+            case "album.reread":
+            {
+                string id = S(a, "id");
+                var old = _lib.GetAlbum(id)?.Tracks.Select(t => t.Id).ToList() ?? new List<string>();
+                var (newId, count) = await Task.Run(() => _lib.RereadAlbum(id));
+                // the embedded picture may have changed too
+                foreach (var key in new[] { id, newId }.Where(x => x != null).Distinct()) { _art.ForgetThumbs("a_" + key); Post("art", new { kind = "album", id = key }); }
+                foreach (var t in old) _art.ForgetThumbs("t_" + t);
+                return new { albumId = newId, tracks = count };
+            }
             case "suggestFolders":
                 return new[] { @"D:\MUSIC", @"D:\Music", @"E:\Music", @"E:\MUSIC", Environment.GetFolderPath(Environment.SpecialFolder.MyMusic) }
                     .Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList();

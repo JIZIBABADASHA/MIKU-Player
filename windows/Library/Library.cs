@@ -238,11 +238,67 @@ public sealed class MusicLibrary
         }
     }
 
+    /// <summary>
+    /// Read the tags of one album again (album page menu), even when the files didn't change: every audio file in the
+    /// folders holding its tracks (so other albums sharing those folders, added and removed files are updated too), and
+    /// the folder pictures. Returns the album's id afterwards (it changes with the album title) and the track count.
+    /// </summary>
+    public (string AlbumId, int Tracks) RereadAlbum(string albumId)
+    {
+        if (Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再試");
+        Album album = GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
+        List<string> paths;
+        lock (_lock) paths = album.Tracks.Select(t => t.Path).ToList();
+        var dirs = new HashSet<string>(paths.Select(p => Path.GetDirectoryName(p) ?? ""), StringComparer.OrdinalIgnoreCase);
+        var files = new List<FileInfo>();
+        var art = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in dirs)
+        {
+            if (Directory.Exists(d)) ScanFolder(new DirectoryInfo(d), files, art);
+        }
+        var fresh = new ConcurrentBag<Track>();
+        Parallel.ForEach(files.DistinctBy(f => f.FullName, StringComparer.OrdinalIgnoreCase), new ParallelOptions { MaxDegreeOfParallelism = 4 }, f =>
+        {
+            var t = TagReader.Read(f);
+            if (t != null) fresh.Add(t);
+        });
+        List<Track> list;
+        Dictionary<string, string> folderArt;
+        lock (_lock)
+        {
+            list = _byId.Values.Where(t => !dirs.Contains(Path.GetDirectoryName(t.Path) ?? "")).Concat(fresh).ToList();
+            folderArt = new Dictionary<string, string>(_folderArt, StringComparer.OrdinalIgnoreCase);
+        }
+        foreach (var d in dirs) folderArt.Remove(d);
+        foreach (var (d, a) in art) folderArt[d] = a;
+        Build(list, folderArt);
+        Save(list);
+        Changed?.Invoke();
+        // the same album afterwards: the one holding most of its former tracks
+        string newId = paths.Select(p => GetTrack(Text.Hash(p.ToLowerInvariant()))?.AlbumId).Where(id => id != null)
+            .GroupBy(id => id).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
+        return (newId, newId == null ? 0 : GetAlbum(newId)?.Tracks.Count ?? 0);
+    }
+
     static void Walk(DirectoryInfo dir, List<FileInfo> files, Dictionary<string, string> folderArt, CancellationToken ct, ScanProgress p)
     {
         ct.ThrowIfCancellationRequested();
+        if (!ScanFolder(dir, files, folderArt)) return;
+        if (files.Count - p.Found > 500) { p.Found = files.Count; }
+        DirectoryInfo[] subs;
+        try { subs = dir.GetDirectories(); } catch { return; }
+        foreach (var s in subs)
+        {
+            if ((s.Attributes & (FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint)) != 0) continue;
+            Walk(s, files, folderArt, ct, p);
+        }
+    }
+
+    /// <summary>The audio files of one folder (not its subfolders) and its album picture. False when it can't be read.</summary>
+    static bool ScanFolder(DirectoryInfo dir, List<FileInfo> files, Dictionary<string, string> folderArt)
+    {
         FileInfo[] entries;
-        try { entries = dir.GetFiles(); } catch { return; }
+        try { entries = dir.GetFiles(); } catch { return false; }
         FileInfo bestArt = null; int bestRank = int.MaxValue;
         var images = new List<FileInfo>();
         foreach (var f in entries)
@@ -261,14 +317,7 @@ public sealed class MusicLibrary
         }
         if (bestArt == null && images.Count == 1 && images[0].Length > 15_000) bestArt = images[0];
         if (bestArt != null) folderArt[dir.FullName] = bestArt.FullName;
-        if (files.Count - p.Found > 500) { p.Found = files.Count; }
-        DirectoryInfo[] subs;
-        try { subs = dir.GetDirectories(); } catch { return; }
-        foreach (var s in subs)
-        {
-            if ((s.Attributes & (FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint)) != 0) continue;
-            Walk(s, files, folderArt, ct, p);
-        }
+        return true;
     }
 
     // ───────────────────────────── export for the UI ─────────────────────────────

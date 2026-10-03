@@ -658,7 +658,27 @@ function albumMenu(al, anchor) {
     { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(al.artist)) },
     { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
+    '-',
+    { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
   ], anchor);
+}
+
+/** Read the album's tags again (after editing them in another program) and show the page with the new data. */
+async function rereadAlbum(al) {
+  toast('正在重新讀取專輯資訊…');
+  let r;
+  try { r = await Host.call('album.reread', { id: al.id }); }
+  catch (e) { toast('重新讀取失敗：' + e.message, { error: true }); return; }
+  await Lib.load();
+  App.trackKey = null;   // the track objects were rebuilt: the now-playing bar redraws with the new ones
+  if (!r || !r.albumId) { toast('這張專輯的檔案已經不在了'); if (Router.cur.name === 'album') history.back(); return; }
+  toast(`已重新讀取 ${r.tracks} 首`);
+  const hash = '#/album/' + r.albumId;
+  if (location.hash.startsWith('#/album/')) {
+    // the id changes with the album title: replace the page instead of adding a history entry
+    if (location.hash !== hash) history.replaceState({ i: Router.idx }, '', hash);
+    Router.render(true, 'none');
+  }
 }
 
 /* ═════════════════════════════ signal path ═════════════════════════════ */
