@@ -175,9 +175,28 @@ public sealed class MainForm : Form
     const bar = document.querySelector('ytmusic-player-bar');
     const q = s => bar && bar.querySelector(s);
     const img = q('img.image') || q('img');
-    wv.postMessage(JSON.stringify({ k: 'meta', t: v.currentTime || 0, d: isFinite(v.duration) ? v.duration : 0, p: !v.paused,
-      title: (q('.title') || {}).textContent || '', by: (q('.byline') || {}).textContent || '', img: img ? img.src : '', gap: Math.round(gapMax) }));
+    const title = (q('.title') || {}).textContent || '';
+    const [t, d] = trackTime(v, q, title);
+    wv.postMessage(JSON.stringify({ k: 'meta', t, d, p: !v.paused,
+      title, by: (q('.byline') || {}).textContent || '', img: img ? img.src : '', gap: Math.round(gapMax) }));
     gapMax = 0;
+  }
+  // YouTube Music plays a queue gaplessly as one media stream: the <video> timeline does not restart at 0 for each
+  // song (currentTime / duration include the songs before it). The player bar's slider has the song's own position
+  // (whole seconds) and length, so use its length, and the song's start in the stream (currentTime - slider value,
+  // the smallest one seen for this song) to keep the exact, smooth currentTime.
+  let songKey = '', songStart = null;
+  function trackTime(v, q, title) {
+    const ct = v.currentTime || 0, vd = isFinite(v.duration) ? v.duration : 0;
+    const pb = q('#progress-bar');
+    const now = pb ? parseFloat(pb.getAttribute('aria-valuenow') ?? pb.value) : NaN;
+    const max = pb ? parseFloat(pb.getAttribute('aria-valuemax') ?? pb.max) : NaN;
+    if (!(max > 0) || !isFinite(now)) return [ct, vd];
+    const key = title + '|' + max;
+    if (key !== songKey) { songKey = key; songStart = null; }
+    const s = ct - now;   // the slider shows whole seconds: s overestimates the start by up to 1 s
+    if (songStart === null || s < songStart || s > songStart + 2) songStart = s;   // > 2 s: the stream jumped (same song again)
+    return [Math.min(max, Math.max(0, ct - songStart)), max];
   }
   setInterval(() => { if (performance.now() - lastMeta > 450) meta(); }, 500);
 })();";
