@@ -657,11 +657,16 @@ const Popover = {
     const r = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y, width: 0, height: 0 };
     const w = el.offsetWidth, hh = el.offsetHeight;
     let x = opts.align === 'right' ? r.right - w : r.left;
-    let y = opts.above ? r.top - hh - 10 : r.bottom + 6;
-    if (y + hh > innerHeight - 8) y = Math.max(8, r.top - hh - 6);
-    if (y < 8) y = 8;
     x = Math.max(8, Math.min(innerWidth - w - 8, x));
-    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.left = x + 'px';
+    // Pin the edge next to the anchor, so content that changes later (the output picker switching between ASIO and
+    // WASAPI device lists) grows away from it instead of off the screen; it opens on the asked side unless the
+    // content only fits on the other, and scrolls inside when it fits on neither.
+    const spaceAbove = r.top - 10 - 8, spaceBelow = innerHeight - r.bottom - 6 - 8;
+    const above = opts.above ? (hh <= spaceAbove || spaceAbove >= spaceBelow) : !(hh <= spaceBelow || spaceBelow >= spaceAbove);
+    if (above) { el.style.bottom = (innerHeight - r.top + 10) + 'px'; el.style.maxHeight = Math.max(120, spaceAbove) + 'px'; }
+    else { el.style.top = (r.bottom + 6) + 'px'; el.style.maxHeight = Math.max(120, spaceBelow) + 'px'; }
+    el.style.overflowY = 'auto';
     this.el = el;
     YT.sync();
     setTimeout(() => {
