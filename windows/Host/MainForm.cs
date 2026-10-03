@@ -497,7 +497,12 @@ public sealed class MainForm : Form
         engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
     }
 
-    /// <summary>設定切換了播放內核：停掉舊的、建立新的，從同一個位置繼續（原本在播就繼續播）。</summary>
+    /// <summary>
+    /// 設定切換了播放內核：短暫停頓後從同一個位置繼續（原本在播就繼續播，YouTube Music 也接著播）。
+    /// 1. 先建立新內核、接上 Player 和介面，再停掉舊內核：舊內核在停止過程中發出的事件（例如 Ended）不會再讓 Player 換歌
+    /// 2. 舊內核放開 DAC 之後才開新的：回收殘留的 WASAPI / COM 物件，再等一下（獨佔模式、ASIO 都需要時間交接）
+    /// 3. 新內核開不到裝置時重試幾次
+    /// </summary>
     async Task SwitchCoreAsync()
     {
         var old = _engine;
@@ -505,14 +510,30 @@ public sealed class MainForm : Form
         double pos = old.Position;
         bool play = old.IsPlaying;
         bool isLive = t?.IsLive == true;
-        try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
-        try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
+
         var engine = CreateEngine();
         _engine = engine;
         _player.ReplaceEngine(engine);
         WireEngine(engine);
-        Log.Info("Playback core: " + (engine is AudioEngine ? "MIKU" : "Rplay"));
-        if (t != null && !isLive) await engine.LoadAsync(t, pos, play);
+        Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : "Rplay")} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
+
+        try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
+        try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        await Task.Delay(300);
+
+        if (t != null)
+        {
+            for (int attempt = 1; attempt <= 3; attempt++)
+            {
+                await engine.LoadAsync(t, isLive ? 0 : pos, play);
+                if (!play || engine.IsLoaded || !engine.LastFailureWasDevice) break;
+                Log.Info($"Switch core: the DAC is not free yet (attempt {attempt}), retrying");
+                await Task.Delay(500);
+            }
+        }
         PostSoon("state");
     }
 
