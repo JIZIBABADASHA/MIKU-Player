@@ -110,6 +110,72 @@ public sealed class MusicLibrary
         return merge;
     }
 
+    /// <summary>
+    /// The same album in several folders, e.g. in several formats ("OST" FLAC 24/96 and a DSD128 folder,
+    /// "CD_RIP" and "24_48 HR\Roman [Re：Master Production]"): albums with the same title whose album artist is the
+    /// same, or whose folders are near each other (at most two levels below a common folder, which isn't a drive root):
+    /// the album artist is often written differently ("kensuke ushio" / "牛尾憲輔"). For a compilation's "Various
+    /// Artists" only near folders count. And the same music: track lengths that match (SameMusic). They are kept as
+    /// albums of their own and marked with a common VersionGroup.
+    /// </summary>
+    static void GroupVersions(IEnumerable<Album> all)
+    {
+        foreach (var bucket in all.Where(a => !a.Loose).GroupBy(a => Text.Norm(a.Title)))
+        {
+            var list = bucket.ToList();
+            foreach (var a in list) a.VersionGroup = null;
+            if (list.Count < 2) continue;
+            var parent = list.ToDictionary(a => a, a => a);
+            Album Find(Album a) { while (parent[a] != a) a = parent[a] = parent[parent[a]]; return a; }
+            static bool Compilation(string artist) => artist is "Various Artists" or "未知演出者" || string.IsNullOrWhiteSpace(artist);
+            static bool Near(string x, string y)
+            {
+                var p = x.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                var q = y.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+                int c = 0;
+                while (c < p.Length && c < q.Length && string.Equals(p[c], q[c], StringComparison.OrdinalIgnoreCase)) c++;
+                return c >= 2 && p.Length - c <= 2 && q.Length - c <= 2;
+            }
+            // the same recordings: at least half of the smaller one's tracks have a counterpart in the other, each used
+            // once: the same (or containing) title and a length within 2 s (remasters here differ by up to 2.0 s; two
+            // different "TOKYO" 2.5 s apart must not match), or a
+            // length within 0.5 s whatever the title (titles written differently). Keeps apart same-title releases with
+            // other songs (the 2009 and 2010 "イメージソング": lengths 1–2 s apart by chance, other titles; a
+            // soundtrack's singles by different singers)
+            static bool SameMusic(Album x, Album y)
+            {
+                var (small, large) = x.Tracks.Count <= y.Tracks.Count ? (x, y) : (y, x);
+                var pool = large.Tracks.Where(t => t.Duration > 0).ToList();
+                static bool SameTitle(string a, string b)
+                {
+                    string p = Text.Norm(a, true), q = Text.Norm(b, true);
+                    return p.Length > 0 && q.Length > 0 && (p == q || (Math.Min(p.Length, q.Length) >= 2 && (p.Contains(q) || q.Contains(p))));
+                }
+                int hits = 0;
+                foreach (var t in small.Tracks.Where(t => t.Duration > 0))
+                {
+                    double d = t.Duration;
+                    int k = pool.FindIndex(p => Math.Abs(p.Duration - d) <= 0.5);
+                    if (k < 0) k = pool.FindIndex(p => Math.Abs(p.Duration - d) <= 2.0 && SameTitle(p.Title, t.Title));
+                    if (k >= 0) { hits++; pool.RemoveAt(k); }
+                }
+                return hits > 0 && hits * 2 >= small.Tracks.Count;
+            }
+            for (int i = 0; i < list.Count; i++)
+                for (int j = i + 1; j < list.Count; j++)
+                {
+                    Album x = list[i], y = list[j];
+                    bool sameArtist = !Compilation(x.Artist) && Text.Norm(x.Artist) == Text.Norm(y.Artist);
+                    if ((sameArtist || Near(x.Folder, y.Folder)) && SameMusic(x, y)) parent[Find(x)] = Find(y);
+                }
+            foreach (var g in list.GroupBy(Find).Where(g => g.Count() > 1))
+            {
+                string id = Text.Hash("versions|" + string.Join("|", g.Select(a => a.Id).OrderBy(s => s, StringComparer.Ordinal)));
+                foreach (var a in g) a.VersionGroup = id;
+            }
+        }
+    }
+
     void Build(List<Track> tracks, Dictionary<string, string> folderArt)
     {
         var albums = new Dictionary<string, Album>();
@@ -159,6 +225,7 @@ public sealed class MusicLibrary
             if (albumsPerFolder.TryGetValue(a.Folder, out int n) && n == 1 && folderArt.TryGetValue(a.Folder, out var art)) a.ArtPath = art;
             else if (folderArt.TryGetValue(Path.GetDirectoryName(a.Tracks[0].Path) ?? "", out var art2) && albumsPerFolder.GetValueOrDefault(a.Folder) == 1) a.ArtPath = art2;
         }
+        GroupVersions(albums.Values);
         lock (_lock)
         {
             _byId = byId;
@@ -370,12 +437,14 @@ public sealed class MusicLibrary
             w.WriteStartArray("albums");
             foreach (var a in albums)
             {
-                // [id, title, artist, year, genre, added, hasLocalArt, loose]
+                // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
                 w.WriteStartArray();
                 w.WriteStringValue(a.Id); w.WriteStringValue(a.Title); w.WriteStringValue(a.Artist);
                 w.WriteNumberValue(a.Year); w.WriteStringValue(a.Genre); w.WriteNumberValue(a.Added / TimeSpan.TicksPerSecond);
                 w.WriteNumberValue(a.ArtPath != null || a.Tracks.Any(t => t.HasPic) ? 1 : 0);
                 w.WriteNumberValue(a.Loose ? 1 : 0);
+                w.WriteStringValue(a.VersionGroup ?? "");
+                w.WriteStringValue(Path.GetFileName(a.Folder ?? ""));
                 w.WriteEndArray();
             }
             w.WriteEndArray();

@@ -51,6 +51,8 @@ public sealed class Album
     public long Added { get; set; }
     public List<Track> Tracks { get; } = new();
     public bool Loose { get; set; }
+    /// <summary>Albums that are versions of the same album (other folders, formats): same id; null when there is only this one.</summary>
+    public string VersionGroup { get; set; }
 }
 
 public sealed class EqBand

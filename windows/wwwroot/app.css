@@ -258,6 +258,10 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .badge { display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: rgba(var(--ink), .08); color: var(--text-2); }
 .badge.hi { background: var(--teal-dim); color: var(--teal-2); }
 .badge.dsd { background: var(--pink-dim); color: var(--pink-text); }
+.badge.ver { border: 0; font-family: inherit; cursor: pointer; gap: 6px; }
+.badge.ver:hover { filter: brightness(1.15); }
+.badge.ver .ver-n { opacity: .7; font-weight: 500; }
+.badge.ver .caret svg { width: 12px; height: 12px; display: block; }
 
 /* ───────────── track list ───────────── */
 .tracks { padding: 6px 24px 0; }

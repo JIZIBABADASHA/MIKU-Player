@@ -390,7 +390,10 @@ const Views = {
           al.year ? h('span', null, al.year) : null,
           h('span', null, `${al.tracks.length} 首 · ${fmtLong(al.dur)}`),
           al.genre ? h('span', null, '· ' + al.genre) : null,
-          h('span', { class: 'badge ' + al.qc }, (f.codec === 'DSF' || f.codec === 'DFF') ? al.q : `${f.codec} ${al.q}`)),
+          al.versions
+            ? h('button', { class: 'badge ver ' + al.qc, title: `這張專輯有 ${al.versions.length} 個版本，點一下切換`, onclick: e => versionMenu(al, e.currentTarget) },
+              qualityLabel(al), h('span', { class: 'ver-n' }, `${al.versions.length} 個版本`), h('span', { class: 'caret', html: icon('down') }))
+            : h('span', { class: 'badge ' + al.qc }, qualityLabel(al))),
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary', html: icon('play', true) + '播放', onclick: () => App.playTracks(al.tracks, 0, false) }),
           h('button', { class: 'btn', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(al.tracks, -1, true) }),

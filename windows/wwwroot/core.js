@@ -75,6 +75,20 @@ function fmtQuality(codec, rate, bits) {
   if (!rate) return codec;
   return `${bits || 16}/${khz(rate)}`;
 }
+/** An album's format as shown on its page: "FLAC 24/96", "DSD128", "MP3". */
+function qualityLabel(al) {
+  const f = al.tracks[0];
+  if (!f) return '';
+  return f.codec === 'DSF' || f.codec === 'DFF' || al.q === f.codec ? al.q : `${f.codec} ${al.q}`;
+}
+/** Sort key for an album's versions, best first: DSD, then lossless by bits and rate, then lossy. */
+function qualityRank(al) {
+  const f = al.tracks[0];
+  if (!f) return 0;
+  if (f.codec === 'DSF' || f.codec === 'DFF') return 3e9 + f.rate;
+  if (['MP3', 'AAC', 'OGG', 'OPUS', 'WMA'].includes(f.codec)) return f.rate || 0;
+  return (f.bits || 16) * 1e7 + (f.rate || 0);
+}
 function qualityClass(codec, rate, bits) {
   if (codec === 'DSF' || codec === 'DFF') return 'dsd';
   if (bits > 16 || rate > 48000) return 'hi';
@@ -194,7 +208,7 @@ const Lib = {
     const albums = [], albumById = new Map(), trackById = new Map(), tracks = [];
     for (const a of data.albums) {
       const artists = splitNames(a[2]);
-      const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], tracks: [], dur: 0 };
+      const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], vg: a[8] || '', folder: a[9] || '', tracks: [], dur: 0 };
       albums.push(al); albumById.set(al.id, al);
     }
     for (const r of data.tracks) {
@@ -210,6 +224,7 @@ const Lib = {
       const f = al.tracks[0];
       al.q = f ? fmtQuality(f.codec, f.rate, f.bits) : '';
       al.qc = f ? qualityClass(f.codec, f.rate, f.bits) : '';
+      al.versions = null;
       al.s = norm(al.title + ' ' + al.artist);
       // each of several album artists ("Various Artists ; 初音ミク") gets the album
       for (const name of al.artists.filter(realArtist)) {
@@ -217,6 +232,13 @@ const Lib = {
         if (!ar) artistMap.set(name, ar = { name, albums: [], s: norm(name) });
         ar.albums.push(al);
       }
+    }
+    // the same album in several folders / formats (Library.GroupVersions): each knows the others, best first
+    const groups = new Map();
+    for (const al of albums) if (al.vg) (groups.get(al.vg) || groups.set(al.vg, []).get(al.vg)).push(al);
+    for (const g of groups.values()) {
+      g.sort((x, y) => qualityRank(y) - qualityRank(x));
+      for (const al of g) al.versions = g;
     }
     for (const t of tracks) t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : ''));
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
@@ -670,6 +692,17 @@ function trackMenu(t, anchor, list) {
     '-',
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
+}
+
+/** The album's versions (other folders / formats) to switch to, from the format badge on its page. */
+function versionMenu(al, anchor) {
+  const vs = al.versions || [al];
+  const artists = new Set(vs.map(v => v.artist));
+  menu(vs.map(v => ({
+    label: [qualityLabel(v), `${v.tracks.length} 首`, v.folder, artists.size > 1 ? v.artist : ''].filter(Boolean).join(' · '),
+    icon: v === al ? 'check' : 'album',
+    run: () => { if (v !== al) go('#/album/' + v.id); },
+  })), anchor);
 }
 
 /** "Go to artist" menu items: one per artist when there are several. */
