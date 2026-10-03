@@ -170,7 +170,8 @@ public sealed class MusicLibrary
             var todo = new List<FileInfo>();
             foreach (var f in files)
             {
-                if (!full && existing.TryGetValue(f.FullName, out var old) && old.Size == f.Length && old.Mtime == f.LastWriteTimeUtc.Ticks)
+                if (!full && existing.TryGetValue(f.FullName, out var old) && old.Size == f.Length && old.Mtime == f.LastWriteTimeUtc.Ticks
+                    && !TagReader.NeedsReread(old))
                     result.Add(old);
                 else todo.Add(f);
             }
@@ -337,6 +338,7 @@ public static class TagReader
             {
                 using var file = TagLib.File.Create(f.FullName, TagLib.ReadStyle.Average);
                 ApplyTag(t, file.Tag);
+                if (file is TagLib.Riff.File riff) FixRiffInfo(t, riff);
                 var props = file.Properties;
                 if (props != null)
                 {
@@ -399,6 +401,57 @@ public static class TagReader
 
     static string Clean(string s) => string.IsNullOrWhiteSpace(s) ? "" : s.Replace('\0', ' ').Trim();
 
+    // ───────────────────────────── WAV (RIFF INFO) ─────────────────────────────
+
+    static TagReader() { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); }
+
+    /// <summary>
+    /// WAV files read before the RIFF INFO fix whose tags came out garbled (U+FFFD): read them again on the next scan
+    /// even though the file itself didn't change. (Not for a missing album: most WAVs without one simply have no tags,
+    /// and they would be read again on every scan.)
+    /// </summary>
+    public static bool NeedsReread(Track t) =>
+        t.Codec == "WAV" && $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}".Contains('\uFFFD');
+
+    /// <summary>
+    /// RIFF INFO text is usually written in the system ANSI code page (Big5, Shift-JIS, GBK…), but TagLib decodes it as
+    /// UTF-8, so CJK text from INFO comes out as U+FFFD (e.g. album artist "vip店長" → "vip����"; TagLib maps INFO IART
+    /// to the album artist). ID3 values are fine and are kept; a value that was filled from INFO and came out garbled is
+    /// decoded again from the raw bytes. TagLib doesn't read the album from INFO at all (IPRD): use it when there is no
+    /// other album.
+    /// </summary>
+    static void FixRiffInfo(Track t, TagLib.Riff.File riff)
+    {
+        if (riff.GetTag(TagLib.TagTypes.RiffInfo, false) is not TagLib.Riff.InfoTag info) return;
+        string Info(string id)
+        {
+            foreach (TagLib.ByteVector v in info.GetValues(TagLib.ByteVector.FromString(id, TagLib.StringType.Latin1)))
+            {
+                string s = Clean(DecodeInfo(v.Data));
+                if (s != "") return s;
+            }
+            return "";
+        }
+        static bool Garbled(string s) => s.Contains('\uFFFD');
+        if (Garbled(t.Title)) t.Title = Info("INAM");
+        if (Garbled(t.Artist)) t.Artist = Info("ISTR");
+        if (Garbled(t.AlbumArtist)) t.AlbumArtist = Info("IART");
+        if (Garbled(t.Genre)) t.Genre = Info("IGNR");
+        if (Garbled(t.Composer)) t.Composer = Info("IWRI");
+        if (t.Album == "") t.Album = Info("IPRD");
+    }
+
+    /// <summary>Text from a RIFF INFO chunk: UTF-8 when it is valid UTF-8, otherwise the system ANSI code page.</summary>
+    static string DecodeInfo(byte[] raw)
+    {
+        int n = Array.IndexOf(raw, (byte)0);
+        if (n < 0) n = raw.Length;
+        try { return new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(raw, 0, n); }
+        catch (DecoderFallbackException) { }
+        try { return Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ANSICodePage).GetString(raw, 0, n); }
+        catch { return Encoding.Latin1.GetString(raw, 0, n); }
+    }
+
     static bool ReadDsd(FileInfo f, Track t)
     {
         try
@@ -449,11 +502,11 @@ public static class TagReader
                         string v = prop.Value.GetString() ?? "";
                         switch (prop.Name.ToLowerInvariant())
                         {
-                            case "title": if (t.Title == "") t.Title = v; break;
-                            case "artist": if (t.Artist == "") t.Artist = v; break;
-                            case "album": if (t.Album == "") t.Album = v; break;
-                            case "album_artist": if (t.AlbumArtist == "") t.AlbumArtist = v; break;
-                            case "genre": if (t.Genre == "") t.Genre = v; break;
+                            case "title": if (t.Title == "" || t.Title.Contains('\uFFFD')) t.Title = v; break;
+                            case "artist": if (t.Artist == "" || t.Artist.Contains('\uFFFD')) t.Artist = v; break;
+                            case "album": if (t.Album == "" || t.Album.Contains('\uFFFD')) t.Album = v; break;
+                            case "album_artist": if (t.AlbumArtist == "" || t.AlbumArtist.Contains('\uFFFD')) t.AlbumArtist = v; break;
+                            case "genre": if (t.Genre == "" || t.Genre.Contains('\uFFFD')) t.Genre = v; break;
                             case "track": if (t.TrackNo == 0 && int.TryParse(v.Split('/')[0], out var tn)) t.TrackNo = tn; break;
                             case "disc": if (t.DiscNo == 0 && int.TryParse(v.Split('/')[0], out var dn)) t.DiscNo = dn; break;
                             case "date": if (t.Year == 0 && v.Length >= 4 && int.TryParse(v[..4], out var y)) t.Year = y; break;
