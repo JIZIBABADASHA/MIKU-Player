@@ -48,6 +48,8 @@ public sealed class MusicLibrary
 
     public ScanProgress Progress { get; private set; } = new();
     public event Action Changed;
+    /// <summary>Tracks whose tags were read again (changed files in a scan, a re-read album): their pictures may differ now.</summary>
+    public event Action<List<Track>> TracksRead;
     public event Action<ScanProgress> ProgressChanged;
     public int Revision { get; private set; }
 
@@ -220,6 +222,9 @@ public sealed class MusicLibrary
                 Build(list, folderArt);
                 Save(list);
                 Changed?.Invoke();
+                // files read again that were already known: thumbnails made from their old pictures are stale
+                var again = new HashSet<string>(todo.Where(f => existing.ContainsKey(f.FullName)).Select(f => f.FullName), StringComparer.OrdinalIgnoreCase);
+                if (again.Count > 0) TracksRead?.Invoke(list.Where(t => again.Contains(t.Path)).ToList());
             }
             else if (!folderArt.SequenceEqual(_folderArt))
             {
@@ -274,6 +279,7 @@ public sealed class MusicLibrary
         Build(list, folderArt);
         Save(list);
         Changed?.Invoke();
+        TracksRead?.Invoke(fresh.ToList());
         // the same album afterwards: the one holding most of its former tracks
         string newId = paths.Select(p => GetTrack(Text.Hash(p.ToLowerInvariant()))?.AlbumId).Where(id => id != null)
             .GroupBy(id => id).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;

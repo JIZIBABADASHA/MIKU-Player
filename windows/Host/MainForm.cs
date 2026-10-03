@@ -400,6 +400,7 @@ public sealed class MainForm : Form
 
         _lib = new MusicLibrary(_s);
         _art = new ArtworkService(_lib, _s);
+        ArtworkService.DropOldThumbs();
         _lyrics = new LyricsService(_s);
         _engine = new AudioEngine(_s, a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); });
         _player = new Player(_engine, _lib, _s);
@@ -855,11 +856,7 @@ public sealed class MainForm : Form
             case "album.reread":
             {
                 string id = S(a, "id");
-                var old = _lib.GetAlbum(id)?.Tracks.Select(t => t.Id).ToList() ?? new List<string>();
-                var (newId, count) = await Task.Run(() => _lib.RereadAlbum(id));
-                // the embedded picture may have changed too
-                foreach (var key in new[] { id, newId }.Where(x => x != null).Distinct()) { _art.ForgetThumbs("a_" + key); Post("art", new { kind = "album", id = key }); }
-                foreach (var t in old) _art.ForgetThumbs("t_" + t);
+                var (newId, count) = await Task.Run(() => _lib.RereadAlbum(id));   // thumbnails: ArtworkService (TracksRead)
                 return new { albumId = newId, tracks = count };
             }
             case "suggestFolders":

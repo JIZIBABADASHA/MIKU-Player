@@ -28,7 +28,30 @@ public sealed class ArtworkService
     /// <summary>Raised when online artwork for an album or artist becomes available (kind, id).</summary>
     public event Action<string, string> Updated;
 
-    public ArtworkService(MusicLibrary lib, Settings settings) { _lib = lib; _s = settings; }
+    public ArtworkService(MusicLibrary lib, Settings settings)
+    {
+        _lib = lib; _s = settings;
+        _lib.TracksRead += Reread;
+    }
+
+    /// <summary>
+    /// Tags read again (a scan found changed files, an album was re-read): the embedded picture or the folder picture
+    /// may have changed, so drop the thumbnails made from the old one and tell the UI (Updated).
+    /// </summary>
+    void Reread(List<Track> tracks)
+    {
+        foreach (var id in tracks.Select(t => t.AlbumId).Where(id => id != null).Distinct())
+        {
+            ForgetThumbs("a_" + id);
+            Updated?.Invoke("album", id);
+        }
+        // a folder without an album tag shows each track's own picture
+        foreach (var t in tracks.Where(t => _lib.GetAlbum(t.AlbumId)?.Loose != false).Take(500))
+        {
+            ForgetThumbs("t_" + t.Id);
+            Updated?.Invoke("track", t.Id);
+        }
+    }
 
     // ───────────────────────────── album / track art ─────────────────────────────
 
@@ -44,18 +67,40 @@ public sealed class ArtworkService
         return Cached("t_" + trackId, size, () => TrackSource(t));
     }
 
+    /// <summary>
+    /// Version of the album picture rules; thumbnails made with other rules are dropped at start
+    /// (<see cref="DropOldThumbs"/>) and the UI's picture URLs carry it (core.js ART_RULES).
+    /// 2: the embedded picture wins over a picture file in the folder.
+    /// </summary>
+    public const int Rules = 2;
+
+    /// <summary>Delete the cached thumbnails once after <see cref="Rules"/> changed: they are made again when needed.</summary>
+    public static void DropOldThumbs()
+    {
+        string mark = Path.Combine(AppPaths.Thumbs, ".rules");
+        try
+        {
+            if (File.Exists(mark) && File.ReadAllText(mark).Trim() == Rules.ToString()) return;
+            foreach (var f in Directory.EnumerateFiles(AppPaths.Thumbs, "*.jpg")) { try { File.Delete(f); } catch { } }
+            File.WriteAllText(mark, Rules.ToString());
+        }
+        catch (Exception ex) { Log.Error("Thumbs", ex); }
+    }
+
     byte[] AlbumSource(string albumId)
     {
         var a = _lib.GetAlbum(albumId);
         if (a == null) return null;
         string ov = OverridePath(albumId);
         if (File.Exists(ov)) { try { return File.ReadAllBytes(ov); } catch { } }
-        if (a.ArtPath != null) { try { return File.ReadAllBytes(a.ArtPath); } catch { } }
+        // the picture in the files first: it is what gets updated when the tags are edited, while an old cover.jpg
+        // next to them often stays behind
         foreach (var t in a.Tracks.Where(t => t.HasPic).Take(3))
         {
             var b = TagReader.EmbeddedPicture(t);
             if (b != null && b.Length > 100) return b;
         }
+        if (a.ArtPath != null) { try { return File.ReadAllBytes(a.ArtPath); } catch { } }
         string online = Path.Combine(AppPaths.OnlineArt, "a_" + albumId + ".jpg");
         if (File.Exists(online)) return File.ReadAllBytes(online);
         if (_s.OnlineArt) _ = a.Loose && a.Tracks.Count > 0 ? FetchTrackOnline(a.Tracks[0]) : FetchAlbumOnline(a);
@@ -314,8 +359,8 @@ public sealed class ArtworkService
         var a = _lib.GetAlbum(albumId);
         if (a == null) return "none";
         if (File.Exists(OverridePath(albumId))) return "override";
-        if (a.ArtPath != null) return "folder";
         if (a.Tracks.Any(t => t.HasPic)) return "embedded";
+        if (a.ArtPath != null) return "folder";
         if (File.Exists(Path.Combine(AppPaths.OnlineArt, "a_" + albumId + ".jpg"))) return "online";
         if (a.Loose && a.Tracks.Count > 0 && File.Exists(Path.Combine(AppPaths.OnlineArt, "t_" + a.Tracks[0].Id + ".jpg"))) return "online";
         return "none";
