@@ -198,6 +198,17 @@ public sealed class MainForm : Form
     if (songStart === null || s < songStart || s > songStart + 2) songStart = s;   // > 2 s: the stream jumped (same song again)
     return [Math.min(max, Math.max(0, ct - songStart)), max];
   }
+  // Seek to a position in the current song (the time MIKU shows). Use the player's own API, which maps the song time
+  // onto the gapless stream itself; setting video.currentTime directly bypasses YouTube Music's player (and it is in
+  // stream time, not song time). Fallback: the song's start in the stream + the song time.
+  window.__mikuSeek = sec => {
+    const p = document.getElementById('movie_player');
+    if (p && typeof p.seekTo === 'function') { p.seekTo(sec, true); return 'api'; }
+    const v = document.querySelector('video');
+    if (!v) return 'none';
+    v.currentTime = (songStart ?? 0) + sec;
+    return 'video';
+  };
   setInterval(() => { if (performance.now() - lastMeta > 450) meta(); }, 500);
 })();";
 
@@ -747,7 +758,8 @@ public sealed class MainForm : Form
                 if (LiveActive)
                 {
                     string pos = D(a, "pos").ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    await YtScript("(() => { const v = document.querySelector('video'); if (v) v.currentTime = " + pos + "; })()");
+                    // song time (what MIKU shows), through the player's API: see __mikuSeek in the tap script
+                    await YtScript("window.__mikuSeek ? window.__mikuSeek(" + pos + ") : (() => { const v = document.querySelector('video'); if (v) v.currentTime = " + pos + "; })()");
                     return null;
                 }
                 await _player.Seek(D(a, "pos")); return null;
