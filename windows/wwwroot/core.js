@@ -651,6 +651,10 @@ function slider(el, { start, move, end, tip }) {
 const Popover = {
   el: null,
   show(content, anchor, opts = {}) {
+    // a second click on the button that opened it closes it: the pointerdown (outside the popover) has just closed
+    // it, so don't open it again from that click
+    if (this.closedBy && this.closedBy === anchor && performance.now() - this.closedAt < 600) { this.closedBy = null; return null; }
+    this.closedBy = null;
     this.close();
     const el = h('div', { class: 'pop ' + (opts.cls || '') }, content);
     document.body.append(el);
@@ -670,7 +674,11 @@ const Popover = {
     this.el = el;
     YT.sync();
     setTimeout(() => {
-      this.off = e => { if (!el.contains(e.target)) this.close(); };
+      this.off = e => {
+        if (el.contains(e.target)) return;
+        if (anchor instanceof Element && anchor.contains(e.target)) { this.closedBy = anchor; this.closedAt = performance.now(); }
+        this.close();
+      };
       document.addEventListener('pointerdown', this.off, true);
     });
     return el;
