@@ -40,7 +40,7 @@ public sealed class Player
         engine.Failed += OnFailed;
     }
 
-    /// <summary>Attach a replacement audio engine. The old engine must be stopped by the caller.</summary>
+    /// <summary>Switch to another playback core (Settings.AudioCore). The old engine must be stopped by the caller.</summary>
     public void ReplaceEngine(IAudioEngine engine)
     {
         var old = Engine;
