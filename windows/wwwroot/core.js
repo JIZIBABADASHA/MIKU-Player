@@ -219,36 +219,44 @@ const Lib = {
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
     }
-    const artistMap = new Map();
     for (const al of albums) {
       const f = al.tracks[0];
       al.q = f ? fmtQuality(f.codec, f.rate, f.bits) : '';
       al.qc = f ? qualityClass(f.codec, f.rate, f.bits) : '';
-      al.versions = null;
+      al.versions = null; al.hidden = false;
       al.s = norm(al.title + ' ' + al.artist);
-      // each of several album artists ("Various Artists ; 初音ミク") gets the album
-      for (const name of al.artists.filter(realArtist)) {
+    }
+    // the same album in several folders / formats (Library.GroupVersions): each knows the others, best first. Lists
+    // show the album once, as its best version (that's the one opened); the others are reached from its version menu.
+    const groups = new Map();
+    for (const al of albums) if (al.vg) (groups.get(al.vg) || groups.set(al.vg, []).get(al.vg)).push(al);
+    for (const g of groups.values()) {
+      g.sort((x, y) => qualityRank(y) - qualityRank(x) || y.tracks.length - x.tracks.length);
+      for (const al of g) { al.versions = g; al.hidden = al !== g[0]; }
+    }
+    const shown = albums.filter(al => !al.hidden);
+    const artistMap = new Map();
+    for (const al of shown) {
+      // each of several album artists ("Various Artists ; 初音ミク") gets the album, and so do the artists of its other
+      // versions, written otherwise ("kensuke ushio" / "牛尾憲輔")
+      const names = new Set((al.versions || [al]).flatMap(v => v.artists).filter(realArtist));
+      for (const name of names) {
         let ar = artistMap.get(name);
         if (!ar) artistMap.set(name, ar = { name, albums: [], s: norm(name) });
         ar.albums.push(al);
       }
     }
-    // the same album in several folders / formats (Library.GroupVersions): each knows the others, best first
-    const groups = new Map();
-    for (const al of albums) if (al.vg) (groups.get(al.vg) || groups.set(al.vg, []).get(al.vg)).push(al);
-    for (const g of groups.values()) {
-      g.sort((x, y) => qualityRank(y) - qualityRank(x));
-      for (const al of g) al.versions = g;
-    }
     for (const t of tracks) t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : ''));
+    const shownTracks = tracks.filter(t => !t.album?.hidden);
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
-      albums, tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
+      // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
+      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
       artists: [...artistMap.values()].sort((a, b) => coll.compare(a.name, b.name)),
     });
-    $('#c-albums').textContent = albums.length || '';
+    $('#c-albums').textContent = shown.length || '';
     $('#c-artists').textContent = this.artists.length || '';
-    $('#c-tracks').textContent = tracks.length || '';
+    $('#c-tracks').textContent = shownTracks.length || '';
   },
   artistAlbums(name) {
     const own = this.artistMap.get(name)?.albums || [];

@@ -414,7 +414,7 @@ const Views = {
     view.append(list);
     // more by this artist (each of them when there are several)
     for (const name of al.artists.filter(realArtist).slice(0, 3)) {
-      const more = (Lib.artistMap.get(name)?.albums || []).filter(a => a !== al);
+      const more = (Lib.artistMap.get(name)?.albums || []).filter(a => a !== al && !(al.versions || []).includes(a));
       if (!more.length) continue;
       view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${name} 的作品`)));
       const r = h('div', { class: 'rail' });
