@@ -242,6 +242,7 @@ const App = {
     this.lastRecent = (init.settings.recent || [])[0] || null;
     this.queue = init.queue;
     this.ffmpeg = init.ffmpeg;
+    this.rplay = !!init.rplay;
     this.version = init.version;
     this.scan(init.scan);
     await Lib.load();

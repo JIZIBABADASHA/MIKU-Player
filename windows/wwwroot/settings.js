@@ -25,6 +25,24 @@ const Settings = {
     /* ── audio output ── */
     const out = section('音訊輸出', '獨佔模式會繞過 Windows 混音器，讓 DAC 直接收到原始取樣率與位元深度。');
     if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, '找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。'));
+    /* playback core: MIKU's own NAudio core, or the Rplay core (RAAT architecture) */
+    const coreHost = h('div');
+    const drawCore = () => {
+      coreHost.textContent = '';
+      if (!App.rplay) return; // 這個版本沒有編進 Rplay 內核
+      const cur = App.settings.audioCore || 'miku';
+      coreHost.append(field('播放內核', cur === 'rplay'
+        ? 'Rplay：照 Roon 的 RAAT 架構重寫的內核（解碼、無縫、升頻、DSD 直送／DoP）。切換時會從目前的位置繼續播放。'
+        : 'MIKU：原本的播放內核（NAudio）。切換時會從目前的位置繼續播放。',
+        select([['miku', 'MIKU 內核（NAudio）'], ['rplay', 'Rplay 內核（RAAT 架構）']], cur, async v => { await this.set({ audioCore: v }); drawCore(); toast(v === 'rplay' ? '已切換到 Rplay 內核' : '已切換到 MIKU 內核'); })));
+      if (cur !== 'rplay') return;
+      coreHost.append(field('Roon 相容模式', '修正：把 Roon 的疑似 bug 改成正確的行為（建議）。照 Roon 原本：疑似 bug 也照做，用來和 Roon 比對。',
+        select([['roon_fix', '修正（roon_fix）'], ['roon_origin', '照 Roon 原本（roon_origin）']], App.settings.rplayProfile || 'roon_fix', v => this.set({ rplayProfile: v }))));
+      coreHost.append(field('最高 DSD 取樣率', '超過的 DSD 會轉成 PCM 播放。有些驅動程式回報的範圍比 DAC 實際支援的大，請依 DAC 規格設定。',
+        select([[64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], App.settings.rplayMaxDsd || 512, v => this.set({ rplayMaxDsd: +v }))));
+    };
+    drawCore();
+    out.append(coreHost);
     const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); });
     out.append(field('輸出模式', null, modeSeg));
     const devHost = h('div');
@@ -69,7 +87,7 @@ const Settings = {
     const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
     fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
     out.lastChild.querySelector('.ctl').append(fixedSel);
-    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。', sw(s.dop, v => this.set({ dop: v }))));
+    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。Rplay 內核用 ASIO 時，驅動程式支援原生 DSD 就會自動使用原生 DSD；打開這個選項則改用 DoP。', sw(s.dop, v => this.set({ dop: v }))));
     out.append(field('DSD 轉 PCM 取樣率', '關閉 DoP 或 DAC 不支援時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
     out.append(field('無縫播放', '同格式曲目之間沒有間隙（Live 專輯、古典樂）。', sw(s.gapless, v => this.set({ gapless: v }))));
 

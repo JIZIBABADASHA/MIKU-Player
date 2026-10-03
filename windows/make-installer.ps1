@@ -29,6 +29,12 @@ try {
     Say '[1/4] 編譯 MIKU（獨立版，對方不需要安裝 .NET）...'
     $dotnet = Join-Path $Tools 'dotnet\dotnet.exe'
     if (-not (Test-Path $dotnet)) { $dotnet = 'dotnet' }
+    # the .NET runtime alone can't build: make sure an SDK is there, with a clear message instead of "編譯失敗"
+    $sdks = ''
+    $old = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    try { $sdks = (& $dotnet --list-sdks 2>$null | Out-String).Trim() } catch { }
+    $ErrorActionPreference = $old
+    if (-not $sdks) { Fail "找不到 .NET SDK（只有執行環境無法編譯）。請安裝 .NET 8 SDK（winget install Microsoft.DotNet.SDK.8），或把可攜版 SDK 放在 $Tools\dotnet" }
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'; $env:DOTNET_NOLOGO = '1'
     if (Test-Path (Join-Path $Src 'dist')) { Remove-Item (Join-Path $Src 'dist') -Recurse -Force }
     $code = Run $dotnet @('publish', (Join-Path $Src 'MIKU.csproj'), '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true',
@@ -110,8 +116,12 @@ try {
     }
     $isl = Join-Path $Src 'ChineseTraditional.isl'
     if (-not (Test-Path $isl)) {
-        try { Get 'https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseTraditional.isl' $isl }
-        catch { Say '    中文語系檔下載失敗，安裝程式改用英文介面' }
+        # Inno Setup 6.5 moved Chinese Traditional from Unofficial to the official languages: try the new place first
+        foreach ($u in 'https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/ChineseTraditional.isl',
+                       'https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseTraditional.isl') {
+            try { Get $u $isl; break } catch { if (Test-Path $isl) { Remove-Item $isl -Force } }
+        }
+        if (-not (Test-Path $isl)) { Say '    中文語系檔下載失敗，安裝程式改用英文介面' }
     }
 
     # ── 4. pack ─────────────────────────────

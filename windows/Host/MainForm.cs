@@ -28,7 +28,7 @@ public sealed class MainForm : Form
     readonly MusicLibrary _lib;
     readonly ArtworkService _art;
     readonly LyricsService _lyrics;
-    readonly AudioEngine _engine;
+    IAudioEngine _engine;
     readonly Player _player;
     readonly System.Windows.Forms.Timer _tick;
     readonly System.Windows.Forms.Timer _saveTimer;
@@ -59,6 +59,36 @@ public sealed class MainForm : Form
         public double Gap { get; set; }
     }
     string _ytSink;
+    long _ytMetaAt;          // Stopwatch timestamp when _ytMeta arrived
+    double _liveLatency;     // smoothed seconds from the page's currentTime to the DAC
+
+    /// <summary>
+    /// Position of YouTube Music as heard from the DAC. The page reports currentTime only about every 0.5 s while the
+    /// state goes out every 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old
+    /// value is sent two or three times and the progress bar keeps jumping back). The page also runs ahead of what is
+    /// heard by the capture / output buffers (about 0.4 s with the MIKU core, 1 s with Rplay): that latency is
+    /// subtracted, smoothed so its natural ripple doesn't make the bar jitter, so the bar and lyrics follow the sound.
+    /// </summary>
+    double LivePosition(bool playing)
+    {
+        var m = _ytMeta;
+        double t = m.T;
+        if (m.P && playing && _ytMetaAt != 0)
+            t += Math.Min(1.5, (Stopwatch.GetTimestamp() - _ytMetaAt) / (double)Stopwatch.Frequency);
+        if (m.D > 0) t = Math.Min(t, m.D);
+        double lat = LiveLatencyEstimate();
+        _liveLatency = _liveLatency <= 0 ? lat : _liveLatency + (lat - _liveLatency) * 0.1;   // ~2 s time constant at 5 Hz
+        return Math.Max(0, t - _liveLatency);
+    }
+
+    double LiveLatencyEstimate()
+    {
+#if HAS_RPLAY
+        if (_engine is RplayEngine r) return r.LiveLatency;
+#endif
+        // MIKU core: LiveSource's fill (ring + its own buffer) + the output buffer
+        return LiveBus.Fill + Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0;
+    }
 
     const string YtTapScript = @"(() => {
   if (window.top !== window) return;
@@ -210,6 +240,7 @@ public sealed class MainForm : Form
                         meta.Title = meta.Title?.Trim(); meta.By = meta.By?.Trim();
                         bool changed = meta.Title != _ytMeta.Title || meta.By != _ytMeta.By;
                         _ytMeta = meta;
+                        _ytMetaAt = Stopwatch.GetTimestamp();
                         if (changed && _engine.Track?.IsLive == true) PostSoon("state");
                     }
                 }
@@ -342,12 +373,9 @@ public sealed class MainForm : Form
         _lib = new MusicLibrary(_s);
         _art = new ArtworkService(_lib, _s);
         _lyrics = new LyricsService(_s);
-        _engine = new AudioEngine(_s, a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); });
+        _engine = CreateEngine();
         _player = new Player(_engine, _lib, _s);
-
-        _engine.Changed += () => { PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
-        _engine.Loading += t => { if (t != null && !t.IsLive && LiveActive) PauseYt(); };
-        _engine.Failed += msg => Post("error", new { message = msg });
+        WireEngine(_engine);
         _player.NowChanged += () => PostSoon("state");
         _player.QueueChanged += () => PostSoon("queue");
         _lib.ProgressChanged += p =>
@@ -435,6 +463,88 @@ public sealed class MainForm : Form
             Bounds = new Rectangle(wa.X + (wa.Width - width) / 2, wa.Y + (wa.Height - height) / 2, width, height);
         }
         if (_s.Maximized) WindowState = FormWindowState.Maximized;
+    }
+
+    // ───────────────────────────── playback core（Settings.AudioCore）─────────────────────────────
+
+    IAudioEngine CreateEngine()
+    {
+        Action<Action> ui = a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); };
+#if HAS_RPLAY
+        if (_s.AudioCore == "rplay")
+        {
+            try { return new RplayEngine(_s, ui); }
+            catch (Exception ex) { Log.Error("Rplay core", ex); _s.AudioCore = "miku"; }
+        }
+#else
+        // 這個版本沒有編進 Rplay 內核（建置時找不到 ../Rplay），設定成 rplay 也只能用 MIKU 內核
+        if (_s.AudioCore == "rplay") Log.Info("Rplay core is not included in this build, using the MIKU core");
+#endif
+        return new AudioEngine(_s, ui);
+    }
+
+    /// <summary>這個版本有沒有編進 Rplay 內核（MIKU.csproj：../Rplay 存在時定義 HAS_RPLAY）。</summary>
+#if HAS_RPLAY
+    static bool RplayIncluded => true;
+#else
+    static bool RplayIncluded => false;
+#endif
+
+    void WireEngine(IAudioEngine engine)
+    {
+        engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
+        engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; if (t != null && !t.IsLive && LiveActive) PauseYt(); };
+        engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
+    }
+
+    /// <summary>
+    /// 設定切換了播放內核：短暫停頓後從同一個位置繼續（原本在播就繼續播，YouTube Music 也接著播）。
+    /// 1. 先建立新內核、接上 Player 和介面，再停掉舊內核：舊內核在停止過程中發出的事件（例如 Ended）不會再讓 Player 換歌
+    /// 2. 舊內核放開 DAC 之後才開新的：回收殘留的 WASAPI / COM 物件，再等一下（獨佔模式、ASIO 都需要時間交接）
+    /// 3. 新內核開不到裝置時重試幾次
+    /// </summary>
+    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
+    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
+    volatile CoreSwitch _switching;
+
+    async Task SwitchCoreAsync()
+    {
+        var old = _engine;
+        var t = old.Track;
+        double pos = old.Position;
+        bool play = old.IsPlaying;
+        bool isLive = t?.IsLive == true;
+        // until the new core has loaded the track, the state keeps showing it (otherwise the empty new core makes the
+        // UI fall back to the queue's local track for a moment, or show "paused" at 0:00)
+        _switching = t == null ? null : new CoreSwitch(t, play, pos, old.Signal);
+        try
+        {
+            var engine = CreateEngine();
+            _engine = engine;
+            _player.ReplaceEngine(engine);
+            WireEngine(engine);
+            Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : "Rplay")} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
+
+            try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
+            try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            await Task.Delay(300);
+
+            if (t != null)
+            {
+                for (int attempt = 1; attempt <= 3; attempt++)
+                {
+                    await engine.LoadAsync(t, isLive ? 0 : pos, play);
+                    if (!play || engine.IsLoaded || !engine.LastFailureWasDevice) break;
+                    Log.Info($"Switch core: the DAC is not free yet (attempt {attempt}), retrying");
+                    await Task.Delay(500);
+                }
+            }
+        }
+        finally { _switching = null; }
+        PostSoon("state");
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -932,6 +1042,7 @@ public sealed class MainForm : Form
         settings = _s,
         version = Application.ProductVersion,
         ffmpeg = Ffmpeg.Available,
+        rplay = RplayIncluded,
         asio = Devices.AsioDrivers(),
         scan = _lib.Progress,
         state = State(),
@@ -941,16 +1052,21 @@ public sealed class MainForm : Form
     object State()
     {
         var meter = _engine.Meter();
-        if (_engine.Track?.IsLive == true)
+        var sw = _switching;
+        var current = _engine.Track ?? sw?.Track;
+        bool playing = _engine.IsPlaying || sw?.Playing == true;
+        bool loaded = _engine.IsLoaded || sw != null;
+        var signal = _engine.Signal ?? sw?.Signal;
+        if (current?.IsLive == true)
         {
             var m = _ytMeta;
             var parts = (m.By ?? "").Split('•', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             return new
             {
                 trackId = "yt-live",
-                playing = _engine.IsPlaying,
-                loaded = _engine.IsLoaded,
-                pos = m.T,
+                playing,
+                loaded,
+                pos = LivePosition(playing),
                 dur = m.D,
                 index = _player.Index,
                 volumeDb = _s.VolumeDb,
@@ -958,20 +1074,20 @@ public sealed class MainForm : Form
                 volumeMode = _s.VolumeMode,
                 repeat = _s.Repeat,
                 shuffle = _s.Shuffle,
-                signal = _engine.Signal,
+                signal,
                 live = new { title = m.Title, artist = parts.Length > 0 ? parts[0] : "", album = parts.Length > 1 ? parts[1] : "", img = m.Img },
                 liveStats = new { fill = Math.Round(LiveBus.Fill, 3), adj = Math.Round(LiveBus.Adj * 1000, 2), resyncs = LiveBus.Resyncs, starves = LiveBus.Starves, rate = LiveBus.SourceRate, sink = _ytSink, gap = m.Gap },
                 meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
             };
         }
-        var t = _engine.Track ?? _player.Current;
+        var t = current ?? _player.Current;
         return new
         {
 
             trackId = t?.Id,
-            playing = _engine.IsPlaying,
-            loaded = _engine.IsLoaded,
-            pos = _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
+            playing,
+            loaded,
+            pos = sw != null && !_engine.IsLoaded ? sw.Pos : _engine.IsLoaded ? _engine.Position : (_engine.Track == null ? _s.ResumePosition : _engine.Position),
             dur = t?.Duration ?? 0,
             index = _player.Index,
             volumeDb = _s.VolumeDb,
@@ -979,7 +1095,7 @@ public sealed class MainForm : Form
             volumeMode = _s.VolumeMode,
             repeat = _s.Repeat,
             shuffle = _s.Shuffle,
-            signal = _engine.Signal,
+            signal,
             meter = new { l = meter.l, r = meter.r, clips = meter.clips, underruns = meter.underruns },
         };
     }
@@ -1006,11 +1122,11 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
 
     object ApplySettings(JsonElement patch)
     {
-        bool reconfigure = false, volume = false, remote = false;
+        bool reconfigure = false, volume = false, remote = false, core = false;
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
@@ -1020,13 +1136,15 @@ public sealed class MainForm : Form
             if (Equals(old, value)) continue;
             pi.SetValue(_s, value);
             if (OutputKeys.Contains(prop.Name)) reconfigure = true;
+            if (pi.Name == nameof(Settings.AudioCore)) core = true;
             if (pi.Name == nameof(Settings.VolumeMode)) { volume = true; reconfigure = true; }
             if (pi.Name is nameof(Settings.RemoteEnabled) or nameof(Settings.RemotePort)) remote = true;
             if (pi.Name == nameof(Settings.AutoContinue) && _engine.IsPlaying) _player.EnsureAutoNext();
         }
         SaveSoon();
         if (remote) StartRemote();
-        if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
+        if (core) _ = Task.Run(async () => { try { await SwitchCoreAsync(); } catch (Exception ex) { Log.Error("Switch core", ex); Post("error", new { message = "切換播放內核失敗：" + ex.Message }); } });
+        else if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
         else if (volume) _engine.ApplyVolume();
         return _s;
     }

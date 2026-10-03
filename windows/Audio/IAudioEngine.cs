@@ -1,0 +1,45 @@
+using System;
+using System.Threading.Tasks;
+
+namespace Miku.Audio;
+
+/// <summary>
+/// The playback core used by Player / MainForm. Two implementations:
+/// <see cref="AudioEngine"/> (MIKU's own NAudio core) and <see cref="RplayEngine"/> (the Rplay core, RAAT architecture).
+/// Settings.AudioCore picks one ("miku" | "rplay").
+/// </summary>
+public interface IAudioEngine : IDisposable
+{
+    Func<Track> PeekNext { get; set; }
+    /// <summary>Asks other audio inside MIKU (the YouTube Music page) to let go of the DAC before a local track opens it.</summary>
+    Func<Task> ReleaseOthers { get; set; }
+
+    event Action<Track> TrackStarted;   // gapless transition
+    event Action Ended;
+    event Action<string> Failed;
+    event Action Changed;
+    /// <summary>A track is about to be loaded (used to pause YouTube before a local track takes the DAC).</summary>
+    event Action<Track> Loading;
+
+    SignalInfo Signal { get; }
+    /// <summary>The last load failed because the output device could not be opened (not because the file is bad).</summary>
+    bool LastFailureWasDevice { get; }
+    Track Track { get; }
+    bool IsPlaying { get; }
+    bool IsLoaded { get; }
+    DeviceCaps Caps { get; }
+    double Position { get; }
+
+    Task LoadAsync(Track t, double seek, bool play);
+    void Pause();
+    void Resume();
+    Task SeekAsync(double pos);
+    void Stop();
+    /// <summary>Output settings changed: reopen the device at the current position.</summary>
+    Task ReconfigureAsync();
+    void InvalidateNext();
+    void ApplyVolume();
+    void ApplyDsp();
+    (double l, double r, long clips, long underruns) Meter();
+    void RefreshSignal();
+}
