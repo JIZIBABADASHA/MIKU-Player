@@ -349,10 +349,10 @@ public sealed class ArtworkService
         return SetOverride(albumId, bytes);
     }
 
-    public bool SetOverride(string albumId, byte[] bytes)
+    /// <summary>A picture the user picked, normalised: anything GDI+ can read (png, bmp, gif…) to a high quality JPEG, WebP etc. as-is.</summary>
+    static byte[] UserPicture(byte[] bytes)
     {
         if (bytes == null || bytes.Length < 500) throw new InvalidOperationException("圖片太小或無效");
-        // normalise anything GDI+ can read (png, bmp, gif…) to a high quality JPEG, keep WebP etc. as-is
         byte[] data = bytes;
         try
         {
@@ -362,6 +362,12 @@ public sealed class ArtworkService
             data = Resize(bytes, Math.Min(3000, Math.Max(img.Width, img.Height))) ?? bytes;
         }
         catch (ArgumentException) { }
+        return data;
+    }
+
+    public bool SetOverride(string albumId, byte[] bytes)
+    {
+        byte[] data = UserPicture(bytes);
         string path = OverridePath(albumId);
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllBytes(path, data);
@@ -547,16 +553,79 @@ public sealed class ArtworkService
 
     // ───────────────────────────── artist pictures ─────────────────────────────
 
+    static string ArtistId(string name) => Text.Hash("artist|" + Text.Norm(name));
+    static string ArtistOverridePath(string id) => Path.Combine(AppPaths.Art, "Override", "r_" + id + ".jpg");
+
     public Task<byte[]> ArtistAsync(string name, int size)
     {
-        string id = Text.Hash("artist|" + Text.Norm(name));
+        string id = ArtistId(name);
         return Cached("r_" + id, size, () =>
         {
+            string ov = ArtistOverridePath(id);
+            if (File.Exists(ov)) { try { return File.ReadAllBytes(ov); } catch { } }
             string file = Path.Combine(AppPaths.OnlineArt, "r_" + id + ".jpg");
             if (File.Exists(file)) return File.ReadAllBytes(file);
             if (_s.ArtistImages && _s.OnlineArt) _ = FetchArtist(name, id, file);
             return null;
         });
+    }
+
+    /// <summary>Where the artist picture comes from: override | online | none.</summary>
+    public string ArtistSourceOf(string name)
+    {
+        string id = ArtistId(name);
+        if (File.Exists(ArtistOverridePath(id))) return "override";
+        if (File.Exists(Path.Combine(AppPaths.OnlineArt, "r_" + id + ".jpg"))) return "online";
+        return "none";
+    }
+
+    /// <summary>
+    /// Candidate pictures for the artist picker: Deezer artist photos (the source of the automatic picture), then
+    /// album covers by the artist (Apple Music / Deezer), e.g. for artists Deezer has no photo of.
+    /// </summary>
+    public async Task<List<ArtCandidate>> ArtistCandidates(string name, string query)
+    {
+        string q = string.IsNullOrWhiteSpace(query) ? CleanArtist(name) : query.Trim();
+        var list = new List<ArtCandidate>();
+        if (q == "") return list;
+        try
+        {
+            using var doc = await GetJson("https://api.deezer.com/search/artist?limit=25&q=" + Uri.EscapeDataString(q));
+            if (doc != null && doc.RootElement.TryGetProperty("data", out var data))
+                foreach (var e in data.EnumerateArray())
+                {
+                    string pic = Str(e, "picture_xl");
+                    if (pic == null || pic.Contains("/artist//")) continue;
+                    int fans = e.TryGetProperty("nb_fan", out var f) && f.TryGetInt32(out var n) ? n : 0;
+                    list.Add(new ArtCandidate { Url = pic, Thumb = Str(e, "picture_medium") ?? pic, Title = Str(e, "name"), Artist = fans > 0 ? $"{fans:N0} 位粉絲" : "", Source = "Deezer", Size = "1000×1000" });
+                }
+        }
+        catch { }
+        list.AddRange(await AlbumCandidates("", q, 20));   // free-text search: the artist name finds their albums
+        return list.Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
+    }
+
+    public async Task<bool> SetArtistOverrideFromUrl(string name, string url) => SetArtistOverride(name, await Net.Http.GetByteArrayAsync(url));
+
+    public bool SetArtistOverride(string name, byte[] bytes)
+    {
+        byte[] data = UserPicture(bytes);
+        string id = ArtistId(name), path = ArtistOverridePath(id);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        File.WriteAllBytes(path, data);
+        ForgetThumbs("r_" + id);
+        Updated?.Invoke("artist", name);
+        return true;
+    }
+
+    /// <summary>Back to the automatic picture: drop the user's one, and search online again if there was none.</summary>
+    public void ClearArtistOverride(string name)
+    {
+        string id = ArtistId(name);
+        try { File.Delete(ArtistOverridePath(id)); } catch { }
+        try { File.Delete(Path.Combine(AppPaths.OnlineArt, "r_" + id + ".jpg" + MissExt)); } catch { }
+        ForgetThumbs("r_" + id);
+        Updated?.Invoke("artist", name);
     }
 
     Task<bool> FetchArtist(string name, string id, string target)

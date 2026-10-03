@@ -987,6 +987,17 @@ public sealed class MainForm : Form
                 return null;
             }
             case "lyrics.cancel": _lyricsJob?.Cancel(); return null;
+            case "artistArt.info": return new { source = _art.ArtistSourceOf(S(a, "name")) };
+            case "artistArt.candidates": return await _art.ArtistCandidates(S(a, "name"), S(a, "q"));
+            case "artistArt.setUrl": return await _art.SetArtistOverrideFromUrl(S(a, "name"), S(a, "url"));
+            case "artistArt.setData":
+            {
+                string data = S(a, "data") ?? "";
+                int comma = data.IndexOf(',');
+                if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
+                return _art.SetArtistOverride(S(a, "name"), Convert.FromBase64String(data));
+            }
+            case "artistArt.clear": _art.ClearArtistOverride(S(a, "name")); return null;
             case "track":
             {
                 var t = _lib.GetTrack(S(a, "id"));

@@ -433,7 +433,7 @@ const Views = {
     const tracks = own.flatMap(a => a.tracks);
     const hero = h('div', { class: 'hero artist' },
       first ? heroBg('a', first.id) : null,
-      artBox('cover', 'r', name, 260, name),
+      Object.assign(artBox('cover', 'r', name, 260, name), { onclick: () => ArtPicker.openArtist(name) }),
       h('div', { class: 'meta' },
         h('div', { class: 'kind' }, '演出者'),
         h('h1', null, name),

@@ -708,6 +708,9 @@ a.link:hover { text-decoration: underline; }
 .hero.album .cover { cursor: pointer; }
 .hero.album .cover::after { content: "更換封面"; position: absolute; left: 0; right: 0; bottom: 0; padding: 10px; text-align: center; font-size: 12.5px; background: linear-gradient(transparent, rgba(var(--shadow-rgb), calc(.65 * var(--sh)))); opacity: 0; transition: opacity .2s; }
 .hero.album .cover:hover::after { opacity: 1; }
+.hero.artist .cover { cursor: pointer; }
+.hero.artist .cover::after { content: "更換圖片"; position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 10px 22px; text-align: center; font-size: 12.5px; background: linear-gradient(transparent, rgba(var(--shadow-rgb), calc(.65 * var(--sh)))); opacity: 0; transition: opacity .2s; }
+.hero.artist .cover:hover::after { opacity: 1; }
 
 .modal-body > .muted:empty { display: none; }
 .right-tools { gap: 6px; }

@@ -1,21 +1,51 @@
 'use strict';
 /* ═════════════════════════════ artwork picker ═════════════════════════════ */
 const ArtPicker = {
+  /** Album cover (album page). */
   open(al) {
+    this.show({
+      heading: `更換封面 · ${al.title}`,
+      query: `${al.artist === 'Various Artists' ? '' : al.artist} ${al.title}`.trim(),
+      searching: '搜尋中…（Apple Music、Deezer、MusicBrainz）',
+      info: () => Host.call('art.info', { id: al.id }),
+      candidates: q => Host.call('art.candidates', { id: al.id, q }),
+      setUrl: url => Host.call('art.setUrl', { id: al.id, url }),
+      setData: data => Host.call('art.setData', { id: al.id, data }),
+      clear: () => Host.call('art.clear', { id: al.id }),
+      restoreLabel: '還原原始封面', restored: '已還原原始封面', applied: '已更換封面',
+      after: () => App.refreshNowArt('a', al.id),
+    });
+  },
+  /** Artist picture (artist page): Deezer artist photos and album covers, a URL or a picture of your own. */
+  openArtist(name) {
+    this.show({
+      heading: `更換演出者圖片 · ${name}`,
+      query: name,
+      searching: '搜尋中…（Deezer 演出者照片、Apple Music／Deezer 專輯封面）',
+      info: () => Host.call('artistArt.info', { name }),
+      candidates: q => Host.call('artistArt.candidates', { name, q }),
+      setUrl: url => Host.call('artistArt.setUrl', { name, url }),
+      setData: data => Host.call('artistArt.setData', { name, data }),
+      clear: () => Host.call('artistArt.clear', { name }),
+      restoreLabel: '還原自動圖片', restored: '已還原自動取得的圖片', applied: '已更換演出者圖片',
+      after: () => { },
+    });
+  },
+  show(o) {
     this.close();
     const scrim = h('div', { class: 'modal-scrim' });
     const modal = h('div', { class: 'modal' });
     scrim.append(modal);
     scrim.onclick = e => { if (e.target === scrim) this.close(); };
-    const query = h('input', { class: 'inp', value: `${al.artist === 'Various Artists' ? '' : al.artist} ${al.title}`.trim(), spellcheck: 'false' });
+    const query = h('input', { class: 'inp', value: o.query, spellcheck: 'false' });
     const url = h('input', { class: 'inp', placeholder: '貼上圖片網址（https://…jpg）', spellcheck: 'false' });
     const file = h('input', { type: 'file', accept: 'image/*', style: { display: 'none' } });
     const grid = h('div', { class: 'cand-grid' });
     const status = h('div', { class: 'muted', style: { padding: '30px 0', textAlign: 'center' } });
     const body = h('div', { class: 'modal-body' }, status, grid);
-    const restore = h('button', { class: 'btn small ghost', style: { display: 'none' }, onclick: async () => { await Host.call('art.clear', { id: al.id }); toast('已還原原始封面'); this.close(); } }, '還原原始封面');
+    const restore = h('button', { class: 'btn small ghost', style: { display: 'none' }, onclick: async () => { await o.clear(); toast(o.restored); this.close(); } }, o.restoreLabel);
     modal.append(
-      h('div', { class: 'modal-head' }, h('h2', null, `更換封面 · ${al.title}`), restore, h('button', { class: 'icon-btn', html: icon('x'), onclick: () => this.close() })),
+      h('div', { class: 'modal-head' }, h('h2', null, o.heading), restore, h('button', { class: 'icon-btn', html: icon('x'), onclick: () => this.close() })),
       h('div', { class: 'modal-tools' }, query, h('button', { class: 'btn small primary', html: icon('search') + '重新搜尋', onclick: () => search(query.value) })),
       h('div', { class: 'modal-tools' }, url,
         h('button', { class: 'btn small', html: icon('link') + '使用網址', onclick: () => useUrl(url.value) }),
@@ -26,21 +56,21 @@ const ArtPicker = {
     this.el = scrim;
     OverlayHistory.push(this._close = fromPop => this.close(fromPop));
     YT.sync();
-    Host.call('art.info', { id: al.id }).then(i => { if (i && i.source === 'override') restore.style.display = ''; });
+    o.info().then(i => { if (i && i.source === 'override') restore.style.display = ''; }).catch(() => { });
 
-    const done = msg => { toast(msg); App.refreshNowArt('a', al.id); this.close(); };
+    const done = () => { toast(o.applied); o.after(); this.close(); };
     const useUrl = async u => {
       u = (u || '').trim();
       if (!/^https?:\/\//i.test(u)) { toast('請貼上 http(s) 開頭的圖片網址', { error: true }); return; }
       status.textContent = '下載圖片中…';
-      try { await Host.call('art.setUrl', { id: al.id, url: u }); done('已更換封面'); }
+      try { await o.setUrl(u); done(); }
       catch (e) { status.textContent = ''; toast('無法使用這個網址：' + e.message, { error: true }); }
     };
     const useBlob = blob => {
       const fr = new FileReader();
       fr.onload = async () => {
         status.textContent = '套用圖片中…';
-        try { await Host.call('art.setData', { id: al.id, data: fr.result }); done('已更換封面'); }
+        try { await o.setData(fr.result); done(); }
         catch (e) { status.textContent = ''; toast('無法使用這張圖片：' + e.message, { error: true }); }
       };
       fr.readAsDataURL(blob);
@@ -59,9 +89,9 @@ const ArtPicker = {
 
     const search = async q => {
       grid.textContent = '';
-      status.textContent = '搜尋中…（Apple Music、Deezer、MusicBrainz）';
+      status.textContent = o.searching;
       let list = [];
-      try { list = await Host.call('art.candidates', { id: al.id, q: q === this.firstQuery ? null : q }); }
+      try { list = await o.candidates(q === this.firstQuery ? null : q); }
       catch (e) { status.textContent = '搜尋失敗：' + e.message; return; }
       if (!this.el) return;
       status.textContent = list && list.length ? '' : '找不到結果，換個關鍵字試試，或貼上圖片網址 / 圖片。';
@@ -76,7 +106,7 @@ const ArtPicker = {
           h('div', { class: 's' }, `${c.source} · ${c.size}`));
         card.onclick = async () => {
           card.classList.add('busy');
-          try { await Host.call('art.setUrl', { id: al.id, url: c.url }); done('已更換封面'); }
+          try { await o.setUrl(c.url); done(); }
           catch (e) { card.classList.remove('busy'); toast('下載失敗：' + e.message, { error: true }); }
         };
         grid.append(card);
