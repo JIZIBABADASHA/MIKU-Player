@@ -1260,7 +1260,7 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdMode", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
 
     object ApplySettings(JsonElement patch)
     {

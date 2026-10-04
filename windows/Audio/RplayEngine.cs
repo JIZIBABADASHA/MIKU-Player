@@ -103,8 +103,9 @@ public sealed class RplayEngine : IAudioEngine
             else if (_s.OutputMode == "asio")
             {
                 string driver = _s.AsioDriver ?? Devices.AsioDrivers().FirstOrDefault() ?? throw new InvalidOperationException("找不到 ASIO 驅動程式");
-                // DoP 開關打開 → DoP；關閉 → Rplay 的預設（驅動程式支援原生 DSD 就用原生，否則轉 PCM）
-                output = new AsioOutput(driver, _s.Dop ? DsdMode.Dop : null, maxDsd);
+                // DSD 播放方式：Native → Rplay 的預設（驅動程式支援原生 DSD 就用原生，否則轉 PCM）；DoP；PCM（不宣告支援 DSD，Core 轉 PCM）
+                string dsd = _s.DsdFor("asio");
+                output = new AsioOutput(driver, dsd == "dop" ? DsdMode.Dop : dsd == "pcm" ? DsdMode.None : null, maxDsd);
                 _deviceId = null;
                 _caps = null;
             }
@@ -113,7 +114,7 @@ public sealed class RplayEngine : IAudioEngine
                 // MIKU: 沒有選裝置 = Windows 預設裝置（Rplay 對「預設裝置」會強制共享，所以這裡換成實際的裝置 ID）
                 using (var d = Devices.Open(_s.DeviceId)) { _deviceId = d.ID; try { _caps = Devices.Probe(d); } catch { _caps = null; } }
                 bool exclusive = _s.OutputMode != "shared";
-                output = new WasapiOutput(_deviceId, exclusive, exclusive && _s.Dop ? DsdMode.Dop : DsdMode.None, maxDsd)
+                output = new WasapiOutput(_deviceId, exclusive, _s.DsdFor(_s.OutputMode) == "dop" ? DsdMode.Dop : DsdMode.None, maxDsd)
                 {
                     BufferDuration = Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0,
                 };
@@ -350,12 +351,38 @@ public sealed class RplayEngine : IAudioEngine
             VolumeMode = dsdOut && _s.VolumeMode == "digital" ? (_caps != null && _caps.HardwareVolume ? "hardware" : "none") : _s.VolumeMode,
             ReplayGainDb = dsdOut ? null : _rgDb,
         };
+        LogDsd(t, isDsd, dsdOut, output, dev, wire);
         var notes = new List<string> { "Rplay 內核：" + chain.Description };
         if (dsdOut && _s.VolumeMode == "digital" && (_caps == null || !_caps.HardwareVolume))
             notes.Add("DSD 直送時無法使用數位音量，DAC 會以原始音量輸出，請用 DAC 的音量旋鈕調整。");
         info.Note = string.Join("\n", notes);
         info.Quality = Quality(info);
         return info;
+    }
+
+    string _lastDsdLog;
+
+    /// <summary>
+    /// One clear log line per change for DSD: how it actually reaches the DAC (native DSD over ASIO, DoP and its PCM
+    /// carrier, or converted to PCM, and the setting it came from). The chain description can't say: the Core sends
+    /// DSD as DSD and the output decides.
+    /// </summary>
+    void LogDsd(Track t, bool isDsd, bool dsdOut, AudioOutput output, StreamFormat dev, StreamFormat wire)
+    {
+        if (!isDsd) { _lastDsdLog = null; return; }
+        string src = t.SampleRate > 0 ? $"DSD{t.SampleRate / 44100}" : "DSD";
+        string how = !dsdOut ? $"converted to PCM {wire.SampleRate / 1000.0:0.#} kHz {wire.BitsPerSample}-bit"
+            : output.ActiveDsdMode switch
+            {
+                DsdMode.Native => "native DSD (ASIO)",
+                DsdMode.Dop => $"DoP, carried as PCM {dev.SampleRate / 1000.0:0.#} kHz 24-bit",
+                DsdMode.Dcs => $"dCS DoP, carried as PCM {dev.SampleRate / 1000.0:0.#} kHz 24-bit",
+                var m => m.ToString(),
+            };
+        string line = $"[rplay] DSD output: {src} → {how} on {output.Name} (DSD 播放方式 = {_s.DsdFor(_s.OutputMode)}, max DSD{(_s.RplayMaxDsd > 0 ? _s.RplayMaxDsd : 512)})";
+        if (line == _lastDsdLog) return;
+        _lastDsdLog = line;
+        Log.Info(line);
     }
 
     string DspSummary()

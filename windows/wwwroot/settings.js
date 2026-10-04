@@ -35,7 +35,7 @@ const Settings = {
       out.append(field('最高 DSD 取樣率', '超過此上限的 DSD 會轉成 PCM。請依 DAC 與驅動實際支援的格式選擇。',
         select([[64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], s.rplayMaxDsd || 512, v => this.set({ rplayMaxDsd: +v }))));
     }
-    const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); });
+    const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); });
     out.append(field('輸出模式', null, modeSeg));
     const devHost = h('div');
     out.append(devHost);
@@ -79,9 +79,28 @@ const Settings = {
     const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
     fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
     out.lastChild.querySelector('.ctl').append(fixedSel);
-    out.append(field('DSD 原生輸出（DoP）', '在 WASAPI 獨佔模式下以 DoP 送出 DSF/DFF，DAC 需支援 DoP。DoP 時無法使用數位音量。Rplay 內核用 ASIO 時，驅動程式支援原生 DSD 就會自動使用原生 DSD；打開這個選項則改用 DoP。', sw(s.dop, v => this.set({ dop: v }))));
+    // DSD 播放方式: the choices depend on the output (and the core): ASIO with Rplay can send native DSD
+    const dsdHost = h('div', { style: { display: 'contents' } });
+    const drawDsd = () => {
+      const mode = App.settings.outputMode, cur = App.settings;
+      const pref = ['native', 'dop', 'pcm'].includes(cur.dsdMode) ? cur.dsdMode : (cur.dop ? 'dop' : 'native');
+      let opts, value, desc;
+      if (mode === 'asio' && usingRplay) {
+        opts = [['native', 'Native（ASIO 原生 DSD）'], ['dop', 'DoP'], ['pcm', 'PCM']]; value = pref;
+        desc = 'Native：以 ASIO 原生 DSD 直接送到 DAC（驅動程式需支援，不支援時改轉 PCM）。DoP：把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP。PCM：轉成 PCM 播放，可以使用數位音量與 DSP。Native 與 DoP 時無法使用數位音量。';
+      } else if (mode === 'asio') {
+        opts = [['pcm', 'PCM']]; value = 'pcm';
+        desc = 'MIKU 核心的 ASIO 輸出不支援 DSD 直送，DSD 會轉成 PCM 播放。' + (App.rplay ? '要用 Native 或 DoP，請把播放方案切換到 Rplay。' : '');
+      } else {
+        opts = [['dop', 'DoP'], ['pcm', 'PCM']]; value = pref === 'dop' ? 'dop' : 'pcm';
+        desc = 'DoP：把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP；只在 WASAPI 獨佔模式有效，共享模式會轉成 PCM。PCM：轉成 PCM 播放，可以使用數位音量與 DSP。DoP 時無法使用數位音量。';
+      }
+      dsdHost.replaceChildren(field('DSD 播放方式', desc, select(opts, value, v => this.set({ dsdMode: v }))));
+    };
+    drawDsd();
+    out.append(dsdHost);
     if (usingRplay) out.append(field('DSD 轉 PCM', '使用 Rplay 的轉換策略，再依輸出裝置支援的取樣率調整。', h('span', { class: 'muted' }, 'Rplay 自動選擇')));
-    else out.append(field('DSD 轉 PCM 取樣率', '關閉 DoP 或 DAC 不支援時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+    else out.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
     out.append(field('無縫播放', '同格式曲目之間沒有間隙（Live 專輯、古典樂）。', sw(s.gapless, v => this.set({ gapless: v }))));
 
     /* ── auto continue ── */

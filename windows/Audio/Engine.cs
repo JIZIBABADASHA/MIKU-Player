@@ -141,7 +141,7 @@ public sealed class AudioEngine : IAudioEngine
         }
 
         // exclusive
-        if (sp.Dsd != null && _s.Dop && !sp.Dsd.Compressed && sp.Dsd.Channels == 2)
+        if (sp.Dsd != null && _s.DsdFor("exclusive") == "dop" && !sp.Dsd.Compressed && sp.Dsd.Channels == 2)
         {
             int dopRate = DopSource.DopRate(sp.Dsd);
             var f = _caps.BestFormat(dopRate, needInteger24: true);
