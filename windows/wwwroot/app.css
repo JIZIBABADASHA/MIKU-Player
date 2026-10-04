@@ -393,7 +393,9 @@ svg.i.fill { fill: currentColor; stroke: none; }
 /* Rplay core: Core / 輸出端 sections and the collapsed technical details */
 /* Rplay icon: next to labels and titles; a hairline keeps the navy badge visible on dark themes */
 .rp-icon { display: inline-block; flex: none; vertical-align: -3px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); user-select: none; }
-.field .lbl b > .rp-icon, .sect h2 > .rp-icon { margin-right: 8px; }
+.field .lbl b > .rp-icon { margin-right: 8px; }
+/* a picture in a custom dropdown option (select.js data-icon) */
+.msel-ico { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); flex: none; }
 .sigpop h3 .rp-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 12px; font-weight: 600; color: var(--text-2); }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
@@ -540,12 +542,6 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .set-tabs button { height: 34px; padding: 0 20px; border-radius: 9px; color: var(--text-2); font-size: 14px; font-weight: 600; transition: background .18s, color .18s; }
 .set-tabs button:hover { color: var(--text); }
 .set-tabs button.on { background: rgba(var(--ink), .1); color: var(--text); }
-/* collapsed 進階 card */
-details.sect > summary { list-style: none; cursor: pointer; display: flex; align-items: center; padding-bottom: 12px; }
-details.sect > summary::-webkit-details-marker { display: none; }
-details.sect > summary h2 { padding-bottom: 0; }
-details.sect > summary::after { content: ''; width: 8px; height: 8px; margin: 12px 22px 0 auto; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(45deg); transition: transform .2s; }
-details.sect[open] > summary::after { transform: rotate(-135deg); }
 .field { display: flex; align-items: center; gap: 20px; padding: 14px 22px; border-top: 1px solid var(--line); min-height: 62px; }
 .field:first-of-type { border-top: 0; }
 .field .lbl { flex: 1; min-width: 0; }

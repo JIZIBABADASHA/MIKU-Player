@@ -34,8 +34,13 @@ const Settings = {
       const usingRplay = (s.audioCore || 'miku') === 'rplay';
       let maxDsdField = null;   // Rplay's DSD limit, hidden in WASAPI shared mode with the other DSD settings
       const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
-      out.append(field(usingRplay ? [rplayIcon(18), '播放方案'] : '播放方案', '切換時會從目前位置繼續播放。',
-        select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); })));
+      const coreSel = select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); });
+      const rplayOpt = coreSel.querySelector('option[value="rplay"]');
+      if (rplayOpt) rplayOpt.dataset.icon = 'img/rplay.png';   // the Rplay icon inside the dropdown (select.js)
+      out.append(field('播放方案', '切換時會從目前位置繼續播放。', coreSel));
+      // the Rplay core's compatibility mode, right under it while Rplay is chosen
+      if (usingRplay) out.append(field([rplayIcon(18), 'Rplay 相容模式'], '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
+        select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
       const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
       out.append(field('輸出模式', null, modeSeg));
       const devHost = h('div');
@@ -165,13 +170,6 @@ const Settings = {
       play.append(h('div', { class: 'hint' }, '播放佇列播完後不要停，繼續從曲庫隨機挑音樂來播。重複播放開啟時不會作用。'));
       play.append(field('佇列播完後', '隨機專輯：整張專輯從頭播完再換下一張；隨機歌曲：每次挑幾首不同專輯的歌。最近播過的會盡量避開。',
         select([['off', '停止播放'], ['albums', '隨機播放其他專輯'], ['tracks', '隨機播放其他歌曲']], s.autoContinue || 'off', v => this.set({ autoContinue: v }))));
-      /* 進階 (Rplay only), collapsed */
-      if (usingRplay) {
-        const adv = h('details', { class: 'sect adv' }, h('summary', null, h('h2', null, rplayIcon(18), '進階')));
-        root.append(adv);
-        adv.append(field('Rplay 相容模式', '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
-          select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
-      }
     }
 
     if (tab === 'library') {
