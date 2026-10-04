@@ -165,29 +165,38 @@ const Outputs = {
   async toggle(anchor) {
     if (Popover.el && Popover.el.classList.contains('outpop')) return Popover.close();
     const box = h('div');
+    // The tabs only choose which devices are listed: the mode changes when a device is picked, together with it
+    // (unlike the output mode setting on the settings page, which applies at once).
+    let mode = App.settings.outputMode;
+    const modeName = { exclusive: 'WASAPI 獨佔', shared: 'WASAPI 共享', asio: 'ASIO' };
+    const pick = async (patch, name) => {
+      Popover.close();
+      await Settings.set({ outputMode: mode, ...patch });
+      this.label();
+      toast('已切換到 ' + name + '（' + modeName[mode] + '）');
+      this.refresh();
+    };
     const draw = () => {
       box.textContent = '';
       const s = App.settings, d = this.data || { devices: [], asio: [] };
+      const current = mode === s.outputMode;   // the tab of the mode in use: its device is marked
       box.append(h('h3', { html: icon('speaker') + '輸出裝置' }));
-      box.append(seg([['exclusive', '獨佔'], ['shared', '共享'], ['asio', 'ASIO']], s.outputMode, async v => { await Settings.set({ outputMode: v }); this.label(); draw(); }));
-      if (s.outputMode === 'asio') {
+      box.append(seg([['exclusive', '獨佔'], ['shared', '共享'], ['asio', 'ASIO']], mode, v => { mode = v; draw(); }));
+      if (!current) box.append(h('div', { class: 'muted outhint' }, `點裝置後切換到 ${modeName[mode]}`));
+      if (mode === 'asio') {
         if (!d.asio.length) box.append(h('div', { class: 'muted', style: { padding: '8px' } }, '沒有找到 ASIO 驅動程式'));
         d.asio.forEach(n => {
-          const on = (s.asioDriver || d.asio[0]) === n;
-          box.append(h('button', { class: 'outrow' + (on ? ' on' : ''), onclick: async () => { await Settings.set({ asioDriver: n }); this.label(); Popover.close(); toast('已切換到 ' + n); } },
+          const on = current && (s.asioDriver || d.asio[0]) === n;
+          box.append(h('button', { class: 'outrow' + (on ? ' on' : ''), onclick: () => pick({ asioDriver: n }, n) },
             h('span', { html: icon('speaker') }), h('span', { class: 'nm' }, h('b', null, n), h('small', null, 'ASIO'))));
         });
       } else {
         const cur = s.deviceId || (d.devices.find(x => x.isDefault) || {}).id;
         d.devices.forEach(x => {
-          const on = x.id === cur;
-          const sub = on && d.caps ? (s.outputMode === 'shared' ? `系統格式 ${khz(d.caps.mixRate)} kHz` : d.caps.summary) : (x.isDefault ? 'Windows 預設' : '');
-          box.append(h('button', { class: 'outrow' + (on ? ' on' : ''), onclick: async () => {
-            Popover.close();
-            await Settings.set({ deviceId: x.id });
-            toast('已切換到 ' + shortDevice(x.name));
-            this.refresh();
-          } }, h('span', { html: icon('speaker') }), h('span', { class: 'nm' }, h('b', null, shortDevice(x.name)), h('small', null, sub))));
+          const on = current && x.id === cur;
+          const sub = on && d.caps ? (mode === 'shared' ? `系統格式 ${khz(d.caps.mixRate)} kHz` : d.caps.summary) : (x.isDefault ? 'Windows 預設' : '');
+          box.append(h('button', { class: 'outrow' + (on ? ' on' : ''), onclick: () => pick({ deviceId: x.id }, shortDevice(x.name)) },
+            h('span', { html: icon('speaker') }), h('span', { class: 'nm' }, h('b', null, shortDevice(x.name)), h('small', null, sub))));
         });
       }
     };

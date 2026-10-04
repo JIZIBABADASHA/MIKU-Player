@@ -283,6 +283,7 @@ const App = {
     Host.on('remotePaired', p => toast(`「${p.name}」已配對，可以用手機遙控了`));
     Host.on('favs', f => { this.favs = new Set(f || []); this.renderFav(); });
     Host.on('scan', p => this.scan(p));
+    Host.on('fullscreen', ({ on }) => { this.fullscreen = on; document.documentElement.classList.toggle('fullscreen', on); });
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       await Lib.load();
@@ -562,8 +563,9 @@ const App = {
       const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
       if (e.ctrlKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#q').focus(); $('#q').select(); return; }
       if (e.key === 'F12') { Host.call('devtools'); return; }
+      if (e.key === 'F11') { e.preventDefault(); Host.call('fullscreen'); return; }
       if (typing) return;
-      if (e.key === 'Escape') { if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); }
+      if (e.key === 'Escape') { if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); }
       if (e.key === ' ') { e.preventDefault(); this.toggle(); }
       else if (e.key === 'ArrowRight' && !e.altKey) { e.preventDefault(); this.seek(Math.min(this.state.dur, this.pos + (e.shiftKey ? 30 : 5))); }
       else if (e.key === 'ArrowLeft' && !e.altKey) { e.preventDefault(); this.seek(Math.max(0, this.pos - (e.shiftKey ? 30 : 5))); }
@@ -649,21 +651,34 @@ function slider(el, { start, move, end, tip }) {
 const Popover = {
   el: null,
   show(content, anchor, opts = {}) {
+    // a second click on the button that opened it closes it: the pointerdown (outside the popover) has just closed
+    // it, so don't open it again from that click
+    if (this.closedBy && this.closedBy === anchor && performance.now() - this.closedAt < 600) { this.closedBy = null; return null; }
+    this.closedBy = null;
     this.close();
     const el = h('div', { class: 'pop ' + (opts.cls || '') }, content);
     document.body.append(el);
     const r = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y, width: 0, height: 0 };
     const w = el.offsetWidth, hh = el.offsetHeight;
     let x = opts.align === 'right' ? r.right - w : r.left;
-    let y = opts.above ? r.top - hh - 10 : r.bottom + 6;
-    if (y + hh > innerHeight - 8) y = Math.max(8, r.top - hh - 6);
-    if (y < 8) y = 8;
     x = Math.max(8, Math.min(innerWidth - w - 8, x));
-    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.left = x + 'px';
+    // Pin the edge next to the anchor, so content that changes later (the output picker switching between ASIO and
+    // WASAPI device lists) grows away from it instead of off the screen; it opens on the asked side unless the
+    // content only fits on the other, and scrolls inside when it fits on neither.
+    const spaceAbove = r.top - 10 - 8, spaceBelow = innerHeight - r.bottom - 6 - 8;
+    const above = opts.above ? (hh <= spaceAbove || spaceAbove >= spaceBelow) : !(hh <= spaceBelow || spaceBelow >= spaceAbove);
+    if (above) { el.style.bottom = (innerHeight - r.top + 10) + 'px'; el.style.maxHeight = Math.max(120, spaceAbove) + 'px'; }
+    else { el.style.top = (r.bottom + 6) + 'px'; el.style.maxHeight = Math.max(120, spaceBelow) + 'px'; }
+    el.style.overflowY = 'auto';
     this.el = el;
     YT.sync();
     setTimeout(() => {
-      this.off = e => { if (!el.contains(e.target)) this.close(); };
+      this.off = e => {
+        if (el.contains(e.target)) return;
+        if (anchor instanceof Element && anchor.contains(e.target)) { this.closedBy = anchor; this.closedAt = performance.now(); }
+        this.close();
+      };
       document.addEventListener('pointerdown', this.off, true);
     });
     return el;

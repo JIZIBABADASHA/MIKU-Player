@@ -311,7 +311,8 @@ const Views = {
     };
     view.append(h('div', { style: { height: '8px' } }));
     const recentTracks = (App.settings.recent || []).map(id => Lib.trackById.get(id)).filter(Boolean);
-    rail('最近聆聽', [...new Set(recentTracks.map(t => t.album).filter(Boolean))].slice(0, 24), '#/recent');
+    // an album played in several versions (FLAC and DSD…) shows once, as its best version, like the album lists
+    rail('最近聆聽', [...new Set(recentTracks.map(t => t.album && (t.album.versions ? t.album.versions[0] : t.album)).filter(Boolean))].slice(0, 24), '#/recent');
     rail('最近加入', Lib.albums.slice().sort((a, b) => b.added - a.added).slice(0, 24), '#/albums');
     const favAlbums = [...new Set([...App.favs].map(id => Lib.trackById.get(id)?.album).filter(Boolean))].slice(0, 24);
     rail('我的最愛', favAlbums, '#/favorites');

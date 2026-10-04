@@ -182,6 +182,8 @@ public sealed class MainForm : Form
     wv.postMessage('yt-play');
   }, true);
   document.addEventListener('pause', () => wv.postMessage('yt-pause'), true);
+  // F11 = MIKU's full screen, also while this page has the keyboard focus
+  document.addEventListener('keydown', e => { if (e.key === 'F11') { e.preventDefault(); e.stopPropagation(); wv.postMessage('miku-f11'); } }, true);
   window.__mikuStop = () => { document.querySelectorAll('video,audio').forEach(v => v.pause()); if (ctx && ctx.state === 'running') ctx.suspend(); };
   function meta() {
     lastMeta = performance.now();
@@ -252,6 +254,7 @@ public sealed class MainForm : Form
             string m = null;
             try { m = e.TryGetWebMessageAsString(); } catch { }
             if (m == "yt-play") _ = OnYtPlay();
+            else if (m == "miku-f11") SetFullScreen(!_fullScreen);   // F11 while the YouTube Music page has the focus
             else if (m != null && m.StartsWith("yt-rate:"))
             {
                 var parts = m.Split(':');
@@ -579,10 +582,44 @@ public sealed class MainForm : Form
         PostSoon("state");
     }
 
+    // ───────────────────────────── full screen (F11) ─────────────────────────────
+
+    bool _fullScreen;
+    FormWindowState _beforeFullScreen;
+
+    /// <summary>
+    /// Full screen: no window frame, covering the taskbar. F11 toggles it (in the app and on the YouTube Music page),
+    /// Esc leaves it when nothing else is open. Leaving restores the window as it was.
+    /// </summary>
+    void SetFullScreen(bool on)
+    {
+        if (on == _fullScreen || IsDisposed) return;
+        SuspendLayout();
+        if (on)
+        {
+            _beforeFullScreen = WindowState;
+            // a maximized window must be restored first, or the borderless maximize keeps the old work area
+            if (WindowState != FormWindowState.Normal) WindowState = FormWindowState.Normal;
+            FormBorderStyle = FormBorderStyle.None;
+            WindowState = FormWindowState.Maximized;
+        }
+        else
+        {
+            WindowState = FormWindowState.Normal;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            WindowState = _beforeFullScreen == FormWindowState.Minimized ? FormWindowState.Normal : _beforeFullScreen;
+        }
+        _fullScreen = on;
+        ResumeLayout();
+        Post("fullscreen", new { on });
+    }
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         _tick.Stop();
         _player.SaveState();
+        // closed in full screen: remember the window as it was before it
+        if (_fullScreen) SetFullScreen(false);
         _s.Maximized = WindowState == FormWindowState.Maximized;
         var b = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
         _s.Window = new[] { b.X, b.Y, b.Width, b.Height };
@@ -1121,6 +1158,10 @@ public sealed class MainForm : Form
                 }
                 return null;
             case "devtools": _web.CoreWebView2.OpenDevToolsWindow(); return null;
+            case "fullscreen":
+                // { on: true | false }, or toggle without it
+                SetFullScreen(a.ValueKind == JsonValueKind.Object && a.TryGetProperty("on", out var fsOn) ? fsOn.ValueKind == JsonValueKind.True : !_fullScreen);
+                return _fullScreen;
             case "remote.info": return RemoteInfo();
             case "remote.revoke": _remote?.Revoke(S(a, "id")); return RemoteInfo();
             case "quit": BeginInvoke(new Action(Close)); return null;
