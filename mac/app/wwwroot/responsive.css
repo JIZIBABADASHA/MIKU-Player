@@ -1,0 +1,236 @@
+/* ═══════════════════════════════════════════════════════════════
+   responsive.css — 依視窗寬度、高度、直放/橫放自動調整版面
+   載入順序：app.css → themes.css → responsive.css（最後，才能蓋過主題）
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───── 1. 播放列：寬度不夠時改成兩列（進度條在上、按鈕在下），不再互相擠壓 ───── */
+@media (max-width: 1080px) {
+  :root { --bar: 104px; }
+  #bar {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: 26px 1fr;
+    column-gap: 12px; row-gap: 0; padding: 6px 14px 8px;
+  }
+  #bar .transport { display: contents; }
+  #bar .seek { grid-column: 1 / -1; grid-row: 1; }
+  #bar .np-mini { grid-column: 1; grid-row: 2; gap: 10px; }
+  #bar .transport .btns { grid-column: 2; grid-row: 2; gap: 8px; }
+  #bar .right-tools { grid-column: 3; grid-row: 2; min-width: 0; gap: 4px; }
+  #bar .np-mini .art { width: 46px; height: 46px; }
+  #bar .np-mini .t { font-size: 14.5px; }
+  #bar .np-mini .a { font-size: 12.5px; }
+  #bar .tool-sep { display: none; }
+  #bar .sig span { display: none; }
+  #bar .sig { padding: 0 10px; margin-right: 2px; }
+  #bar .out-btn { max-width: 130px; }
+  #bar .vol { width: 116px; margin-left: 2px; }
+  #bar .vol .db { display: none; }
+}
+@media (max-width: 820px) {
+  #bar .out-btn span { display: none; }
+  #bar .out-btn { padding: 0 9px; }
+  #bar .vol { width: auto; }
+  #bar .vol .slider { display: none; }          /* 只留靜音鍵；滑鼠滾輪/鍵盤仍可調音量 */
+  #bar #b-fav { display: none; }
+}
+@media (max-width: 600px) {
+  #bar .np-mini .txt { display: none; }
+  #bar #b-shuffle, #bar #b-repeat { display: none; }
+  #bar #b-dsp { display: none; }
+}
+
+/* ───── 2. 側欄 / 抽屜 / 頂列：窄視窗時不要超出畫面 ───── */
+.drawer { max-width: calc(100vw - 20px); }
+.drawer.wide { width: min(640px, calc(100vw - 20px)); }
+@media (max-width: 760px) {
+  #topbar { padding: 0 14px; }
+  #topbar kbd { display: none; }
+}
+.sigpop, .outpop { max-width: calc(100vw - 16px); }
+
+/* ───── 3. 正在播放：矮視窗（橫放筆電、150% 縮放）壓縮間距，封面跟著變小 ───── */
+@media (max-height: 760px) and (orientation: landscape) {
+  #np .np-wrap { padding-top: 56px; padding-bottom: 40px; }
+  .np-cover, .np-info,
+  :root[data-theme="glass"] .np-cover, :root[data-theme="glass"] .np-info {
+    width: clamp(140px, min(calc(100vh - var(--bar) - 300px), 100%), 540px);
+  }
+  .np-info { margin-top: 14px; }
+  .np-title { font-size: 22px; -webkit-line-clamp: 1; }
+  .np-artist { font-size: 14px; }
+  .np-badges { margin-top: 8px; }
+  .np-seek { margin-top: 12px; }
+  .np-ctrl { margin-top: 4px; }
+  .np-ctrl .playbtn { width: 52px; height: 52px; }
+  .np-ctrl .icon-btn { width: 40px; height: 40px; }
+  .np-top { top: 12px; }
+  .np-top .pill { height: 30px; }
+}
+/* 左欄永遠不超出自己的欄寬，避免壓到歌詞 */
+#np:not(.nolyrics) .np-wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+#np .np-left { min-width: 0; }
+#np .np-info { max-width: 100%; }
+
+/* 矮視窗（橫放、高度 ≤ 680）：換排版 —— 小封面在左、歌名在右，進度條與控制鍵在下面整排 */
+@media (max-height: 680px) and (orientation: landscape) and (min-width: 761px) {
+  #np .np-left, #np.nolyrics .np-left {
+    display: grid; width: 100%; max-width: 520px;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: 1fr auto auto auto 1fr auto auto;
+    column-gap: 18px; align-items: center; justify-items: stretch;
+  }
+  #np .np-info, :root[data-theme="glass"] #np .np-info { display: contents; }
+  #np .np-cover, :root[data-theme="glass"] #np .np-cover {
+    grid-column: 1; grid-row: 1 / 6;
+    width: clamp(96px, min(calc(100vh - 400px), 22vw), 190px);
+  }
+  #np .np-title  { grid-column: 2; grid-row: 2; font-size: 20px; -webkit-line-clamp: 2; text-align: left; }
+  #np .np-artist { grid-column: 2; grid-row: 3; margin-top: 2px; text-align: left; }
+  #np .np-badges { grid-column: 2; grid-row: 4; margin-top: 8px; justify-content: flex-start; }
+  #np .np-seek   { grid-column: 1 / -1; grid-row: 6; margin-top: 16px; }
+  #np .np-ctrl   { grid-column: 1 / -1; grid-row: 7; margin-top: 2px; }
+}
+
+/* ───── 4. 正在播放：直放螢幕或很窄的視窗 → 改成上下排列（封面＋資訊在上、歌詞在下） ───── */
+@media (orientation: portrait), (max-width: 760px) {
+  #np .np-wrap, #np.nolyrics .np-wrap {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr);
+    justify-items: center; align-items: stretch; align-content: stretch;
+    column-gap: 0; row-gap: 2.5vh;
+    padding: 72px 6vw 48px;
+    transition: transform .6s cubic-bezier(.32,.72,0,1), grid-template-rows .6s var(--ease-out);
+  }
+  #np.nolyrics .np-wrap { grid-template-rows: minmax(0, 1fr) 0fr; align-content: center; }
+  #np .np-left, #np.nolyrics .np-left { justify-self: center; align-self: center; align-items: center; max-width: 640px; width: 100%; }
+  /* 有歌詞時封面不超過畫面高度約 1/3，留空間給歌詞 */
+  #np .np-cover, :root[data-theme="glass"] #np .np-cover {
+    width: clamp(140px, min(78vw, calc(36vh - 40px)), 520px);
+  }
+  #np .np-info, :root[data-theme="glass"] #np .np-info { width: min(100%, 520px); margin-top: 16px; }
+  #np .np-title, #np .np-artist { text-align: center; }
+  #np .np-badges { justify-content: center; }
+  /* 沒歌詞時封面可以放大 */
+  #np.nolyrics .np-cover, :root[data-theme="glass"] #np.nolyrics .np-cover {
+    width: clamp(160px, min(84vw, calc(100vh - var(--bar) - 360px)), 640px);
+  }
+  #np .np-right, :root[data-theme="glass"] #np .np-right {
+    height: auto; min-height: 0; width: 100%; max-width: 760px; align-self: stretch;
+  }
+  #np.nolyrics .np-right { height: 0; }
+  #np .ly-line { right: 0; font-size: clamp(20px, 4.2vw, 32px); }
+}
+/* 上下排但高度不夠（小視窗、分割畫面）：上方改成精簡播放資訊條，歌詞一定保留空間 */
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {
+  #np:not(.nolyrics) .np-wrap { padding: 64px 5vw 28px; row-gap: 10px; }
+  #np:not(.nolyrics) .np-left {
+    display: grid; width: 100%; max-width: 640px; align-self: start;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    column-gap: 14px; align-items: center;
+  }
+  #np:not(.nolyrics) .np-info { display: contents; }
+  #np:not(.nolyrics) .np-cover, :root[data-theme="glass"] #np:not(.nolyrics) .np-cover { grid-column: 1; grid-row: 1 / 3; width: clamp(56px, 13vh, 96px); border-radius: 10px; }
+  #np:not(.nolyrics) .np-title  { grid-column: 2; grid-row: 1; align-self: end; font-size: 18px; -webkit-line-clamp: 1; text-align: left; }
+  #np:not(.nolyrics) .np-artist { grid-column: 2; grid-row: 2; align-self: start; font-size: 13.5px; margin-top: 2px; text-align: left; }
+  #np:not(.nolyrics) .np-badges { display: none; }
+  #np:not(.nolyrics) .np-seek   { grid-column: 1 / -1; grid-row: 3; margin-top: 8px; }
+  #np:not(.nolyrics) .np-ctrl   { grid-column: 1 / -1; grid-row: 4; margin-top: 0; justify-content: center; gap: 4vw; }
+  #np:not(.nolyrics) .np-ctrl .playbtn { width: 46px; height: 46px; }
+  #np:not(.nolyrics) .np-ctrl .playbtn svg { width: 22px; height: 22px; }
+  #np:not(.nolyrics) .np-ctrl .icon-btn { width: 38px; height: 38px; }
+  #np:not(.nolyrics) .np-ctrl .icon-btn svg { width: 20px; height: 20px; }
+  #np:not(.nolyrics) .np-right { min-height: 90px; }
+  #np:not(.nolyrics) .ly-line { font-size: clamp(17px, 3.6vw, 24px); }
+}
+/* 更矮（≤ 520）：播放鍵移到封面旁邊同一排，進度條在下，留最多空間給歌詞 */
+@media (orientation: portrait) and (max-height: 520px), (max-width: 760px) and (max-height: 520px) {
+  #np:not(.nolyrics) .np-wrap { padding-top: 58px; padding-bottom: 20px; }
+  #np:not(.nolyrics) .np-left { grid-template-columns: auto minmax(0, 1fr) auto; }
+  #np:not(.nolyrics) .np-cover, :root[data-theme="glass"] #np:not(.nolyrics) .np-cover { width: 56px; }
+  #np:not(.nolyrics) .np-seek { grid-column: 1 / -1; margin-top: 6px; }
+  #np:not(.nolyrics) .np-ctrl { grid-column: 3; grid-row: 1 / 3; gap: 0; }
+  #np:not(.nolyrics) .np-ctrl #np-shuffle, #np:not(.nolyrics) .np-ctrl #np-repeat { display: none; }
+  #np:not(.nolyrics) .np-seek .times { display: none; }
+}
+
+/* ───── 5. 曲目列表：窄時收掉次要欄位 ───── */
+@media (max-width: 760px) {
+  .thead, .row { grid-template-columns: 40px minmax(0, 1fr) 56px 36px; }
+  .row > :nth-child(3), .thead > :nth-child(3) { display: none; }
+}
+
+/* ───── 6. 玻璃主題：播放列浮回來時，全螢幕玻璃的下緣「擠」上去，而不是疊在玻璃上
+   用 clip-path 裁切（GPU 合成），面板本身尺寸不變 → 模糊背景不用每格重畫，不會閃 ───── */
+:root[data-theme="glass"] #np, :root[data-theme="glass"] #np.on {
+  --np-squeeze: 0px;
+  clip-path: inset(0 0 var(--np-squeeze) 0 round 24px) !important;
+  border-color: transparent;
+}
+:root[data-theme="glass"].bar-peek:has(#np.on) #np { --np-squeeze: calc(var(--bar) + 12px); }
+:root[data-theme="glass"] #np.on {
+  transition: transform .62s var(--ease-out), clip-path .6s cubic-bezier(.32,.72,0,1), visibility 0s;
+}
+/* 邊框改由一個輕量的外框層畫，跟著裁切線一起上移 */
+:root[data-theme="glass"] #np::after {
+  /* #np 自己有 1px（透明）邊框，外框層要往外推 1px 才會跟裁切邊緣完全重合 */
+  content: ""; position: absolute; left: -1px; right: -1px; top: -1px; bottom: calc(var(--np-squeeze) - 1px);
+  border: 1px solid rgba(255,255,255,.14); border-radius: 24px; pointer-events: none; z-index: 4;
+  transition: bottom .6s cubic-bezier(.32,.72,0,1);
+}
+@property --np-squeeze { syntax: '<length>'; inherits: true; initial-value: 0px; }
+:root[data-theme="glass"]:has(#np.on) #bar { transition: transform .6s cubic-bezier(.32,.72,0,1), opacity .3s, border-color .2s, box-shadow .2s; }
+
+/* 很窄時頂列按鈕不要換行 */
+#np .np-top .pill { white-space: nowrap; flex: none; }
+@media (max-width: 560px) { #np .np-top .src { display: none; } }
+
+/* ───── 7. 底部小箭頭：抬高一點，離邊框遠一些 ───── */
+#bar-peek { bottom: 40px; }
+:root.bar-peek #bar-peek { bottom: calc(var(--bar) + 26px); }
+:root[data-theme="glass"] #bar-peek { bottom: 44px; }
+:root[data-theme="glass"].bar-peek #bar-peek { bottom: calc(var(--bar) + 44px); }
+
+/* ───── 8. 歌詞時間：所有尺寸都維持原本的位置與樣式（右下）；上下排版時歌詞區會貼近面板底邊，只把它往上抬一點 ───── */
+@media (max-width: 760px), (orientation: portrait) {
+  #np .ly-offset { bottom: 40px; right: 10px; }
+}
+
+/* ───── 9. VINYL 主題：提示訊息底色是深綠，文字也要用淺色（原本是深色字，看不到） ───── */
+:root[data-theme="vinyl"] .toast { color: #eef2ea; border-color: rgba(255,255,255,.08); border-left: 3px solid var(--teal); }
+:root[data-theme="vinyl"] .toast.err { border-left-color: var(--pink); }
+
+/* ───── 10. 矮視窗叫出播放列時：內容不再整個往上推（會撞到上方按鈕），改成讓出底部空間、歌詞區變短 ───── */
+@media (max-height: 820px) and (max-width: 760px), (max-height: 820px) and (orientation: portrait), (max-height: 680px) {
+  #np .np-wrap { transition: transform .6s cubic-bezier(.32,.72,0,1), padding-bottom .6s cubic-bezier(.32,.72,0,1); }
+  :root.bar-peek:has(#np.on) #np .np-wrap { --np-lift: 28px !important; padding-bottom: calc(var(--bar) + 56px) !important; }
+}
+
+/* 很矮時精簡資訊條整體縮小，封面、歌名、按鈕比例一致 */
+@media (orientation: portrait) and (max-height: 520px), (max-width: 760px) and (max-height: 520px) {
+  #np:not(.nolyrics) .np-left { column-gap: 12px; max-width: 560px; }
+  #np:not(.nolyrics) .np-cover, :root[data-theme="glass"] #np:not(.nolyrics) .np-cover { width: 46px; border-radius: 8px; }
+  #np:not(.nolyrics) .np-title { font-size: 15px; line-height: 1.25; }
+  #np:not(.nolyrics) .np-artist { font-size: 12px; margin-top: 1px; }
+  #np:not(.nolyrics) .np-ctrl .playbtn { width: 38px; height: 38px; }
+  #np:not(.nolyrics) .np-ctrl .playbtn svg { width: 18px; height: 18px; }
+  #np:not(.nolyrics) .np-ctrl .icon-btn { width: 32px; height: 32px; }
+  #np:not(.nolyrics) .np-ctrl .icon-btn svg { width: 17px; height: 17px; }
+  #np:not(.nolyrics) .ly-line { font-size: clamp(16px, 3.2vw, 21px); }
+}
+
+/* 上方按鈕跟歌曲資訊還是疊到時（fit.js 偵測）：先藏 歌詞來源／歌詞不對？／翻譯／歌詞，只留收起鍵 */
+#np .np-top .src, #np .np-top .ly-pick-wrap, #np .np-top .pill { transition: opacity .2s; }
+#np.top-crowded .np-top .src, #np.top-crowded .np-top .ly-pick-wrap, #np.top-crowded .np-top .pill { opacity: 0; visibility: hidden; pointer-events: none; }
+
+/* ───── 11. 玻璃主題：正在播放打開後，把後面的側欄／主頁藏起來，不會從玻璃面板周圍的縫隙露出來（例如設定鈕） ───── */
+:root[data-theme="glass"].np-settled:has(#np.on) #sidebar,
+:root[data-theme="glass"].np-settled:has(#np.on) #main { visibility: hidden; }
+
+/* ───── 12. 玻璃主題：所有大塊玻璃（側欄／主頁／播放列／正在播放／抽屜／視窗）統一 12px 間距、24px 圓角，邊緣互相對齊 ───── */
+:root[data-theme="glass"] .drawer { top: 12px; right: 12px; bottom: calc(var(--bar) + 24px); border-radius: 24px; }
+:root[data-theme="glass"]:not(.bar-peek):has(#np.on) .drawer { bottom: 12px; }
+:root[data-theme="glass"] .modal { border-radius: 24px; }
+
+/* ───── 13. 專輯封面飛進專輯頁時：飛行用的替身圖要蓋在「文字預設圖」上面（真正的封面載好後再蓋過替身），不然封面還沒載完就會看到字 ───── */
+.hero .cover img.flip-under, .card .art img.flip-under { z-index: 1; opacity: 1; transition: none; }

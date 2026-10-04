@@ -124,7 +124,11 @@ function fillArt(box, kind, id, size, label, opts = {}) {
   if (opts.swap && current && src) {
     const next = new Image();
     next.decoding = 'async';
-    next.onload = () => { next.className = 'ok'; next.style.transition = 'none'; current.replaceWith(next); };
+    // swap only once the new picture is decoded, otherwise the box shows one empty frame (a visible flash)
+    next.onload = () => (next.decode ? next.decode().catch(() => {}) : Promise.resolve()).then(() => {
+      if (!current.isConnected) return;
+      next.className = 'ok'; next.style.transition = 'none'; current.replaceWith(next);
+    });
     next.src = src;
     return;
   }
@@ -154,7 +158,7 @@ Host.on('art', ({ kind, id }) => {
   ArtVer[k + id] = (ArtVer[k + id] || 0) + 1;
   // refresh any visible boxes showing this art
   document.querySelectorAll('[data-art]').forEach(box => {
-    const [bk, bid] = box.dataset.art.split(':');
+    const a = box.dataset.art, j = a.indexOf(':'), bk = a.slice(0, j), bid = a.slice(j + 1);
     if (bk === k && bid === id) fillArt(box, bk, bid, +box.dataset.size, box.dataset.label, { swap: true });
   });
   if (k === 'a' || k === 't') App.refreshNowArt(k, id);
@@ -177,12 +181,68 @@ function liveArt(box, url, size, label) {
 function artBox(cls, kind, id, size, label) {
   const box = h('div', { class: cls, 'data-art': `${kind}:${id}`, 'data-size': size, 'data-label': label || '' });
   fillArt(box, kind, id, size, label);
+  if (id) ArtSharp.watch(box);
   return box;
 }
 
+/**
+ * Keeps artwork sharp at any size: when a box grows past the picture it loaded (window made bigger, fewer albums
+ * per row, moved to a higher-DPI screen), a bigger picture is loaded off-screen and swapped in. Never downsizes.
+ */
+const ArtSharp = {
+  dpr: window.devicePixelRatio || 1,
+  ro: new ResizeObserver(es => { for (const e of es) ArtSharp.check(e.target, e.contentRect.width); }),
+  watch(box) { box.dataset.dpr = this.dpr; this.ro.observe(box); },
+  check(box, w) {
+    if (!box.isConnected) { this.ro.unobserve(box); return; }
+    if (!w) return;
+    const dpr = window.devicePixelRatio || 1;
+    const have = (+box.dataset.size || 0) * (+box.dataset.dpr || 1);   // device pixels already loaded
+    if (w * Math.min(dpr, 2.5) <= have * 1.08) return;
+    // only upgrade a picture that is already showing: swapping a box whose first picture is still loading would
+    // rebuild it (placeholder flash) and wipe the stand-in a flying cover animation put there
+    const size = Math.ceil(w / 64) * 64;   // round up, so a slow drag-resize asks for few sizes
+    if (!box.querySelector('img.ok')) {
+      // first picture not shown yet (e.g. right after start): just ask for the right size instead — one load, no swap
+      const pending = box.querySelector('img:not(.flip-under)');
+      if (pending && !pending.complete) {
+        const a = box.dataset.art, i = a.indexOf(':');
+        box.dataset.size = size; box.dataset.dpr = Math.min(dpr, 2.5);
+        pending.src = artUrl(a.slice(0, i), a.slice(i + 1), size);
+      } else if (pending && !pending._sharpWait) {
+        pending._sharpWait = true;
+        pending.addEventListener('load', () => setTimeout(() => this.check(box, box.clientWidth), 50), { once: true });
+      }
+      return;
+    }
+    box.dataset.size = size;
+    box.dataset.dpr = Math.min(dpr, 2.5);
+    clearTimeout(box._sharpT);
+    box._sharpT = setTimeout(() => {
+      if (!box.isConnected || !box.querySelector('img.ok')) return;
+      const a = box.dataset.art, i = a.indexOf(':');
+      fillArt(box, a.slice(0, i), a.slice(i + 1), +box.dataset.size, box.dataset.label, { swap: true });
+    }, 200);
+  },
+  onDpr() {
+    const mq = matchMedia(`(resolution: ${this.dpr}dppx)`);
+    mq.addEventListener('change', () => {
+      this.dpr = window.devicePixelRatio || 1;
+      document.querySelectorAll('[data-art][data-dpr]').forEach(b => this.check(b, b.clientWidth));
+      this.onDpr();
+    }, { once: true });
+  },
+};
+ArtSharp.onDpr();
+
 /* ═════════════════════════════ library store ═════════════════════════════ */
 /** Artist and genre tags: ';' separates several values ("ほぼ日P ;  初音ミク", "Niconico; Vocaloid"). */
-const splitNames = s => (s || '').split(';').map(x => x.trim()).filter(Boolean);
+const splitNames = s => {
+  // some files carry the same name many times (several tag blocks / taggers): keep each name once
+  const seen = new Set(), out = [];
+  for (const x of (s || '').split(';')) { const v = x.trim(), k = v.toLowerCase(); if (v && !seen.has(k)) { seen.add(k); out.push(v); } }
+  return out;
+};
 /** Several values shown as one text. */
 const joinNames = names => names.join(' / ');
 const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
@@ -213,7 +273,7 @@ const Lib = {
     }
     for (const r of data.tracks) {
       const artists = splitNames(r[2]);
-      const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: r[11] };
+      const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: joinNames(splitNames(r[11])) };
       const al = albumById.get(t.albumId);
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
@@ -267,54 +327,6 @@ const Lib = {
 };
 
 /* ═════════════════════════════ app state ═════════════════════════════ */
-/* ═════════════════════════════ extension modules ═════════════════════════════ */
-/**
- * Optional modules (MIKU.Extensibility/README.md). MIKU lists them in init.extensions; their scripts call
- * MikuExt.register({ id, init(api) }) and are set up before the first page is drawn. A module that fails to load
- * is logged and left out.
- */
-const MikuExt = {
-  defs: {}, settings: {},
-  register(def) { if (def && def.id) this.defs[def.id] = def; },
-
-  async load(list) {
-    for (const x of list || []) {
-      try {
-        for (const href of x.styles || []) document.head.append(h('link', { rel: 'stylesheet', href }));
-        for (const src of x.scripts || []) {
-          await new Promise((ok, fail) => document.head.append(h('script', { src, onload: ok, onerror: () => fail(new Error('cannot load ' + src)) })));
-        }
-        const def = this.defs[x.id];
-        if (def && def.init) await def.init(this.api(x.id));
-      } catch (e) { console.error('[ext]', x.id, e); }
-    }
-  },
-
-  /** What a module gets: its own RPC and events, playback, and places in the sidebar, the router and the settings. */
-  api(id) {
-    return {
-      id,
-      rpc: (method, args) => Host.call(`ext.${id}.${method}`, args),
-      on: (ev, f) => Host.on(`ext.${id}.${ev}`, f),
-      play: (ids, shuffle = false, start = -1) => Host.call('play', { ids, shuffle, start }),
-      /** A sidebar link to #/<route>; after = the data-r of the link to follow (default: before the 系統 section). */
-      addNav: ({ route, label, icon: svg, after }) => {
-        const a = h('a', { href: '#/' + route, 'data-r': route, html: svg || '' }, h('span', null, label));
-        const prev = after && $(`#nav a[data-r="${after}"]`);
-        if (prev) prev.after(a);
-        else { const labels = $$('#nav .nav-label'); labels.length ? labels[labels.length - 1].before(a) : $('#nav').append(a); }
-        return a;
-      },
-      addRoute: (name, fn) => {
-        if (Views[name]) throw new Error(`route "${name}" exists`);
-        Views[name] = fn;
-      },
-      /** A block at the end of a settings tab (audio / library / look / other): fn(root, { section, field, sw, select }). */
-      addSettings: (tab, fn) => (this.settings[tab] = this.settings[tab] || []).push(fn),
-    };
-  },
-};
-
 const App = {
   settings: {}, state: {}, queue: { ids: [], index: -1 }, favs: new Set(),
   posBase: 0, posAt: 0, seeking: false,
@@ -354,7 +366,6 @@ const App = {
     this.trackKey = null; // states received while the library was loading may have drawn an empty now-playing bar
     this.setState(init.state);
     this.renderFav();
-    await MikuExt.load(init.extensions);
     Outputs.refresh();
     ScrollBubble.init();
     Router.start();

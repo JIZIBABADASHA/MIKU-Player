@@ -157,7 +157,9 @@
     };
     document.addEventListener('mousemove', e => {
       if (!np.classList.contains('on')) return;
-      const zone = root.classList.contains('bar-peek') ? 150 : 90;
+      // show early (well above the screen edge) so reaching for it doesn't pop up the auto-hide taskbar
+      const barH = (document.getElementById('bar') || {}).offsetHeight || 88;
+      const zone = root.classList.contains('bar-peek') ? barH + 150 : 170;
       btn.classList.toggle('show', innerHeight - e.clientY < zone);
     });
     document.addEventListener('mouseleave', () => btn.classList.remove('show'));
