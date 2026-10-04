@@ -1144,10 +1144,14 @@ function flyBackClone(target, b) {
   const card = target.closest('.card');
   const wrap = h('div', { class: (card ? card.className : 'card') + ' flip-fly' }, clone);
   wrap.classList.remove('pop-in', 'playing');
-  Object.assign(wrap.style, { position: 'fixed', left: t.left + 'px', top: t.top + 'px', width: t.width + 'px', margin: 0, zIndex: 300,
+  // clip the flight to the content area so the cover never flies over the player bar / sidebar
+  const cr = ($('#content') || document.body).getBoundingClientRect();
+  const clip = h('div', { class: 'flip-clip' });
+  Object.assign(clip.style, { position: 'fixed', left: cr.left + 'px', top: cr.top + 'px', width: cr.width + 'px', height: cr.height + 'px', overflow: 'hidden', zIndex: 30, pointerEvents: 'none' });
+  Object.assign(wrap.style, { position: 'absolute', left: (t.left - cr.left) + 'px', top: (t.top - cr.top) + 'px', width: t.width + 'px', margin: 0, zIndex: 1,
     pointerEvents: 'none', transformOrigin: '0 0', animation: 'none',
     transform: `translate(${b.rect.left - t.left}px, ${b.rect.top - t.top}px) scale(${b.rect.width / t.width}, ${b.rect.height / t.height})` });
-  document.body.append(wrap);
+  clip.append(wrap); document.body.append(clip);
   target.style.visibility = 'hidden';
   if (card) card.classList.add('flip-dest');                 // VINYL: the record travels inside the flying sleeve, not ahead of it
   const ti = target.querySelector('img'); if (ti) ti.style.transition = 'none';
@@ -1172,7 +1176,7 @@ function flyBackClone(target, b) {
       stop();
       target.style.visibility = '';
       if (card) card.classList.remove('flip-dest');
-      requestAnimationFrame(() => wrap.remove());
+      requestAnimationFrame(() => clip.remove());
     };
     const stop = onUserScroll(end);
     if (!wild) {
