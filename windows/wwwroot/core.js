@@ -835,7 +835,7 @@ const SignalPop = {
     box.append(stage('來源', src, false));
     const own = /^Rplay\s*/.exec(rp.decoder || '');   // decoded by Rplay itself
     box.append(stage('解碼', own ? [rplayBadge(), rp.decoder.slice(own[0].length)] : rp.decoder, false));
-    box.append(h('div', { class: 'sig-sect' }, rplayBadge(), 'Core'));
+    box.append(h('div', { class: 'sig-sect' }, 'Core', rplayBadge()));
     (rp.core || []).forEach(r => box.append(stage(r.k, r.v, r.mod)));
     box.append(h('div', { class: 'sig-sect' }, '輸出端'));
     if (rp.dsd) box.append(stage('DSD 傳送', rp.dsd, false));

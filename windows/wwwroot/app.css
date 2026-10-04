@@ -400,7 +400,7 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
 .sigpop h3 .rp-head { margin-left: auto; }
 .sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
-.sigpop .sig-sect > .rp-badge { margin-right: -2px; }
+.sigpop .sig-sect > .rp-badge { margin-left: -2px; }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
