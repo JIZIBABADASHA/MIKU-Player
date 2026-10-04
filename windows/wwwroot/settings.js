@@ -26,6 +26,7 @@ const Settings = {
     const out = section('音訊輸出', '獨佔模式可繞過 Windows 混音器；是否保持原始樣本，還取決於取樣率、DSP、音量與輸出格式。實際設定可查看訊號路徑。');
     if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, '找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。'));
     const usingRplay = (s.audioCore || 'miku') === 'rplay';
+    let maxDsdField = null;   // Rplay's DSD limit, hidden in WASAPI shared mode with the other DSD settings
     const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
     out.append(field('播放方案', '切換時會從目前位置繼續播放。',
       select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); })));
@@ -34,8 +35,9 @@ const Settings = {
         select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
       out.append(field('最高 DSD 取樣率', '超過此上限的 DSD 會轉成 PCM。請依 DAC 與驅動實際支援的格式選擇。',
         select([[64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], s.rplayMaxDsd || 512, v => this.set({ rplayMaxDsd: +v }))));
+      maxDsdField = out.lastChild;
     }
-    const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); });
+    const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
     out.append(field('輸出模式', null, modeSeg));
     const devHost = h('div');
     out.append(devHost);
@@ -79,6 +81,7 @@ const Settings = {
     const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
     fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
     out.lastChild.querySelector('.ctl').append(fixedSel);
+    const upField = out.lastChild;
     // DSD 播放方式: the choices depend on the output (and the core): ASIO with Rplay can send native DSD
     const dsdHost = h('div', { style: { display: 'contents' } });
     const drawDsd = () => {
@@ -104,6 +107,16 @@ const Settings = {
     out.append(dsdHost);
     if (usingRplay) out.append(field('DSD 轉 PCM', '使用 Rplay 的轉換策略，再依輸出裝置支援的取樣率調整。', h('span', { class: 'muted' }, 'Rplay 自動選擇')));
     else out.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+    const dsdPcmField = out.lastChild;
+    // WASAPI shared: Windows' mixer always converts to the system format, so upsampling and DSD settings do nothing there
+    const sharedNote = field('升頻與 DSD', '共享模式由 Windows 混音器轉成系統格式輸出，升頻與 DSD 設定不會作用；要使用這些設定請改用獨佔模式或 ASIO。', null);
+    out.append(sharedNote);
+    const applyMode = () => {
+      const shared = App.settings.outputMode === 'shared';
+      for (const el of [upField, dsdHost, dsdPcmField, maxDsdField].filter(Boolean)) el.style.display = shared ? 'none' : (el === dsdHost ? 'contents' : '');
+      sharedNote.style.display = shared ? '' : 'none';
+    };
+    applyMode();
     out.append(field('無縫播放', '同格式曲目之間沒有間隙（Live 專輯、古典樂）。', sw(s.gapless, v => this.set({ gapless: v }))));
 
     /* ── auto continue ── */
