@@ -27,4 +27,6 @@ MIKU 編譯（build）與發佈（publish）時，都會對每個模組執行 `M
 - 網頁端用 `MikuExt.register({ id, init(api) { … } })` 註冊。`api` 提供：
   - `addNav`、`addRoute`、`addSettings`
   - `on`、`rpc`、`play`
+  - `play(ids, shuffle, start, { at, source })`：`at` 是第一首開始的秒數；`source` 是任意 JSON 物件，表示「這個佇列是誰產生的」，會跟著佇列保存，直到改播別的東西
+  - `playerSlot(fn)`：當目前佇列是本模組帶 `source` 播放的，播放列封面左側會出現一個區塊，由 `fn(el, source)` 繪製；改播別的東西時自動隱藏
 - 模組啟動失敗或拋出例外時，只會寫進 log，不影響 MIKU 本體
