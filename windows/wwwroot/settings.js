@@ -75,13 +75,21 @@ const Settings = {
       r.onchange = () => this.set({ bufferMs: +r.value });
       return [r, v];
     })()));
-    out.append(field(usingRplay ? 'Rplay 升頻' : 'FFmpeg 升頻', usingRplay ? '使用 Rplay 的重取樣處理；關閉時優先使用原始取樣率。' : '使用 SoX 高品質重新取樣。關閉時優先使用原始取樣率，實際取樣率請查看訊號路徑。', [
-      select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); fixedSel.style.display = v === 'fixed' ? '' : 'none'; }),
+    // 升頻: each choice with its own description, shown for the chosen one. Rplay leaves DSD alone (RplayEngine
+    // turns upsampling off for DSD); the MIKU core also resamples PCM converted from DSD.
+    const upText = usingRplay
+      ? { off: '非 DSD 檔案維持原始取樣率', '2x': '非 DSD 檔案用 Rplay 重新取樣成原始取樣率的 2 倍（例如 44.1 → 88.2 kHz）',
+          max: '非 DSD 檔案用 Rplay 重新取樣成 DAC 支援、同一族（44.1k／48k）中最高的取樣率', fixed: '非 DSD 檔案一律用 Rplay 重新取樣成指定的取樣率' }
+      : { off: '維持原始取樣率', '2x': '用 SoX 重新取樣成原始取樣率的 2 倍，DSD 轉成的 PCM 也會套用',
+          max: '用 SoX 重新取樣成 DAC 支援、同一族中最高的取樣率，DSD 轉成的 PCM 也會套用', fixed: '一律用 SoX 重新取樣成指定的取樣率，DSD 轉成的 PCM 也會套用' };
+    out.append(field(usingRplay ? 'Rplay 升頻' : 'FFmpeg 升頻', upText[s.upsampling] || upText.off, [
+      select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); upDesc(v); fixedSel.style.display = v === 'fixed' ? '' : 'none'; }),
     ]));
     const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
     fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
     out.lastChild.querySelector('.ctl').append(fixedSel);
     const upField = out.lastChild;
+    const upDesc = v => { const sm = upField.querySelector('.lbl small'); if (sm) sm.textContent = upText[v] || upText.off; };
     // DSD 播放方式: the choices depend on the output (and the core): ASIO with Rplay can send native DSD
     const dsdHost = h('div', { style: { display: 'contents' } });
     const drawDsd = () => {
@@ -105,8 +113,8 @@ const Settings = {
     };
     drawDsd();
     out.append(dsdHost);
-    if (usingRplay) out.append(field('DSD 轉 PCM', '使用 Rplay 的轉換策略，再依輸出裝置支援的取樣率調整。', h('span', { class: 'muted' }, 'Rplay 自動選擇')));
-    else out.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時使用。', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+    if (usingRplay) out.append(field('DSD 轉 PCM', 'DSD 播放方式選 PCM，或 DAC 不支援該 DSD 格式時，Rplay 會依 DAC 支援的取樣率自動轉成 PCM（DSD64 通常為 352.8 kHz），不套用升頻', h('span', { class: 'muted' }, 'Rplay 自動選擇')));
+    else out.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
     const dsdPcmField = out.lastChild;
     // WASAPI shared: Windows' mixer always converts to the system format, so upsampling and DSD settings do nothing there
     const sharedNote = field('升頻與 DSD', '共享模式由 Windows 混音器轉成系統格式輸出，升頻與 DSD 設定不會作用；要使用這些設定請改用獨佔模式或 ASIO。', null);
