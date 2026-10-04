@@ -830,8 +830,6 @@ const SignalPop = {
   /** The Rplay core's layout: decoder, then what the Core and the output side (輸出端) each do; the MIKU core keeps the one above. */
   drawRplay(box, sg, stage, src) {
     const rp = sg.rplay;
-    const head = box.querySelector('h3');
-    if (head) head.append(rplayBadge({ class: 'rp-badge rp-head', title: 'Rplay 播放內核' + (App.rplayCommit ? ' · ' + App.rplayCommit : '') }));
     box.append(stage('來源', src, false));
     const own = /^Rplay\s*/.exec(rp.decoder || '');   // decoded by Rplay itself
     box.append(stage('解碼', own ? [rplayBadge(), rp.decoder.slice(own[0].length)] : rp.decoder, false));
