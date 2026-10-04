@@ -400,8 +400,8 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
 .sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
 /* 關於: the pill at iPhone home-screen icon size (60 px), the name as tall as the icon allows */
-.rp-badge.rp-big { gap: 14px; padding: 0 26px 0 0; font-size: 34px; font-weight: 600; line-height: 60px; border-radius: 999px; margin: 4px 0 6px; }
-.rp-badge.rp-big .rp-icon { width: 60px; height: 60px; border-radius: 22.5%; }
+.rp-badge.rp-big { gap: 14px; padding: 4.5px 20px; font-size: 34px; font-weight: 600; line-height: 51px; border-radius: 999px; margin: 4px 0 6px; }
+.rp-badge.rp-big .rp-icon { width: 51px; height: 51px; border-radius: 22.5%; }
 /* text after the pill sits on the pill's vertical centre */
 .sigpop .stage .v:has(> .rp-badge), .field .lbl b:has(> .rp-badge) { display: flex; align-items: center; }
 .sigpop .sig-sect > .rp-badge { margin-left: -2px; }
