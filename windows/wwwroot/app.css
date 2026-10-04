@@ -391,6 +391,10 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .stage .v { font-size: 13.5px; }
 .sigpop .note { margin-top: 10px; font-size: 12.5px; color: var(--pink-text); background: var(--pink-dim); padding: 9px 11px; border-radius: 9px; }
 /* Rplay core: Core / 輸出端 sections and the collapsed technical details */
+/* Rplay icon: next to labels and titles; a hairline keeps the navy badge visible on dark themes */
+.rp-icon { display: inline-block; flex: none; vertical-align: -3px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); user-select: none; }
+.field .lbl b > .rp-icon, .sect h2 > .rp-icon { margin-right: 8px; }
+.sigpop h3 .rp-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 12px; font-weight: 600; color: var(--text-2); }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }

@@ -42,6 +42,18 @@
   <ItemGroup Condition="'$(HasRplay)' != 'true'">
     <Compile Remove="Audio\RplayEngine.cs" />
   </ItemGroup>
+  <!-- the Rplay commit, shown in Settings → 關於 (AssemblyMetadata "RplayCommit") -->
+  <Target Name="RplayCommit" BeforeTargets="GetAssemblyAttributes" Condition="'$(HasRplay)' == 'true'">
+    <Exec Command="git -C &quot;$(RplayDir)\..&quot; rev-parse --short HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="RplayCommit" />
+    </Exec>
+    <ItemGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(RplayCommit)', '^[0-9a-f]{7,40}$'))">
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>RplayCommit</_Parameter1>
+        <_Parameter2>$(RplayCommit)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
   <Target Name="ReportRplay" BeforeTargets="CoreCompile">
     <Message Importance="high" Text="MIKU: Rplay core $(HasRplay)" Condition="'$(HasRplay)' == 'true'" />
     <Message Importance="high" Text="MIKU: Rplay core not found at $(RplayDir), building with the MIKU core only" Condition="'$(HasRplay)' != 'true'" />

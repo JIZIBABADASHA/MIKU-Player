@@ -299,6 +299,7 @@ const App = {
     this.queue = init.queue;
     this.ffmpeg = init.ffmpeg;
     this.rplay = !!init.rplay;
+    this.rplayCommit = init.rplayCommit || '';
     this.version = init.version;
     this.scan(init.scan);
     await Lib.load();
@@ -648,6 +649,9 @@ function slider(el, { start, move, end, tip }) {
 }
 
 /* ═════════════════════════════ popovers & menus ═════════════════════════════ */
+/** The Rplay core's icon (shown only where the Rplay core is in use). */
+const rplayIcon = (size = 18) => h('img', { class: 'rp-icon', src: 'img/rplay.png', width: size, height: size, alt: 'Rplay', draggable: 'false' });
+
 const Popover = {
   el: null,
   show(content, anchor, opts = {}) {
@@ -824,6 +828,8 @@ const SignalPop = {
   /** The Rplay core's layout: decoder, then what the Core and the output side (輸出端) each do; the MIKU core keeps the one above. */
   drawRplay(box, sg, stage, src) {
     const rp = sg.rplay;
+    const head = box.querySelector('h3');
+    if (head) head.append(h('span', { class: 'rp-badge', title: 'Rplay 播放內核' + (App.rplayCommit ? ' · ' + App.rplayCommit : '') }, rplayIcon(18), 'Rplay'));
     box.append(stage('來源', src, false));
     box.append(stage('解碼', rp.decoder, false));
     box.append(h('div', { class: 'sig-sect' }, 'Core'));

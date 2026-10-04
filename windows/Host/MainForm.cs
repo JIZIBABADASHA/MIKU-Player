@@ -1181,6 +1181,8 @@ public sealed class MainForm : Form
         version = Application.ProductVersion,
         ffmpeg = Ffmpeg.Available,
         rplay = RplayIncluded,
+        rplayCommit = typeof(MainForm).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+            .OfType<System.Reflection.AssemblyMetadataAttribute>().FirstOrDefault(m => m.Key == "RplayCommit")?.Value,
         asio = Devices.AsioDrivers(),
         scan = _lib.Progress,
         state = State(),

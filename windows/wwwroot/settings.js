@@ -34,7 +34,7 @@ const Settings = {
       const usingRplay = (s.audioCore || 'miku') === 'rplay';
       let maxDsdField = null;   // Rplay's DSD limit, hidden in WASAPI shared mode with the other DSD settings
       const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
-      out.append(field('播放方案', '切換時會從目前位置繼續播放。',
+      out.append(field(usingRplay ? [rplayIcon(18), '播放方案'] : '播放方案', '切換時會從目前位置繼續播放。',
         select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); })));
       const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
       out.append(field('輸出模式', null, modeSeg));
@@ -167,7 +167,7 @@ const Settings = {
         select([['off', '停止播放'], ['albums', '隨機播放其他專輯'], ['tracks', '隨機播放其他歌曲']], s.autoContinue || 'off', v => this.set({ autoContinue: v }))));
       /* 進階 (Rplay only), collapsed */
       if (usingRplay) {
-        const adv = h('details', { class: 'sect adv' }, h('summary', null, h('h2', null, '進階')));
+        const adv = h('details', { class: 'sect adv' }, h('summary', null, h('h2', null, rplayIcon(18), '進階')));
         root.append(adv);
         adv.append(field('Rplay 相容模式', '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
           select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
@@ -288,7 +288,8 @@ const Settings = {
       /* ── about ── */
       const ab = section('關於');
       ab.append(field('MIKU', `版本 ${App.version || '1.0'} · FFmpeg ${App.ffmpeg ? '已就緒' : '未找到'}`, h('button', { class: 'btn small ghost', onclick: () => Host.call('devtools') }, '開發者工具')));
-      ab.append(field('快捷鍵', '空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · Ctrl+↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · Ctrl+F 搜尋', null));
+      if (App.rplay) ab.append(field([rplayIcon(22), 'Rplay'], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
+    ab.append(field('快捷鍵', '空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · Ctrl+↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · Ctrl+F 搜尋', null));
     }
   },
 };
