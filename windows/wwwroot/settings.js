@@ -134,9 +134,9 @@ const Settings = {
     };
     drawDsd();
     out.append(dsdHost);
-    if (usingRplay) out.append(field('DSD 轉 PCM', 'DSD 播放方式選 PCM，或 DAC 不支援該 DSD 格式時，Rplay 會依 DAC 支援的取樣率自動轉成 PCM（DSD64 通常為 352.8 kHz），不套用升頻', h('span', { class: 'muted' }, 'Rplay 自動選擇')));
-    else out.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
-    const dsdPcmField = out.lastChild;
+    // DSD → PCM rate: the MIKU core's own setting; the Rplay core picks the rate itself, so it has no field
+    if (!usingRplay) out.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+    const dsdPcmField = usingRplay ? null : out.lastChild;
     // WASAPI shared: Windows' mixer always converts to the system format, so upsampling and DSD settings do nothing there
     const sharedNote = field('升頻與 DSD', '共享模式由 Windows 混音器轉成系統格式輸出，升頻與 DSD 設定不會作用；要使用這些設定請改用獨佔模式或 ASIO。', null);
     out.append(sharedNote);
