@@ -299,6 +299,7 @@ const App = {
     this.queue = init.queue;
     this.ffmpeg = init.ffmpeg;
     this.rplay = !!init.rplay;
+    this.rplayCommit = init.rplayCommit || '';
     this.version = init.version;
     this.scan(init.scan);
     await Lib.load();
@@ -648,6 +649,11 @@ function slider(el, { start, move, end, tip }) {
 }
 
 /* ═════════════════════════════ popovers & menus ═════════════════════════════ */
+/** The Rplay core's icon (shown only where the Rplay core is in use). */
+const rplayIcon = (size = 18) => h('img', { class: 'rp-icon', src: 'img/rplay.png', width: size, height: size, alt: 'Rplay', draggable: 'false' });
+/** The icon and the word "Rplay" as one rounded grey pill (the signal path popover's badge). */
+const rplayBadge = (attrs = {}) => h('span', { class: 'rp-badge', ...attrs }, rplayIcon(18), 'Rplay');
+
 const Popover = {
   el: null,
   show(content, anchor, opts = {}) {
@@ -788,6 +794,8 @@ const SignalPop = {
       box.append(h('h3', { html: `<i class="dot"></i>${QLabel[sg.quality]}` }), h('div', { class: 'lead' }, QLead[sg.quality]));
       const stage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
       const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
+      if (sg.rplay) this.drawRplay(box, sg, stage, src);
+      else {
       box.append(stage('來源', src, false));
       if (sg.decoder) box.append(stage('解碼器', sg.decoder, false));
       const gain = sg.resamplerGainDb;
@@ -815,8 +823,31 @@ const SignalPop = {
         if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, `已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
       } else if (sg.resampled) box.append(stage('重取樣峰值量測', '此播放內核未提供', false));
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
+      }
     }
     Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
+  },
+  /** The Rplay core's layout: decoder, then what the Core and the output side (輸出端) each do; the MIKU core keeps the one above. */
+  drawRplay(box, sg, stage, src) {
+    const rp = sg.rplay;
+    box.append(stage('來源', src, false));
+    const own = /^Rplay\s*/.exec(rp.decoder || '');   // decoded by Rplay itself
+    box.append(stage('解碼', own ? [rplayBadge(), rp.decoder.slice(own[0].length)] : rp.decoder, false));
+    box.append(h('div', { class: 'sig-sect' }, 'Core', rplayBadge()));
+    (rp.core || []).forEach(r => box.append(stage(r.k, r.v, r.mod)));
+    box.append(h('div', { class: 'sig-sect' }, '輸出端'));
+    if (rp.dsd) box.append(stage('DSD 傳送', rp.dsd, false));
+    const dsp = sg.dspActive && sg.dspSummary;
+    if (dsp) box.append(stage('DSP', sg.dspSummary, true));
+    const vm = sg.volumeMode, db = App.state.volumeDb;
+    box.append(stage('音量', vm === 'digital' ? (Math.abs(db) < 1e-9 ? '數位音量 · 0 dB（不處理）' : `數位音量 · ${db.toFixed(1)} dB`) : vm === 'hardware' ? `DAC 硬體音量 · ${db.toFixed(1)} dB` : vm === 'none' ? '無（請使用 DAC 旋鈕）' : '固定 0 dB', vm === 'digital' && Math.abs(db) > 1e-9));
+    // MIKU's DSP / digital volume change the samples on the output side, which then dithers them to the device's bits
+    const touched = !sg.dsdDirect && (dsp || (vm === 'digital' && Math.abs(db) > 1e-9));
+    if (touched && rp.deviceValidBits < 32) box.append(stage('量化', `TPDF 抖動 → ${rp.deviceValidBits}-bit（裝置有效位元）`, true));
+    box.append(stage('輸出', `${sg.mode} · ${sg.device}`, false));
+    box.append(stage('裝置格式', rp.deviceFormat, false));
+    (rp.notes || []).forEach(n => box.append(h('div', { class: 'note' }, n)));
+    if (rp.details) box.append(h('details', { class: 'sig-details' }, h('summary', null, '技術細節'), h('div', null, rp.details)));
   },
 };
 

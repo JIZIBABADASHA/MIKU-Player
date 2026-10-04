@@ -36,6 +36,7 @@ public sealed class RplayEngine : IAudioEngine
     readonly object _stackLock = new();
 
     AudioOutput _output;
+    string _outputAsioDriver;   // the ASIO driver _output has open (settings name), null for other outputs
     EndpointServer _srv;
     PlaybackEngine<Track> _rp;
     MikuProcessor _proc;
@@ -103,8 +104,10 @@ public sealed class RplayEngine : IAudioEngine
             else if (_s.OutputMode == "asio")
             {
                 string driver = _s.AsioDriver ?? Devices.AsioDrivers().FirstOrDefault() ?? throw new InvalidOperationException("找不到 ASIO 驅動程式");
-                // DoP 開關打開 → DoP；關閉 → Rplay 的預設（驅動程式支援原生 DSD 就用原生，否則轉 PCM）
-                output = new AsioOutput(driver, _s.Dop ? DsdMode.Dop : null, maxDsd);
+                // DSD 播放方式：Native → Rplay 的預設（驅動程式支援原生 DSD 就用原生，否則轉 PCM）；DoP；PCM（不宣告支援 DSD，Core 轉 PCM）
+                string dsd = _s.DsdFor("asio");
+                output = new AsioOutput(driver, dsd == "dop" ? DsdMode.Dop : dsd == "pcm" ? DsdMode.None : null, maxDsd);
+                _outputAsioDriver = driver;
                 _deviceId = null;
                 _caps = null;
             }
@@ -113,7 +116,7 @@ public sealed class RplayEngine : IAudioEngine
                 // MIKU: 沒有選裝置 = Windows 預設裝置（Rplay 對「預設裝置」會強制共享，所以這裡換成實際的裝置 ID）
                 using (var d = Devices.Open(_s.DeviceId)) { _deviceId = d.ID; try { _caps = Devices.Probe(d); } catch { _caps = null; } }
                 bool exclusive = _s.OutputMode != "shared";
-                output = new WasapiOutput(_deviceId, exclusive, exclusive && _s.Dop ? DsdMode.Dop : DsdMode.None, maxDsd)
+                output = new WasapiOutput(_deviceId, exclusive, _s.DsdFor(_s.OutputMode) == "dop" ? DsdMode.Dop : DsdMode.None, maxDsd)
                 {
                     BufferDuration = Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0,
                 };
@@ -140,6 +143,7 @@ public sealed class RplayEngine : IAudioEngine
             rp.Failed += m => { Log.Info("[rplay] " + m); Failed?.Invoke(m); };
             rp.Changed += () => Changed?.Invoke();
             rp.Info += m => Log.Info("[rplay] " + m);
+            if (output is not AsioOutput) _outputAsioDriver = null;
             _output = output; _srv = srv; _rp = rp;
             Log.Info($"[rplay] core ready: {output.Name}, {Compat.Describe()}");
         }
@@ -350,12 +354,105 @@ public sealed class RplayEngine : IAudioEngine
             VolumeMode = dsdOut && _s.VolumeMode == "digital" ? (_caps != null && _caps.HardwareVolume ? "hardware" : "none") : _s.VolumeMode,
             ReplayGainDb = dsdOut ? null : _rgDb,
         };
+        LogDsd(t, isDsd, dsdOut, output, dev, wire);
+        info.Rplay = BuildPath(t, chain, output, dev, dsdOut, info);
         var notes = new List<string> { "Rplay 內核：" + chain.Description };
         if (dsdOut && _s.VolumeMode == "digital" && (_caps == null || !_caps.HardwareVolume))
             notes.Add("DSD 直送時無法使用數位音量，DAC 會以原始音量輸出，請用 DAC 的音量旋鈕調整。");
         info.Note = string.Join("\n", notes);
         info.Quality = Quality(info);
         return info;
+    }
+
+    /// <summary>
+    /// PCM sample rates of the ASIO driver this core has open (probed when it opened); null when it has another
+    /// output or driver open. The settings page uses them instead of opening the driver a second time.
+    /// </summary>
+    public List<int> AsioRates(string driver)
+    {
+        var o = _output;
+        if (o is not AsioOutput || !string.Equals(_outputAsioDriver, driver, StringComparison.OrdinalIgnoreCase)) return null;
+        return o.SupportedFormats.Where(f => !f.IsDsd).Select(f => f.SampleRate).Distinct().OrderBy(r => r).ToList();
+    }
+
+    static string Khz(int rate) => (rate / 1000.0).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The signal path as the Rplay core runs it, for the signal path popover: the decoder, what the Core does (from
+    /// the chain's steps), how DSD reaches the DAC, the device format, real warnings, and the chain description as
+    /// technical details. Volume and the endpoint's own requantization are drawn by the page (they follow the volume).
+    /// </summary>
+    RplayPath BuildPath(Track t, WireChain chain, AudioOutput output, StreamFormat dev, bool dsdOut, SignalInfo info)
+    {
+        string dec = _rp?.DecoderName;
+        string decoder = t.IsLive ? "WebView 音訊（YouTube Music）"
+            : dec is "DSF" or "DFF" or "FLAC" or "WAV" or "AIFF" ? $"Rplay {dec} 解碼器"
+            : dec != null && dec.StartsWith("FFmpeg") ? dec.Replace(" (", "（").Replace(")", "）")
+            : dec ?? "Rplay";
+        var core = new List<RplayRow>();
+        foreach (var s in chain.Steps)
+        {
+            switch (s.Kind)
+            {
+                case "dsd_passthrough": core.Add(new("處理", "原樣送出（DSD）")); break;
+                case "pcm_passthrough": core.Add(new("處理", "原樣送出（PCM）")); break;
+                case "dsd2pcm":
+                    var m = System.Text.RegularExpressions.Regex.Match(s.Filter ?? "", @"(\d+)khz");
+                    string filter = m.Success ? m.Groups[1].Value + " kHz 低通" : s.Filter;
+                    core.Add(new("DSD → PCM", $"{Khz(s.ToRate)} kHz · {filter} · {(s.Db >= 0 ? "+" : "")}{s.Db:0.#} dB", true)); break;
+                case "headroom":
+                    core.Add(new("ReplayGain", $"{(s.Db > 0 ? "+" : "")}{s.Db:0.0} dB（{(_s.ReplayGain == "album" ? "依專輯" : "依曲目")}）", true)); break;
+                case "src":
+                    core.Add(new("重新取樣", $"{Khz(s.FromRate)} → {Khz(s.ToRate)} kHz · {(s.MinimumPhase ? "最小相位" : "線性相位")}", true)); break;
+                case "channels":
+                    core.Add(new("聲道", s.Detail == "front_pair" ? "只取前方左右聲道 → 2.0" : "轉成 2.0", true)); break;
+                case "dsp": core.Add(new("DSP", "外部處理", true)); break;
+                case "volume": core.Add(new("音量", $"{s.Db:0.0} dB", true)); break;
+                case "quantize": core.Add(new("量化", $"{(s.Dither ? "TPDF 抖動" : "截斷")} → {s.Bits}-bit", true)); break;
+            }
+        }
+        string dsd = !dsdOut ? null : output.ActiveDsdMode switch
+        {
+            DsdMode.Native => "ASIO 原生 DSD",
+            DsdMode.Dop => $"DoP · 以 {Khz(dev.SampleRate)} kHz 24-bit PCM 承載",
+            DsdMode.Dcs => $"dCS DoP · 以 {Khz(dev.SampleRate)} kHz 24-bit PCM 承載",
+            var x => x.ToString(),
+        };
+        int container = output.DeviceContainerBits, valid = output.DeviceValidBits;
+        string Bits(int v, int c) => c > v ? $"{v}-bit（{c}-bit 容器）" : $"{v}-bit";
+        string format = dsdOut && output.ActiveDsdMode == DsdMode.Native ? $"{info.DsdLabel ?? "DSD"} · 1-bit"
+            : dsdOut ? $"{Bits(24, container)} / {Khz(dev.SampleRate)} kHz"
+            : output is WasapiOutput w && w.DeviceFormatText != null && w.DeviceFormatText.Contains("float") ? $"{w.DeviceFormatText} / {Khz(dev.SampleRate)} kHz"
+            : $"{Bits(valid, container)} / {Khz(dev.SampleRate)} kHz";
+        var notes = new List<string>();
+        if (dsdOut && _s.VolumeMode == "digital" && (_caps == null || !_caps.HardwareVolume))
+            notes.Add("DSD 直送時無法使用數位音量，DAC 會以原始音量輸出，請用 DAC 的音量旋鈕調整。");
+        return new RplayPath { Decoder = decoder, Core = core, Dsd = dsd, DeviceFormat = format, DeviceValidBits = valid, Notes = notes, Details = chain.Description };
+    }
+
+    string _lastDsdLog;
+
+    /// <summary>
+    /// One clear log line per change for DSD: how it actually reaches the DAC (native DSD over ASIO, DoP and its PCM
+    /// carrier, or converted to PCM, and the setting it came from). The chain description can't say: the Core sends
+    /// DSD as DSD and the output decides.
+    /// </summary>
+    void LogDsd(Track t, bool isDsd, bool dsdOut, AudioOutput output, StreamFormat dev, StreamFormat wire)
+    {
+        if (!isDsd) { _lastDsdLog = null; return; }
+        string src = t.SampleRate > 0 ? $"DSD{t.SampleRate / 44100}" : "DSD";
+        string how = !dsdOut ? $"converted to PCM {wire.SampleRate / 1000.0:0.#} kHz {wire.BitsPerSample}-bit"
+            : output.ActiveDsdMode switch
+            {
+                DsdMode.Native => "native DSD (ASIO)",
+                DsdMode.Dop => $"DoP, carried as PCM {dev.SampleRate / 1000.0:0.#} kHz 24-bit",
+                DsdMode.Dcs => $"dCS DoP, carried as PCM {dev.SampleRate / 1000.0:0.#} kHz 24-bit",
+                var m => m.ToString(),
+            };
+        string line = $"[rplay] DSD output: {src} → {how} on {output.Name} (DSD 播放方式 = {_s.DsdFor(_s.OutputMode)}, max DSD{(_s.RplayMaxDsd > 0 ? _s.RplayMaxDsd : 512)})";
+        if (line == _lastDsdLog) return;
+        _lastDsdLog = line;
+        Log.Info(line);
     }
 
     string DspSummary()

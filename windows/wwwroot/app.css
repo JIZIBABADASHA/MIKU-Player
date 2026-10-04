@@ -390,6 +390,25 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .stage .k { font-size: 12px; color: var(--text-3); }
 .stage .v { font-size: 13.5px; }
 .sigpop .note { margin-top: 10px; font-size: 12.5px; color: var(--pink-text); background: var(--pink-dim); padding: 9px 11px; border-radius: 9px; }
+/* Rplay core: Core / 輸出端 sections and the collapsed technical details */
+/* Rplay icon: next to labels and titles; a hairline keeps the navy badge visible on dark themes */
+.rp-icon { display: inline-block; flex: none; vertical-align: -3px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); user-select: none; }
+/* a picture in a custom dropdown option (select.js data-icon) */
+.msel-ico { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); flex: none; }
+/* the icon + "Rplay" pill (decoder, Rplay Core, settings, dropdown) */
+.rp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 18px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
+.rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
+.sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
+/* 關於: the icon before "Rplay" in the row title's own font, as tall as the text line */
+.field .lbl b > .rp-icon { width: 1.4em; height: 1.4em; margin-right: .45em; }
+/* text after the pill sits on the pill's vertical centre */
+.sigpop .stage .v:has(> .rp-badge), .field .lbl b:has(> .rp-badge), .field .lbl b:has(> .rp-icon) { display: flex; align-items: center; }
+.sigpop .sig-sect > .rp-badge { margin-left: -2px; }
+.sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
+.sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
+.sigpop .sig-details summary { cursor: pointer; user-select: none; }
+.sigpop .sig-details > div { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; line-height: 1.5; word-break: break-word; }
 
 #toasts { position: fixed; left: 50%; bottom: calc(var(--bar) + 18px); transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { pointer-events: auto; background: var(--toast-bg); border: 1px solid var(--line-2); padding: 11px 16px; border-radius: 12px; box-shadow: 0 16px 40px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); max-width: 560px; font-size: 13.5px; animation: toastIn .35s var(--ease-out); display: flex; gap: 10px; align-items: flex-start; white-space: pre-wrap; }
@@ -525,6 +544,11 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .sect { margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .sect h2 { margin: 0; padding: 18px 22px 6px; font: 650 16px var(--font-display); }
 .sect .hint { padding: 0 22px 10px; color: var(--text-3); font-size: 12.5px; }
+/* settings tabs: stay under the top bar while the page scrolls */
+.set-tabs { position: sticky; top: 64px; z-index: 5; display: flex; gap: 4px; margin: 0 36px; padding: 4px; width: max-content; background: rgba(var(--bg-rgb), .82); backdrop-filter: blur(20px) saturate(1.3); border: 1px solid var(--line); border-radius: 12px; }
+.set-tabs button { height: 34px; padding: 0 20px; border-radius: 9px; color: var(--text-2); font-size: 14px; font-weight: 600; transition: background .18s, color .18s; }
+.set-tabs button:hover { color: var(--text); }
+.set-tabs button.on { background: rgba(var(--ink), .1); color: var(--text); }
 .field { display: flex; align-items: center; gap: 20px; padding: 14px 22px; border-top: 1px solid var(--line); min-height: 62px; }
 .field:first-of-type { border-top: 0; }
 .field .lbl { flex: 1; min-width: 0; }

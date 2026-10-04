@@ -22,6 +22,24 @@ public sealed class SourcePlan
     public string Note;   // why the requested DSD path (DoP / PCM rate) could not be used
 }
 
+/// <summary>One row of the Rplay core's signal path: label, value, and whether it changes the samples.</summary>
+public sealed record RplayRow(string K, string V, bool Mod = false);
+
+/// <summary>The Rplay core's signal path (RplayEngine.BuildPath), drawn in its own layout by the signal path popover.</summary>
+public sealed class RplayPath
+{
+    public string Decoder { get; set; }
+    public List<RplayRow> Core { get; set; } = new();
+    /// <summary>How DSD reaches the DAC (DoP / ASIO native); null when it isn't sent as DSD.</summary>
+    public string Dsd { get; set; }
+    public string DeviceFormat { get; set; }
+    public int DeviceValidBits { get; set; }
+    /// <summary>Real warnings only (shown highlighted).</summary>
+    public List<string> Notes { get; set; } = new();
+    /// <summary>The chain description, for the collapsed technical details.</summary>
+    public string Details { get; set; }
+}
+
 public sealed class SignalInfo
 {
     public string Codec { get; set; }
@@ -45,6 +63,8 @@ public sealed class SignalInfo
     public double? ReplayGainDb { get; set; }
     public string Quality { get; set; } // bitperfect | enhanced | high | low
     public string Note { get; set; }
+    /// <summary>The Rplay core's own signal path (Core / 輸出端 rows); null for the MIKU core, which keeps its layout.</summary>
+    public RplayPath Rplay { get; set; }
     public string Decoder { get; set; }
     public string Resampler { get; set; }
     public double? ResamplerBandwidth { get; set; }
@@ -141,7 +161,7 @@ public sealed class AudioEngine : IAudioEngine
         }
 
         // exclusive
-        if (sp.Dsd != null && _s.Dop && !sp.Dsd.Compressed && sp.Dsd.Channels == 2)
+        if (sp.Dsd != null && _s.DsdFor("exclusive") == "dop" && !sp.Dsd.Compressed && sp.Dsd.Channels == 2)
         {
             int dopRate = DopSource.DopRate(sp.Dsd);
             var f = _caps.BestFormat(dopRate, needInteger24: true);
@@ -205,7 +225,8 @@ public sealed class AudioEngine : IAudioEngine
     }
 
     readonly Dictionary<string, List<int>> _asioRates = new();
-    List<int> AsioRates(string driver)
+    /// <summary>Sample rates the ASIO driver accepts (probed once, cached).</summary>
+    public List<int> AsioRates(string driver)
     {
         lock (_asioRates)
             if (_asioRates.TryGetValue(driver, out var cached)) return cached;

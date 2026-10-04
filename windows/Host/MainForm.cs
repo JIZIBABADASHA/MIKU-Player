@@ -937,6 +937,7 @@ public sealed class MainForm : Form
                 SaveSoon();
                 return null;
             case "devices": return await Task.Run(DevicesDto);
+            case "asio.rates": return await Task.Run(() => AsioRatesFor(S(a, "driver") ?? _s.AsioDriver ?? Devices.AsioDrivers().FirstOrDefault()));
             case "probe":
                 return await Task.Run(() =>
                 {
@@ -1180,6 +1181,8 @@ public sealed class MainForm : Form
         version = Application.ProductVersion,
         ffmpeg = Ffmpeg.Available,
         rplay = RplayIncluded,
+        rplayCommit = typeof(MainForm).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+            .OfType<System.Reflection.AssemblyMetadataAttribute>().FirstOrDefault(m => m.Key == "RplayCommit")?.Value,
         asio = Devices.AsioDrivers(),
         scan = _lib.Progress,
         state = State(),
@@ -1240,6 +1243,36 @@ public sealed class MainForm : Form
 
     object QueueDto() => new { ids = _player.Queue, index = _player.Index, shuffle = _s.Shuffle, repeat = _s.Repeat };
 
+    /// <summary>
+    /// PCM sample rates an ASIO driver accepts, for the settings page's fixed rate. A driver that the playing core has
+    /// open is not opened again (ASIO drivers often allow one client): the Rplay core reports what its output probed,
+    /// the MIKU core its cached probe. Only a driver nobody here has open is probed directly.
+    /// </summary>
+    List<int> AsioRatesFor(string driver)
+    {
+        if (string.IsNullOrEmpty(driver)) return new List<int>();
+#if HAS_RPLAY
+        if (_engine is RplayEngine r)
+        {
+            // just switched to ASIO: the core is reopening its output, wait for it rather than open the driver too
+            for (int i = 0; i < 30 && _s.OutputMode == "asio" && r.AsioRates(driver) == null; i++) Thread.Sleep(100);
+            if (r.AsioRates(driver) is { } rr) return rr;
+        }
+#endif
+        if (_engine is AudioEngine e) return e.AsioRates(driver);
+        var list = new List<int>();
+        Invoke(new Action(() =>
+        {
+            try
+            {
+                using var asio = new NAudio.Wave.AsioOut(driver);
+                foreach (int rate in Formats.ProbeRates) { try { if (asio.IsSampleRateSupported(rate)) list.Add(rate); } catch { } }
+            }
+            catch (Exception ex) { Log.Info("ASIO rate probe: " + ex.Message); }
+        }));
+        return list;
+    }
+
     object DevicesDto()
     {
         var list = Devices.List();
@@ -1260,7 +1293,7 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdMode", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
 
     object ApplySettings(JsonElement patch)
     {

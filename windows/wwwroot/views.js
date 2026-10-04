@@ -539,7 +539,7 @@ const Views = {
     return cleanup;
   },
 
-  settings(view) { return Settings.render(view); },
+  settings(view, tab) { return Settings.render(view, tab); },
 
   ytmusic(view) {
     const nav = to => Host.call('yt.nav', { to });

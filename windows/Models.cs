@@ -104,7 +104,19 @@ public sealed class Settings
     public int BufferMs { get; set; } = 100;
     public string Upsampling { get; set; } = "off"; // off | 2x | max | fixed
     public int FixedRate { get; set; } = 192000;
-    public bool Dop { get; set; } = false;
+    public bool Dop { get; set; } = false;                // older on/off setting, read when DsdMode isn't set
+    /// <summary>How DSD files are played: native (ASIO native DSD) | dop | pcm. null = from the older Dop switch.</summary>
+    public string DsdMode { get; set; }
+    /// <summary>
+    /// DSD playback as chosen, for an output. ASIO: native | dop | pcm (native falls back to PCM when the driver has
+    /// no native DSD). WASAPI: dop | pcm — DoP only in exclusive mode; "native" (the older switch off) means PCM.
+    /// </summary>
+    public string DsdFor(string outputMode)
+    {
+        string m = DsdMode is "native" or "dop" or "pcm" ? DsdMode : (Dop ? "dop" : "native");
+        if (outputMode == "asio") return m;
+        return m == "dop" && outputMode != "shared" ? "dop" : "pcm";
+    }
     public int DsdPcmRate { get; set; } = 176400;
     public bool Gapless { get; set; } = true;
     public string ReplayGain { get; set; } = "off"; // off | track | album
