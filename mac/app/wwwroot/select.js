@@ -172,7 +172,7 @@
     let last = null, had = np.classList.contains('nolyrics'), anim = null;
     const wrapEl = np.querySelector('.np-wrap') || np;
     // measure relative to .np-wrap so its own translateY (bar lift / settle) never leaks into the FLIP
-    const rel = () => { const a = left.getBoundingClientRect(), w = wrapEl.getBoundingClientRect(); return { left: a.left - w.left, top: a.top - w.top, width: a.width }; };
+    const rel = () => { const a = left.getBoundingClientRect(), w = wrapEl.getBoundingClientRect(); const c = left.querySelector('.np-cover'); return { left: a.left - w.left, top: a.top - w.top, width: c ? c.getBoundingClientRect().width : a.width }; };
     const snap = () => { if (np.classList.contains('on') && !anim) last = rel(); };
     new MutationObserver(() => {
       const has = np.classList.contains('nolyrics');

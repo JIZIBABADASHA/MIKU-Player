@@ -879,3 +879,6 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 #np .np-left { position: relative; z-index: 2; }
 #np .np-right { position: relative; z-index: 1; }
 #np:not(.nolyrics) .lyrics { transition: opacity .45s ease .16s; }
+
+/* 沒歌詞時左欄縮成內容寬度，讓封面與控制列真正水平置中 */
+#np.nolyrics .np-left { align-items: center; }
