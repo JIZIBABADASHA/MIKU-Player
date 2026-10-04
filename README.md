@@ -30,14 +30,20 @@
 ## 原始碼
 
 ```
-windows/   Windows 版：C# (.NET 8) + WebView2 + NAudio
-mac/       macOS 版：Electron（沿用同一套介面）
+windows/             Windows 版：C# (.NET 8) + WebView2 + NAudio
+mac/                 macOS 版：Electron（沿用同一套介面）
+MIKU.Extensibility/  Windows 版的擴充模組介面
 ```
 
 ### 編譯 Windows 版
 
 需要 .NET 8 SDK。在 `windows` 資料夾執行 `build.cmd`，程式會輸出到上一層的 `MIKU` 資料夾；
 `make-installer.cmd` 會產生安裝檔（自動下載 FFmpeg 與 Inno Setup）。
+
+### 擴充模組（Windows 版）
+
+功能模組可以放在獨立的 repo，checkout 到 `Extensions/<名稱>/`（例如當作 git submodule）。編譯時會一起建置，
+沒有的話照常編譯。寫法見 [MIKU.Extensibility/README.md](MIKU.Extensibility/README.md)。
 
 ### 編譯 macOS 版
 

@@ -267,6 +267,54 @@ const Lib = {
 };
 
 /* ═════════════════════════════ app state ═════════════════════════════ */
+/* ═════════════════════════════ extension modules ═════════════════════════════ */
+/**
+ * Optional modules (MIKU.Extensibility/README.md). MIKU lists them in init.extensions; their scripts call
+ * MikuExt.register({ id, init(api) }) and are set up before the first page is drawn. A module that fails to load
+ * is logged and left out.
+ */
+const MikuExt = {
+  defs: {}, settings: {},
+  register(def) { if (def && def.id) this.defs[def.id] = def; },
+
+  async load(list) {
+    for (const x of list || []) {
+      try {
+        for (const href of x.styles || []) document.head.append(h('link', { rel: 'stylesheet', href }));
+        for (const src of x.scripts || []) {
+          await new Promise((ok, fail) => document.head.append(h('script', { src, onload: ok, onerror: () => fail(new Error('cannot load ' + src)) })));
+        }
+        const def = this.defs[x.id];
+        if (def && def.init) await def.init(this.api(x.id));
+      } catch (e) { console.error('[ext]', x.id, e); }
+    }
+  },
+
+  /** What a module gets: its own RPC and events, playback, and places in the sidebar, the router and the settings. */
+  api(id) {
+    return {
+      id,
+      rpc: (method, args) => Host.call(`ext.${id}.${method}`, args),
+      on: (ev, f) => Host.on(`ext.${id}.${ev}`, f),
+      play: (ids, shuffle = false, start = -1) => Host.call('play', { ids, shuffle, start }),
+      /** A sidebar link to #/<route>; after = the data-r of the link to follow (default: before the 系統 section). */
+      addNav: ({ route, label, icon: svg, after }) => {
+        const a = h('a', { href: '#/' + route, 'data-r': route, html: svg || '' }, h('span', null, label));
+        const prev = after && $(`#nav a[data-r="${after}"]`);
+        if (prev) prev.after(a);
+        else { const labels = $$('#nav .nav-label'); labels.length ? labels[labels.length - 1].before(a) : $('#nav').append(a); }
+        return a;
+      },
+      addRoute: (name, fn) => {
+        if (Views[name]) throw new Error(`route "${name}" exists`);
+        Views[name] = fn;
+      },
+      /** A block at the end of a settings tab (audio / library / look / other): fn(root, { section, field, sw, select }). */
+      addSettings: (tab, fn) => (this.settings[tab] = this.settings[tab] || []).push(fn),
+    };
+  },
+};
+
 const App = {
   settings: {}, state: {}, queue: { ids: [], index: -1 }, favs: new Set(),
   posBase: 0, posAt: 0, seeking: false,
@@ -306,6 +354,7 @@ const App = {
     this.trackKey = null; // states received while the library was loading may have drawn an empty now-playing bar
     this.setState(init.state);
     this.renderFav();
+    await MikuExt.load(init.extensions);
     Outputs.refresh();
     ScrollBubble.init();
     Router.start();

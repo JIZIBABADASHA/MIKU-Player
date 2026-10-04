@@ -289,5 +289,10 @@ const Settings = {
       if (App.rplay) ab.append(field([rplayIcon(), 'Rplay'], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
     ab.append(field('快捷鍵', '空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · Ctrl+↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · Ctrl+F 搜尋', null));
     }
+
+    // blocks added by extension modules (MikuExt.addSettings)
+    for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[tab]) || []) {
+      try { fn(root, { section, field, sw, select }); } catch (e) { console.error('[ext] settings', e); }
+    }
   },
 };
