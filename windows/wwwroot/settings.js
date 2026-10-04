@@ -286,7 +286,7 @@ const Settings = {
       /* ── about ── */
       const ab = section('關於');
       ab.append(field('MIKU', `版本 ${App.version || '1.0'} · FFmpeg ${App.ffmpeg ? '已就緒' : '未找到'}`, h('button', { class: 'btn small ghost', onclick: () => Host.call('devtools') }, '開發者工具')));
-      if (App.rplay) ab.append(field([rplayBadge({ class: 'rp-badge rp-big' })], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
+      if (App.rplay) ab.append(field([rplayIcon(), 'Rplay'], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
     ab.append(field('快捷鍵', '空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · Ctrl+↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · Ctrl+F 搜尋', null));
     }
   },
