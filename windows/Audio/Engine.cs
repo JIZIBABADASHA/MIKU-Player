@@ -205,7 +205,8 @@ public sealed class AudioEngine : IAudioEngine
     }
 
     readonly Dictionary<string, List<int>> _asioRates = new();
-    List<int> AsioRates(string driver)
+    /// <summary>Sample rates the ASIO driver accepts (probed once, cached).</summary>
+    public List<int> AsioRates(string driver)
     {
         lock (_asioRates)
             if (_asioRates.TryGetValue(driver, out var cached)) return cached;

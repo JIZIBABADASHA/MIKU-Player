@@ -50,6 +50,7 @@ const Settings = {
       if (App.settings.outputMode === 'asio') {
         if (!d.asio.length) devHost.append(field('ASIO 驅動程式', '沒有找到已安裝的 ASIO 驅動程式。', null));
         else devHost.append(field('ASIO 驅動程式', 'DAC 廠商提供的 ASIO 驅動（例如 TOPPING USB Audio）。', select(d.asio.map(n => [n, n]), App.settings.asioDriver || d.asio[0], v => this.set({ asioDriver: v }))));
+        refreshRates(d);
         return;
       }
       const opts = d.devices.map(x => [x.id, x.name + (x.isDefault ? '（預設）' : '')]);
@@ -66,6 +67,7 @@ const Settings = {
         devHost.append(chips);
       }
       this.caps = d.caps;
+      refreshRates(d);
     };
     redrawDevices();
     out.append(field('緩衝大小', '較大的緩衝更穩定；較小的緩衝反應更快。', (() => {
@@ -83,11 +85,30 @@ const Settings = {
       : { off: '維持原始取樣率', '2x': '用 SoX 重新取樣成原始取樣率的 2 倍，DSD 轉成的 PCM 也會套用',
           max: '用 SoX 重新取樣成 DAC 支援、同一族中最高的取樣率，DSD 轉成的 PCM 也會套用', fixed: '一律用 SoX 重新取樣成指定的取樣率，DSD 轉成的 PCM 也會套用' };
     out.append(field(usingRplay ? 'Rplay 升頻' : 'FFmpeg 升頻', upText[s.upsampling] || upText.off, [
-      select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); upDesc(v); fixedSel.style.display = v === 'fixed' ? '' : 'none'; }),
+      select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); upDesc(v); fixedWrap.style.display = v === 'fixed' ? '' : 'none'; }),
     ]));
-    const fixedSel = select([44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000].map(r => [r, khz(r) + ' kHz']), s.fixedRate, v => this.set({ fixedRate: +v }));
-    fixedSel.style.display = s.upsampling === 'fixed' ? '' : 'none';
-    out.lastChild.querySelector('.ctl').append(fixedSel);
+    // fixed rate: only shown for 固定取樣率, listing the rates the output (WASAPI device / ASIO driver) accepts
+    const fixedSel = select([[s.fixedRate, khz(s.fixedRate) + ' kHz']], s.fixedRate, v => this.set({ fixedRate: +v }));
+    const fixedWrap = h('span', { class: 'fixed-rate', style: { display: s.upsampling === 'fixed' ? '' : 'none' } }, fixedSel);   // the custom dropdown sits next to the <select>: hide both
+    out.lastChild.querySelector('.ctl').append(fixedWrap);
+    // the rate the output would use for the saved one (like the cores' choice): same family at or below, else the next above
+    const nearest = (want, list) => {
+      const fam = r => r % 44100 === 0 ? 44100 : 48000;
+      const below = list.filter(r => fam(r) === fam(want) && r <= want);
+      return list.includes(want) ? want : below.length ? Math.max(...below) : (list.find(r => r >= want) || list[list.length - 1]);
+    };
+    const setRates = rates => {
+      const list = (rates || []).filter(r => r >= 44100 && r <= 768000).sort((a, b) => a - b);
+      if (!list.length) return;
+      fixedSel.replaceChildren(...list.map(r => h('option', { value: r }, khz(r) + ' kHz')));
+      fixedSel.value = String(nearest(App.settings.fixedRate || list[list.length - 1], list));
+    };
+    const refreshRates = async d => {
+      const m = App.settings.outputMode;
+      if (m === 'shared') return;
+      if (m === 'asio') setRates(await Host.call('asio.rates', { driver: App.settings.asioDriver || (d && d.asio[0]) }));
+      else setRates(d && d.caps && d.caps.rates);
+    };
     const upField = out.lastChild;
     const upDesc = v => { const sm = upField.querySelector('.lbl small'); if (sm) sm.textContent = upText[v] || upText.off; };
     // DSD 播放方式: the choices depend on the output (and the core): ASIO with Rplay can send native DSD

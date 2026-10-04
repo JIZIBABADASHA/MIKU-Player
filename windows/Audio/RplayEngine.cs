@@ -36,6 +36,7 @@ public sealed class RplayEngine : IAudioEngine
     readonly object _stackLock = new();
 
     AudioOutput _output;
+    string _outputAsioDriver;   // the ASIO driver _output has open (settings name), null for other outputs
     EndpointServer _srv;
     PlaybackEngine<Track> _rp;
     MikuProcessor _proc;
@@ -106,6 +107,7 @@ public sealed class RplayEngine : IAudioEngine
                 // DSD 播放方式：Native → Rplay 的預設（驅動程式支援原生 DSD 就用原生，否則轉 PCM）；DoP；PCM（不宣告支援 DSD，Core 轉 PCM）
                 string dsd = _s.DsdFor("asio");
                 output = new AsioOutput(driver, dsd == "dop" ? DsdMode.Dop : dsd == "pcm" ? DsdMode.None : null, maxDsd);
+                _outputAsioDriver = driver;
                 _deviceId = null;
                 _caps = null;
             }
@@ -141,6 +143,7 @@ public sealed class RplayEngine : IAudioEngine
             rp.Failed += m => { Log.Info("[rplay] " + m); Failed?.Invoke(m); };
             rp.Changed += () => Changed?.Invoke();
             rp.Info += m => Log.Info("[rplay] " + m);
+            if (output is not AsioOutput) _outputAsioDriver = null;
             _output = output; _srv = srv; _rp = rp;
             Log.Info($"[rplay] core ready: {output.Name}, {Compat.Describe()}");
         }
@@ -358,6 +361,17 @@ public sealed class RplayEngine : IAudioEngine
         info.Note = string.Join("\n", notes);
         info.Quality = Quality(info);
         return info;
+    }
+
+    /// <summary>
+    /// PCM sample rates of the ASIO driver this core has open (probed when it opened); null when it has another
+    /// output or driver open. The settings page uses them instead of opening the driver a second time.
+    /// </summary>
+    public List<int> AsioRates(string driver)
+    {
+        var o = _output;
+        if (o is not AsioOutput || !string.Equals(_outputAsioDriver, driver, StringComparison.OrdinalIgnoreCase)) return null;
+        return o.SupportedFormats.Where(f => !f.IsDsd).Select(f => f.SampleRate).Distinct().OrderBy(r => r).ToList();
     }
 
     string _lastDsdLog;
