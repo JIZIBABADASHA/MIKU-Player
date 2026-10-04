@@ -831,8 +831,10 @@ const SignalPop = {
     const head = box.querySelector('h3');
     if (head) head.append(h('span', { class: 'rp-badge', title: 'Rplay 播放內核' + (App.rplayCommit ? ' · ' + App.rplayCommit : '') }, rplayIcon(18), 'Rplay'));
     box.append(stage('來源', src, false));
-    box.append(stage('解碼', rp.decoder, false));
-    box.append(h('div', { class: 'sig-sect' }, 'Core'));
+    const dec = stage('解碼', rp.decoder, false);
+    if (/^Rplay/.test(rp.decoder || '')) dec.querySelector('.v').prepend(rplayIcon(16));   // decoded by Rplay itself
+    box.append(dec);
+    box.append(h('div', { class: 'sig-sect' }, rplayIcon(16), 'Rplay Core'));
     (rp.core || []).forEach(r => box.append(stage(r.k, r.v, r.mod)));
     box.append(h('div', { class: 'sig-sect' }, '輸出端'));
     if (rp.dsd) box.append(stage('DSD 傳送', rp.dsd, false));
