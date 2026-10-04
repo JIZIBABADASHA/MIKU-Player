@@ -84,18 +84,21 @@ const Settings = {
     const drawDsd = () => {
       const mode = App.settings.outputMode, cur = App.settings;
       const pref = ['native', 'dop', 'pcm'].includes(cur.dsdMode) ? cur.dsdMode : (cur.dop ? 'dop' : 'native');
-      let opts, value, desc;
+      const pcm = '轉成 PCM 播放，可以使用數位音量與 DSP';
+      // each choice with its own description; only the chosen one's is shown
+      let opts, value;
       if (mode === 'asio' && usingRplay) {
-        opts = [['native', 'Native（ASIO 原生 DSD）'], ['dop', 'DoP'], ['pcm', 'PCM']]; value = pref;
-        desc = 'Native：以 ASIO 原生 DSD 直接送到 DAC（驅動程式需支援，不支援時改轉 PCM）。DoP：把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP。PCM：轉成 PCM 播放，可以使用數位音量與 DSP。Native 與 DoP 時無法使用數位音量。';
+        opts = [['native', 'Native', '以 ASIO 原生 DSD 直接送到 DAC'], ['dop', 'DoP', '把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP'], ['pcm', 'PCM', pcm]];
+        value = pref;
       } else if (mode === 'asio') {
-        opts = [['pcm', 'PCM']]; value = 'pcm';
-        desc = 'MIKU 核心的 ASIO 輸出不支援 DSD 直送，DSD 會轉成 PCM 播放。' + (App.rplay ? '要用 Native 或 DoP，請把播放方案切換到 Rplay。' : '');
+        opts = [['pcm', 'PCM', 'MIKU 核心的 ASIO 輸出不支援 DSD 直送，DSD 會轉成 PCM 播放' + (App.rplay ? '；要用 Native 或 DoP，請把播放方案切換到 Rplay' : '')]];
+        value = 'pcm';
       } else {
-        opts = [['dop', 'DoP'], ['pcm', 'PCM']]; value = pref === 'dop' ? 'dop' : 'pcm';
-        desc = 'DoP：把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP；只在 WASAPI 獨佔模式有效，共享模式會轉成 PCM。PCM：轉成 PCM 播放，可以使用數位音量與 DSP。DoP 時無法使用數位音量。';
+        opts = [['dop', 'DoP', '把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP，只在獨佔模式有效'], ['pcm', 'PCM', pcm]];
+        value = pref === 'dop' ? 'dop' : 'pcm';
       }
-      dsdHost.replaceChildren(field('DSD 播放方式', desc, select(opts, value, v => this.set({ dsdMode: v }))));
+      const desc = (opts.find(o => o[0] === value) || opts[0])[2];
+      dsdHost.replaceChildren(field('DSD 播放方式', desc, select(opts.map(o => [o[0], o[1]]), value, v => { this.set({ dsdMode: v }); drawDsd(); })));
     };
     drawDsd();
     out.append(dsdHost);
