@@ -525,6 +525,17 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .sect { margin-top: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
 .sect h2 { margin: 0; padding: 18px 22px 6px; font: 650 16px var(--font-display); }
 .sect .hint { padding: 0 22px 10px; color: var(--text-3); font-size: 12.5px; }
+/* settings tabs: stay under the top bar while the page scrolls */
+.set-tabs { position: sticky; top: 64px; z-index: 5; display: flex; gap: 4px; margin: 0 36px; padding: 4px; width: max-content; background: rgba(var(--bg-rgb), .82); backdrop-filter: blur(20px) saturate(1.3); border: 1px solid var(--line); border-radius: 12px; }
+.set-tabs button { height: 34px; padding: 0 20px; border-radius: 9px; color: var(--text-2); font-size: 14px; font-weight: 600; transition: background .18s, color .18s; }
+.set-tabs button:hover { color: var(--text); }
+.set-tabs button.on { background: rgba(var(--ink), .1); color: var(--text); }
+/* collapsed 進階 card */
+details.sect > summary { list-style: none; cursor: pointer; display: flex; align-items: center; padding-bottom: 12px; }
+details.sect > summary::-webkit-details-marker { display: none; }
+details.sect > summary h2 { padding-bottom: 0; }
+details.sect > summary::after { content: ''; width: 8px; height: 8px; margin: 12px 22px 0 auto; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(45deg); transition: transform .2s; }
+details.sect[open] > summary::after { transform: rotate(-135deg); }
 .field { display: flex; align-items: center; gap: 20px; padding: 14px 22px; border-top: 1px solid var(--line); min-height: 62px; }
 .field:first-of-type { border-top: 0; }
 .field .lbl { flex: 1; min-width: 0; }
