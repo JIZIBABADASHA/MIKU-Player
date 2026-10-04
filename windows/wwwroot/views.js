@@ -274,7 +274,7 @@ const YT = {
   frame: null, shown: false,
   sync() {
     const f = YT.frame;
-    const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !(window.ArtPicker && ArtPicker.el));
+    const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !(window.ArtPicker && ArtPicker.el) && !(window.CoverView && CoverView.el));
     if (visible) {
       const r = f.getBoundingClientRect();
       Host.call('yt.show', { x: r.left, y: r.top, w: r.width, h: r.height, dpr: window.devicePixelRatio || 1 });
@@ -330,7 +330,7 @@ const Views = {
   onboarding(view) {
     const box = h('div', { class: 'box' });
     box.innerHTML = `<div style="display:flex;justify-content:center;gap:16px;align-items:center">${Brand.svg(70)}</div>`;
-    box.append(h('h2', null, '加入音樂資料夾'), h('p', null, '選擇存放音樂的資料夾，MIKU 會讀取標籤並建立曲庫。音樂檔案不會被修改。'));
+    box.append(h('h2', null, '加入音樂資料夾'), h('p', null, '選擇存放音樂的資料夾，MIKU 會讀取標籤並建立曲庫。除非你用「編輯標籤」修改，音樂檔案不會被更動。'));
     box.append(h('button', { class: 'btn primary', html: icon('folder') + '選擇資料夾', onclick: async () => { const f = await Host.call('folder.add'); if (f) { App.settings.folders = f; Router.render(); } } }));
     const chips = h('div', { class: 'chips' });
     box.append(chips);
@@ -382,7 +382,7 @@ const Views = {
     const f = al.tracks[0] || {};
     const discs = new Set(al.tracks.map(t => t.disc)).size;
     const cover = artBox('cover', kind, artId, 300, al.title);
-    cover.onclick = () => ArtPicker.open(al);
+    cover.onclick = () => CoverView.open(al);
     const meta = h('div', { class: 'meta' },
         h('div', { class: 'kind' }, al.loose ? '資料夾' : '專輯'),
         h('h1', { title: al.title }, al.title),

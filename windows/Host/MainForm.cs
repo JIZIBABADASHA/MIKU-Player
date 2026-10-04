@@ -28,6 +28,9 @@ public sealed class MainForm : Form
     readonly MusicLibrary _lib;
     readonly ArtworkService _art;
     readonly LyricsService _lyrics;
+    readonly MetadataService _meta = new();
+    readonly FingerprintService _fp;
+    CancellationTokenSource _fpJob;
     IAudioEngine _engine;
     readonly Player _player;
     readonly System.Windows.Forms.Timer _tick;
@@ -408,6 +411,7 @@ public sealed class MainForm : Form
         _art = new ArtworkService(_lib, _s);
         ArtworkService.DropOldThumbs();
         _lyrics = new LyricsService(_s);
+        _fp = new FingerprintService(_s);
         _engine = CreateEngine();
         _player = new Player(_engine, _lib, _s);
         WireEngine(_engine);
@@ -852,6 +856,238 @@ public sealed class MainForm : Form
         return await HandleRpc(m, a);
     });
 
+    // ───────────────────────────── tag editor ─────────────────────────────
+
+    object TagsDto(string albumId)
+    {
+        var al = _lib.GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
+        return new
+        {
+            id = al.Id, folder = al.Folder, loose = al.Loose, artSource = _art.SourceOf(al.Id),
+            tracks = al.Tracks.Select(t => new
+            {
+                id = t.Id, file = Path.GetFileName(t.Path), path = t.Path, title = t.Title, artist = t.Artist, albumArtist = t.AlbumArtist,
+                album = t.Album, genre = t.Genre, composer = t.Composer, year = t.Year, track = t.TrackNo, disc = t.DiscNo,
+                dur = Math.Round(t.Duration, 2), codec = t.Codec, hasPic = t.HasPic, writable = TagWriter.CanWrite(t.Path),
+            }).ToList(),
+        };
+    }
+
+    bool _tagsBusy;
+
+    /// <summary>
+    /// tags.save { id, tracks: [{ id, set: { field: value } }], cover: { mode: set | remove, url | data } }: writes the
+    /// changed fields (and the cover, into every track) and reads the album again. A track that is playing is stopped
+    /// while its file is rewritten and resumed afterwards at the same place.
+    /// </summary>
+    async Task<object> SaveTags(JsonElement a)
+    {
+        if (_tagsBusy) throw new InvalidOperationException("正在儲存標籤，請稍候");
+        if (_lib.Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再儲存");
+        string albumId = S(a, "id");
+        var album = _lib.GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
+        var edits = new Dictionary<string, Dictionary<string, string>>();
+        if (a.TryGetProperty("tracks", out var arr) && arr.ValueKind == JsonValueKind.Array)
+            foreach (var e in arr.EnumerateArray())
+            {
+                string id = S(e, "id");
+                if (id == null || !e.TryGetProperty("set", out var set) || set.ValueKind != JsonValueKind.Object) continue;
+                var d = new Dictionary<string, string>();
+                foreach (var p in set.EnumerateObject())
+                    if (TagWriter.Fields.Contains(p.Name))
+                        d[p.Name] = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : p.Value.ValueKind == JsonValueKind.Number ? p.Value.GetRawText() : "";
+                if (d.Count > 0) edits[id] = d;
+            }
+        (byte[] Data, string Mime)? cover = null;
+        bool removeCover = false;
+        HashSet<string> coverIds = null;   // the cover goes into these tracks only (the editor's selection); null = all
+        if (a.TryGetProperty("cover", out var cv) && cv.ValueKind == JsonValueKind.Object)
+        {
+            string mode = S(cv, "mode");
+            var ids = L(cv, "ids");
+            if (ids.Count > 0) coverIds = new HashSet<string>(ids);
+            if (mode == "remove") removeCover = true;
+            else if (mode == "current")
+            {
+                // the picture the album shows now (MIKU's own, online or the folder's), into the files
+                var bytes = await Task.Run(() => _art.CurrentPicture(albumId)) ?? throw new InvalidOperationException("這張專輯沒有封面可以寫入");
+                cover = TagWriter.PrepareCover(bytes);
+            }
+            else if (mode == "set")
+            {
+                byte[] bytes;
+                string url = S(cv, "url"), data = S(cv, "data");
+                if (!string.IsNullOrEmpty(data))
+                {
+                    int comma = data.IndexOf(',');
+                    if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
+                    bytes = Convert.FromBase64String(data);
+                }
+                else if (!string.IsNullOrEmpty(url) && Uri.TryCreate(url, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.Scheme == "http"))
+                {
+                    try { bytes = await Net.Http.GetByteArrayAsync(u); }
+                    catch (Exception ex) { throw new InvalidOperationException("封面下載失敗：" + ex.Message); }
+                }
+                else throw new InvalidOperationException("封面圖片無效");
+                cover = TagWriter.PrepareCover(bytes);
+            }
+        }
+        bool coverChanged = cover != null || removeCover;
+        // new file names (rename: [{ id, name }]): same folder, same extension
+        var renames = new Dictionary<string, string>();
+        if (a.TryGetProperty("rename", out var rn) && rn.ValueKind == JsonValueKind.Array)
+            foreach (var e in rn.EnumerateArray())
+            {
+                string id = S(e, "id"), name = S(e, "name")?.Trim();
+                var t = id == null ? null : _lib.GetTrack(id);
+                if (t == null || t.AlbumId != albumId || string.IsNullOrEmpty(name)) continue;
+                if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name is "." or "..") throw new InvalidOperationException("檔名含有不能用的字元：" + name);
+                string ext = Path.GetExtension(t.Path);
+                if (!name.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) name += ext;
+                if (name != Path.GetFileName(t.Path)) renames[t.Id] = name;
+            }
+        // the tracks to write: the album's own (an id from elsewhere is ignored)
+        bool CoverFor(Track t) => coverChanged && (coverIds == null || coverIds.Contains(t.Id));
+        var targets = album.Tracks.Where(t => edits.ContainsKey(t.Id) || CoverFor(t) || renames.ContainsKey(t.Id)).ToList();
+        bool wholeAlbumCover = coverChanged && album.Tracks.All(CoverFor);
+        if (targets.Count == 0) return new { albumId, tracks = album.Tracks.Count, written = 0, failed = Array.Empty<object>() };
+
+        _tagsBusy = true;
+        try
+        {
+            var paths = new HashSet<string>(targets.Select(t => t.Path), StringComparer.OrdinalIgnoreCase);
+            var cur = _engine.Track;
+            bool touchesCurrent = cur != null && !cur.IsLive && paths.Contains(cur.Path) && _player.Current?.Id == cur.Id;
+            bool wasPlaying = false; double pos = 0;
+            if (touchesCurrent)
+            {
+                wasPlaying = _engine.IsPlaying; pos = _engine.Position;
+                _engine.Stop();
+                await Task.Delay(250);   // let a decoder / ffmpeg reading the file let go of it
+            }
+            else _engine.InvalidateNext();   // a preloaded next track may be one of them
+
+            try
+            {
+                var failed = new List<object>();
+                int done = 0, written = 0;
+                await Task.Run(() =>
+                {
+                    foreach (var t in targets)
+                    {
+                        try
+                        {
+                            bool withCover = CoverFor(t);
+                            if (withCover || edits.ContainsKey(t.Id))   // (a track that is only renamed has nothing to write)
+                            {
+                                TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover);
+                                written++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            string msg = ex is UnauthorizedAccessException ? "沒有寫入權限" : ex is IOException ? "檔案正在被其他程式使用" : ex.Message;
+                            failed.Add(new { file = Path.GetFileName(t.Path), error = msg });
+                            Log.Error("Write tags " + t.Path, ex);
+                        }
+                        done++;
+                        Post("tagsProgress", new { done, total = targets.Count, file = Path.GetFileName(t.Path) });
+                    }
+                });
+                Log.Info($"Tags written: {album.Title} — {written}/{targets.Count} files" + (coverChanged ? (removeCover ? ", cover removed" : ", cover embedded") : ""));
+                // file names, after the tags (TagLib needs the old path)
+                var moved = renames.Count == 0 ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    : await Task.Run(() => RenameFiles(album.Tracks.Where(t => renames.ContainsKey(t.Id)).Select(t => (t, renames[t.Id])).ToList(), failed));
+                if (moved.Count > 0) MoveTrackIds(moved);
+                // a cover for the whole album: the pictures MIKU keeps for it would hide the new one
+                if (wholeAlbumCover && failed.Count < targets.Count) { _art.DropStoredArt(albumId); _s.ArtConfirmed.Remove(albumId); SaveSoon(); }
+                var (newId, count) = await Task.Run(() => _lib.RereadAlbum(albumId, moved));
+                if (!wholeAlbumCover) _art.MoveStoredArt(albumId, newId);
+                return new { albumId = newId, tracks = count, written, renamed = moved.Count, failed };
+            }
+            finally
+            {
+                // the track that was playing: on again from where it was (also when writing failed)
+                if (touchesCurrent) { try { await _player.Reload(pos, wasPlaying); } catch (Exception ex) { Log.Error("Resume after tags", ex); } }
+            }
+        }
+        finally { _tagsBusy = false; }
+    }
+
+    /// <summary>
+    /// Renames files in their folders: first each to a temporary name, then to the new one, so names can be swapped
+    /// ("01 - B" ↔ "02 - B"). A name already used by a file not being renamed is refused. Lyrics next to the file
+    /// (.lrc / .txt with the same name) are renamed with it. Returns old path → new path.
+    /// </summary>
+    static Dictionary<string, string> RenameFiles(List<(Track T, string Name)> list, List<object> failed)
+    {
+        var moved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var leaving = new HashSet<string>(list.Select(x => x.T.Path), StringComparer.OrdinalIgnoreCase);
+        var plan = new List<(Track T, string From, string To, string Tmp)>();
+        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (t, name) in list)
+        {
+            string to = Path.Combine(Path.GetDirectoryName(t.Path) ?? "", name);
+            bool sameFile = string.Equals(to, t.Path, StringComparison.OrdinalIgnoreCase);   // only the case changes
+            if (!taken.Add(to)) { failed.Add(new { file = Path.GetFileName(t.Path), error = "和另一首的新檔名相同" }); continue; }
+            if (!sameFile && File.Exists(to) && !leaving.Contains(to)) { failed.Add(new { file = Path.GetFileName(t.Path), error = "已經有同名的檔案：" + name }); continue; }
+            plan.Add((t, t.Path, to, t.Path + ".miku-rename-" + Guid.NewGuid().ToString("N")[..8]));
+        }
+        var parked = new List<(Track T, string From, string To, string Tmp)>();
+        foreach (var p in plan)
+        {
+            try { File.Move(p.From, p.Tmp); parked.Add(p); }
+            catch (Exception ex)
+            {
+                failed.Add(new { file = Path.GetFileName(p.From), error = ex is IOException ? "檔案正在被其他程式使用，沒有改名" : "沒有改名：" + ex.Message });
+                Log.Error("Rename " + p.From, ex);
+            }
+        }
+        foreach (var p in parked)
+        {
+            try
+            {
+                File.Move(p.Tmp, p.To);
+                moved[p.From] = p.To;
+                foreach (var ext in new[] { ".lrc", ".LRC", ".txt" })
+                {
+                    string side = Path.ChangeExtension(p.From, ext), sideTo = Path.ChangeExtension(p.To, ext);
+                    try { if (File.Exists(side) && !File.Exists(sideTo)) File.Move(side, sideTo); } catch (Exception ex) { Log.Error("Rename lyrics " + side, ex); }
+                }
+            }
+            catch (Exception ex)
+            {
+                try { File.Move(p.Tmp, p.From); } catch (Exception ex2) { Log.Error("Rename back " + p.Tmp, ex2); }
+                failed.Add(new { file = Path.GetFileName(p.From), error = "沒有改名：" + ex.Message });
+                Log.Error("Rename " + p.From + " → " + p.To, ex);
+            }
+        }
+        Log.Info($"Renamed {moved.Count}/{list.Count} files");
+        return moved;
+    }
+
+    /// <summary>A track's id comes from its path: favourites, recent plays, lyric offsets, the lyrics cache and the queue move to the new ids.</summary>
+    void MoveTrackIds(Dictionary<string, string> moved)
+    {
+        var map = moved.ToDictionary(kv => Miku.Text.Hash(kv.Key.ToLowerInvariant()), kv => Miku.Text.Hash(kv.Value.ToLowerInvariant()));
+        foreach (var (from, to) in map)
+        {
+            if (from == to) continue;
+            if (_s.Favorites.Remove(from)) _s.Favorites.Add(to);
+            for (int i = 0; i < _s.Recent.Count; i++) if (_s.Recent[i] == from) _s.Recent[i] = to;
+            if (_s.LyricOffsets.Remove(from, out var off)) _s.LyricOffsets[to] = off;
+            try
+            {
+                string c = Path.Combine(AppPaths.Lyrics, from + ".v2.json"), c2 = Path.Combine(AppPaths.Lyrics, to + ".v2.json");
+                if (File.Exists(c) && !File.Exists(c2)) File.Move(c, c2);
+            }
+            catch { }
+        }
+        _player.RenameIds(map);
+        SaveSoon();
+        Post("favs", _s.Favorites);
+    }
+
     // ───────────────────────────── messaging ─────────────────────────────
 
     readonly HashSet<string> _pending = new();
@@ -1115,13 +1351,42 @@ public sealed class MainForm : Form
                 return null;
             }
             case "search.clear": _s.SearchHistory.Clear(); SaveSoon(); return null;
+            // tag editor (tagedit.js): the album's tags, online album data, writing the files
+            case "tags.load": return TagsDto(S(a, "id"));
+            case "tags.search":
+            {
+                var al = _lib.GetAlbum(S(a, "id"));
+                var src = L(a, "sources");
+                return await _meta.Search(S(a, "album"), S(a, "artist"), al, src.Count > 0 ? src : null);
+            }
+            case "tags.release": return await _meta.Get(S(a, "source"), S(a, "id"), S(a, "country"));
+            case "tags.save": return await SaveTags(a);
+            // 聲紋辨識: AcoustID
+            case "acoustid.info": return new { hasKey = _fp.HasKey, hasTool = FingerprintService.FpcalcPath != null };
+            case "acoustid.key":
+                _s.AcoustIdKey = (S(a, "key") ?? "").Trim();
+                SaveSettings();
+                return new { hasKey = _fp.HasKey };
+            case "tags.identify":
+            {
+                var al = _lib.GetAlbum(S(a, "id")) ?? throw new InvalidOperationException("找不到這張專輯");
+                var ids = new HashSet<string>(L(a, "ids"));
+                var list = al.Tracks.Where(t => ids.Count == 0 || ids.Contains(t.Id)).ToList();
+                _fpJob?.Cancel();
+                var cts = _fpJob = new CancellationTokenSource();
+                try { return await Task.Run(() => _fp.Identify(list, p => Post("fpProgress", p), cts.Token)); }
+                catch (OperationCanceledException) { return null; }
+            }
+            case "tags.identifyCancel": _fpJob?.Cancel(); return null;
             case "art.retry": _art.RetryAlbum(S(a, "id")); return null;
             case "art.info":
             {
                 string id = S(a, "id");
-                return new { source = _art.SourceOf(id), confirmed = _s.ArtConfirmed.Contains(id) };
+                string dims = B(a, "dims") ? await Task.Run(() => _art.SourceDims(id)) : null;
+                return new { source = _art.SourceOf(id), confirmed = _s.ArtConfirmed.Contains(id), dims };
             }
-            case "art.candidates": return await _art.Candidates(S(a, "id"), S(a, "q"));
+            case "art.candidates": return await _art.Candidates(S(a, "id"), S(a, "q"), S(a, "part"));
+            case "art.dims": return await _art.Dimensions(L(a, "urls"));
             case "art.setUrl":
                 await _art.SetOverrideFromUrl(S(a, "id"), S(a, "url"));
                 _s.ArtConfirmed.Add(S(a, "id")); SaveSoon();

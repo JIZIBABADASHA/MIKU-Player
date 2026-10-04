@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Miku;
 
@@ -207,6 +209,58 @@ public static class Text
     }
 
     public static string Inv(double d, string fmt = "0.###") => d.ToString(fmt, CultureInfo.InvariantCulture);
+}
+
+/// <summary>
+/// Request limits of the online services, shared by everything that calls them. A sliding window (at most n calls in
+/// the window) plus a minimum spacing. Calls the user is waiting for (pickers, the tag editor) go first: background
+/// lookups (automatic covers) step aside while one waits, and may use only part of the window, so a search never
+/// queues behind a long background job.
+/// </summary>
+public sealed class RateGate
+{
+    readonly int _max, _bgMax;
+    readonly TimeSpan _window, _spacing;
+    readonly Queue<DateTime> _calls = new();
+    readonly object _lock = new();
+    DateTime _last = DateTime.MinValue;
+    int _urgent;
+
+    public RateGate(int max, int backgroundMax, TimeSpan window, TimeSpan spacing) { _max = max; _bgMax = backgroundMax; _window = window; _spacing = spacing; }
+
+    /// <summary>Apple's search API: about 20 calls a minute.</summary>
+    public static readonly RateGate Apple = new(20, 12, TimeSpan.FromSeconds(60), TimeSpan.FromMilliseconds(200));
+    /// <summary>MusicBrainz: one call a second.</summary>
+    public static readonly RateGate MusicBrainz = new(1, 1, TimeSpan.FromSeconds(1.05), TimeSpan.Zero);
+    /// <summary>AcoustID: three calls a second.</summary>
+    public static readonly RateGate AcoustId = new(3, 3, TimeSpan.FromSeconds(1.05), TimeSpan.Zero);
+
+    public async Task WaitAsync(bool user, CancellationToken ct = default)
+    {
+        if (user) Interlocked.Increment(ref _urgent);
+        try
+        {
+            while (true)
+            {
+                TimeSpan wait;
+                lock (_lock)
+                {
+                    var now = DateTime.UtcNow;
+                    while (_calls.Count > 0 && now - _calls.Peek() >= _window) _calls.Dequeue();
+                    if (!user && Volatile.Read(ref _urgent) > 0) wait = TimeSpan.FromMilliseconds(250);
+                    else
+                    {
+                        wait = _calls.Count >= (user ? _max : _bgMax) ? _calls.Peek() + _window - now : TimeSpan.Zero;
+                        var gap = _last + _spacing - now;
+                        if (gap > wait) wait = gap;
+                    }
+                    if (wait <= TimeSpan.Zero) { _last = now; _calls.Enqueue(now); return; }
+                }
+                await Task.Delay(wait < TimeSpan.FromMilliseconds(20) ? TimeSpan.FromMilliseconds(20) : wait, ct);
+            }
+        }
+        finally { if (user) Interlocked.Decrement(ref _urgent); }
+    }
 }
 
 public static class Net

@@ -30,6 +30,49 @@ window.Mock = (window.chrome && window.chrome.webview) ? null : (() => {
         case 'art.info': return Promise.resolve({ source: 'online', confirmed: false });
         case 'art.candidates': return Promise.resolve(Array.from({ length: 14 }, (_, i) => ({ url: 'https://media.miku/art/a/c' + i, thumb: 'https://media.miku/art/a/c' + i, title: ['Afterglow', 'Afterglow (Deluxe)', 'Blue Hour', 'Afterglow - Single'][i % 4], artist: 'Sora Ensemble', source: ['Apple Music', 'Deezer', 'Apple Music JP', 'MusicBrainz'][i % 4], size: ['1600px', '1000px', '1600px', '1200px'][i % 4] })));
         case 'suggestFolders': return Promise.resolve(['D:\\MUSIC']);
+        // tag editor
+        case 'tags.load': {
+          const al = albums.find(x => x[0] === a.id);
+          const ts = tracks.filter(t => t[3] === a.id);
+          return Promise.resolve({ id: a.id, folder: 'D:\\MUSIC\\' + al[1], loose: false, artSource: 'online',
+            tracks: ts.map(t => ({ id: t[0], file: String(t[5]).padStart(2, '0') + ' - ' + t[1] + '.flac', path: 'D:\\MUSIC\\' + al[1] + '\\' + String(t[5]).padStart(2, '0') + ' - ' + t[1] + '.flac',
+              title: t[1], artist: t[2], albumArtist: al[2], album: al[1], genre: t[5] % 4 ? 'J-Pop' : 'Anime', composer: '', year: al[3], track: t[5], disc: t[4], dur: t[6], codec: t[7], hasPic: false, writable: t[7] !== 'DFF' })) });
+        }
+        case 'tags.search': return new Promise(res => setTimeout(() => res([
+          { source: 'musicbrainz', id: 'mb1', country: 'JP', title: a.album, artist: a.artist, date: '2019-03-06', tracks: tracks.filter(t => t[3] === a.id).length, discs: 1, format: 'CD', label: 'Lantis', thumb: 'https://media.miku/art/a/c1', score: .98 },
+          { source: 'apple', id: '1450000001', country: 'jp', title: a.album + ' (Deluxe Edition)', artist: a.artist, date: '2019-03-06', tracks: 14, discs: 0, format: 'Digital', label: '℗ 2019 Lantis', thumb: 'https://media.miku/art/a/c2', score: .8 },
+          { source: 'musicbrainz', id: 'mb2', country: 'XW', title: a.album, artist: a.artist, date: '2020', tracks: 20, discs: 2, format: '2×CD', label: '', thumb: '', score: .7 },
+        ]), 400));
+        case 'tags.release': return new Promise(res => setTimeout(() => {
+          const n = a.id === 'mb2' ? 20 : a.id === 'mb1' ? 9 : 14;
+          res({ source: a.source, id: a.id, title: 'Afterglow 〜夜明けのうた〜', artist: '星野あおい', date: '2019-03-06', year: 2019, genre: 'Anime', label: 'Lantis',
+            cover: 'https://media.miku/art/a/c3', coverThumb: 'https://media.miku/art/a/c3',
+            tracks: Array.from({ length: n }, (_, i) => ({ disc: a.id === 'mb2' ? 1 + (i >= 10) : 1, no: a.id === 'mb2' ? i % 10 + 1 : i + 1, title: ['夜明けのうた', 'ブルーアワー', '透明な街', 'Paper Moon', '花火', '雨音', 'Lantern', 'Orbit', 'Signal', 'Drift'][i % 10] + (i >= 10 ? ' (Instrumental)' : ''), artist: i === 3 ? '星野あおい feat. 月白' : '星野あおい', dur: 200 + i * 7 })) });
+        }, 300));
+        case 'acoustid.info': return Promise.resolve({ hasKey: !!Mock.acoustKey, hasTool: true });
+        case 'acoustid.key': Mock.acoustKey = a.key; return Promise.resolve({ hasKey: true });
+        case 'tags.identify': return new Promise(res => {
+          const ts = tracks.filter(t => t[3] === a.id && (!a.ids.length || a.ids.includes(t[0])));
+          let i = 0;
+          const out = ts.map((t, k) => k % 5 === 4 ? { id: t[0], status: 'none', on: {} } : { id: t[0], status: 'ok', score: .9 - k * .01, title: '聲紋曲' + (k + 1), artist: '星野あおい', recording: 'r' + k, on: { mb1: '1/' + (ts.length - k), mb9: '1/' + (k + 1) } });
+          const step = () => {
+            if (i < ts.length) { deliver({ ev: 'fpProgress', d: { id: ts[i][0], state: 'print' } }); deliver({ ev: 'fpProgress', d: { id: ts[i][0], state: out[i].status, title: out[i].title, artist: out[i].artist, score: out[i].score } }); i++; setTimeout(step, 80); return; }
+            res({ tracks: out, releases: [{ id: 'mb1', title: 'Afterglow 〜夜明けのうた〜', artist: '星野あおい', date: '2019-03-06', country: 'JP', format: 'CD', tracks: 9, discs: 1, matched: out.filter(o => o.status === 'ok').length }, { id: 'mb9', title: 'Best of', artist: '星野あおい', date: '2022', country: 'JP', format: 'Digital Media', tracks: 30, discs: 2, matched: 4 }] });
+          };
+          deliver({ ev: 'fpProgress', d: { stage: 'tool' } });
+          setTimeout(step, 200);
+        });
+        case 'tags.save': return new Promise(res => {
+          const ids = (a.tracks || []).map(t => t.id);
+          const all = a.cover ? tracks.filter(t => t[3] === a.id).map(t => t[0]) : ids;
+          let i = 0;
+          const step = () => {
+            if (i < all.length) { i++; deliver({ ev: 'tagsProgress', d: { done: i, total: all.length, file: all[i - 1] + '.flac' } }); setTimeout(step, 60); return; }
+            Mock.lastSave = a;
+            res({ albumId: a.id, tracks: tracks.filter(t => t[3] === a.id).length, written: all.length, renamed: (a.rename || []).length, failed: [] });
+          };
+          step();
+        });
         case 'autoeq.search': return Promise.resolve([{ name: 'Sennheiser HD 650', path: 'oratory1990/over-ear/Sennheiser HD 650', source: 'oratory1990' }]);
         default: return Promise.resolve(null);
       }

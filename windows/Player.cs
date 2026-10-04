@@ -191,6 +191,24 @@ public sealed class Player
         return Load(Current, 0, true);
     }
 
+    /// <summary>Tracks whose files were renamed (their ids come from the path): the queue keeps them under the new ids.</summary>
+    public void RenameIds(IReadOnlyDictionary<string, string> map)
+    {
+        lock (_lock)
+        {
+            _queue = _queue.Select(id => map.TryGetValue(id, out var n) ? n : id).ToList();
+            if (_unshuffled != null) _unshuffled = _unshuffled.Select(id => map.TryGetValue(id, out var n) ? n : id).ToList();
+        }
+        Persist();
+    }
+
+    /// <summary>Loads the current track again at <paramref name="pos"/> (after its file was rewritten, e.g. new tags).</summary>
+    public Task Reload(double pos, bool play)
+    {
+        Engine.InvalidateNext();
+        return Load(Current, pos, play);
+    }
+
     public Task Next()
     {
         lock (_lock)

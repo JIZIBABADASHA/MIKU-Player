@@ -246,6 +246,12 @@ const splitNames = s => {
 /** Several values shown as one text. */
 const joinNames = names => names.join(' / ');
 const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
+/** The artist to put in an online search: the first name only, without "(CV. …)" (ArtworkService.SearchArtist). */
+const searchArtist = s => {
+  const first = splitNames(s).find(realArtist) || '';
+  const bare = first.replace(/\s*[(（\[【][^)）\]】]*[)）\]】]/g, '').trim() || first;
+  return (bare.split(/\s*(?:,|、|&|＆|×|\/|／|\bfeat\.?(?=\s)|\bft\.|\bwith\b)\s*/i).find(p => p.trim()) || bare).trim();
+};
 /** The artist page for a track: its album's artist (unless a compilation), else the track's first artist. */
 const mainArtist = t => (t.album?.artists || []).find(realArtist) || t.artists?.[0] || t.artist;
 /** Names as links to their artist pages, separated like joinNames. */
@@ -626,7 +632,7 @@ const App = {
       if (e.key === 'F12') { Host.call('devtools'); return; }
       if (e.key === 'F11') { e.preventDefault(); Host.call('fullscreen'); return; }
       if (typing) return;
-      if (e.key === 'Escape') { if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); }
+      if (e.key === 'Escape') { if (CoverView.close()) return; if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); }
       if (e.key === ' ') { e.preventDefault(); this.toggle(); }
       else if (e.key === 'ArrowRight' && !e.altKey) { e.preventDefault(); this.seek(Math.min(this.state.dur, this.pos + (e.shiftKey ? 30 : 5))); }
       else if (e.key === 'ArrowLeft' && !e.altKey) { e.preventDefault(); this.seek(Math.max(0, this.pos - (e.shiftKey ? 30 : 5))); }
@@ -809,7 +815,9 @@ function albumMenu(al, anchor) {
     { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
     '-',
     ...artistItems(al.artists.filter(realArtist)),
+    { label: '查看封面', icon: 'image', run: () => CoverView.open(al) },
     { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
+    { label: '編輯標籤…', icon: 'list', run: () => TagEditor.open(al) },
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
     { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },

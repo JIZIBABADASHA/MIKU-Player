@@ -5,10 +5,11 @@ const ArtPicker = {
   open(al) {
     this.show({
       heading: `更換封面 · ${al.title}`,
-      query: `${(al.artists || [al.artist]).find(realArtist) || ''} ${al.title}`.trim(),
+      query: `${searchArtist((al.artists || [al.artist]).join(';'))} ${al.title}`.trim(),
       searching: '搜尋中…（Apple Music、Deezer、MusicBrainz）',
       info: () => Host.call('art.info', { id: al.id }),
-      candidates: q => Host.call('art.candidates', { id: al.id, q }),
+      candidates: q => Host.call('art.candidates', { id: al.id, q, part: 'albums' }),
+      more: q => Host.call('art.candidates', { id: al.id, q, part: 'songs' }),
       setUrl: url => Host.call('art.setUrl', { id: al.id, url }),
       setData: data => Host.call('art.setData', { id: al.id, data }),
       clear: () => Host.call('art.clear', { id: al.id }),
@@ -87,30 +88,58 @@ const ArtPicker = {
     };
     document.addEventListener('paste', this.onPaste);
 
-    const search = async q => {
-      grid.textContent = '';
-      status.textContent = o.searching;
-      let list = [];
-      try { list = await o.candidates(q === this.firstQuery ? null : q); }
-      catch (e) { status.textContent = '搜尋失敗：' + e.message; return; }
-      if (!this.el) return;
-      status.textContent = list && list.length ? '' : '找不到結果，換個關鍵字試試，或貼上圖片網址 / 圖片。';
-      (list || []).forEach(c => {
+    const apply = async (c, card) => {
+      card && card.classList.add('busy');
+      try { await o.setUrl(c.url); done(); }
+      catch (e) { card && card.classList.remove('busy'); toast('下載失敗：' + e.message, { error: true }); }
+    };
+    const seen = new Set();
+    const addCards = list => {
+      const added = [];
+      for (const c of list || []) {
+        if (!c.url || seen.has(c.url)) continue;
+        seen.add(c.url);
         const img = new Image();
         img.onload = () => img.classList.add('ok');
         img.src = c.thumb;
+        const size = h('span', { class: 'dim' }, c.size || '');
+        const zoom = h('button', { class: 'cand-zoom', title: '放大檢視', html: icon('search') });
         const card = h('div', { class: 'cand', title: `${c.title || ''} — ${c.artist || ''}` },
-          h('div', { class: 'im' }, img),
+          h('div', { class: 'im' }, img, zoom),
           h('div', { class: 't' }, c.title || ''),
           h('div', { class: 's' }, `${c.artist || ''}`),
-          h('div', { class: 's' }, `${c.source} · ${c.size}`));
-        card.onclick = async () => {
-          card.classList.add('busy');
-          try { await o.setUrl(c.url); done(); }
-          catch (e) { card.classList.remove('busy'); toast('下載失敗：' + e.message, { error: true }); }
-        };
+          h('div', { class: 's' }, `${c.source} · `, size));
+        c.sizeEl = size;
+        zoom.onclick = e => { e.stopPropagation(); CoverView.preview(c, () => apply(c, card)); };
+        card.onclick = () => apply(c, card);
         grid.append(card);
-      });
+        added.push(c);
+      }
+      // the real pixel size, read from each picture's header ("1400×1400" instead of the requested 1600px)
+      if (added.length) Host.call('art.dims', { urls: added.map(c => c.url) }).then(d => {
+        for (const c of added) if (d && d[c.url]) { c.size = d[c.url]; c.sizeEl.textContent = d[c.url]; c.sizeEl.classList.add('real'); }
+      }).catch(() => { });
+    };
+    let seq = 0;
+    const search = async q => {
+      const my = ++seq;
+      grid.textContent = ''; seen.clear();
+      status.textContent = o.searching;
+      const arg = q === this.firstQuery ? null : q;
+      // album results first; songs' albums (o.more) are added when they come
+      const more = o.more ? o.more(arg).catch(() => []) : null;
+      let list = [];
+      try { list = await o.candidates(arg); }
+      catch (e) { if (my === seq) status.textContent = '搜尋失敗：' + e.message; return; }
+      if (!this.el || my !== seq) return;
+      addCards(list);
+      status.textContent = grid.children.length ? '' : more ? '還在找…' : '找不到結果，換個關鍵字試試，或貼上圖片網址 / 圖片。';
+      if (more) {
+        const extra = await more;
+        if (!this.el || my !== seq) return;
+        addCards(extra);
+        status.textContent = grid.children.length ? '' : '找不到結果，換個關鍵字試試，或貼上圖片網址 / 圖片。';
+      }
     };
     this.firstQuery = query.value;
     search(query.value);
@@ -119,6 +148,103 @@ const ArtPicker = {
   close(fromPop) {
     if (!this.el) return false;
     document.removeEventListener('paste', this.onPaste);
+    this.el.remove(); this.el = null;
+    if (fromPop !== true) OverlayHistory.closed(this._close);
+    YT.sync();
+    return true;
+  },
+};
+
+/* ═════════════════════════════ cover view ═════════════════════════════
+   The album page's cover, large (click on it): the picture, where it comes from and its size, and from there
+   更換封面 / 編輯標籤. Also a candidate in the cover picker, before choosing it. */
+const CoverView = {
+  el: null,
+  _progress: Host.on('tagsProgress', p => CoverView.onProgress && CoverView.onProgress(p)),
+  show(build) {
+    this.close();
+    const img = new Image();
+    img.className = 'cv-img';
+    img.onload = () => img.classList.add('ok');
+    const info = h('div', { class: 'cv-info' });
+    const btns = h('div', { class: 'cv-btns' });
+    const box = h('div', { class: 'cv-box' }, h('div', { class: 'cv-frame' }, img), info, btns);
+    const scrim = h('div', { class: 'cv-scrim' }, box);
+    scrim.onclick = e => { if (e.target === scrim || e.target.classList.contains('cv-frame')) this.close(); };
+    document.body.append(scrim);
+    this.el = scrim;
+    OverlayHistory.push(this._close = fromPop => this.close(fromPop));
+    YT.sync();
+    build(img, info, btns);
+  },
+  /** The album page cover. */
+  open(al) {
+    const kind = al.loose && al.tracks[0] ? 't' : 'a', id = kind === 't' ? al.tracks[0].id : al.id;
+    this.show((img, info, btns) => {
+      // the shown size first (cached), then the large one
+      img.src = artUrl(kind, id, 300);
+      const big = new Image();
+      big.onload = () => { if (img.isConnected) img.src = big.src; };
+      big.src = artUrl(kind, id, Math.min(1600, Math.round(Math.min(innerWidth, innerHeight) * 0.8)));
+      const src = h('span'), dims = h('span', { class: 'num' });
+      info.append(h('b', null, al.title), h('div', { class: 'cv-sub' }, src, dims));
+      const embed = h('button', { class: 'btn small', style: { display: 'none' }, html: icon('check') + '<span>寫入音樂檔案</span>' });
+      embed.onclick = () => this.embed(al, embed, src);
+      Host.call('art.info', { id: al.id, dims: true }).then(i => {
+        if (!i) return;
+        src.textContent = { override: '自訂封面（只在 MIKU）', embedded: '音樂檔內嵌封面', folder: '資料夾裡的圖片', online: '自動從網路找到', none: '沒有封面' }[i.source] || '';
+        if (i.dims) dims.textContent = ' · ' + i.dims;
+        // a picture that isn't in the music files yet: offer to embed it
+        if (['override', 'online', 'folder'].includes(i.source)) { embed.style.display = ''; embed.title = '把這張封面嵌入專輯的每個音樂檔，其他播放器也看得到'; }
+      }).catch(() => { });
+      btns.append(embed,
+        h('button', { class: 'btn small primary', html: icon('image') + '更換封面', onclick: () => { this.close(); ArtPicker.open(al); } }),
+        h('button', { class: 'btn small', html: icon('list') + '編輯標籤', onclick: () => { this.close(); TagEditor.open(al); } }),
+        h('button', { class: 'btn small ghost', onclick: () => this.close() }, '關閉'));
+    });
+  },
+  /** Writes the picture the album shows now into its files (tags.save with cover "current"); asks once first. */
+  async embed(al, btn, src) {
+    const label = btn.querySelector('span');
+    if (!btn.dataset.armed) {
+      btn.dataset.armed = '1';
+      btn.classList.add('primary');
+      label.textContent = `確定寫入 ${al.tracks.length} 個檔案？`;
+      return;
+    }
+    btn.disabled = true;
+    label.textContent = '寫入中…';
+    const off = p => { if (btn.isConnected) label.textContent = `寫入中… ${p.done} / ${p.total}`; };
+    this.onProgress = off;
+    let r;
+    try { r = await Host.call('tags.save', { id: al.id, tracks: [], cover: { mode: 'current' } }); }
+    catch (e) { toast('寫入失敗：' + e.message, { error: true }); btn.disabled = false; delete btn.dataset.armed; btn.classList.remove('primary'); label.textContent = '寫入音樂檔案'; return; }
+    finally { this.onProgress = null; }
+    const failed = r.failed || [];
+    if (failed.length) toast(`${failed.length} 個檔案沒有寫入：\n` + failed.slice(0, 6).map(f => `${f.file}：${f.error}`).join('\n'), { error: true, ms: 12000 });
+    if (r.written) toast(`已把封面寫入 ${r.written} 個檔案`);
+    btn.remove();
+    if (src && src.isConnected && r.written) src.textContent = '音樂檔內嵌封面';
+    await Lib.load();
+    App.trackKey = null;
+  },
+
+  /** A candidate of the cover picker: large, with its real size, and 使用這張. */
+  preview(c, use) {
+    this.show((img, info, btns) => {
+      img.src = c.thumb;
+      const big = new Image();
+      const dims = h('span', { class: 'num' }, c.size || '');
+      big.onload = () => { if (img.isConnected) { img.src = big.src; dims.textContent = `${big.naturalWidth}×${big.naturalHeight}`; } };
+      big.src = c.url;
+      info.append(h('b', null, c.title || ''), h('div', { class: 'cv-sub' }, [c.artist, c.source].filter(Boolean).join(' · ') + ' · ', dims));
+      btns.append(
+        h('button', { class: 'btn small primary', html: icon('check') + '使用這張', onclick: () => { this.close(); use(); } }),
+        h('button', { class: 'btn small ghost', onclick: () => this.close() }, '返回'));
+    });
+  },
+  close(fromPop) {
+    if (!this.el) return false;
     this.el.remove(); this.el = null;
     if (fromPop !== true) OverlayHistory.closed(this._close);
     YT.sync();

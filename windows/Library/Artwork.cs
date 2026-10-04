@@ -20,9 +20,6 @@ public sealed class ArtworkService
     readonly SemaphoreSlim _online = new(2);
     readonly ConcurrentDictionary<string, Task<byte[]>> _inflight = new();
     readonly ConcurrentDictionary<string, Task<bool>> _onlineInflight = new();
-    DateTime _lastMusicBrainz = DateTime.MinValue;
-    DateTime _lastITunes = DateTime.MinValue;
-    readonly SemaphoreSlim _itunesGate = new(1, 1);
     static string OverridePath(string albumId) => Path.Combine(AppPaths.Art, "Override", "a_" + albumId + ".jpg");
 
     /// <summary>Raised when online artwork for an album or artist becomes available (kind, id).</summary>
@@ -201,6 +198,22 @@ public sealed class ArtworkService
 
     static string CleanArtist(string s) => Text.FirstArtist(s).Trim('【', '】', '[', ']', '(', ')').Trim();
 
+    static readonly System.Text.RegularExpressions.Regex Bracketed = new(@"\s*[\(（\[【][^\)）\]】]*[\)）\]】]", System.Text.RegularExpressions.RegexOptions.Compiled);
+    static readonly System.Text.RegularExpressions.Regex Joiners = new(@"\s*(?:,|、|&|＆|×|/|／|\bfeat\.?(?=\s)|\bft\.|\bwith\b)\s*", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// The artist to put in a search: the first name only, without "(CV. 渡部優衣)" and the like. A credit such as
+    /// "ウイニングチケット (CV. 渡部優衣), ナリタタイシン (CV. 渡部恵子) & ビワハヤヒデ (CV. 近藤 唯)" finds nothing as a whole.
+    /// </summary>
+    public static string SearchArtist(string s)
+    {
+        string first = Text.FirstArtist(s);
+        string bare = Bracketed.Replace(first, "").Trim();
+        if (bare.Length > 0) first = bare;
+        string part = Joiners.Split(first).Select(p => p.Trim()).FirstOrDefault(p => p.Length > 0) ?? first;
+        return part.Trim('【', '】', '[', ']', '(', ')').Trim();
+    }
+
     /// <summary>Automatic search: album + artist, album alone, folder name, then each track as a song.</summary>
     async Task<string> FindAlbumUrl(Album a)
     {
@@ -366,26 +379,34 @@ public sealed class ArtworkService
         return "none";
     }
 
-    /// <summary>All candidate pictures for the picker: album results, then song results for the first tracks.</summary>
-    public async Task<List<ArtCandidate>> Candidates(string albumId, string query)
+    /// <summary>
+    /// Candidate pictures for the picker. <paramref name="part"/>: "albums" (album results, shown first), "songs"
+    /// (song results for the first tracks, added after), or null for both. Every service is asked at the same time.
+    /// </summary>
+    public async Task<List<ArtCandidate>> Candidates(string albumId, string query, string part = null)
     {
         var a = _lib.GetAlbum(albumId);
-        var list = new List<ArtCandidate>();
+        bool albums = part != "songs", songs = part != "albums";
+        var tasks = new List<Task<List<ArtCandidate>>>();
         if (!string.IsNullOrWhiteSpace(query))
         {
-            list.AddRange(await AlbumCandidates("", query, 25));
-            list.AddRange(await SongCandidates("", query, 15));
+            if (albums) tasks.Add(AlbumCandidates("", query, 25, true));
+            if (songs) tasks.Add(SongCandidates("", query, 15, true));
         }
         else if (a != null)
         {
-            string artist = CleanArtist(a.Artist);
+            string artist = SearchArtist(a.Artist);
             string title = a.Loose ? Path.GetFileName(a.Folder ?? "") : a.Title;
-            list.AddRange(await AlbumCandidates(artist, title, 20));
-            if (list.Count < 6) list.AddRange(await AlbumCandidates("", title, 20));
-            foreach (var t in a.Tracks.Take(3)) list.AddRange(await SongCandidates(CleanArtist(t.Artist), t.Title, 8));
+            if (albums)
+            {
+                tasks.Add(AlbumCandidates(artist, title, 20, true));
+                if (artist.Length > 0) tasks.Add(AlbumCandidates("", title, 20, true));
+            }
+            if (songs) foreach (var t in a.Tracks.Take(3)) tasks.Add(SongCandidates(SearchArtist(t.Artist), t.Title, 8, true));
         }
+        var lists = await Task.WhenAll(tasks);
         // de-duplicate by image
-        return list.Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
+        return lists.SelectMany(l => l).Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
     }
 
     public async Task<bool> SetOverrideFromUrl(string albumId, string url)
@@ -431,6 +452,31 @@ public sealed class ArtworkService
         Updated?.Invoke("album", albumId);
     }
 
+    /// <summary>
+    /// A new cover was written into the files (tag editor): drop the pictures MIKU keeps for the album itself (the
+    /// user's override and the online one), which would hide it.
+    /// </summary>
+    public void DropStoredArt(string albumId)
+    {
+        var a = _lib.GetAlbum(albumId);
+        try { File.Delete(OverridePath(albumId)); } catch { }
+        try { File.Delete(Path.Combine(AppPaths.OnlineArt, "a_" + albumId + ".jpg")); } catch { }
+        if (a != null && a.Tracks.Count > 0) try { File.Delete(Path.Combine(AppPaths.OnlineArt, "t_" + a.Tracks[0].Id + ".jpg")); } catch { }
+        ForgetThumbs("a_" + albumId);
+        Updated?.Invoke("album", albumId);
+    }
+
+    /// <summary>The album's id changed (its title was edited): the picture the user chose for it goes along.</summary>
+    public void MoveStoredArt(string oldId, string newId)
+    {
+        if (oldId == null || newId == null || oldId == newId) return;
+        foreach (var (from, to) in new[] { (OverridePath(oldId), OverridePath(newId)),
+            (Path.Combine(AppPaths.OnlineArt, "a_" + oldId + ".jpg"), Path.Combine(AppPaths.OnlineArt, "a_" + newId + ".jpg")) })
+            try { if (File.Exists(from) && !File.Exists(to)) File.Move(from, to); } catch { }
+        ForgetThumbs("a_" + newId);
+        Updated?.Invoke("album", newId);
+    }
+
     /// <summary>The automatic online picture was wrong: drop it and search again excluding it.</summary>
     public void RejectOnline(string albumId)
     {
@@ -454,23 +500,117 @@ public sealed class ArtworkService
         [System.Text.Json.Serialization.JsonIgnore] public double Duration { get; set; }
     }
 
-    async Task<List<ArtCandidate>> AlbumCandidates(string artist, string title, int limit)
+    /// <summary>Album covers from Deezer and Apple Music (tw, jp), asked at the same time; MusicBrainz when they have little.</summary>
+    async Task<List<ArtCandidate>> AlbumCandidates(string artist, string title, int limit, bool user = false)
     {
-        var all = new List<ArtCandidate>();
-        all.AddRange(await DeezerAlbums(artist, title, limit));
-        all.AddRange(await ITunes(artist, title, "album", "tw", limit));
-        all.AddRange(await ITunes(artist, title, "album", "jp", limit));
-        if (all.Count < 3) all.AddRange(await MusicBrainz(artist, title));
+        var lists = await Task.WhenAll(DeezerAlbums(artist, title, limit), ITunes(artist, title, "album", "tw", limit, user), ITunes(artist, title, "album", "jp", limit, user));
+        var all = lists.SelectMany(l => l).ToList();
+        if (all.Count < 3) all.AddRange(await MusicBrainz(artist, title, user));
         return all;
     }
 
-    async Task<List<ArtCandidate>> SongCandidates(string artist, string title, int limit)
+    /// <summary>Covers of albums holding a song: Deezer and Apple Music; a search the user waits for asks only Apple's jp store (it has the same covers as tw, and Apple allows few requests).</summary>
+    async Task<List<ArtCandidate>> SongCandidates(string artist, string title, int limit, bool user = false)
     {
-        var all = new List<ArtCandidate>();
-        all.AddRange(await DeezerSongs(artist, title, limit));
-        all.AddRange(await ITunes(artist, title, "song", "tw", limit));
-        all.AddRange(await ITunes(artist, title, "song", "jp", limit));
-        return all;
+        var tasks = new List<Task<List<ArtCandidate>>> { DeezerSongs(artist, title, limit), ITunes(artist, title, "song", "jp", limit, user) };
+        if (!user) tasks.Add(ITunes(artist, title, "song", "tw", limit, user));
+        var lists = await Task.WhenAll(tasks);
+        return lists.SelectMany(l => l).ToList();
+    }
+
+    readonly ConcurrentDictionary<string, string> _dims = new();
+
+    /// <summary>
+    /// The real pixel size of candidate pictures ("1400×1400"), for the picker: read from the first bytes of each
+    /// image (JPEG / PNG / WebP header), not the whole file. "" when unknown.
+    /// </summary>
+    public async Task<Dictionary<string, string>> Dimensions(IEnumerable<string> urls)
+    {
+        var list = urls.Where(u => u != null && (u.StartsWith("https://") || u.StartsWith("http://"))).Distinct().Take(80).ToList();
+        using var gate = new SemaphoreSlim(8);
+        var results = await Task.WhenAll(list.Select(async u =>
+        {
+            if (_dims.TryGetValue(u, out var known)) return (Url: u, Dim: known);
+            await gate.WaitAsync();
+            try
+            {
+                string d = await ReadDimensions(u);
+                if (d != null) _dims[u] = d;
+                return (Url: u, Dim: d ?? "");
+            }
+            finally { gate.Release(); }
+        }));
+        return results.ToDictionary(r => r.Url, r => r.Dim);
+    }
+
+    static async Task<string> ReadDimensions(string url)
+    {
+        try
+        {
+            using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
+            req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 262143);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var res = await Net.Http.SendAsync(req, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            if (!res.IsSuccessStatusCode) return null;
+            using var s = await res.Content.ReadAsStreamAsync(cts.Token);
+            var buf = new byte[262144];
+            int n = 0, r;
+            // a server that ignores the range sends the whole picture: stop reading once the header is in
+            while (n < buf.Length && (r = await s.ReadAsync(buf.AsMemory(n, buf.Length - n), cts.Token)) > 0)
+            {
+                n += r;
+                if (ParseDimensions(buf, n) is { } wh) return $"{wh.W}×{wh.H}";
+            }
+            return ParseDimensions(buf, n) is { } last ? $"{last.W}×{last.H}" : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>The bytes of the picture an album shows now (for writing it into the files), or null.</summary>
+    public byte[] CurrentPicture(string albumId) => AlbumSource(albumId);
+
+    /// <summary>The pixel size of the picture an album shows now ("1400×1400"), or null.</summary>
+    public string SourceDims(string albumId)
+    {
+        try
+        {
+            var b = AlbumSource(albumId);
+            return b != null && ParseDimensions(b, b.Length) is { } wh ? $"{wh.W}×{wh.H}" : null;
+        }
+        catch { return null; }
+    }
+
+    static (int W, int H)? ParseDimensions(byte[] b, int n)
+    {
+        // PNG: IHDR right after the signature
+        if (n >= 24 && b[0] == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G')
+            return ((b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19], (b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23]);
+        // WebP (VP8 / VP8L / VP8X)
+        if (n >= 30 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F' && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P')
+        {
+            if (b[12] == 'V' && b[13] == 'P' && b[14] == '8' && b[15] == ' ') return ((b[26] | (b[27] << 8)) & 0x3FFF, (b[28] | (b[29] << 8)) & 0x3FFF);
+            if (b[12] == 'V' && b[13] == 'P' && b[14] == '8' && b[15] == 'L') { int v = b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] << 24); return ((v & 0x3FFF) + 1, ((v >> 14) & 0x3FFF) + 1); }
+            if (b[12] == 'V' && b[13] == 'P' && b[14] == '8' && b[15] == 'X') return (1 + (b[24] | (b[25] << 8) | (b[26] << 16)), 1 + (b[27] | (b[28] << 8) | (b[29] << 16)));
+            return null;
+        }
+        // JPEG: the frame header (SOFn) holds the size
+        if (n >= 4 && b[0] == 0xFF && b[1] == 0xD8)
+        {
+            int i = 2;
+            while (i + 9 < n)
+            {
+                if (b[i] != 0xFF) { i++; continue; }
+                byte m = b[i + 1];
+                if (m == 0xFF) { i++; continue; }
+                if (m == 0xD8 || m == 0x01 || (m >= 0xD0 && m <= 0xD7)) { i += 2; continue; }
+                int len = (b[i + 2] << 8) | b[i + 3];
+                if (m >= 0xC0 && m <= 0xCF && m != 0xC4 && m != 0xC8 && m != 0xCC)
+                    return ((b[i + 7] << 8) | b[i + 8], (b[i + 5] << 8) | b[i + 6]);
+                if (len < 2) return null;
+                i += 2 + len;
+            }
+        }
+        return null;
     }
 
     static async Task<JsonDocument> GetJson(string url, Action<System.Net.Http.HttpRequestMessage> setup = null)
@@ -485,16 +625,13 @@ public sealed class ArtworkService
 
     static string Str(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    async Task<List<ArtCandidate>> ITunes(string artist, string title, string entity, string country, int limit)
+    async Task<List<ArtCandidate>> ITunes(string artist, string title, string entity, string country, int limit, bool user = false)
     {
         var list = new List<ArtCandidate>();
-        await _itunesGate.WaitAsync();
         try
         {
-            // the Apple search API allows roughly 20 requests a minute
-            var wait = TimeSpan.FromSeconds(2.6) - (DateTime.UtcNow - _lastITunes);
-            if (wait > TimeSpan.Zero) await Task.Delay(wait);
-            _lastITunes = DateTime.UtcNow;
+            // the Apple search API allows roughly 20 requests a minute (shared with the tag editor's searches)
+            await RateGate.Apple.WaitAsync(user);
             string term = Uri.EscapeDataString((artist + " " + title).Trim());
             using var doc = await GetJson($"https://itunes.apple.com/search?term={term}&entity={entity}&limit={limit}&country={country}");
             if (doc == null || !doc.RootElement.TryGetProperty("results", out var r)) return list;
@@ -516,7 +653,6 @@ public sealed class ArtworkService
             }
         }
         catch { }
-        finally { _itunesGate.Release(); }
         return list;
     }
 
@@ -560,14 +696,12 @@ public sealed class ArtworkService
         return list;
     }
 
-    async Task<List<ArtCandidate>> MusicBrainz(string artist, string title)
+    async Task<List<ArtCandidate>> MusicBrainz(string artist, string title, bool user = false)
     {
         var list = new List<ArtCandidate>();
         try
         {
-            var wait = TimeSpan.FromSeconds(1.1) - (DateTime.UtcNow - _lastMusicBrainz);
-            if (wait > TimeSpan.Zero) await Task.Delay(wait);
-            _lastMusicBrainz = DateTime.UtcNow;
+            await RateGate.MusicBrainz.WaitAsync(user);
             string q = $"releasegroup:\"{title.Replace("\"", "")}\"" + (string.IsNullOrWhiteSpace(artist) ? "" : $" AND artist:\"{artist.Replace("\"", "")}\"");
             using var doc = await GetJson("https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=8&query=" + Uri.EscapeDataString(q));
             if (doc == null || !doc.RootElement.TryGetProperty("release-groups", out var rgs)) return list;
@@ -646,7 +780,7 @@ public sealed class ArtworkService
                 }
         }
         catch { }
-        list.AddRange(await AlbumCandidates("", q, 20));   // free-text search: the artist name finds their albums
+        list.AddRange(await AlbumCandidates("", q, 20, true));   // free-text search: the artist name finds their albums
         return list.Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
     }
 

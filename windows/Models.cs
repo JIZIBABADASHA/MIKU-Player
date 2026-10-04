@@ -134,6 +134,8 @@ public sealed class Settings
     public bool OnlineLyrics { get; set; } = true;
     public bool ArtistImages { get; set; } = true;
     public bool LyricsTranslation { get; set; } = true;
+    /// <summary>AcoustID application key for the tag editor's 聲紋辨識 (acoustid.org/new-application).</summary>
+    public string AcoustIdKey { get; set; }
     // Player state
     public string Repeat { get; set; } = "off"; // off | all | one
     public string AutoContinue { get; set; } = "off"; // off | albums | tracks: keep playing random music when the queue runs out

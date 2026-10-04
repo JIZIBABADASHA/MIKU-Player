@@ -344,7 +344,7 @@ public sealed class MusicLibrary
     /// folders holding its tracks (so other albums sharing those folders, added and removed files are updated too), and
     /// the folder pictures. Returns the album's id afterwards (it changes with the album title) and the track count.
     /// </summary>
-    public (string AlbumId, int Tracks) RereadAlbum(string albumId)
+    public (string AlbumId, int Tracks) RereadAlbum(string albumId, IReadOnlyDictionary<string, string> moved = null)
     {
         if (Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再試");
         Album album = GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
@@ -377,7 +377,9 @@ public sealed class MusicLibrary
         Changed?.Invoke();
         TracksRead?.Invoke(fresh.ToList());
         // the same album afterwards: the one holding most of its former tracks
-        string newId = paths.Select(p => GetTrack(Text.Hash(p.ToLowerInvariant()))?.AlbumId).Where(id => id != null)
+        // (files renamed by the tag editor: <paramref name="moved"/> old path → new path)
+        string newId = paths.Select(p => moved != null && moved.TryGetValue(p, out var np) ? np : p)
+            .Select(p => GetTrack(Text.Hash(p.ToLowerInvariant()))?.AlbumId).Where(id => id != null)
             .GroupBy(id => id).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
         return (newId, newId == null ? 0 : GetAlbum(newId)?.Tracks.Count ?? 0);
     }
