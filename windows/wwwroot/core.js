@@ -651,6 +651,8 @@ function slider(el, { start, move, end, tip }) {
 /* ═════════════════════════════ popovers & menus ═════════════════════════════ */
 /** The Rplay core's icon (shown only where the Rplay core is in use). */
 const rplayIcon = (size = 18) => h('img', { class: 'rp-icon', src: 'img/rplay.png', width: size, height: size, alt: 'Rplay', draggable: 'false' });
+/** The icon and the word "Rplay" as one rounded grey pill (the signal path popover's badge). */
+const rplayBadge = (attrs = {}) => h('span', { class: 'rp-badge', ...attrs }, rplayIcon(18), 'Rplay');
 
 const Popover = {
   el: null,
@@ -829,12 +831,11 @@ const SignalPop = {
   drawRplay(box, sg, stage, src) {
     const rp = sg.rplay;
     const head = box.querySelector('h3');
-    if (head) head.append(h('span', { class: 'rp-badge', title: 'Rplay 播放內核' + (App.rplayCommit ? ' · ' + App.rplayCommit : '') }, rplayIcon(18), 'Rplay'));
+    if (head) head.append(rplayBadge({ class: 'rp-badge rp-head', title: 'Rplay 播放內核' + (App.rplayCommit ? ' · ' + App.rplayCommit : '') }));
     box.append(stage('來源', src, false));
-    const dec = stage('解碼', rp.decoder, false);
-    if (/^Rplay/.test(rp.decoder || '')) dec.querySelector('.v').prepend(rplayIcon(16));   // decoded by Rplay itself
-    box.append(dec);
-    box.append(h('div', { class: 'sig-sect' }, rplayIcon(16), 'Rplay Core'));
+    const own = /^Rplay\s*/.exec(rp.decoder || '');   // decoded by Rplay itself
+    box.append(stage('解碼', own ? [rplayBadge(), rp.decoder.slice(own[0].length)] : rp.decoder, false));
+    box.append(h('div', { class: 'sig-sect' }, rplayBadge(), 'Core'));
     (rp.core || []).forEach(r => box.append(stage(r.k, r.v, r.mod)));
     box.append(h('div', { class: 'sig-sect' }, '輸出端'));
     if (rp.dsd) box.append(stage('DSD 傳送', rp.dsd, false));

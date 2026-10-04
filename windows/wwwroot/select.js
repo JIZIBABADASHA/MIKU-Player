@@ -6,14 +6,19 @@
   const CHEV = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   let openMenu = null;
 
-  // an option's text, with its picture first when it has one (<option data-icon="img/…">)
+  // an option's text, with its picture first when it has one (<option data-icon="img/…">),
+  // both inside a pill when the option names one (<option data-pill="class">)
   const fill = (el, o) => {
-    el.textContent = o ? o.textContent : '';
-    if (o && o.dataset.icon) {
+    el.textContent = '';
+    if (!o) return;
+    let at = el;
+    if (o.dataset.pill) { at = document.createElement('span'); at.className = o.dataset.pill; el.append(at); }
+    if (o.dataset.icon) {
       const img = document.createElement('img');
       img.className = 'msel-ico'; img.src = o.dataset.icon; img.alt = ''; img.draggable = false;
-      el.prepend(img);
+      at.append(img);
     }
+    at.append(o.textContent);
   };
 
   const sync = sel => {

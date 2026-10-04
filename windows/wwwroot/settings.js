@@ -36,10 +36,10 @@ const Settings = {
       const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
       const coreSel = select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); });
       const rplayOpt = coreSel.querySelector('option[value="rplay"]');
-      if (rplayOpt) rplayOpt.dataset.icon = 'img/rplay.png';   // the Rplay icon inside the dropdown (select.js)
+      if (rplayOpt) { rplayOpt.dataset.icon = 'img/rplay.png'; rplayOpt.dataset.pill = 'rp-badge'; }   // the Rplay icon inside the dropdown (select.js)
       out.append(field('播放方案', '切換時會從目前位置繼續播放。', coreSel));
       // the Rplay core's compatibility mode, right under it while Rplay is chosen
-      if (usingRplay) out.append(field([rplayIcon(18), 'Rplay 相容模式'], '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
+      if (usingRplay) out.append(field([rplayBadge(), '相容模式'], '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
         select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
       const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
       out.append(field('輸出模式', null, modeSeg));
@@ -286,7 +286,7 @@ const Settings = {
       /* ── about ── */
       const ab = section('關於');
       ab.append(field('MIKU', `版本 ${App.version || '1.0'} · FFmpeg ${App.ffmpeg ? '已就緒' : '未找到'}`, h('button', { class: 'btn small ghost', onclick: () => Host.call('devtools') }, '開發者工具')));
-      if (App.rplay) ab.append(field([rplayIcon(22), 'Rplay'], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
+      if (App.rplay) ab.append(field([rplayBadge()], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
     ab.append(field('快捷鍵', '空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · Ctrl+↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · Ctrl+F 搜尋', null));
     }
   },

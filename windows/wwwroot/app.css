@@ -393,12 +393,14 @@ svg.i.fill { fill: currentColor; stroke: none; }
 /* Rplay core: Core / 輸出端 sections and the collapsed technical details */
 /* Rplay icon: next to labels and titles; a hairline keeps the navy badge visible on dark themes */
 .rp-icon { display: inline-block; flex: none; vertical-align: -3px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); user-select: none; }
-.field .lbl b > .rp-icon { margin-right: 8px; }
-.sigpop .stage .v > .rp-icon { margin-right: 6px; }
-.sigpop .sig-sect > .rp-icon { margin-right: -2px; letter-spacing: 0; }
 /* a picture in a custom dropdown option (select.js data-icon) */
 .msel-ico { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); flex: none; }
-.sigpop h3 .rp-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 12px; font-weight: 600; color: var(--text-2); }
+/* the icon + "Rplay" pill (popover badge, decoder, Rplay Core, settings, dropdown) */
+.rp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 12px; font-weight: 600; letter-spacing: 0; line-height: 18px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
+.rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
+.sigpop h3 .rp-head { margin-left: auto; }
+.sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
+.sigpop .sig-sect > .rp-badge { margin-right: -2px; }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
