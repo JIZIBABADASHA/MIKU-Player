@@ -357,19 +357,23 @@ const MikuExt = {
   },
 
   /**
-   * The player bar's slot (left of the cover): shown while the queue was started by a module with a source, drawn by
-   * that module's playerSlot function. Redrawn when the source changes; hidden when something else is played.
+   * While the queue was started by a module with a source: the module draws the player bar's slot (left of the
+   * cover) and the now-playing page's slot, and <html data-ext-source="<id>"> lets its stylesheet restyle both.
+   * Redrawn when the source changes; cleared when something else is played.
    */
   slot(source) {
-    const el = $('#b-ext');
-    const fn = source && source.ext && this.slots[source.ext];
-    const key = fn ? JSON.stringify(source) : null;
+    const def = source && source.ext && this.slots[source.ext];
+    const key = def ? JSON.stringify(source) : null;
     if (key === this.slotKey) return;
     this.slotKey = key;
-    el.textContent = '';
-    el.hidden = !fn;
-    document.body.classList.toggle('has-ext-slot', !!fn);
-    if (fn) try { fn(el, source); } catch (e) { console.error('[ext]', source.ext, e); }
+    if (def) document.documentElement.dataset.extSource = source.ext;
+    else delete document.documentElement.dataset.extSource;
+    for (const [sel, fn] of [['#b-ext', def && def.bar], ['#np-ext', def && def.nowPlaying]]) {
+      const el = $(sel);
+      el.textContent = '';
+      el.hidden = !fn;
+      if (fn) try { fn(el, source); } catch (e) { console.error('[ext]', source.ext, e); }
+    }
   },
 
   /** What a module gets: its own RPC and events, playback, and places in the sidebar, the router and the settings. */
@@ -384,8 +388,11 @@ const MikuExt = {
        */
       play: (ids, shuffle = false, start = -1, opts = {}) =>
         Host.call('play', { ids, shuffle, start, at: opts.at || 0, source: opts.source ? { ...opts.source, ext: id } : undefined }),
-      /** fn(el, source): draw the player bar's slot while a list this module played with a source is the queue. */
-      playerSlot: fn => { this.slots[id] = fn; this.slot(App.queue && App.queue.source); },
+      /**
+       * { bar(el, source), nowPlaying(el, source) }: draw the player bar's and the now-playing page's slots while a
+       * list this module played with a source is the queue.
+       */
+      playerSlot: def => { this.slots[id] = def; this.slotKey = null; this.slot(App.queue && App.queue.source); },
       /** A sidebar link to #/<route>; after = the data-r of the link to follow (default: before the 系統 section). */
       addNav: ({ route, label, icon: svg, after }) => {
         const a = h('a', { href: '#/' + route, 'data-r': route, html: svg || '' }, h('span', null, label));
