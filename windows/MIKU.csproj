@@ -62,4 +62,37 @@
     <!-- mock.js is only the browser preview backend, not needed inside the app -->
     <None Include="wwwroot\**\*" Exclude="wwwroot\mock.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!--
+    Optional extension modules (../MIKU.Extensibility/README.md): each one is checked out under ../Extensions/<Name>/
+    with a src/<Project>/<Project>.Extension.csproj that provides a MikuDeploy target. Build and publish run it for
+    every module found, so the module lands in ext\<id>\ next to MIKU. With no modules nothing changes.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\MIKU.Extensibility\MIKU.Extensibility.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <ExtensionsDir Condition="'$(ExtensionsDir)' == ''">$(MSBuildThisFileDirectory)..\Extensions</ExtensionsDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <MikuExtension Include="$(ExtensionsDir)\*\src\*\*.Extension.csproj" />
+  </ItemGroup>
+  <Target Name="ReportExtensions" BeforeTargets="CoreCompile">
+    <Message Importance="high" Text="MIKU: extension %(MikuExtension.Filename)" Condition="'@(MikuExtension)' != ''" />
+  </Target>
+  <!-- the outer build's RID, output folders and switches are MIKU's: modules choose their own -->
+  <PropertyGroup>
+    <_MikuExtRemove>RuntimeIdentifier;SelfContained;PublishDir;OutDir;OutputPath;IntermediateOutputPath;RplayDir;DebugType;PublishReferencesDocumentationFiles</_MikuExtRemove>
+  </PropertyGroup>
+  <!-- restore runs as its own evaluation (MikuRestore=1), so the deploy that follows sees the restored packages -->
+  <Target Name="RestoreExtensions" Condition="'@(MikuExtension)' != ''">
+    <MSBuild Projects="@(MikuExtension)" Targets="Restore" RemoveProperties="$(_MikuExtRemove)" Properties="Configuration=$(Configuration);MikuRestore=1" />
+  </Target>
+  <Target Name="DeployExtensions" AfterTargets="Build" DependsOnTargets="RestoreExtensions" Condition="'@(MikuExtension)' != ''">
+    <MSBuild Projects="@(MikuExtension)" Targets="MikuDeploy" RemoveProperties="$(_MikuExtRemove)"
+             Properties="Configuration=$(Configuration);MikuOutDir=$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)'))" />
+  </Target>
+  <Target Name="PublishExtensions" AfterTargets="Publish" DependsOnTargets="RestoreExtensions" Condition="'@(MikuExtension)' != ''">
+    <MSBuild Projects="@(MikuExtension)" Targets="MikuDeploy" RemoveProperties="$(_MikuExtRemove)"
+             Properties="Configuration=$(Configuration);MikuOutDir=$([System.IO.Path]::GetFullPath('$([System.IO.Path]::Combine($(MSBuildProjectDirectory), $(PublishDir)))'))" />
+  </Target>
 </Project>

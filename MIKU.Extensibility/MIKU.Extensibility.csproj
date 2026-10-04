@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The contract between MIKU and optional extension modules. An extension lives in its own repository, checked out
+    under ../Extensions/<Name>/ (for example as a git submodule); MIKU.csproj builds and deploys it when it is there.
+    See README.md.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Miku.Extensibility</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

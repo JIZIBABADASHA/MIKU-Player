@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Miku;
@@ -146,6 +147,8 @@ public sealed class Settings
     public HashSet<string> ArtConfirmed { get; set; } = new();
     public Dictionary<string, double> LyricOffsets { get; set; } = new();
     public Dictionary<string, string> Ui { get; set; } = new();
+    /// <summary>Settings of extension modules: id → key → value (see Host/Extensions.cs).</summary>
+    public Dictionary<string, Dictionary<string, JsonElement>> Ext { get; set; } = new();
     // Phone remote (LAN web server)
     public bool RemoteEnabled { get; set; } = true;
     public int RemotePort { get; set; } = 8765;

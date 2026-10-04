@@ -411,7 +411,7 @@ public sealed class MainForm : Form
         _engine = CreateEngine();
         _player = new Player(_engine, _lib, _s);
         WireEngine(_engine);
-        _player.NowChanged += () => PostSoon("state");
+        _player.NowChanged += () => { PostSoon("state"); RaiseExt(library: false); };
         _player.QueueChanged += () => PostSoon("queue");
         _lib.ProgressChanged += p =>
         {
@@ -423,7 +423,7 @@ public sealed class MainForm : Form
                 _ = Task.Run(async () => { try { await _art.FetchAllMissing(null, cts.Token, retryMisses: false); } catch { } });
             }
         };
-        _lib.Changed += () => { _player.Validate(); Post("library", new { revision = _lib.Revision }); };
+        _lib.Changed += () => { _player.Validate(); Post("library", new { revision = _lib.Revision }); RaiseExt(library: true); };
         _art.Updated += (kind, id) => Post("art", new { kind, id });
 
         _tick = new System.Windows.Forms.Timer { Interval = 200 };
@@ -527,7 +527,7 @@ public sealed class MainForm : Form
 
     void WireEngine(IAudioEngine engine)
     {
-        engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
+        engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); RaiseExt(library: false); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
         engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; if (t != null && !t.IsLive && LiveActive) PauseYt(); };
         engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
     }
@@ -626,6 +626,7 @@ public sealed class MainForm : Form
         SaveSettings();
         for (int i = 1; i <= 4; i++) UnregisterHotKey(Handle, i);
         try { _remote?.Dispose(); } catch { }
+        _ext.StopAll();
         try { _engine.Dispose(); } catch { }
         base.OnFormClosing(e);
     }
@@ -674,7 +675,60 @@ public sealed class MainForm : Form
             if (!e.Uri.StartsWith($"https://{AppHost}/", StringComparison.OrdinalIgnoreCase)) { e.Cancel = true; OpenExternal(e.Uri); }
         };
         _lib.Load();
+        StartExtensions(core);
         core.Navigate($"https://{AppHost}/index.html");
+    }
+
+    // ───────────────────────────── extension modules ─────────────────────────────
+
+    readonly ExtensionManager _ext = new();
+    readonly List<ExtensionHost> _extHosts = new();
+
+    /// <summary>Starts the optional modules in ext\ (Host/Extensions.cs) once the library is loaded, before the page asks for them.</summary>
+    void StartExtensions(CoreWebView2 core)
+    {
+        if (!Directory.Exists(ExtensionManager.Root)) return;
+        core.SetVirtualHostNameToFolderMapping(ExtensionManager.WebHost, ExtensionManager.Root, CoreWebView2HostResourceAccessKind.Allow);
+        _ext.LoadAll((id, dir) =>
+        {
+            var host = new ExtensionHost(id, dir,
+                tracks: () => _lib.AllTracks.Select(t => new Miku.Extensibility.ExtTrack(t.Id, t.Path, t.Title, t.Artist, t.Album, t.AlbumArtist,
+                    t.Genre, t.Duration, t.SampleRate, t.Bits, t.Channels, t.Codec, t.Size, t.Mtime)).ToList(),
+                playing: () => _engine.IsPlaying,
+                play: (ids, shuffle, start) => OnUi(() => _player.PlayList(ids.ToList(), start, shuffle)),
+                post: (ev, data) => Post(ev, data),
+                get: key => { lock (_s) return _s.Ext.TryGetValue(id, out var d) && d.TryGetValue(key, out var v) ? v.Clone() : null; },
+                set: (key, value) =>
+                {
+                    lock (_s)
+                    {
+                        if (!_s.Ext.TryGetValue(id, out var d)) _s.Ext[id] = d = new();
+                        if (value == null) d.Remove(key); else d[key] = JsonSerializer.SerializeToElement(value);
+                    }
+                    SaveSoon();
+                });
+            _extHosts.Add(host);
+            return host;
+        });
+    }
+
+    void RaiseExt(bool library)
+    {
+        foreach (var h in _extHosts)
+            if (library) h.RaiseLibraryChanged(); else h.RaisePlaybackChanged();
+    }
+
+    /// <summary>Runs <paramref name="f"/> on the UI thread and completes when it does.</summary>
+    Task OnUi(Func<Task> f)
+    {
+        if (!InvokeRequired) return f();
+        var done = new TaskCompletionSource();
+        BeginInvoke(new Action(async () =>
+        {
+            try { await f(); done.SetResult(); }
+            catch (Exception ex) { done.SetException(ex); }
+        }));
+        return done.Task;
     }
 
     static void OpenExternal(string uri)
@@ -858,6 +912,7 @@ public sealed class MainForm : Form
 
     async Task<object> HandleRpc(string m, JsonElement a)
     {
+        if (m.StartsWith("ext.", StringComparison.Ordinal)) return m == "ext.list" ? _ext.List() : await _ext.Rpc(m, a);
         switch (m)
         {
             case "ready":
@@ -1187,6 +1242,7 @@ public sealed class MainForm : Form
         scan = _lib.Progress,
         state = State(),
         queue = QueueDto(),
+        extensions = _ext.List(),
     };
 
     object State()
