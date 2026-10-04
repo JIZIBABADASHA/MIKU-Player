@@ -764,3 +764,122 @@ a.link:hover { text-decoration: underline; }
 .hero-bg { -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); pointer-events: none; z-index: 0; }
 .flip-fly .t1, .flip-fly .t2 { display: none; }
 .flip-fly, .flip-fly:hover { background: none !important; box-shadow: none !important; }
+
+/* ===== Custom dropdown (select.js) ===== */
+.msel { position: relative; display: inline-flex; max-width: 340px; min-width: 0; vertical-align: middle; }
+select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+.msel-btn {
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 10px; width: 100%; min-width: 132px;
+  height: 38px; padding: 0 12px 0 14px; border-radius: 11px;
+  font: 500 14px/1 inherit; font-family: inherit; color: var(--text-hi, var(--text));
+  background: linear-gradient(180deg, rgba(var(--ink), .075), rgba(var(--ink), .025)), var(--surface-2);
+  border: 1px solid rgba(var(--teal-rgb), .32);
+  box-shadow: inset 0 1px 0 rgba(var(--ink), .06), 0 1px 2px rgba(var(--shadow-rgb), calc(.25 * var(--sh)));
+  transition: border-color .2s, box-shadow .25s var(--ease), background .2s;
+}
+.msel-btn::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px rgba(var(--teal-rgb), .8); }
+.msel-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msel-chev { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--teal); background: rgba(var(--teal-rgb), .12); transition: transform .3s var(--spring), background .2s; }
+.msel-btn:hover { border-color: rgba(var(--teal-rgb), .6); }
+.msel-btn:focus-visible, .msel.open .msel-btn { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .2), inset 0 1px 0 rgba(var(--ink), .06); }
+.msel.open .msel-chev { transform: rotate(180deg); background: rgba(var(--teal-rgb), .22); }
+.msel-btn:disabled { opacity: .45; cursor: default; }
+.band-table .msel { width: 100%; }
+.band-table .msel-btn { height: 30px; min-width: 0; font-size: 12.5px; padding: 0 6px 0 9px; gap: 6px; }
+.band-table .msel-btn::before { display: none; }
+
+.msel-menu {
+  position: fixed; z-index: 10000; max-height: 320px; overflow-y: auto; padding: 6px; box-sizing: border-box;
+  border-radius: 13px; background: var(--pop-bg); color: var(--text);
+  border: 1px solid rgba(var(--ink), .1);
+  box-shadow: 0 18px 44px rgba(var(--shadow-rgb), calc(.5 * var(--sh))), 0 2px 8px rgba(var(--shadow-rgb), calc(.3 * var(--sh))), inset 0 1px 0 rgba(var(--ink), .05);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  opacity: 0; transform: translateY(-6px) scale(.98); transform-origin: top center;
+  transition: opacity .16s, transform .22s var(--ease-out);
+}
+.msel-menu.up { transform-origin: bottom center; transform: translateY(6px) scale(.98); }
+.msel-menu.show { opacity: 1; transform: none; }
+.msel-opt {
+  position: relative; display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 16px; border-radius: 9px;
+  cursor: pointer; font-size: 14px; color: var(--text-sub); white-space: nowrap; transition: background .12s, color .12s;
+}
+.msel-opt + .msel-opt { margin-top: 2px; }
+.msel-txt { flex: 1; }
+.msel-ck { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; opacity: 0; transform: scale(.6); transition: opacity .15s, transform .25s var(--spring); }
+.msel-opt.act { background: rgba(var(--ink), .07); color: var(--text-hi, var(--text)); }
+.msel-opt.on { background: rgba(var(--teal-rgb), .16); color: var(--text-hi, var(--text)); font-weight: 600; }
+.msel-opt.on::before { content: ""; position: absolute; left: 5px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: var(--teal); box-shadow: 0 0 8px rgba(var(--teal-rgb), .7); }
+.msel-opt.on .msel-ck { opacity: 1; transform: none; background: var(--teal); color: var(--on-accent); }
+.msel-opt.on.act { background: rgba(var(--teal-rgb), .22); }
+.msel-opt.dis { opacity: .4; pointer-events: none; }
+.msel-menu::-webkit-scrollbar { width: 8px; }
+.msel-menu::-webkit-scrollbar-thumb { background: rgba(var(--ink), .15); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
+:root[data-theme="miku"] .msel-btn { background: linear-gradient(180deg, #fff, #f6fbfb); }
+:root[data-theme="miku"] .msel-menu { background: rgba(255,255,255,.97); }
+:root[data-theme="flat"] .msel-btn, :root[data-theme="neon"] .msel-btn, :root[data-theme="flat"] .msel-menu, :root[data-theme="neon"] .msel-menu, :root[data-theme="flat"] .msel-opt, :root[data-theme="neon"] .msel-opt { border-radius: 2px; }
+
+/* ===== Now Playing：先照原本彈出，彈完後下方播放列沉下去，頁面同時往下延伸填滿 ===== */
+#bar { transition: transform .45s var(--ease-out), opacity .35s; will-change: transform; }
+#np { --np-r: 0px; --np-gap: 0px; --np-cut: var(--bar);
+  bottom: var(--np-gap) !important;
+  clip-path: inset(0 0 var(--np-cut) 0 round var(--np-r));
+  transition: transform .62s var(--ease-out), clip-path .5s var(--ease-out), visibility 0s .62s; }
+#np.on { transition: transform .62s var(--ease-out), clip-path .85s cubic-bezier(.32,.72,0,1) .5s, visibility 0s; }
+:root:not(.bar-peek):has(#np.on) #np { --np-cut: 0px; }
+:root[data-theme="glass"] #np { --np-r: 24px; --np-gap: 12px; --np-cut: calc(var(--bar) + 12px); }
+:root:not(.bar-peek):has(#np.on) #bar { transform: translateY(calc(100% + 24px)); opacity: 0; pointer-events: none; border-color: transparent !important; box-shadow: none !important; transition: transform .85s cubic-bezier(.32,.72,0,1) .5s, opacity .3s ease .5s, border-color .2s .5s, box-shadow .2s .5s; }
+
+/* ===== 底部小箭頭：讓播放列浮回來 ===== */
+:root.bar-peek:has(#np.on) #bar { transform: none; opacity: 1; pointer-events: auto; transition: transform .45s var(--ease-out), opacity .3s; }
+#bar-peek {
+  all: unset; box-sizing: border-box; position: fixed; left: 50%; bottom: 14px; z-index: 60; cursor: pointer;
+  width: 46px; height: 26px; border-radius: 13px; display: grid; place-items: center;
+  color: #fff; background: rgba(20, 22, 28, .45); border: 1px solid rgba(255,255,255,.22);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.3);
+  opacity: 0; pointer-events: none; transform: translate(-50%, 14px);
+  transition: opacity .25s, transform .35s var(--spring), bottom .45s var(--ease-out), background .2s;
+}
+#bar-peek svg { transition: transform .35s var(--spring); }
+#bar-peek.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+#bar-peek:hover { background: rgba(var(--teal-rgb), .55); border-color: rgba(var(--teal-rgb), .9); }
+:root.bar-peek #bar-peek { bottom: calc(var(--bar) + 10px); }
+:root.bar-peek #bar-peek svg { transform: rotate(180deg); }
+
+/* 彈出完成後，箭頭切換播放列時：頁面與播放列同步、不延遲 */
+:root.np-settled #np.on { transition: transform .62s var(--ease-out), clip-path .6s cubic-bezier(.32,.72,0,1), visibility 0s; }
+:root.np-settled:has(#np.on) #bar { transition: transform .6s cubic-bezier(.32,.72,0,1), opacity .3s, border-color .2s, box-shadow .2s; }
+:root.np-settled.bar-peek:has(#np.on) #bar { opacity: 1; }
+
+/* 背景一開始就鋪滿，只有播放列浮在上面往下沉（不再用裁切動畫） */
+#np, #np.on, :root[data-theme="glass"] #np { clip-path: none !important; }
+:root:has(#np.on) #app { z-index: auto !important; }
+
+/* 內容在整個頁面置中；播放列還在時往上讓出一半位置，播放列沉下去時同步回到正中間（只用 transform，不會閃） */
+#np .np-wrap { padding-bottom: 64px; --np-lift: calc(var(--bar) / -2); transform: translateY(var(--np-lift)); transition: transform .6s cubic-bezier(.32,.72,0,1); will-change: transform; }
+:root[data-theme="glass"] #np .np-wrap { --np-lift: calc(var(--bar) / -2 - 6px); }
+:root:not(.bar-peek):has(#np.on) #np .np-wrap { transform: translateY(28px); transition: transform .85s cubic-bezier(.32,.72,0,1) .5s; }
+:root.np-settled:has(#np.on) #np .np-wrap { transition: transform .6s cubic-bezier(.32,.72,0,1); }
+
+/* 播放列浮回來時，箭頭放在播放列上方，不壓到播放鍵 */
+:root.bar-peek #bar-peek { bottom: calc(var(--bar) + 20px); }
+:root[data-theme="glass"].bar-peek #bar-peek { bottom: calc(var(--bar) + 34px); }
+
+/* 返回上一頁：播放列先浮起來，接著整頁在播放列後面滑下去 */
+:root.np-closing #app { z-index: auto !important; }
+#np:not(.on) { transition: transform .62s cubic-bezier(.32,.72,0,1), visibility 0s .62s !important; }
+:root:not(:has(#np.on)) #bar { transition: transform .62s cubic-bezier(.32,.72,0,1), opacity .3s, border-color .2s, box-shadow .2s; }
+
+/* 沒有歌詞時封面真正水平置中（去掉右欄留下的間距與最小寬度） */
+#np .np-wrap { transition: transform .6s cubic-bezier(.32,.72,0,1); }
+#np.nolyrics .np-wrap { grid-template-columns: minmax(0, 1fr) minmax(0, 0fr); column-gap: 0; }
+#np.nolyrics .np-right { overflow: hidden; }
+
+
+/* 切換歌詞時：專輯在歌詞上層，歌詞稍晚淡入，不會蓋到專輯 */
+#np .np-left { position: relative; z-index: 2; }
+#np .np-right { position: relative; z-index: 1; }
+#np:not(.nolyrics) .lyrics { transition: opacity .45s ease .16s; }
+
+/* 沒歌詞時左欄縮成內容寬度，讓封面與控制列真正水平置中 */
+#np.nolyrics .np-left { align-items: center; }

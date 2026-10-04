@@ -89,6 +89,17 @@ const Settings = {
     cont.append(field('佇列播完後', '隨機專輯：整張專輯從頭播完再換下一張；隨機歌曲：每次挑幾首不同專輯的歌。最近播過的會盡量避開。',
       select([['off', '停止播放'], ['albums', '隨機播放其他專輯'], ['tracks', '隨機播放其他歌曲']], s.autoContinue || 'off', v => this.set({ autoContinue: v }))));
 
+    /* ── scrolling ── */
+    if (window.SmoothScroll) {
+      const sc = section('捲動');
+      sc.append(field('滾輪一次捲動行數', '滑鼠滾輪每轉一格捲動的距離（1 行約 40 像素）。', (() => {
+        const r = h('input', { class: 'range', type: 'range', min: 1, max: 15, step: 1, value: SmoothScroll.lines });
+        const v = h('span', { class: 'num muted', style: { width: '58px', textAlign: 'right' } }, SmoothScroll.lines + ' 行');
+        r.oninput = () => { v.textContent = r.value + ' 行'; SmoothScroll.lines = r.value; };
+        return [r, v];
+      })()));
+    }
+
     /* ── volume ── */
     const vol = section('音量');
     vol.append(field('音量控制方式', '數位音量在 64-bit 運算中處理；硬體音量交給 DAC；固定音量不調整數位增益。是否原樣輸出仍取決於其餘訊號路徑。',
