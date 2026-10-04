@@ -399,6 +399,9 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .rp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 18px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
 .rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
 .sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
+/* 關於: the pill at iPhone home-screen icon size (60 px), the name as tall as the icon allows */
+.rp-badge.rp-big { gap: 14px; padding: 0 26px 0 0; font-size: 34px; font-weight: 600; line-height: 60px; border-radius: 999px; margin: 4px 0 6px; }
+.rp-badge.rp-big .rp-icon { width: 60px; height: 60px; border-radius: 22.5%; }
 /* text after the pill sits on the pill's vertical centre */
 .sigpop .stage .v:has(> .rp-badge), .field .lbl b:has(> .rp-badge) { display: flex; align-items: center; }
 .sigpop .sig-sect > .rp-badge { margin-left: -2px; }
