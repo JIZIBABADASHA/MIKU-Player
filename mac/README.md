@@ -36,6 +36,7 @@ FLAC / WAV / MP3 / AAC / OGG / Opus 由 Chromium 直接解碼；ALAC、AIFF、AP
 ## 資料夾結構
 
 ```
+Build Mac.command  在 Finder 雙擊就會同步介面、下載元件並產生安裝檔（dist/）
 app/
   main/        Electron 主程序（取代 C# 的 MainForm / Library / Artwork / Lyrics / RemoteServer / Player）
   engine/      播放引擎（隱藏視窗：<audio> → ReplayGain → DSP AudioWorklet → Core Audio）
@@ -44,7 +45,7 @@ build/
   build.sh     下載 Electron、FFmpeg 與 fpcalc 後打包成 .pkg（Mac 或 Linux 都能跑）
   sync_wwwroot.py  把 Windows 版介面（windows/wwwroot）同步過來，套用 Mac 專屬的修改（⌘ 快捷鍵、Core Audio 文字等）
   wwwroot-mac/ Mac 版自己的輸出裝置選單（art.js 結尾）
-  make_pkg.py  建立 MIKU.app（arm64 + x64）、ad-hoc 簽章、產生安裝檔
+  make_pkg.py  建立 MIKU.app（arm64 + x64）、ad-hoc 簽章、產生安裝檔（Mac 上用系統的 mkbom，Linux 上用 bomutils）
   MIKU.icns    App 圖示
 ```
 
@@ -55,7 +56,7 @@ Windows 版介面有修改時，執行 `python3 mac/build/sync_wwwroot.py`。`se
 
 ## 自己編譯（最簡單的方法）
 
-1. 在 Finder 打開 `mac` 資料夾，雙擊 **`編譯 Mac 版.command`**。
+1. 在 Finder 打開 `mac` 資料夾，雙擊 **`Build Mac.command`**。
 2. 第一次如果跳出「命令列開發者工具」的安裝視窗，按「安裝」，裝好後再雙擊一次。
 3. 等它跑完（第一次要下載約 400 MB，之後會重複使用），裝好的安裝檔會出現在 `mac/dist`，資料夾會自動打開。
 

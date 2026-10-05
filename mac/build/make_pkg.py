@@ -120,6 +120,76 @@ def cpio_odc(root, out):
     return count
 
 
+_CRC = []
+def cksum(data_iter, length):
+    """POSIX cksum (what lsbom shows as a file's checksum)."""
+    if not _CRC:
+        for i in range(256):
+            c = i << 24
+            for _ in range(8): c = ((c << 1) ^ 0x04C11DB7) & 0xFFFFFFFF if c & 0x80000000 else (c << 1) & 0xFFFFFFFF
+            _CRC.append(c)
+    crc = 0
+    for chunk in data_iter:
+        for b in chunk: crc = ((crc << 8) & 0xFFFFFFFF) ^ _CRC[((crc >> 24) ^ b) & 0xFF]
+    while length:
+        crc = ((crc << 8) & 0xFFFFFFFF) ^ _CRC[((crc >> 24) ^ (length & 0xFF)) & 0xFF]; length >>= 8
+    return (~crc) & 0xFFFFFFFF
+
+
+def bom_list(root, out):
+    """A file list in lsbom's format (owner root:admin, the payload's modes) for macOS's `mkbom -i`."""
+    entries, files = [('.', '40755')], []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames.sort(); filenames.sort()
+        rel = os.path.relpath(dirpath, root)
+        base = '.' if rel == '.' else './' + rel
+        for dn in list(dirnames):
+            p = os.path.join(dirpath, dn)
+            if os.path.islink(p):
+                t = os.readlink(p).encode()
+                entries.append((f'{base}/{dn}', f'120755\t0/80\t{len(t)}\t{cksum([t], len(t))}\t{t.decode()}', True)); dirnames.remove(dn)
+            else:
+                entries.append((f'{base}/{dn}', '40755'))
+        for fn in filenames:
+            p = os.path.join(dirpath, fn); st = os.lstat(p)
+            if stat.S_ISLNK(st.st_mode):
+                t = os.readlink(p).encode()
+                entries.append((f'{base}/{fn}', f'120755\t0/80\t{len(t)}\t{cksum([t], len(t))}\t{t.decode()}', True))
+            else:
+                entries.append((f'{base}/{fn}', p, st)); files.append(p)
+    # file checksums with the system's cksum (fast); same result as cksum() above
+    sums = {}
+    for i in range(0, len(files), 200):
+        outp = subprocess.check_output(['cksum'] + files[i:i + 200]).decode('utf-8', 'surrogateescape')
+        for line, p in zip(outp.splitlines(), files[i:i + 200]):
+            sums[p] = line.split()[0]
+    lines = []
+    for e in entries:
+        if len(e) == 2: lines.append(f'{e[0]}\t{e[1]}\t0/80')
+        elif e[2] is True: lines.append(f'{e[0]}\t{e[1]}')
+        else:
+            name, p, st = e
+            mode = 0o100755 if st.st_mode & 0o111 else 0o100644
+            lines.append(f'{name}\t{mode:o}\t0/80\t{st.st_size}\t{sums[p]}')
+    with open(out, 'w') as f: f.write('\n'.join(lines) + '\n')
+
+
+def make_bom(root, bom, mkbom):
+    if mkbom:   # bomutils (Linux): forces the owner itself
+        sh(mkbom, '-u', '0', '-g', '80', root, bom); return
+    # macOS's mkbom has no -u / -g: give it a list with the owner (root:admin) instead
+    lst = bom + '.list'
+    bom_list(root, lst)
+    try: sh('mkbom', '-i', lst, bom)
+    except subprocess.CalledProcessError:
+        print('mkbom -i failed, building the BOM from the folder itself')
+        if os.path.exists(bom): os.remove(bom)
+        sh('mkbom', root, bom)
+    finally:
+        try: os.remove(lst)
+        except OSError: pass
+
+
 def dir_kbytes(root):
     total = 0
     for dp, dn, fn in os.walk(root):
@@ -138,8 +208,7 @@ def component(app, arch, version, mkbom, out_dir):
     comp = os.path.join(out_dir, f'MIKU-{arch}.pkg')
     shutil.rmtree(comp, ignore_errors=True); os.makedirs(comp)
     n = cpio_odc(root, os.path.join(comp, 'Payload'))
-    if mkbom: sh(mkbom, '-u', '0', '-g', '80', root, os.path.join(comp, 'Bom'))
-    else: sh('mkbom', '-u', '0', '-g', '80', root, os.path.join(comp, 'Bom'))
+    make_bom(root, os.path.join(comp, 'Bom'), mkbom)
     kb = dir_kbytes(root)
     info = f'''<?xml version="1.0" encoding="utf-8"?>
 <pkg-info overwrite-permissions="true" relocatable="false" identifier="{ident}" postinstall-action="none" version="{version}" format-version="2" generator-version="miku-make_pkg" install-location="/Applications" auth="root">
