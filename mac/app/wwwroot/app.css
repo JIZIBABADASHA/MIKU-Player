@@ -314,6 +314,10 @@ svg.i.fill { fill: currentColor; stroke: none; }
   backdrop-filter: blur(30px);
 }
 .np-mini { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.np-ext { flex: none; align-self: stretch; display: flex; align-items: center; }
+.np-ext[hidden] { display: none; }
+#np-ext { position: absolute; inset: 0; z-index: 2; display: block; pointer-events: none; }
+#np-ext > * { pointer-events: auto; }
 .np-mini .art { width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: var(--surface-2); flex: none; cursor: pointer; position: relative; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), calc(.35 * var(--sh))); transition: transform .25s var(--ease-out); }
 .np-mini .art:hover { transform: scale(1.04); }
 .np-mini .art img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s; }
