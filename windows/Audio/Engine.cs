@@ -22,24 +22,6 @@ public sealed class SourcePlan
     public string Note;   // why the requested DSD path (DoP / PCM rate) could not be used
 }
 
-/// <summary>One row of the Rplay core's signal path: label, value, and whether it changes the samples.</summary>
-public sealed record RplayRow(string K, string V, bool Mod = false);
-
-/// <summary>The Rplay core's signal path (RplayEngine.BuildPath), drawn in its own layout by the signal path popover.</summary>
-public sealed class RplayPath
-{
-    public string Decoder { get; set; }
-    public List<RplayRow> Core { get; set; } = new();
-    /// <summary>How DSD reaches the DAC (DoP / ASIO native); null when it isn't sent as DSD.</summary>
-    public string Dsd { get; set; }
-    public string DeviceFormat { get; set; }
-    public int DeviceValidBits { get; set; }
-    /// <summary>Real warnings only (shown highlighted).</summary>
-    public List<string> Notes { get; set; } = new();
-    /// <summary>The chain description, for the collapsed technical details.</summary>
-    public string Details { get; set; }
-}
-
 public sealed class SignalInfo
 {
     public string Codec { get; set; }
@@ -63,8 +45,11 @@ public sealed class SignalInfo
     public double? ReplayGainDb { get; set; }
     public string Quality { get; set; } // bitperfect | enhanced | high | low
     public string Note { get; set; }
-    /// <summary>The Rplay core's own signal path (Core / 輸出端 rows); null for the MIKU core, which keeps its layout.</summary>
-    public RplayPath Rplay { get; set; }
+    /// <summary>
+    /// A playback core from an extension module may describe its own signal path: any object with an "ext" member
+    /// naming the module, drawn by that module's page script (MikuExt signalPath). Null: the standard layout.
+    /// </summary>
+    public object Custom { get; set; }
     public string Decoder { get; set; }
     public string Resampler { get; set; }
     public double? ResamplerBandwidth { get; set; }

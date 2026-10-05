@@ -25,8 +25,20 @@ MIKU 編譯（build）與發佈（publish）時，都會對每個模組執行 `M
 - 頁面呼叫 `ext.<id>.<method>` 會轉給模組的 `HandleRpc`；模組用 `host.Post` 送出的事件，在頁面上叫 `ext.<id>.<事件>`
 - 模組在 `web\manifest.json` 列出要載入的檔案：`{ "scripts": ["x.js"], "styles": ["x.css"] }`。頁面啟動時會在顯示畫面前載入
 - 網頁端用 `MikuExt.register({ id, init(api) { … } })` 註冊。`api` 提供：
-  - `addNav`、`addRoute`、`addSettings`
+  - `addNav`、`addRoute`
+  - `addSettings(place, fn)`：`fn(host, { section, field, sw, select, core })`。`place` 是分頁（`audio` / `library` / `look` / `other`，加在最後），或 `core`（「播放方案」下方：目前內核自己的設定）、`dsd`（DSD 區塊最後）、`about`（關於，MIKU 那一列之後）；`core` 是目前選的播放內核
   - `on`、`rpc`、`play`
   - `play(ids, shuffle, start, { at, source })`：`at` 是第一首開始的秒數；`source` 是任意 JSON 物件，表示「這個佇列是誰產生的」，會跟著佇列保存，直到改播別的東西
   - `playerSlot({ bar, nowPlaying, leaveBar })`：當目前佇列是本模組帶 `source` 播放的，播放列封面左側與全螢幕播放頁各有一個區塊，由 `bar(el, source)`、`nowPlaying(el, source)` 繪製；同時 `<html>` 會有 `data-ext-source="<id>"`，模組的樣式表可以據此改變播放列與播放頁的外觀。改播別的東西時全部還原；`leaveBar(el)`（可省略）可在播放列區塊收起前播放離場動畫，回傳 Promise，最多等 1 秒
+  - `signalPath(fn)`：本模組的播放內核回報自己的訊號路徑時（`SignalInfo.Custom`，帶 `ext` 成員），由 `fn(box, signal, { stage, src, khz })` 畫出訊號路徑彈窗
+
+## 播放內核
+
+模組也可以提供播放內核：`IMikuExtension` 同時實作 `Miku.Audio.IAudioCoreProvider`（`windows/Audio/AudioCores.cs`），設定的「播放方案」就會列出它。
+
+- `CoreId` / `CoreName`：`Settings.AudioCore` 的值與顯示名稱；`Info`（`AudioCoreInfo`）告訴設定頁它的能力（ASIO 能否直送 DSD、是否使用「DSD 轉 PCM 取樣率」、升頻的說明文字）
+- `CreateEngine(settings, ui)` 回傳實作 `IAudioEngine` 的引擎；選用的 `LiveLatency`、`AsioRates` 讓 MIKU 使用內核自己的延遲與 ASIO 取樣率
+- 播放內核需要使用 MIKU 自己的型別，所以模組要參考 MIKU 的組件（`$(MikuOutDir)MIKU.dll`，`Private=false`）；MIKU 旁邊已有的組件（MIKU、NAudio…）一律使用 MIKU 那一份，型別才會一致
+- MIKU 啟動時先用自己的內核；模組載入後，若設定選的是模組的內核，就自動切換過去。模組不在時維持 MIKU 自己的內核
+
 - 模組啟動失敗或拋出例外時，只會寫進 log，不影響 MIKU 本體

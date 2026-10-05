@@ -32,6 +32,9 @@ sealed class ExtensionManager
 
     public bool Any => _loaded.Count > 0;
 
+    /// <summary>The playback cores the modules provide (Audio/AudioCores.cs).</summary>
+    public IEnumerable<Miku.Audio.IAudioCoreProvider> Cores => _loaded.Select(l => l.Ext).OfType<Miku.Audio.IAudioCoreProvider>();
+
     /// <summary>Loads and starts every module found; <paramref name="hostFor"/> builds the host object for one.</summary>
     public void LoadAll(Func<string, string, IExtensionHost> hostFor)
     {
@@ -106,7 +109,10 @@ sealed class ExtensionManager
         }
     }
 
-    /// <summary>A module's own dependencies come from its folder; MIKU.Extensibility is MIKU's own copy, so the types match.</summary>
+    /// <summary>
+    /// A module's own dependencies come from its folder. What MIKU has itself (MIKU.Extensibility, MIKU, NAudio … any
+    /// assembly next to MIKU) is MIKU's copy, so a module that works with MIKU's types (a playback core) shares them.
+    /// </summary>
     sealed class ExtLoadContext : AssemblyLoadContext
     {
         readonly AssemblyDependencyResolver _resolver;
@@ -116,6 +122,7 @@ sealed class ExtensionManager
         protected override Assembly Load(AssemblyName name)
         {
             if (name.Name == typeof(IMikuExtension).Assembly.GetName().Name) return null;
+            if (File.Exists(Path.Combine(AppPaths.AppDir, name.Name + ".dll"))) return null;
             string path = _resolver.ResolveAssemblyToPath(name);
             return path != null ? LoadFromAssemblyPath(path) : null;
         }

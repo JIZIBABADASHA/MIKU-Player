@@ -1,12 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Miku.Audio;
 
 /// <summary>
-/// The playback core used by Player / MainForm. Two implementations:
-/// <see cref="AudioEngine"/> (MIKU's own NAudio core) and <see cref="RplayEngine"/> (the optional Rplay core, from a private submodule).
-/// Settings.AudioCore picks one ("miku" | "rplay").
+/// The playback core used by Player / MainForm: <see cref="AudioEngine"/> (MIKU's own core, "miku"), or one an extension
+/// module provides (<see cref="IAudioCoreProvider"/>). Settings.AudioCore picks one by id.
 /// </summary>
 public interface IAudioEngine : IDisposable
 {
@@ -45,4 +45,8 @@ public interface IAudioEngine : IDisposable
     (long overloads, double peak) ResamplingMeter() => (0, 0);
     bool ResamplingMeterAvailable => false;
     void RefreshSignal();
+    /// <summary>Seconds between a YouTube Music sample entering the core and being heard; null: MIKU's own estimate.</summary>
+    double? LiveLatency => null;
+    /// <summary>PCM rates the ASIO driver accepts, when the core has it open and knows (null: not known / not open).</summary>
+    List<int> AsioRates(string driver) => null;
 }
