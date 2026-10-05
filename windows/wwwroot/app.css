@@ -410,6 +410,13 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .sigpop .sig-sect > .rp-badge { margin-left: -2px; }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+/* the signal path's Rplay badge: the icon 1.5× (27 px), the word, padding, gaps and the Core heading's room to match */
+.sigpop .rp-badge { gap: 8px; padding: 3px 13px 3px 3px; font-size: 15px; line-height: 27px; }
+.sigpop .rp-badge .rp-icon { width: 27px; height: 27px; border-radius: 24%; }
+.sigpop .stage .v > .rp-badge { margin-right: 9px; }
+.sigpop .stage .v:has(> .rp-badge) { margin-top: 3px; }
+.sigpop .sig-sect:has(> .rp-badge) { margin: 16px 0 8px; gap: 10px; }
+.sigpop .sig-sect > .rp-badge { margin-left: 0; }
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
 .sigpop .sig-details summary { cursor: pointer; user-select: none; }
 .sigpop .sig-details > div { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; line-height: 1.5; word-break: break-word; }
