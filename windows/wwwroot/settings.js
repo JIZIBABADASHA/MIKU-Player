@@ -26,21 +26,23 @@ const Settings = {
     const sw = (on, fn) => { const el = h('span', { class: 'switch' + (on ? ' on' : '') }); el.onclick = () => { const v = !el.classList.contains('on'); el.classList.toggle('on', v); fn(v); }; return el; };
     const select = (opts, val, fn) => { const el = h('select', { class: 'sel' }, ...opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l))); el.onchange = () => fn(el.value); return el; };
     const section = (title, hint) => { const el = h('div', { class: 'sect' }, h('h2', null, title), hint ? h('div', { class: 'hint' }, hint) : null); root.append(el); return el; };
+    // the playback core chosen, and its capabilities (MIKU's own or a module's: Audio/AudioCores.cs)
+    const cores = App.cores, core = cores.find(c => c.id === (s.audioCore || 'miku')) || cores[0];
+    // settings blocks of extension modules at a place in the page (MikuExt.addSettings)
+    const ext = (place, host) => {
+      for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[place]) || []) {
+        try { fn(host, { section, field, sw, select, core }); } catch (e) { console.error('[ext] settings', e); }
+      }
+    };
 
     if (tab === 'audio') {
       /* ── audio output ── */
       const out = section('輸出', '獨佔模式可繞過 Windows 混音器；是否保持原始樣本，還取決於取樣率、DSP、音量與輸出格式。實際設定可查看訊號路徑。');
       if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, '找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。'));
-      const usingRplay = (s.audioCore || 'miku') === 'rplay';
-      let maxDsdField = null;   // Rplay's DSD limit, hidden in WASAPI shared mode with the other DSD settings
-      const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
-      const coreSel = select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); });
-      const rplayOpt = coreSel.querySelector('option[value="rplay"]');
-      if (rplayOpt) { rplayOpt.dataset.icon = 'img/rplay.png'; rplayOpt.dataset.pill = 'rp-badge'; }   // the Rplay icon inside the dropdown (select.js)
+      const coreSel = select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); Router.render(); });
       out.append(field('播放方案', '切換時會從目前位置繼續播放。', coreSel));
-      // the Rplay core's compatibility mode, right under it while Rplay is chosen
-      if (usingRplay) out.append(field([rplayBadge(), '相容模式'], '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',
-        select([['fixed', '修正模式'], ['original', '原行為模式']], /origin/.test(s.rplayProfile || '') ? 'original' : 'fixed', v => this.set({ rplayProfile: v }))));
+      // the chosen core's own settings (a module's), right under it
+      ext('core', out);
       const modeSeg = seg([['exclusive', 'WASAPI 獨佔'], ['shared', 'WASAPI 共享'], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
       out.append(field('輸出模式', null, modeSeg));
       const devHost = h('div');
@@ -83,14 +85,12 @@ const Settings = {
       })()));
       /* 取樣率 */
       const rateSect = section('取樣率');
-      // 升頻: each choice with its own description, shown for the chosen one. Rplay leaves DSD alone (RplayEngine
-      // turns upsampling off for DSD); the MIKU core also resamples PCM converted from DSD.
-      const upText = usingRplay
-        ? { off: '非 DSD 檔案維持原始取樣率', '2x': '非 DSD 檔案用 Rplay 重新取樣成原始取樣率的 2 倍（例如 44.1 → 88.2 kHz）',
-            max: '非 DSD 檔案用 Rplay 重新取樣成 DAC 支援、同一族（44.1k／48k）中最高的取樣率', fixed: '非 DSD 檔案一律用 Rplay 重新取樣成指定的取樣率' }
-        : { off: '維持原始取樣率', '2x': '用 SoX 重新取樣成原始取樣率的 2 倍，DSD 轉成的 PCM 也會套用',
-            max: '用 SoX 重新取樣成 DAC 支援、同一族中最高的取樣率，DSD 轉成的 PCM 也會套用', fixed: '一律用 SoX 重新取樣成指定的取樣率，DSD 轉成的 PCM 也會套用' };
-      rateSect.append(field(usingRplay ? 'Rplay 升頻' : 'FFmpeg 升頻', upText[s.upsampling] || upText.off, [
+      // 升頻: each choice with its own description, shown for the chosen one (a module's core may describe its own;
+      // the MIKU core also resamples PCM converted from DSD)
+      const upText = core.upsamplingText
+        || { off: '維持原始取樣率', '2x': '用 SoX 重新取樣成原始取樣率的 2 倍，DSD 轉成的 PCM 也會套用',
+             max: '用 SoX 重新取樣成 DAC 支援、同一族中最高的取樣率，DSD 轉成的 PCM 也會套用', fixed: '一律用 SoX 重新取樣成指定的取樣率，DSD 轉成的 PCM 也會套用' };
+      rateSect.append(field(core.upsamplingTitle || 'FFmpeg 升頻', upText[s.upsampling] || upText.off, [
         select([['off', '關閉（原始取樣率）'], ['2x', '2 倍'], ['max', '同族最高取樣率'], ['fixed', '固定取樣率']], s.upsampling, v => { this.set({ upsampling: v }); upDesc(v); fixedWrap.style.display = v === 'fixed' ? '' : 'none'; }),
       ]));
       // fixed rate: only shown for 固定取樣率, listing the rates the output (WASAPI device / ASIO driver) accepts
@@ -119,7 +119,7 @@ const Settings = {
       const upDesc = v => { const sm = upField.querySelector('.lbl small'); if (sm) sm.textContent = upText[v] || upText.off; };
       /* DSD */
       const dsdSect = section('DSD');
-      // DSD 播放方式: the choices depend on the output (and the core): ASIO with Rplay can send native DSD
+      // DSD 播放方式: the choices depend on the output (and the core): a core with asioDsd sends DSD as DSD over ASIO
       const dsdHost = h('div', { style: { display: 'contents' } });
       const drawDsd = () => {
         const mode = App.settings.outputMode, cur = App.settings;
@@ -127,11 +127,12 @@ const Settings = {
         const pcm = '轉成 PCM 播放，可以使用數位音量與 DSP';
         // each choice with its own description; only the chosen one's is shown
         let opts, value;
-        if (mode === 'asio' && usingRplay) {
+        if (mode === 'asio' && core.asioDsd) {
           opts = [['native', 'Native', '以 ASIO 原生 DSD 直接送到 DAC'], ['dop', 'DoP', '把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP'], ['pcm', 'PCM', pcm]];
           value = pref;
         } else if (mode === 'asio') {
-          opts = [['pcm', 'PCM', 'MIKU 核心的 ASIO 輸出不支援 DSD 直送，DSD 會轉成 PCM 播放' + (App.rplay ? '；要用 Native 或 DoP，請把播放方案切換到 Rplay' : '')]];
+          const dsdCores = cores.filter(c => c.asioDsd).map(c => c.name);
+          opts = [['pcm', 'PCM', `${core.name} 的 ASIO 輸出不支援 DSD 直送，DSD 會轉成 PCM 播放` + (dsdCores.length ? `；要用 Native 或 DoP，請把播放方案切換到 ${dsdCores.join(' 或 ')}` : '')]];
           value = 'pcm';
         } else {
           opts = [['dop', 'DoP', '把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP，只在獨佔模式有效'], ['pcm', 'PCM', pcm]];
@@ -142,13 +143,9 @@ const Settings = {
       };
       drawDsd();
       dsdSect.append(dsdHost);
-      // DSD → PCM rate: the MIKU core's own setting; the Rplay core picks the rate itself, so it has no field
-      if (!usingRplay) dsdSect.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
-      if (usingRplay) {
-        dsdSect.append(field('最高 DSD 取樣率', '超過此上限的 DSD 會轉成 PCM。請依 DAC 與驅動實際支援的格式選擇。',
-          select([[64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], s.rplayMaxDsd || 512, v => this.set({ rplayMaxDsd: +v }))));
-        maxDsdField = dsdSect.lastChild;
-      }
+      // DSD → PCM rate: the MIKU core's own setting; a core that picks the rate itself has no field
+      if (core.dsdPcmRate !== false) dsdSect.append(field('DSD 轉 PCM 取樣率', 'DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定', select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+      ext('dsd', dsdSect);   // the chosen core's own DSD settings (a module's)
       // WASAPI shared: Windows' mixer always converts to the system format, so upsampling and DSD settings do nothing there
       const sharedSect = section('升頻與 DSD', '共享模式由 Windows 混音器轉成系統格式輸出，升頻與 DSD 設定不會作用；要使用這些設定請改用獨佔模式或 ASIO。');
       const applyMode = () => {
@@ -286,13 +283,10 @@ const Settings = {
       /* ── about ── */
       const ab = section('關於');
       ab.append(field('MIKU', `版本 ${App.version || '1.0'} · FFmpeg ${App.ffmpeg ? '已就緒' : '未找到'}`, h('button', { class: 'btn small ghost', onclick: () => Host.call('devtools') }, '開發者工具')));
-      if (App.rplay) ab.append(field([rplayIcon(), 'Rplay'], '播放內核 · ' + (App.rplayCommit ? 'commit ' + App.rplayCommit : '版本不明'), null));
+      ext('about', ab);   // modules' rows (a playback core's version …)
     ab.append(field('快捷鍵', '空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · Ctrl+↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · Ctrl+F 搜尋', null));
     }
 
-    // blocks added by extension modules (MikuExt.addSettings)
-    for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[tab]) || []) {
-      try { fn(root, { section, field, sw, select }); } catch (e) { console.error('[ext] settings', e); }
-    }
+    ext(tab, root);   // blocks added by extension modules at the end of the tab (MikuExt.addSettings)
   },
 };

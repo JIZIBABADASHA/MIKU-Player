@@ -70,7 +70,7 @@ public sealed class MainForm : Form
     /// Position of YouTube Music as heard from the DAC. The page reports currentTime only about every 0.5 s while the
     /// state goes out every 0.2 s, so it is extrapolated from the moment the report arrived (otherwise the same old
     /// value is sent two or three times and the progress bar keeps jumping back). The page also runs ahead of what is
-    /// heard by the capture / output buffers (about 0.4 s with the MIKU core, 1 s with Rplay): that latency is
+    /// heard by the capture / output buffers (about 0.4 s with the MIKU core, more with others): that latency is
     /// subtracted, smoothed so its natural ripple doesn't make the bar jitter, so the bar and lyrics follow the sound.
     /// </summary>
     double LivePosition(bool playing)
@@ -87,9 +87,7 @@ public sealed class MainForm : Form
 
     double LiveLatencyEstimate()
     {
-#if HAS_RPLAY
-        if (_engine is RplayEngine r) return r.LiveLatency;
-#endif
+        if (_engine.LiveLatency is double l) return l;      // a core that knows its own
         // MIKU core: LiveSource's fill (ring + its own buffer) + the output buffer
         return LiveBus.Fill + Math.Clamp(_s.BufferMs, 30, 1000) / 1000.0;
     }
@@ -506,28 +504,28 @@ public sealed class MainForm : Form
 
     // ───────────────────────────── playback core（Settings.AudioCore）─────────────────────────────
 
+    /// <summary>
+    /// The core Settings.AudioCore names: MIKU's own, or one an extension module provides (IAudioCoreProvider). A
+    /// module's core is not there yet when MIKU starts (modules start with the page): MIKU's own plays meanwhile and
+    /// the setting stays, so StartExtensions switches to it; a core whose module is gone leaves MIKU's own.
+    /// </summary>
     IAudioEngine CreateEngine()
     {
         Action<Action> ui = a => { if (IsDisposed) return; if (InvokeRequired) Invoke(a); else a(); };
-#if HAS_RPLAY
-        if (_s.AudioCore == "rplay")
+        if (CoreProvider() is { } p)
         {
-            try { return new RplayEngine(_s, ui); }
-            catch (Exception ex) { Log.Error("Rplay core", ex); _s.AudioCore = "miku"; }
+            try { return p.CreateEngine(_s, ui); }
+            catch (Exception ex) { Log.Error(p.CoreName + " core", ex); }
         }
-#else
-        // 這個版本沒有編進 Rplay 內核（建置時找不到 ../Rplay），設定成 rplay 也只能用 MIKU 內核
-        if (_s.AudioCore == "rplay") Log.Info("Rplay core is not included in this build, using the MIKU core");
-#endif
         return new AudioEngine(_s, ui);
     }
 
-    /// <summary>這個版本有沒有編進 Rplay 內核（MIKU.csproj：../Rplay 存在時定義 HAS_RPLAY）。</summary>
-#if HAS_RPLAY
-    static bool RplayIncluded => true;
-#else
-    static bool RplayIncluded => false;
-#endif
+    IAudioCoreProvider CoreProvider() =>
+        string.IsNullOrEmpty(_s.AudioCore) || _s.AudioCore == "miku" ? null : _ext.Cores.FirstOrDefault(c => c.CoreId == _s.AudioCore);
+
+    /// <summary>The cores the settings page offers: MIKU's own, then the modules'.</summary>
+    object CoresDto() => new[] { new AudioCoreInfo { Id = "miku", Name = "FFmpeg" } }
+        .Concat(_ext.Cores.Select(c => { var i = c.Info ?? new AudioCoreInfo(); i.Id = c.CoreId; i.Name = c.CoreName; return i; })).ToList();
 
     void WireEngine(IAudioEngine engine)
     {
@@ -562,7 +560,7 @@ public sealed class MainForm : Form
             _engine = engine;
             _player.ReplaceEngine(engine);
             WireEngine(engine);
-            Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : "Rplay")} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
+            Log.Info($"Playback core: {(engine is AudioEngine ? "MIKU" : CoreProvider()?.CoreName ?? _s.AudioCore)} (switching at {(isLive ? "YouTube" : t?.Id ?? "-")} {pos:0.00}s, playing={play})");
 
             try { old.Stop(); } catch (Exception ex) { Log.Error("Stop old core", ex); }
             try { old.Dispose(); } catch (Exception ex) { Log.Error("Dispose old core", ex); }
@@ -714,6 +712,8 @@ public sealed class MainForm : Form
             _extHosts.Add(host);
             return host;
         });
+        // the chosen core came with a module: switch to it now that it is there (nothing is playing yet)
+        if (_engine is AudioEngine && CoreProvider() != null) _ = SwitchCoreAsync();
     }
 
     void RaiseExt(bool library)
@@ -1501,9 +1501,7 @@ public sealed class MainForm : Form
         settings = _s,
         version = Application.ProductVersion,
         ffmpeg = Ffmpeg.Available,
-        rplay = RplayIncluded,
-        rplayCommit = typeof(MainForm).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
-            .OfType<System.Reflection.AssemblyMetadataAttribute>().FirstOrDefault(m => m.Key == "RplayCommit")?.Value,
+        cores = CoresDto(),
         asio = Devices.AsioDrivers(),
         scan = _lib.Progress,
         state = State(),
@@ -1567,21 +1565,16 @@ public sealed class MainForm : Form
 
     /// <summary>
     /// PCM sample rates an ASIO driver accepts, for the settings page's fixed rate. A driver that the playing core has
-    /// open is not opened again (ASIO drivers often allow one client): the Rplay core reports what its output probed,
+    /// open is not opened again (ASIO drivers often allow one client): a module's core reports what its output probed,
     /// the MIKU core its cached probe. Only a driver nobody here has open is probed directly.
     /// </summary>
     List<int> AsioRatesFor(string driver)
     {
         if (string.IsNullOrEmpty(driver)) return new List<int>();
-#if HAS_RPLAY
-        if (_engine is RplayEngine r)
-        {
-            // just switched to ASIO: the core is reopening its output, wait for it rather than open the driver too
-            for (int i = 0; i < 30 && _s.OutputMode == "asio" && r.AsioRates(driver) == null; i++) Thread.Sleep(100);
-            if (r.AsioRates(driver) is { } rr) return rr;
-        }
-#endif
         if (_engine is AudioEngine e) return e.AsioRates(driver);
+        // a module's core: just switched to ASIO, it is reopening its output; wait for it rather than open the driver too
+        for (int i = 0; i < 30 && _s.OutputMode == "asio" && _engine.AsioRates(driver) == null; i++) Thread.Sleep(100);
+        if (_engine.AsioRates(driver) is { } rr) return rr;
         var list = new List<int>();
         Invoke(new Action(() =>
         {
@@ -1615,7 +1608,7 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdMode", "dsdPcmRate", "replayGain", "replayGainPreamp", "rplayProfile", "rplayMaxDsd" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdMode", "dsdPcmRate", "replayGain", "replayGainPreamp" };
 
     object ApplySettings(JsonElement patch)
     {

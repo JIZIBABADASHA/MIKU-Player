@@ -96,9 +96,7 @@ public sealed class Settings
 {
     public List<string> Folders { get; set; } = new();
     // Output
-    public string AudioCore { get; set; } = "miku";       // miku（MIKU 原本的 NAudio 內核）| rplay（Rplay 內核，選用）
-    public string RplayProfile { get; set; } = "fixed"; // Rplay 相容模式：fixed（修正，預設）| original（原行為，比對用）
-    public int RplayMaxDsd { get; set; } = 512;           // Rplay：最高 DSD 倍數（64 / 128 / 256 / 512），超過的轉 PCM
+    public string AudioCore { get; set; } = "miku";       // miku（MIKU 本身的內核）| 擴充模組提供的內核 id
     public string OutputMode { get; set; } = "exclusive"; // exclusive | shared | asio
     public string DeviceId { get; set; }
     public string AsioDriver { get; set; }

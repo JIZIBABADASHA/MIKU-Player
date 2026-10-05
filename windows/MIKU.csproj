@@ -25,39 +25,6 @@
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
-  <!--
-    Optional Rplay playback core (Settings.AudioCore = "rplay"): git submodule ../Rplay, a private repo
-    (cychang-ykc/Rplay) built from source. Without access, or with the submodule not checked out, RplayEngine.cs
-    is left out and the settings omit Rplay: MIKU builds with its own core only. No Rplay code is in this repo.
-  -->
-  <PropertyGroup>
-    <RplayDir Condition="'$(RplayDir)' == ''">$(MSBuildThisFileDirectory)..\Rplay\src</RplayDir>
-    <HasRplay Condition="Exists('$(RplayDir)\Rplay.Core\Rplay.Core.csproj') And Exists('$(RplayDir)\Rplay.Endpoint\Rplay.Endpoint.csproj')">true</HasRplay>
-    <DefineConstants Condition="'$(HasRplay)' == 'true'">$(DefineConstants);HAS_RPLAY</DefineConstants>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(HasRplay)' == 'true'">
-    <ProjectReference Include="$(RplayDir)\Rplay.Core\Rplay.Core.csproj" />
-    <ProjectReference Include="$(RplayDir)\Rplay.Endpoint\Rplay.Endpoint.csproj" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(HasRplay)' != 'true'">
-    <Compile Remove="Audio\RplayEngine.cs" />
-  </ItemGroup>
-  <!-- the Rplay commit, shown in Settings → 關於 (AssemblyMetadata "RplayCommit") -->
-  <Target Name="RplayCommit" BeforeTargets="GetAssemblyAttributes" Condition="'$(HasRplay)' == 'true'">
-    <Exec Command="git -C &quot;$(RplayDir)\..&quot; rev-parse --short HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low" StandardErrorImportance="low">
-      <Output TaskParameter="ConsoleOutput" PropertyName="RplayCommit" />
-    </Exec>
-    <ItemGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(RplayCommit)', '^[0-9a-f]{7,40}$'))">
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
-        <_Parameter1>RplayCommit</_Parameter1>
-        <_Parameter2>$(RplayCommit)</_Parameter2>
-      </AssemblyAttribute>
-    </ItemGroup>
-  </Target>
-  <Target Name="ReportRplay" BeforeTargets="CoreCompile">
-    <Message Importance="high" Text="MIKU: Rplay core $(HasRplay)" Condition="'$(HasRplay)' == 'true'" />
-    <Message Importance="high" Text="MIKU: Rplay core not found at $(RplayDir), building with the MIKU core only" Condition="'$(HasRplay)' != 'true'" />
-  </Target>
   <ItemGroup>
     <!-- mock.js is only the browser preview backend, not needed inside the app -->
     <None Include="wwwroot\**\*" Exclude="wwwroot\mock.js" CopyToOutputDirectory="PreserveNewest" />
@@ -81,7 +48,7 @@
   </Target>
   <!-- the outer build's RID, output folders and switches are MIKU's: modules choose their own -->
   <PropertyGroup>
-    <_MikuExtRemove>RuntimeIdentifier;SelfContained;PublishDir;OutDir;OutputPath;IntermediateOutputPath;RplayDir;DebugType;PublishReferencesDocumentationFiles</_MikuExtRemove>
+    <_MikuExtRemove>RuntimeIdentifier;SelfContained;PublishDir;OutDir;OutputPath;IntermediateOutputPath;DebugType;PublishReferencesDocumentationFiles</_MikuExtRemove>
   </PropertyGroup>
   <!-- restore runs as its own evaluation (MikuRestore=1), so the deploy that follows sees the restored packages -->
   <Target Name="RestoreExtensions" Condition="'@(MikuExtension)' != ''">

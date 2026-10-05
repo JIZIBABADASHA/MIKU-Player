@@ -396,20 +396,7 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .stage .k { font-size: 12px; color: var(--text-3); }
 .stage .v { font-size: 13.5px; }
 .sigpop .note { margin-top: 10px; font-size: 12.5px; color: var(--pink-text); background: var(--pink-dim); padding: 9px 11px; border-radius: 9px; }
-/* Rplay core: Core / 輸出端 sections and the collapsed technical details */
-/* Rplay icon: next to labels and titles; a hairline keeps the navy badge visible on dark themes */
-.rp-icon { display: inline-block; flex: none; vertical-align: -3px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); user-select: none; }
-/* a picture in a custom dropdown option (select.js data-icon) */
-.msel-ico { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); flex: none; }
-/* the icon + "Rplay" pill (decoder, Rplay Core, settings, dropdown) */
-.rp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 18px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
-.rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
-.sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
-/* 關於: the icon before "Rplay" in the row title's own font, as tall as the text line */
-.field .lbl b > .rp-icon { width: 1.4em; height: 1.4em; margin-right: .45em; }
-/* text after the pill sits on the pill's vertical centre */
-.sigpop .stage .v:has(> .rp-badge), .field .lbl b:has(> .rp-badge), .field .lbl b:has(> .rp-icon) { display: flex; align-items: center; }
-.sigpop .sig-sect > .rp-badge { margin-left: -2px; }
+/* the signal path drawn in sections (a module's core: SignalInfo.Custom) and its collapsed technical details */
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
