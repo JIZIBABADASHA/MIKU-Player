@@ -204,6 +204,11 @@ const Dsp = {
   },
 
   /* ── graph ── */
+  /** Redraws the graph once in the next frame: a mouse reports moves far more often than the screen shows them. */
+  graphSoon() {
+    if (this.graphRaf) return;
+    this.graphRaf = requestAnimationFrame(() => { this.graphRaf = 0; this.drawGraph(); });
+  },
   drawGraph() {
     const g = this.graph;
     if (!g || !g.isConnected) return;
@@ -267,13 +272,13 @@ const Dsp = {
             b.fc = Math.round(xf(x2));
             if (!['LP', 'HP'].includes(b.type)) b.gain = Math.max(-dbR, Math.min(dbR, Math.round(((r.height / 2 - y2) / (r.height / 2 - 14) * dbR) * 10) / 10));
             this.cfg.presetName = '';
-            this.push(); this.drawGraph();
+            this.push(); this.graphSoon();
           };
           const up = () => { hd.removeEventListener('pointermove', mv); hd.removeEventListener('pointerup', up); this.render(); };
           hd.addEventListener('pointermove', mv);
           hd.addEventListener('pointerup', up);
         };
-        hd.onwheel = e => { e.preventDefault(); const b = this.cfg.bands[i]; b.q = Math.max(0.1, Math.min(20, Math.round(b.q * (e.deltaY < 0 ? 1.1 : 1 / 1.1) * 100) / 100)); this.push(); this.drawGraph(); };
+        hd.onwheel = e => { e.preventDefault(); const b = this.cfg.bands[i]; b.q = Math.max(0.1, Math.min(20, Math.round(b.q * (e.deltaY < 0 ? 1.1 : 1 / 1.1) * 100) / 100)); this.push(); this.graphSoon(); };
         g.append(hd);
         return hd;
       });

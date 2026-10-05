@@ -1014,6 +1014,207 @@ public sealed class MainForm : Form
         finally { _tagsBusy = false; }
     }
 
+    // ───────────────────────────── 轉換格式 / CUE 分軌 ─────────────────────────────
+
+    CancellationTokenSource _convertJob;
+
+    sealed record ConvertItem(string Id, Track Src, double Start, double Length, Dictionary<string, string> Meta, string Target, string Final);
+
+    static bool IsUnder(string path, string folder)
+    {
+        string f = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
+        return Path.GetFullPath(path).StartsWith(f, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// convert.start { ids, opts, mode, dir } / cue.split { id, opts, mode, dir } (<paramref name="cue"/>): converts the
+    /// tracks (or cuts the album's big file at its CUE marks) with FFmpeg, several at a time, posting convertProgress.
+    /// mode "folder": into dir (a folder per album when asked). mode "replace": next to the originals, which then go to
+    /// the Recycle Bin; favourites, plays and the queue follow the new files and the album is read again.
+    /// </summary>
+    async Task<object> ConvertJob(JsonElement a, CueSheet cue)
+    {
+        if (_convertJob != null) throw new InvalidOperationException("正在轉換其他檔案，請稍候");
+        if (!Ffmpeg.Available) throw new InvalidOperationException("找不到 FFmpeg，無法轉換格式");
+        var o = ConvertOptions.From(a.ValueKind == JsonValueKind.Object && a.TryGetProperty("opts", out var oe) ? oe : default);
+        string ext = AudioConverter.Ext(o.Format);
+        bool replace = S(a, "mode") == "replace";
+        string dir = S(a, "dir");
+        if (!replace && (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))) throw new InvalidOperationException("請先選擇要放檔案的資料夾");
+        if (replace && _lib.Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再轉換");
+
+        // what to make: (id for the page, source, part of it, tags, file name)
+        var jobs = new List<(string Id, Track Src, double Start, double Length, Dictionary<string, string> Meta, string Name)>();
+        if (cue == null)
+        {
+            foreach (var id in L(a, "ids"))
+            {
+                var t = _lib.GetTrack(id);
+                if (t != null && !t.IsLive) jobs.Add((t.Id, t, 0, 0, null, Path.GetFileNameWithoutExtension(t.Path)));
+            }
+        }
+        else
+        {
+            string Or(string x, string y) => string.IsNullOrWhiteSpace(x) ? y : x;
+            foreach (var ct in cue.Tracks)
+            {
+                var src = ct.Source;
+                var meta = new Dictionary<string, string>
+                {
+                    ["title"] = Or(ct.Title, "Track " + ct.No),
+                    ["artist"] = Or(ct.Performer, Or(cue.Performer, src.Artist)),
+                    ["album"] = Or(cue.Title, src.Album),
+                    ["album_artist"] = Or(cue.Performer, src.AlbumArtist),
+                    ["composer"] = Or(ct.Songwriter, cue.Songwriter),
+                    ["genre"] = Or(cue.Genre, src.Genre),
+                    ["date"] = Or(cue.Date, src.Year > 0 ? src.Year.ToString() : ""),
+                    ["track"] = $"{ct.No}/{cue.Tracks.Count}",
+                    ["disc"] = src.DiscNo > 0 ? src.DiscNo.ToString() : "",
+                };
+                jobs.Add(("c" + ct.No, src, ct.Start, ct.Length, meta, $"{ct.No:00} {meta["title"]}"));
+            }
+        }
+        if (jobs.Count == 0) return new { done = 0, failed = Array.Empty<object>(), cancelled = false };
+
+        // where each file goes (never over an existing file)
+        var failed = new List<object>();
+        var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var items = new List<ConvertItem>();
+        var outFolders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var j in jobs)
+        {
+            string stem = AudioConverter.SafeName(j.Name);
+            if (replace)
+            {
+                string folder = Path.GetDirectoryName(j.Src.Path) ?? "";
+                string final = cue != null ? Path.Combine(folder, stem + ext) : Path.ChangeExtension(j.Src.Path, ext);
+                bool same = cue == null && string.Equals(final, j.Src.Path, StringComparison.OrdinalIgnoreCase);   // FLAC → FLAC
+                if (!same && (File.Exists(final) || !reserved.Add(final)))
+                {
+                    failed.Add(new { file = Path.GetFileName(final), error = "已經有同名的檔案" });
+                    Post("convertProgress", new { id = j.Id, state = "skip", error = "已經有同名的檔案" });
+                    continue;
+                }
+                items.Add(new ConvertItem(j.Id, j.Src, j.Start, j.Length, j.Meta, same ? Path.Combine(folder, stem + ".miku-new" + ext) : final, final));
+            }
+            else
+            {
+                string folder = dir;
+                if (o.AlbumFolder)
+                {
+                    var al = _lib.GetAlbum(j.Src.AlbumId);
+                    string name = cue != null && cue.Title.Length > 0 ? cue.Title : al == null ? j.Src.Album : al.Loose ? Path.GetFileName(al.Folder) : al.Title;
+                    folder = Path.Combine(dir, AudioConverter.SafeName(string.IsNullOrWhiteSpace(name) ? "未知專輯" : name));
+                    outFolders.Add(folder);
+                    if (cue == null && al != null && al.Tracks.Select(t => t.DiscNo).Distinct().Count() > 1) folder = Path.Combine(folder, "Disc " + j.Src.DiscNo);
+                }
+                string target = Path.Combine(folder, stem + ext);
+                for (int n = 2; File.Exists(target) || !reserved.Add(target); n++) target = Path.Combine(folder, $"{stem} ({n}){ext}");
+                items.Add(new ConvertItem(j.Id, j.Src, j.Start, j.Length, j.Meta, target, target));
+            }
+        }
+
+        var cts = _convertJob = new CancellationTokenSource();
+        try
+        {
+            var converted = new List<ConvertItem>();
+            object gate = new();
+            int done = 0;
+            using (var slots = new SemaphoreSlim(Math.Clamp(Environment.ProcessorCount / 2, 1, 4)))
+            {
+                await Task.WhenAll(items.Select(it => Task.Run(async () =>
+                {
+                    await slots.WaitAsync();
+                    try
+                    {
+                        if (cts.IsCancellationRequested) { Post("convertProgress", new { id = it.Id, state = "skip", error = "已停止" }); return; }
+                        Post("convertProgress", new { id = it.Id, state = "run", pct = 0 });
+                        byte[] pic = o.Cover ? (TagReader.EmbeddedPicture(it.Src) ?? _art.CurrentPicture(it.Src.AlbumId)) : null;
+                        Directory.CreateDirectory(Path.GetDirectoryName(it.Target));
+                        int last = 0;
+                        await AudioConverter.Convert(it.Src, it.Target, o, _s.DsdPcmRate, pic, x =>
+                        {
+                            int pct = (int)(x * 100);
+                            if (pct != last) { last = pct; Post("convertProgress", new { id = it.Id, state = "run", pct = x }); }
+                        }, cts.Token, it.Start, it.Length, it.Meta);
+                        lock (gate) converted.Add(it);
+                        if (!replace) { Interlocked.Increment(ref done); Post("convertProgress", new { id = it.Id, state = "done" }); }
+                    }
+                    catch (OperationCanceledException) { Post("convertProgress", new { id = it.Id, state = "skip", error = "已停止" }); }
+                    catch (Exception ex)
+                    {
+                        Log.Error("Convert " + it.Src.Path, ex);
+                        lock (gate) failed.Add(new { file = Path.GetFileName(it.Target), error = ex.Message });
+                        Post("convertProgress", new { id = it.Id, state = "fail", error = ex.Message });
+                    }
+                    finally { slots.Release(); }
+                })));
+            }
+            Log.Info($"Converted {converted.Count}/{items.Count} → {o.Format}" + (cue != null ? " (CUE)" : "") + (replace ? " (replace)" : " → " + dir));
+
+            string albumId = null;
+            if (replace && converted.Count > 0)
+            {
+                // the originals go to the Recycle Bin; a track that is playing is stopped first (its file must be let go)
+                var leaving = new HashSet<string>(converted.Select(i => i.Src.Path), StringComparer.OrdinalIgnoreCase);
+                var cur = _engine.Track;
+                bool touches = cur != null && !cur.IsLive && leaving.Contains(cur.Path);
+                bool wasPlaying = false; double pos = 0;
+                if (touches) { wasPlaying = _engine.IsPlaying; pos = _engine.Position; _engine.Stop(); await Task.Delay(250); }
+                else _engine.InvalidateNext();
+                var moved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var albums = converted.Select(i => i.Src.AlbumId).Distinct().ToList();
+                if (cue != null)
+                {
+                    // the big file and the sheet go only when every track came out
+                    if (converted.Count == jobs.Count)
+                    {
+                        foreach (var src in converted.Select(i => i.Src).Distinct())
+                            try { AudioConverter.Recycle(src.Path); } catch (Exception ex) { failed.Add(new { file = Path.GetFileName(src.Path), error = ex.Message }); }
+                        try { AudioConverter.Recycle(cue.Path); } catch (Exception ex) { failed.Add(new { file = Path.GetFileName(cue.Path), error = ex.Message }); }
+                    }
+                    else failed.Add(new { file = Path.GetFileName(cue.Path), error = "有曲目沒有切出來，原本的檔案保留" });
+                    foreach (var it in converted) { done++; Post("convertProgress", new { id = it.Id, state = "done" }); }
+                }
+                else
+                {
+                    foreach (var it in converted)
+                    {
+                        try
+                        {
+                            AudioConverter.Recycle(it.Src.Path);
+                            if (!string.Equals(it.Target, it.Final, StringComparison.OrdinalIgnoreCase)) File.Move(it.Target, it.Final);
+                            else moved[it.Src.Path] = it.Final;
+                            done++;
+                            Post("convertProgress", new { id = it.Id, state = "done" });
+                        }
+                        catch (Exception ex)
+                        {
+                            // the original stays: drop the new file so nothing is there twice
+                            if (File.Exists(it.Src.Path)) { try { File.Delete(it.Target); } catch { } }
+                            failed.Add(new { file = Path.GetFileName(it.Src.Path), error = ex is IOException ? "檔案正在被其他程式使用：" + ex.Message : ex.Message });
+                            Post("convertProgress", new { id = it.Id, state = "fail", error = ex.Message });
+                            Log.Error("Convert replace " + it.Src.Path, ex);
+                        }
+                    }
+                }
+                if (moved.Count > 0) MoveTrackIds(moved);
+                foreach (var id in albums) await Task.Run(() => _lib.RereadAlbum(id, moved));
+                albumId = converted.Select(i => _lib.GetTrack(Miku.Text.Hash(i.Final.ToLowerInvariant()))?.AlbumId).FirstOrDefault(x => x != null);
+                if (touches && cue == null) { try { await _player.Reload(pos, wasPlaying); } catch (Exception ex) { Log.Error("Resume after convert", ex); } }
+            }
+            else if (!replace && converted.Count > 0 && _s.Folders.Any(f => IsUnder(dir, f) || string.Equals(Path.GetFullPath(dir), Path.GetFullPath(f), StringComparison.OrdinalIgnoreCase)))
+                _lib.StartScan();   // made inside the library: it shows up there too
+            return new
+            {
+                done, failed, cancelled = cts.IsCancellationRequested,
+                dir = replace ? null : outFolders.Count == 1 ? outFolders.First() : dir,
+                albumId,
+            };
+        }
+        finally { _convertJob = null; }
+    }
+
     /// <summary>
     /// Renames files in their folders: first each to a temporary name, then to the new one, so names can be swapped
     /// ("01 - B" ↔ "02 - B"). A name already used by a file not being renamed is refused. Lyrics next to the file
@@ -1373,6 +1574,39 @@ public sealed class MainForm : Form
             }
             case "tags.release": return await _meta.Get(S(a, "source"), S(a, "id"), S(a, "country"));
             case "tags.save": return await SaveTags(a);
+            // 轉換格式 / CUE 分軌 (Library/Converter.cs, Library/Cue.cs)
+            case "convert.info": return await Task.Run(() => AudioConverter.Info("資源回收筒"));
+            case "convert.pickFolder":
+            {
+                using var dlg = new FolderBrowserDialog { Description = "選擇轉換後的檔案要放的資料夾", UseDescriptionForTitle = true, ShowNewFolderButton = true };
+                string start = S(a, "dir");
+                if (!string.IsNullOrEmpty(start) && Directory.Exists(start)) dlg.InitialDirectory = start;
+                return dlg.ShowDialog(this) == DialogResult.OK ? dlg.SelectedPath : null;
+            }
+            case "convert.start": return await ConvertJob(a, null);
+            case "convert.cancel": _convertJob?.Cancel(); return null;
+            case "convert.open":
+            {
+                string p = S(a, "path");
+                if (!string.IsNullOrEmpty(p) && Directory.Exists(p)) Process.Start(new ProcessStartInfo("explorer.exe", $"\"{p}\"") { UseShellExecute = true });
+                return null;
+            }
+            case "cue.info":
+            {
+                var cue = await Task.Run(() => Cue.ForAlbum(_lib.GetAlbum(S(a, "id"))));
+                if (cue == null) return null;
+                return new
+                {
+                    cue = cue.Path, cueName = Path.GetFileName(cue.Path),
+                    tracks = cue.Tracks.Select(t => new { no = t.No, title = t.Title, performer = t.Performer, dur = Math.Round(t.Length, 2) }).ToList(),
+                };
+            }
+            case "cue.split":
+            {
+                var al = _lib.GetAlbum(S(a, "id")) ?? throw new InvalidOperationException("找不到這張專輯");
+                var cue = await Task.Run(() => Cue.ForAlbum(al)) ?? throw new InvalidOperationException("找不到這張專輯的 CUE 標記");
+                return await ConvertJob(a, cue);
+            }
             // 聲紋辨識: AcoustID
             case "acoustid.info": return new { hasKey = _fp.HasKey, hasTool = FingerprintService.FpcalcPath != null };
             case "acoustid.key":

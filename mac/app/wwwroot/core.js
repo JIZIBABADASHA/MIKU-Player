@@ -49,6 +49,10 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 const icon = (name, fill) => `<svg class="i${fill ? ' fill' : ''}"><use href="#i-${name}"/></svg>`;
+/** Shows an icon in `el`, rebuilding its <svg> only when the icon changes (states arrive several times a second). */
+function setIcon(el, name, fill) { const k = fill ? name + '+' : name; if (el._icon !== k || !el.firstChild) { el._icon = k; el.innerHTML = icon(name, fill); } }
+/** Sets text only when it differs: an unchanged write still replaces the text node (and wakes every MutationObserver). */
+function setText(el, s) { s = String(s); if (el.textContent !== s) el.textContent = s; }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmtTime = s => {
   if (!isFinite(s) || s < 0) s = 0;
@@ -157,10 +161,7 @@ Host.on('art', ({ kind, id }) => {
   const k = kind === 'album' ? 'a' : kind === 'track' ? 't' : 'r';
   ArtVer[k + id] = (ArtVer[k + id] || 0) + 1;
   // refresh any visible boxes showing this art
-  document.querySelectorAll('[data-art]').forEach(box => {
-    const a = box.dataset.art, j = a.indexOf(':'), bk = a.slice(0, j), bid = a.slice(j + 1);
-    if (bk === k && bid === id) fillArt(box, bk, bid, +box.dataset.size, box.dataset.label, { swap: true });
-  });
+  document.querySelectorAll(`[data-art="${CSS.escape(k + ':' + id)}"]`).forEach(box => fillArt(box, k, id, +box.dataset.size, box.dataset.label, { swap: true }));
   if (k === 'a' || k === 't') App.refreshNowArt(k, id);
 });
 /** Artwork for YouTube Music tracks (remote URL, upscaled when the CDN allows it). */
@@ -178,6 +179,10 @@ function liveArt(box, url, size, label) {
   img.src = bigYtImg(url, Math.round(size * (window.devicePixelRatio || 1)));
   box.append(img);
 }
+/** A track's picture as [kind, id]: a loose track (no album tag) has its own, any other its album's. */
+const trackArt = t => t.album?.loose ? ['t', t.id] : ['a', t.albumId];
+/** An album's picture as [kind, id]: a folder of loose tracks shows its first track's. */
+const albumArt = al => al.loose && al.tracks[0] ? ['t', al.tracks[0].id] : ['a', al.id];
 function artBox(cls, kind, id, size, label) {
   const box = h('div', { class: cls, 'data-art': `${kind}:${id}`, 'data-size': size, 'data-label': label || '' });
   fillArt(box, kind, id, size, label);
@@ -312,7 +317,7 @@ const Lib = {
         ar.albums.push(al);
       }
     }
-    for (const t of tracks) t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : ''));
+    for (const t of tracks) { t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : '')); t.na = norm(t.artist); }
     const shownTracks = tracks.filter(t => !t.album?.hidden);
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
@@ -327,7 +332,8 @@ const Lib = {
   artistAlbums(name) {
     const own = this.artistMap.get(name)?.albums || [];
     const nn = norm(name);
-    const appears = this.albums.filter(a => !own.includes(a) && a.tracks.some(t => norm(t.artist).includes(nn)));
+    const mine = new Set(own);
+    const appears = this.albums.filter(a => !mine.has(a) && a.tracks.some(t => t.na.includes(nn)));
     return { own: own.slice().sort((a, b) => (b.year || 0) - (a.year || 0)), appears };
   },
 };
@@ -450,7 +456,7 @@ const App = {
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       await Lib.load();
-      this.trackKey = null; // the track objects were rebuilt: redraw the now-playing bar with the new ones
+      this.redrawTrack(); // the track objects were rebuilt: redraw the now-playing bar with the new ones
       // during a scan only refresh pages that list the library, and do it silently
       if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks'].includes(Router.cur.name)) Router.render(true, 'none');
     });
@@ -498,15 +504,11 @@ const App = {
     const settling = this.seekUntil && performance.now() < this.seekUntil && Math.abs(s.pos - this.seekTarget) > 1.2;
     if (!settling) this.seekUntil = 0;
     if (!this.seeking && !settling) { this.posBase = s.pos; this.posAt = performance.now(); }
-    const key = s.trackId + '|' + (s.live ? s.live.title + '|' + s.live.artist : '');
-    if (this.trackKey !== key) { this.trackKey = key; this.trackChanged(); }
+    const key = this.syncTrack(s);
     if (s.playing && s.meter && s.meter.resampleMeterAvailable === true && s.meter.resampleOverloads > 0 && this.overloadWarningTrack !== key) {
       this.overloadWarningTrack = key;
       toast('重取樣輸出峰值超過 0 dBFS。請在訊號路徑查看已解碼區段的量測，並自行調整數位音量或前級增益。', { error: true, ms: 9000 });
     }
-    // states arrive before the library has loaded at startup (library.json can take a moment): a local track that
-    // isn't in Lib yet was drawn empty, so don't remember it as drawn and try again with the next state
-    if (s.trackId && !s.live && !Lib.trackById.has(s.trackId)) this.trackKey = null;
     // 最近聆聽: a local track counts once it actually starts playing
     if (s.playing && s.trackId && !s.live && s.trackId !== 'yt-live' && this.lastRecent !== s.trackId) {
       this.lastRecent = s.trackId;
@@ -521,11 +523,13 @@ const App = {
       document.body.classList.toggle('paused', !s.playing);
       $('#np').classList.toggle('paused', !s.playing && !!s.trackId);
     }
-    for (const p of ['b', 'np']) {
+    const modes = s.shuffle + '|' + s.repeat;
+    if (this.modesShown !== modes) for (const p of ['b', 'np']) {
+      this.modesShown = modes;
       $(`#${p}-shuffle`).classList.toggle('on', !!s.shuffle);
       const rep = $(`#${p}-repeat`);
       rep.classList.toggle('on', s.repeat !== 'off');
-      rep.innerHTML = icon(s.repeat === 'one' ? 'repeat1' : 'repeat');
+      setIcon(rep, s.repeat === 'one' ? 'repeat1' : 'repeat');
     }
     this.renderVolume();
     this.renderSignal();
@@ -555,12 +559,27 @@ const App = {
     $('#b-artist').textContent = t ? t.artist || t.album?.artist || '' : '';
     const art = $('#b-art');
     if (t && t.live) { delete art.dataset.art; liveArt(art, t.img, 160, t.title); }
-    else if (t) { art.dataset.art = (t.album?.loose ? 't:' + t.id : 'a:' + t.albumId); art.dataset.size = 64; fillArt(art, t.album?.loose ? 't' : 'a', t.album?.loose ? t.id : t.albumId, 64, t.album?.title); }
+    else if (t) { const [kind, id] = trackArt(t); art.dataset.art = kind + ':' + id; art.dataset.size = 64; fillArt(art, kind, id, 64, t.album?.title); }
     else art.textContent = '';
     this.renderFav();
     document.title = t ? `${t.title} · ${t.artist} — MIKU` : 'MIKU';
     NowPlaying.trackChanged(t);
     Views.markPlaying();
+  },
+
+  /** Draws the now-playing bar when the state's track differs from the one drawn. Returns the track's key. */
+  syncTrack(s) {
+    const key = s.trackId + '|' + (s.live ? s.live.title + '|' + s.live.artist : '');
+    if (this.trackKey !== key) { this.trackKey = key; this.trackChanged(); }
+    // states arrive before the library has loaded at startup (library.json can take a moment): a local track that
+    // isn't in Lib yet was drawn empty, so don't remember it as drawn and try again with the next state
+    if (s.trackId && !s.live && !Lib.trackById.has(s.trackId)) this.trackKey = null;
+    return key;
+  },
+  /** The library was loaded again (its track objects are new): draw the now-playing bar from them now. */
+  redrawTrack() {
+    this.trackKey = null;
+    if (this.state.trackId !== undefined) this.syncTrack(this.state);
   },
 
   refreshNowArt(k, id) {
@@ -574,7 +593,7 @@ const App = {
     const b = $('#b-fav');
     if (t && t.live) { b.style.visibility = 'hidden'; return; }
     b.classList.toggle('fav-on', !!on);
-    b.innerHTML = icon(on ? 'heartf' : 'heart');
+    setIcon(b, on ? 'heartf' : 'heart');
     b.style.visibility = t ? '' : 'hidden';
   },
 
@@ -600,13 +619,16 @@ const App = {
     const s = this.state, mode = s.volumeMode;
     const vol = $('#b-vol');
     vol.classList.toggle('disabled', mode === 'fixed');
-    vol.style.display = mode === 'fixed' ? 'none' : '';  // fixed (bit-perfect) volume: nothing to adjust, hide it
+    const display = mode === 'fixed' ? 'none' : '';  // fixed (bit-perfect) volume: nothing to adjust, hide it
+    if (vol.style.display !== display) vol.style.display = display;
     const db = s.volumeDb ?? -20;
     const x = s.muted ? 0 : dbToX(db);
     if (!this.volDrag) setSlider($('#b-volslider'), x);
-    $('#b-db').textContent = mode === 'fixed' ? '0 dB' : s.muted ? '靜音' : (db <= -79.5 ? '−∞' : (db === 0 ? '0' : '−' + Math.abs(db).toFixed(1)) + ' dB');
-    $('#b-mute').innerHTML = icon(s.muted || db <= -79.5 ? 'mute' : db < -30 ? 'vollow' : 'vol');
-    $('#b-mute').title = mode === 'fixed' ? '固定音量（Bit-perfect）' : '靜音 (M)';
+    setText($('#b-db'), mode === 'fixed' ? '0 dB' : s.muted ? '靜音' : (db <= -79.5 ? '−∞' : (db === 0 ? '0' : '−' + Math.abs(db).toFixed(1)) + ' dB'));
+    const mute = $('#b-mute');
+    setIcon(mute, s.muted || db <= -79.5 ? 'mute' : db < -30 ? 'vollow' : 'vol');
+    const title = mode === 'fixed' ? '固定音量（Bit-perfect）' : '靜音 (M)';
+    if (mute.title !== title) mute.title = title;
   },
   setVolume(db, muted) {
     db = Math.max(-80, Math.min(0, Math.round(db * 2) / 2));
@@ -620,23 +642,29 @@ const App = {
   /* ── signal path badge ── */
   renderSignal() {
     const sg = this.state.signal, el = $('#b-sig');
-    el.className = 'sig' + (sg ? ' q-' + sg.quality : '');
-    if (!sg) { $('#b-sigtxt').textContent = this.state.trackId ? '已停止' : '未播放'; return; }
+    const cls = 'sig' + (sg ? ' q-' + sg.quality : '');
+    if (el.className !== cls) el.className = cls;
+    if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? '已停止' : '未播放'); return; }
     const src = sg.dsd ? sg.dsdLabel : `${sg.sourceBits || ''}${sg.sourceBits ? '/' : ''}${khz(sg.sourceRate)}`;
-    $('#b-sigtxt').textContent = `${sg.codec} ${src}${sg.dop ? ' · DoP' : ''}`;
+    setText($('#b-sigtxt'), `${sg.codec} ${src}${sg.dop ? ' · DoP' : ''}`);
   },
 
   /* ── frame loop: progress bars & lyrics ── */
   lastSec: -1,
   frame() {
+    // runs every frame for as long as the app is open: elements looked up once, and nothing is written while the
+    // position doesn't move (paused / stopped)
+    const el = this.frameEls || (this.frameEls = {
+      seek: $('#b-seek'), npSeek: $('#np-seek'), pos: $('#b-pos'), dur: $('#b-dur'), npPos: $('#np-pos'), npDur: $('#np-dur'),
+    });
     const s = this.state, pos = this.pos, dur = s.dur || 0;
     const x = dur > 0 ? pos / dur : 0;
-    if (!this.seeking) { setSlider($('#b-seek'), x); if (NowPlaying.open) setSlider($('#np-seek'), x); }
+    if (!this.seeking) { setSlider(el.seek, x); if (NowPlaying.open) setSlider(el.npSeek, x); }
     const sec = Math.floor(pos);
     if (sec !== this.lastSec || this.durShown !== dur) {
       this.lastSec = sec; this.durShown = dur;
-      $('#b-pos').textContent = fmtTime(pos); $('#b-dur').textContent = fmtTime(dur);
-      $('#np-pos').textContent = fmtTime(pos); $('#np-dur').textContent = '−' + fmtTime(Math.max(0, dur - pos));
+      el.pos.textContent = fmtTime(pos); el.dur.textContent = fmtTime(dur);
+      el.npPos.textContent = fmtTime(pos); el.npDur.textContent = '−' + fmtTime(Math.max(0, dur - pos));
     }
     NowPlaying.tick(pos);
     requestAnimationFrame(() => this.frame());
@@ -780,9 +808,11 @@ function throttle(f, ms) {
 /* ═════════════════════════════ slider ═════════════════════════════ */
 function setSlider(el, x) {
   x = Math.max(0, Math.min(1, x || 0));
+  if (el._x === x) return;
   el._x = x;
-  el.querySelector('.fill').style.transform = `scaleX(${x})`;
-  el.querySelector('.knob').style.left = (x * 100) + '%';
+  const p = el._parts || (el._parts = [el.querySelector('.fill'), el.querySelector('.knob')]);
+  p[0].style.transform = `scaleX(${x})`;
+  p[1].style.left = (x * 100) + '%';
 }
 function slider(el, { start, move, end, tip }) {
   const tipEl = el.querySelector('.hover-tip');
@@ -882,6 +912,7 @@ function trackMenu(t, anchor, list) {
     { label: '前往專輯', icon: 'album', run: () => go('#/album/' + t.albumId) },
     ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
+    { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
     { label: '在 Finder 中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
 }
@@ -903,17 +934,19 @@ function artistItems(names) {
   return names.map(n => ({ label: names.length > 1 ? `前往演出者：${n}` : '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
-function albumMenu(al, anchor) {
+/** An album's menu. On its own page (onPage) the page already has 播放 / 隨機 and the artist links: left out. */
+function albumMenu(al, anchor, onPage) {
   menu([
-    { label: '播放', icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
-    { label: '隨機播放', icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
+    !onPage && { label: '播放', icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
+    !onPage && { label: '隨機播放', icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
     { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast('已排在下一首'); } },
     { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
     '-',
-    ...artistItems(al.artists.filter(realArtist)),
-    { label: '查看封面', icon: 'image', run: () => CoverView.open(al) },
-    { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
+    ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
+    // one entry: the cover view shows the picture and leads on to 更換封面 / 寫入音樂檔案
+    { label: '封面…', icon: 'image', run: () => CoverView.open(al) },
     { label: '編輯標籤…', icon: 'list', run: () => TagEditor.open(al) },
+    { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
     { label: '在 Finder 中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
     { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
@@ -927,7 +960,7 @@ async function rereadAlbum(al) {
   try { r = await Host.call('album.reread', { id: al.id }); }
   catch (e) { toast('重新讀取失敗：' + e.message, { error: true }); return; }
   await Lib.load();
-  App.trackKey = null;   // the track objects were rebuilt: the now-playing bar redraws with the new ones
+  App.redrawTrack();   // the track objects were rebuilt: the now-playing bar redraws with the new ones
   if (!r || !r.albumId) { toast('這張專輯的檔案已經不在了'); if (Router.cur.name === 'album') history.back(); return; }
   toast(`已重新讀取 ${r.tracks} 首`);
   const hash = '#/album/' + r.albumId;
@@ -1066,7 +1099,7 @@ const Queue = {
       const t = Lib.trackById.get(id);
       if (!t) return null;
       const r = h('div', { class: 'qrow' + (i === index ? ' cur' : '') + (i < index ? ' past' : ''), draggable: 'true', 'data-i': i },
-        artBox('thumb', t.album?.loose ? 't' : 'a', t.album?.loose ? t.id : t.albumId, 48, t.album?.title),
+        artBox('thumb', ...trackArt(t), 48, t.album?.title),
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't' }, t.title), h('div', { class: 'a' }, t.artist)),
         h('button', { class: 'icon-btn x', title: '移除', html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
       r.ondblclick = () => Host.call('queue.jump', { i });
@@ -1334,11 +1367,14 @@ function flyBackClone(target, b) {
   const card = target.closest('.card');
   const wrap = h('div', { class: (card ? card.className : 'card') + ' flip-fly' }, clone);
   wrap.classList.remove('pop-in', 'playing');
-  // clip the flight to the content area so the cover never flies over the player bar / sidebar
+  // clip the flight to the content area so the cover never flies over the player bar / sidebar, nor over the top bar
+  // (it floats over the top of the content area: the clone is above it, the real card goes under it)
   const cr = ($('#content') || document.body).getBoundingClientRect();
+  const bar = $('#topbar'), br = bar && bar.offsetParent ? bar.getBoundingClientRect() : null;
+  const top = br && br.height ? Math.min(cr.bottom, Math.max(cr.top, br.bottom)) : cr.top;
   const clip = h('div', { class: 'flip-clip' });
-  Object.assign(clip.style, { position: 'fixed', left: cr.left + 'px', top: cr.top + 'px', width: cr.width + 'px', height: cr.height + 'px', overflow: 'hidden', zIndex: 30, pointerEvents: 'none' });
-  Object.assign(wrap.style, { position: 'absolute', left: (t.left - cr.left) + 'px', top: (t.top - cr.top) + 'px', width: t.width + 'px', margin: 0, zIndex: 1,
+  Object.assign(clip.style, { position: 'fixed', left: cr.left + 'px', top: top + 'px', width: cr.width + 'px', height: (cr.bottom - top) + 'px', overflow: 'hidden', zIndex: 30, pointerEvents: 'none' });
+  Object.assign(wrap.style, { position: 'absolute', left: (t.left - cr.left) + 'px', top: (t.top - top) + 'px', width: t.width + 'px', margin: 0, zIndex: 1,
     pointerEvents: 'none', transformOrigin: '0 0', animation: 'none',
     transform: `translate(${b.rect.left - t.left}px, ${b.rect.top - t.top}px) scale(${b.rect.width / t.width}, ${b.rect.height / t.height})` });
   clip.append(wrap); document.body.append(clip);

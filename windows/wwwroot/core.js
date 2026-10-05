@@ -910,6 +910,7 @@ function trackMenu(t, anchor, list) {
     { label: '前往專輯', icon: 'album', run: () => go('#/album/' + t.albumId) },
     ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
+    { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
 }
@@ -931,17 +932,19 @@ function artistItems(names) {
   return names.map(n => ({ label: names.length > 1 ? `前往演出者：${n}` : '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
-function albumMenu(al, anchor) {
+/** An album's menu. On its own page (onPage) the page already has 播放 / 隨機 and the artist links: left out. */
+function albumMenu(al, anchor, onPage) {
   menu([
-    { label: '播放', icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
-    { label: '隨機播放', icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
+    !onPage && { label: '播放', icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
+    !onPage && { label: '隨機播放', icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
     { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast('已排在下一首'); } },
     { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
     '-',
-    ...artistItems(al.artists.filter(realArtist)),
-    { label: '查看封面', icon: 'image', run: () => CoverView.open(al) },
-    { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
+    ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
+    // one entry: the cover view shows the picture and leads on to 更換封面 / 寫入音樂檔案
+    { label: '封面…', icon: 'image', run: () => CoverView.open(al) },
     { label: '編輯標籤…', icon: 'list', run: () => TagEditor.open(al) },
+    { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
     { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
     { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
@@ -1362,11 +1365,14 @@ function flyBackClone(target, b) {
   const card = target.closest('.card');
   const wrap = h('div', { class: (card ? card.className : 'card') + ' flip-fly' }, clone);
   wrap.classList.remove('pop-in', 'playing');
-  // clip the flight to the content area so the cover never flies over the player bar / sidebar
+  // clip the flight to the content area so the cover never flies over the player bar / sidebar, nor over the top bar
+  // (it floats over the top of the content area: the clone is above it, the real card goes under it)
   const cr = ($('#content') || document.body).getBoundingClientRect();
+  const bar = $('#topbar'), br = bar && bar.offsetParent ? bar.getBoundingClientRect() : null;
+  const top = br && br.height ? Math.min(cr.bottom, Math.max(cr.top, br.bottom)) : cr.top;
   const clip = h('div', { class: 'flip-clip' });
-  Object.assign(clip.style, { position: 'fixed', left: cr.left + 'px', top: cr.top + 'px', width: cr.width + 'px', height: cr.height + 'px', overflow: 'hidden', zIndex: 30, pointerEvents: 'none' });
-  Object.assign(wrap.style, { position: 'absolute', left: (t.left - cr.left) + 'px', top: (t.top - cr.top) + 'px', width: t.width + 'px', margin: 0, zIndex: 1,
+  Object.assign(clip.style, { position: 'fixed', left: cr.left + 'px', top: top + 'px', width: cr.width + 'px', height: (cr.bottom - top) + 'px', overflow: 'hidden', zIndex: 30, pointerEvents: 'none' });
+  Object.assign(wrap.style, { position: 'absolute', left: (t.left - cr.left) + 'px', top: (t.top - top) + 'px', width: t.width + 'px', margin: 0, zIndex: 1,
     pointerEvents: 'none', transformOrigin: '0 0', animation: 'none',
     transform: `translate(${b.rect.left - t.left}px, ${b.rect.top - t.top}px) scale(${b.rect.width / t.width}, ${b.rect.height / t.height})` });
   clip.append(wrap); document.body.append(clip);

@@ -1,5 +1,9 @@
 'use strict';
 /* ═════════════════════════════ now playing & lyrics ═════════════════════════════ */
+/** Lyrics as the page keeps them, from a lyrics RPC result. */
+const lyricsOf = (r, id, source) => ({ id: r.id || id, synced: r.synced, lines: (r.lines || []).map(l => ({ t: l.t, text: l.text, trans: l.trans, words: l.words })), offset: r.offset || 0, source, instrumental: r.instrumental });
+const fmtOffset = o => (o >= 0 ? '+' : '') + (o || 0).toFixed(1) + 's';
+
 const NowPlaying = {
   open: false,
   showLyrics: true,
@@ -26,7 +30,7 @@ const NowPlaying = {
         if (this.ly !== ly) return;
         if (r && r.ok) {
           ly.offset = r.offset;
-          $('#ly-off').textContent = (ly.offset >= 0 ? '+' : '') + ly.offset.toFixed(1) + 's';
+          $('#ly-off').textContent = fmtOffset(ly.offset);
           this.active = -2; this.layoutLines(true);
           toast(`已自動對齊（${ly.offset >= 0 ? '+' : ''}${ly.offset.toFixed(1)} 秒）`);
         } else toast((r && r.reason) || '自動對齊失敗');
@@ -91,7 +95,7 @@ const NowPlaying = {
       if (!r) return;
       if (t.live) { const cur = App.track(); if (!cur || !cur.live || cur.title !== t.title) return; }
       else if (App.state.trackId !== id) return;
-      this.ly = { id: r.id || id, synced: r.synced, lines: (r.lines || []).map(l => ({ t: l.t, text: l.text, trans: l.trans, words: l.words })), offset: r.offset || 0, source: r.source, instrumental: r.instrumental };
+      this.ly = lyricsOf(r, id, r.source);
       this.renderLyrics();
       this.applyLayout();
       this.cands = null;
@@ -139,7 +143,7 @@ const NowPlaying = {
         const r = await Host.call('lyrics.apply', { id, key: c.key }).catch(() => null);
         if (!r) { toast('無法下載這份歌詞'); return; }
         if (App.state.trackId !== id) return;
-        this.ly = { id: r.id, synced: r.synced, lines: (r.lines || []).map(l => ({ t: l.t, text: l.text, trans: l.trans, words: l.words })), offset: r.offset || 0, source: r.source + '（手動選擇）', instrumental: r.instrumental };
+        this.ly = lyricsOf(r, r.id, r.source + '（手動選擇）');
         this.active = -2; this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
         toast('已套用，之後會固定使用這份歌詞');
       } },
@@ -230,7 +234,7 @@ const NowPlaying = {
       box.append(el);
       this.lines.push(el);
     });
-    $('#ly-off').textContent = (ly.offset >= 0 ? '+' : '') + (ly.offset || 0).toFixed(1) + 's';
+    $('#ly-off').textContent = fmtOffset(ly.offset);
     requestAnimationFrame(() => this.measure());
   },
 
@@ -276,12 +280,14 @@ const NowPlaying = {
     if (idx !== this.active) { this.active = idx; this.layoutLines(); }
     // word-by-word fill for enhanced LRC
     if (idx >= 0 && L[idx].words) {
-      const words = L[idx].words, spans = this.lines[idx].querySelectorAll('.w');
+      const line = this.lines[idx];
+      const words = L[idx].words, spans = line._w || (line._w = line.querySelectorAll('.w'));
       const lineEnd = idx + 1 < L.length ? L[idx + 1].t : words[words.length - 1].t + 1.5;
       for (let k = 0; k < spans.length; k++) {
         const ws = words[k].t, we = k + 1 < words.length ? words[k + 1].t : lineEnd;
         const f = Math.max(0, Math.min(1, (p - ws) / Math.max(0.05, we - ws)));
-        spans[k].style.setProperty('--p', (f * 100).toFixed(1) + '%');
+        const v = (f * 100).toFixed(1) + '%';
+        if (spans[k]._p !== v) { spans[k]._p = v; spans[k].style.setProperty('--p', v); }
       }
     }
   },
@@ -289,7 +295,7 @@ const NowPlaying = {
   nudge(d) {
     if (!this.ly) return;
     this.ly.offset = Math.round(((this.ly.offset || 0) + d) * 10) / 10;
-    $('#ly-off').textContent = (this.ly.offset >= 0 ? '+' : '') + this.ly.offset.toFixed(1) + 's';
+    $('#ly-off').textContent = fmtOffset(this.ly.offset);
     Host.call('lyricsOffset', { id: this.ly.id, offset: this.ly.offset });
   },
 };

@@ -404,12 +404,13 @@ const Views = {
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary', html: icon('play', true) + '播放', onclick: () => App.playTracks(al.tracks, 0, false) }),
           h('button', { class: 'btn', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(al.tracks, -1, true) }),
-          h('button', { class: 'icon-btn', title: '更多', html: icon('more'), onclick: e => albumMenu(al, e.currentTarget) })));
+          h('button', { class: 'icon-btn', title: '更多', html: icon('more'), onclick: e => albumMenu(al, e.currentTarget, true) })));
     const hero = h('div', { class: 'hero album' }, heroBg(kind, artId), cover, meta);
     view.append(hero);
     if (typeof Vinyl !== 'undefined') Vinyl.mount(hero, cover, al);
     Flip.play(al.id, cover);
     artNote(al, meta);
+    Convert.cueNote(al, meta);
     const list = h('div', { class: 'tracks' }, thead('作曲'));
     let lastDisc = null;
     al.tracks.forEach((t, i) => {

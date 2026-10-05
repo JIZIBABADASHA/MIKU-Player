@@ -161,6 +161,9 @@ svg.i.fill { fill: currentColor; stroke: none; }
 
 #content { flex: 1; overflow-y: scroll; overflow-x: hidden; min-height: 0; scroll-behavior: auto; scrollbar-gutter: stable; }
 #view { padding: 64px 0 40px; min-height: 100%; }
+/* always its own backdrop root: a page drawn without the enter animation (e.g. refreshed after 重新讀取專輯資訊) would
+   otherwise let the sticky table header's backdrop blur (Glass) sample the whole window and turn dark */
+#view { will-change: opacity; }
 #view.enter { animation: viewIn .38s var(--ease-out) both; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .pad { padding: 0 36px; }

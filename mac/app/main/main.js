@@ -29,6 +29,7 @@ const ff = require('./ffmpeg');
 const TagWriter = require('./tagwriter');
 const Metadata = require('./metadata');
 const LyricAlign = require('./lyricalign');
+const Converter = require('./converter');
 const { FingerprintService } = require('./fingerprint');
 const { resize } = require('./artwork');
 const { getBytes } = require('./common');
@@ -164,12 +165,20 @@ setInterval(() => {
 
 // ───────────── messaging ─────────────
 const RemoteEvents = new Set(['state', 'queue', 'error', 'library', 'favs']);
+let lastTick = null, lastTickAt = 0;   // the last periodic state sent to the page
 function post(ev, d, tick = false) {
   let json = null;
   if (remote && RemoteEvents.has(ev) && remote.hasClients && (!tick || ++remoteTick % 3 === 0)) {
     try { remote.broadcast(json = JSON.stringify({ ev, d })); } catch (e) { Log.error('Remote broadcast', e); }
   }
   if (!ready || !win || win.isDestroyed()) return;
+  if (tick) {
+    // paused / stopped: the periodic state is the same every time; don't make the page parse and redraw it 5×/s
+    // (a change is posted at once by postSoon, and the same state still goes out once a second)
+    const s = JSON.stringify(d), now = Date.now();
+    if (s === lastTick && now - lastTickAt < 1000) return;
+    lastTick = s; lastTickAt = now;
+  }
   win.webContents.send('host', { ev, d });
 }
 const pending = new Set();
@@ -364,6 +373,141 @@ function renameFiles(list, failed) {
 }
 
 /** Track ids come from paths: favourites, recent plays, lyric offsets, the lyrics cache and the queue follow renamed files. */
+// ───────────── 轉換格式 / CUE 分軌 (converter.js; the same as Windows' MainForm.ConvertJob) ─────────────
+let convertJob = null;
+const isUnder = (p, folder) => { const f = path.resolve(folder) + path.sep; return path.resolve(p).toLowerCase().startsWith(f.toLowerCase()) || path.resolve(p).toLowerCase() === path.resolve(folder).toLowerCase(); };
+
+async function convertJobRun(a, cue) {
+  if (convertJob) throw new Error('正在轉換其他檔案，請稍候');
+  if (!ff.Ffmpeg.path) throw new Error('找不到 FFmpeg，無法轉換格式');
+  const o = Converter.options(a.opts);
+  const ext = Converter.ext(o.format);
+  const replace = a.mode === 'replace';
+  const dir = typeof a.dir === 'string' ? a.dir : '';
+  if (!replace && (!dir || !fs.existsSync(dir))) throw new Error('請先選擇要放檔案的資料夾');
+  if (replace && lib.progress.scanning) throw new Error('媒體庫正在掃描，請等掃描完成後再轉換');
+
+  const jobs = [];
+  if (!cue) {
+    for (const id of L(a, 'ids')) { const t = lib.getTrack(id); if (t && t.codec !== 'YouTube') jobs.push({ id: t.id, src: t, start: 0, length: 0, meta: null, name: path.basename(t.path).replace(/\.[^.]*$/, '') }); }
+  } else {
+    const or = (x, y) => (x && String(x).trim()) ? x : y;
+    for (const ct of cue.tracks) {
+      const src = ct.source;
+      const meta = {
+        title: or(ct.title, 'Track ' + ct.no), artist: or(ct.performer, or(cue.performer, src.artist)), album: or(cue.title, src.album),
+        album_artist: or(cue.performer, src.albumArtist), composer: or(ct.songwriter, cue.songwriter), genre: or(cue.genre, src.genre),
+        date: or(cue.date, src.year > 0 ? String(src.year) : ''), track: `${ct.no}/${cue.tracks.length}`, disc: src.discNo > 0 ? String(src.discNo) : '',
+      };
+      jobs.push({ id: 'c' + ct.no, src, start: ct.start, length: ct.length, meta, name: `${String(ct.no).padStart(2, '0')} ${meta.title}` });
+    }
+  }
+  if (!jobs.length) return { done: 0, failed: [], cancelled: false };
+
+  const failed = [], reserved = new Set(), items = [], outFolders = new Set();
+  const exists = p => fs.existsSync(p);
+  for (const j of jobs) {
+    const stem = Converter.safeName(j.name);
+    if (replace) {
+      const folder = path.dirname(j.src.path);
+      const final = cue ? path.join(folder, stem + ext) : j.src.path.replace(/\.[^./]*$/, '') + ext;
+      const same = !cue && final.toLowerCase() === j.src.path.toLowerCase();
+      if (!same && (exists(final) || reserved.has(final.toLowerCase()))) {
+        failed.push({ file: path.basename(final), error: '已經有同名的檔案' });
+        post('convertProgress', { id: j.id, state: 'skip', error: '已經有同名的檔案' });
+        continue;
+      }
+      reserved.add(final.toLowerCase());
+      items.push({ ...j, target: same ? path.join(folder, stem + '.miku-new' + ext) : final, final });
+    } else {
+      let folder = dir;
+      if (o.albumFolder) {
+        const al = lib.getAlbum(j.src.albumId);
+        const name = cue && cue.title ? cue.title : !al ? j.src.album : al.loose ? path.basename(al.folder) : al.title;
+        folder = path.join(dir, Converter.safeName(name && name.trim() ? name : '未知專輯'));
+        outFolders.add(folder);
+        if (!cue && al && new Set(al.tracks.map(t => t.discNo)).size > 1) folder = path.join(folder, 'Disc ' + j.src.discNo);
+      }
+      let target = path.join(folder, stem + ext);
+      for (let n = 2; exists(target) || reserved.has(target.toLowerCase()); n++) target = path.join(folder, `${stem} (${n})${ext}`);
+      reserved.add(target.toLowerCase());
+      items.push({ ...j, target, final: target });
+    }
+  }
+
+  const ac = convertJob = new AbortController();
+  try {
+    const converted = [];
+    let done = 0;
+    const workers = Math.max(1, Math.min(4, Math.floor(require('os').cpus().length / 2)));
+    const queue = items.slice();
+    await Promise.all(Array.from({ length: workers }, async () => {
+      for (let it; (it = queue.shift());) {
+        if (ac.signal.aborted) { post('convertProgress', { id: it.id, state: 'skip', error: '已停止' }); continue; }
+        post('convertProgress', { id: it.id, state: 'run', pct: 0 });
+        try {
+          let pic = null;
+          if (o.cover) { pic = await ff.picture(it.src.path); if (!pic) pic = await art.currentPicture(it.src.albumId).catch(() => null); }
+          fs.mkdirSync(path.dirname(it.target), { recursive: true });
+          let last = 0;
+          await Converter.convert(it.src, it.target, o, S.dsdPcmRate || 176400, pic, x => {
+            const pct = Math.floor(x * 100);
+            if (pct !== last) { last = pct; post('convertProgress', { id: it.id, state: 'run', pct: x }); }
+          }, ac.signal, { start: it.start, length: it.length, meta: it.meta });
+          converted.push(it);
+          if (!replace) { done++; post('convertProgress', { id: it.id, state: 'done' }); }
+        } catch (e) {
+          if (e.cancelled || ac.signal.aborted) { post('convertProgress', { id: it.id, state: 'skip', error: '已停止' }); continue; }
+          Log.error('Convert ' + it.src.path, e);
+          failed.push({ file: path.basename(it.target), error: e.message });
+          post('convertProgress', { id: it.id, state: 'fail', error: e.message });
+        }
+      }
+    }));
+    Log.info(`Converted ${converted.length}/${items.length} → ${o.format}${cue ? ' (CUE)' : ''}${replace ? ' (replace)' : ' → ' + dir}`);
+
+    let albumId = null;
+    if (replace && converted.length) {
+      // the originals go to the Trash; a track that is playing is stopped first
+      const leaving = new Set(converted.map(i => i.src.path.toLowerCase()));
+      const cur = engine.track;
+      const touches = !!(cur && cur.codec !== 'YouTube' && leaving.has(cur.path.toLowerCase()));
+      let wasPlaying = false, pos = 0;
+      if (touches) { wasPlaying = engine.isPlaying; pos = engine.position; engine.stop(); await new Promise(r => setTimeout(r, 250)); }
+      else engine.invalidateNext();
+      const moved = {};
+      const albums = [...new Set(converted.map(i => i.src.albumId))];
+      if (cue) {
+        if (converted.length === jobs.length) {
+          for (const src of new Set(converted.map(i => i.src))) { try { await shell.trashItem(src.path); } catch (e) { failed.push({ file: path.basename(src.path), error: e.message }); } }
+          try { await shell.trashItem(cue.path); } catch (e) { failed.push({ file: path.basename(cue.path), error: e.message }); }
+        } else failed.push({ file: path.basename(cue.path), error: '有曲目沒有切出來，原本的檔案保留' });
+        for (const it of converted) { done++; post('convertProgress', { id: it.id, state: 'done' }); }
+      } else {
+        for (const it of converted) {
+          try {
+            await shell.trashItem(it.src.path);
+            if (it.target.toLowerCase() !== it.final.toLowerCase()) fs.renameSync(it.target, it.final);
+            else moved[it.src.path] = it.final;
+            done++;
+            post('convertProgress', { id: it.id, state: 'done' });
+          } catch (e) {
+            if (fs.existsSync(it.src.path)) { try { fs.unlinkSync(it.target); } catch { } }
+            failed.push({ file: path.basename(it.src.path), error: e.message });
+            post('convertProgress', { id: it.id, state: 'fail', error: e.message });
+            Log.error('Convert replace ' + it.src.path, e);
+          }
+        }
+      }
+      if (Object.keys(moved).length) moveTrackIds(moved);
+      for (const id of albums) { try { await lib.rereadAlbum(id, moved); } catch (e) { Log.error('Reread after convert', e); } }
+      for (const it of converted) { const t = lib.getTrack(hash(it.final.toLowerCase())); if (t) { albumId = t.albumId; break; } }
+      if (touches && !cue) { try { await player.reload(pos, wasPlaying); } catch (e) { Log.error('Resume after convert', e); } }
+    } else if (!replace && converted.length && S.folders.some(f => isUnder(dir, f))) lib.startScan();
+    return { done, failed, cancelled: ac.signal.aborted, dir: replace ? null : outFolders.size === 1 ? [...outFolders][0] : dir, albumId };
+  } finally { convertJob = null; }
+}
+
 function moveTrackIds(moved) {
   const map = new Map(Object.entries(moved).map(([a, b]) => [hash(a.toLowerCase()), hash(b.toLowerCase())]));
   for (const [from, to] of map) {
@@ -536,6 +680,25 @@ async function handleRpc(m, a) {
     case 'tags.search': return Metadata.search(a.album, a.artist, lib.getAlbum(a.id), L(a, 'sources'));
     case 'tags.release': return Metadata.get(a.source, a.id, a.country);
     case 'tags.save': return saveTags(a);
+    case 'convert.info': return Converter.info('垃圾桶');
+    case 'convert.pickFolder': {
+      const r = await dialog.showOpenDialog(win, { title: '選擇轉換後的檔案要放的資料夾', properties: ['openDirectory', 'createDirectory'], buttonLabel: '選擇', defaultPath: a.dir && fs.existsSync(a.dir) ? a.dir : undefined });
+      return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
+    }
+    case 'convert.start': return convertJobRun(a, null);
+    case 'convert.cancel': if (convertJob) convertJob.abort(); return null;
+    case 'convert.open': if (a.path && fs.existsSync(a.path)) await shell.openPath(a.path); return null;
+    case 'cue.info': {
+      const cue = Converter.cueForAlbum(lib.getAlbum(a.id));
+      return cue ? { cue: cue.path, cueName: path.basename(cue.path), tracks: cue.tracks.map(t => ({ no: t.no, title: t.title, performer: t.performer, dur: Math.round(t.length * 100) / 100 })) } : null;
+    }
+    case 'cue.split': {
+      const al = lib.getAlbum(a.id);
+      if (!al) throw new Error('找不到這張專輯');
+      const cue = Converter.cueForAlbum(al);
+      if (!cue) throw new Error('找不到這張專輯的 CUE 標記');
+      return convertJobRun(a, cue);
+    }
     case 'acoustid.info': return { hasKey: fp.hasKey, hasTool: !!fp.fpcalcPath };
     case 'acoustid.key': S.acoustIdKey = String(a.key || '').trim(); saveSettings(); return { hasKey: fp.hasKey };
     case 'tags.identify': {

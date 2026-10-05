@@ -304,13 +304,17 @@ class MusicLibrary extends EventEmitter {
 
   /** Compact JSON: arrays instead of objects keep 30k+ tracks small and fast to parse. */
   exportJson() {
+    // the library only changes in build() (which raises the revision): the same revision is the same JSON
+    if (this.exported && this.exported.revision === this.revision) return this.exported.data;
     const albums = [], tracks = [];
     for (const a of this.albums.values()) {
       // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
       albums.push([a.id, a.title, a.artist, a.year, a.genre, Math.floor(a.added / 1e7), (a.artPath || a.tracks.some(t => t.hasPic)) ? 1 : 0, a.loose ? 1 : 0, a.versionGroup || '', path.basename(a.folder || '')]);
       for (const t of a.tracks) tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '']);
     }
-    return Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks }));
+    const data = Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks }));
+    this.exported = { revision: this.revision, data };
+    return data;
   }
 }
 

@@ -218,6 +218,7 @@ const Settings = {
         lyTxt.textContent = `已檢查 ${p.done} / ${p.total} 首，${p.found} 首有歌詞`;
       });
       on.append(field('搜尋所有歌詞', lyTxt, lyBtn));
+      if (typeof Convert !== 'undefined') Convert.settings({ section, field, sw, select });
     }
 
     if (tab === 'look') {

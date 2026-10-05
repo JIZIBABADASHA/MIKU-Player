@@ -61,7 +61,7 @@ async function lyrics(file) {
 const jobs = new Map();
 function transcodeTarget(t, dsdRate) {
   let st = null; try { st = fs.statSync(t.path); } catch { }
-  const key = hash(t.path + '|' + (st ? st.size + ':' + st.mtimeMs : '') + '|' + (t.isDsd ? dsdRate : 0));
+  const key = hash(t.path + '|' + (st ? st.size + ':' + st.mtimeMs : '') + '|' + (t.codec === 'DSF' || t.codec === 'DFF' ? dsdRate : 0));
   return path.join(AppPaths.Transcode, key + '.flac');
 }
 
@@ -74,7 +74,7 @@ function transcode(t, dsdRate) {
     if (!Ffmpeg.path) return reject(new Error('找不到 FFmpeg，無法播放 ' + (t.codec || '') + ' 格式。'));
     const tmp = target + '.part';
     const args = ['-v', 'error', '-y', '-i', t.path, '-map', '0:a:0', '-vn', '-map_metadata', '-1'];
-    if (t.isDsd) args.push('-af', `aresample=${dsdRate}:filter_size=64:cutoff=0.97,volume=-1dB`, '-sample_fmt', 's32', '-bits_per_raw_sample', '24');
+    if (t.codec === 'DSF' || t.codec === 'DFF') args.push('-af', `aresample=${dsdRate}:filter_size=64:cutoff=0.97,volume=-1dB`, '-sample_fmt', 's32', '-bits_per_raw_sample', '24');
     else if ((t.bits || 16) > 16) args.push('-sample_fmt', 's32', '-bits_per_raw_sample', '24');
     else args.push('-sample_fmt', 's16');
     args.push('-c:a', 'flac', '-compression_level', '0', '-f', 'flac', tmp);
