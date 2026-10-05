@@ -357,7 +357,7 @@ svg.i.fill { fill: currentColor; stroke: none; }
 
 .right-tools { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .sig {
-  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border-radius: 15px;
+  position: relative; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border-radius: 15px;
   font-size: 12px; color: var(--text-2); background: rgba(var(--ink), .045); margin-right: 6px; white-space: nowrap;
   transition: background .15s, color .15s;
 }
@@ -366,8 +366,127 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .q-bitperfect { --q: var(--teal); }
 .q-enhanced { --q: var(--pink); }
 .q-high { --q: var(--amber); }
-.q-low { --q: #8b919c; }
+.q-low { --q: #ff3b4f; }
 .sig .dot { background: var(--q, var(--text-3)); box-shadow: 0 0 10px var(--q, transparent); }
+/* lossy source: the dot blinks red */
+.sig.q-low .dot { animation: sig-blink 1.2s ease-in-out infinite; }
+@keyframes sig-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--q), 0 0 3px var(--q); } 50% { opacity: .18; box-shadow: 0 0 0 transparent; } }
+/* DSD: a rainbow four-point star that flares and turns, sparkles twinkling around the pill, a sheen, a colour-shifting halo */
+.sig.dsd { color: var(--text); text-shadow: 0 0 8px rgba(170, 225, 255, .7); animation: star-halo 4s linear infinite; }
+@keyframes star-halo {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(170, 230, 255, .7), 0 0 14px rgba(140, 215, 255, .45), 0 0 26px rgba(140, 215, 255, .18); }
+  33% { box-shadow: inset 0 0 0 1px rgba(255, 190, 240, .7), 0 0 14px rgba(255, 170, 235, .45), 0 0 26px rgba(255, 170, 235, .18); }
+  66% { box-shadow: inset 0 0 0 1px rgba(255, 240, 180, .7), 0 0 14px rgba(255, 230, 160, .45), 0 0 26px rgba(255, 230, 160, .18); }
+}
+/* the star: ::before is the star itself, ::after the long cross flare; the glow is a filter on the holder so the clip-path doesn't cut it */
+.sig.dsd .dot, .sigpop .dsd h3 .dot {
+  position: relative; width: 12px; height: 12px; border-radius: 0; background: none; box-shadow: none; opacity: 1; overflow: visible;
+  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px rgba(150, 225, 255, 1)) drop-shadow(0 0 9px rgba(255, 170, 240, .8));
+}
+.sigpop .dsd h3 .dot { width: 14px; height: 14px; }
+.sig.dsd .dot::before, .sigpop .dsd h3 .dot::before {
+  content: ''; position: absolute; inset: -3px;
+  background: conic-gradient(from 0deg, #fff, #c6f1ff, #ffd6f6, #fff4c4, #c9ffe9, #dcd9ff, #fff);
+  clip-path: polygon(50% 0, 59% 41%, 100% 50%, 59% 59%, 50% 100%, 41% 59%, 0 50%, 41% 41%);
+  animation: star-turn 2.4s cubic-bezier(.5, 0, .3, 1) infinite;
+}
+.sig.dsd .dot::after, .sigpop .dsd h3 .dot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, .95) 50%, transparent) center / 100% 1.5px no-repeat,
+    linear-gradient(0deg, transparent, rgba(255, 255, 255, .95) 50%, transparent) center / 1.5px 100% no-repeat;
+  animation: star-flare 2.4s ease-in-out infinite;
+}
+@keyframes star-turn { 0% { transform: rotate(0) scale(.85); } 50% { transform: rotate(45deg) scale(1.15); } 100% { transform: rotate(90deg) scale(.85); } }
+@keyframes star-flare { 0%, 100% { opacity: .15; transform: scale(.35) rotate(0); } 45% { opacity: 1; transform: scale(1) rotate(0); } 55% { opacity: 1; transform: scale(1.05) rotate(0); } }
+/* sheen across the pill (DSD and hi-res) */
+.sig.dsd::before, .sig.hires::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(105deg, transparent 34%, rgba(255, 255, 255, .6) 47%, rgba(205, 240, 255, .4) 51%, rgba(255, 210, 245, .25) 55%, transparent 66%);
+  transform: translateX(-130%); animation: dia-sheen 3.4s cubic-bezier(.45, 0, .25, 1) infinite;
+}
+@keyframes dia-sheen { 0% { transform: translateX(-130%); } 45%, 100% { transform: translateX(130%); } }
+/* small sparkles: ::after on the pill and on its text twinkle at different moments and places */
+.sig.dsd::after, .sig.dsd > span::after {
+  content: ''; position: absolute; width: 9px; height: 9px; pointer-events: none; background: #fff; filter: drop-shadow(0 0 2px rgba(170, 230, 255, 1));
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  opacity: 0;
+}
+.sig.dsd::after { left: 3px; top: 2px; animation: twinkle-a 2.9s ease-in-out infinite; }
+.sig.dsd > span::after { right: 10px; bottom: 2px; width: 8px; height: 8px; animation: twinkle-b 3.7s ease-in-out infinite .9s; }
+@keyframes twinkle-a {
+  0%, 6% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(0); }
+  14% { opacity: 1; transform: translate(0, 0) scale(1) rotate(45deg); }
+  24%, 48% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(90deg); }
+  50% { transform: translate(14px, 17px) scale(.2); }
+  58% { opacity: 1; transform: translate(14px, 17px) scale(.8) rotate(45deg); }
+  68%, 100% { opacity: 0; transform: translate(14px, 17px) scale(.2) rotate(90deg); }
+}
+@keyframes twinkle-b {
+  0%, 10% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(0); }
+  18% { opacity: .95; transform: translate(0, 0) scale(1) rotate(45deg); }
+  28%, 55% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(90deg); }
+  57% { transform: translate(-28px, -16px) scale(.2); }
+  65% { opacity: .9; transform: translate(-28px, -16px) scale(.9) rotate(45deg); }
+  75%, 100% { opacity: 0; transform: translate(-28px, -16px) scale(.2) rotate(90deg); }
+}
+/* bit-perfect, ordinary lossless (≤ 16-bit / 48 kHz): the same star, quieter — silver-blue, a softer flare, no sheen, no twinkles */
+.sig.q-bitperfect:not(.dsd):not(.hires) { color: var(--text); box-shadow: inset 0 0 0 1px rgba(170, 225, 255, .28), 0 0 10px rgba(140, 210, 255, .14); }
+.sig.q-bitperfect:not(.dsd):not(.hires) .dot, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot {
+  position: relative; width: 11px; height: 11px; border-radius: 0; background: none; box-shadow: none; overflow: visible; opacity: .9;
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, .8)) drop-shadow(0 0 4px rgba(140, 215, 255, .7));
+}
+.sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot { width: 13px; height: 13px; }
+.sig.q-bitperfect:not(.dsd):not(.hires) .dot::before, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before {
+  content: ''; position: absolute; inset: -3px;
+  background: radial-gradient(circle, #fff 0 18%, #d6f1ff 40%, #9fd8ff 75%);
+  clip-path: polygon(50% 0, 55.5% 44.5%, 100% 50%, 55.5% 55.5%, 50% 100%, 44.5% 55.5%, 0 50%, 44.5% 44.5%);
+  animation: star-twinkle 3.2s ease-in-out infinite;
+}
+.sig.q-bitperfect:not(.dsd):not(.hires) .dot::after, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(230, 245, 255, .8) 50%, transparent) center / 100% 1px no-repeat,
+    linear-gradient(0deg, transparent, rgba(230, 245, 255, .8) 50%, transparent) center / 1px 100% no-repeat;
+  animation: star-flash 3.2s ease-in-out infinite;
+}
+/* a star twinkles: it rests dim, then flashes twice — no spinning */
+@keyframes star-twinkle { 0%, 38%, 100% { opacity: .7; transform: scale(.78); } 48% { opacity: 1; transform: scale(1.3); } 56% { opacity: .75; transform: scale(.85); } 64% { opacity: 1; transform: scale(1.12); } 76% { opacity: .7; transform: scale(.78); } }
+@keyframes star-flash { 0%, 38%, 100% { opacity: 0; transform: scale(.3); } 48% { opacity: .85; transform: scale(1); } 56% { opacity: .15; transform: scale(.55); } 64% { opacity: .55; transform: scale(.8); } 76% { opacity: 0; transform: scale(.35); } }
+/* bit-perfect hi-res: the star in gold — gold star and flare, gold twinkles, a gold sheen, a halo shifting gold / amber / champagne */
+.sig.hires { --q: #ffc93c; color: var(--text); text-shadow: 0 0 8px rgba(255, 200, 80, .7); animation: gold-halo 4s linear infinite; }
+@keyframes gold-halo {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 210, 100, .8), 0 0 14px rgba(255, 195, 60, .5), 0 0 28px rgba(255, 180, 40, .22); }
+  33% { box-shadow: inset 0 0 0 1px rgba(255, 175, 70, .8), 0 0 14px rgba(255, 160, 50, .5), 0 0 28px rgba(255, 140, 30, .22); }
+  66% { box-shadow: inset 0 0 0 1px rgba(255, 235, 170, .85), 0 0 14px rgba(255, 228, 150, .5), 0 0 28px rgba(255, 215, 120, .22); }
+}
+.sig.hires .dot, .sigpop .hires h3 .dot {
+  position: relative; width: 12px; height: 12px; border-radius: 0; background: none; box-shadow: none; opacity: 1; overflow: visible;
+  filter: drop-shadow(0 0 2px #fff6d8) drop-shadow(0 0 5px rgba(255, 200, 60, 1)) drop-shadow(0 0 10px rgba(255, 160, 20, .85));
+}
+.sigpop .hires h3 .dot { width: 14px; height: 14px; }
+.sig.hires .dot::before, .sigpop .hires h3 .dot::before {
+  content: ''; position: absolute; inset: -3px;
+  background: conic-gradient(from 0deg, #fffbea, #ffe07a, #ffb52e, #fff1b8, #ffcf4d, #e8a10c, #fffbea);
+  clip-path: polygon(50% 0, 59% 41%, 100% 50%, 59% 59%, 50% 100%, 41% 59%, 0 50%, 41% 41%);
+  animation: star-turn 2.4s cubic-bezier(.5, 0, .3, 1) infinite;
+}
+.sig.hires .dot::after, .sigpop .hires h3 .dot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 240, 190, .95) 50%, transparent) center / 100% 1.5px no-repeat,
+    linear-gradient(0deg, transparent, rgba(255, 240, 190, .95) 50%, transparent) center / 1.5px 100% no-repeat;
+  animation: star-flare 2.4s ease-in-out infinite;
+}
+.sig.hires::before { background: linear-gradient(105deg, transparent 34%, rgba(255, 248, 215, .7) 47%, rgba(255, 215, 110, .45) 52%, rgba(255, 180, 60, .25) 56%, transparent 66%); }
+.sig.hires::after, .sig.hires > span::after {
+  content: ''; position: absolute; width: 9px; height: 9px; pointer-events: none; background: #ffe9a8;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  opacity: 0;
+}
+.sig.hires::after { left: 3px; top: 2px; animation: twinkle-a 2.9s ease-in-out infinite; }
+.sig.hires > span::after { right: 10px; bottom: 2px; width: 8px; height: 8px; animation: twinkle-b 3.7s ease-in-out infinite .9s; }
+@media (prefers-reduced-motion: reduce) { .sig.hires::after, .sig.hires > span::after, .sig.hires .dot::before, .sig.hires .dot::after, .sigpop .hires h3 .dot::before, .sigpop .hires h3 .dot::after, .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before, .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after, .sig.dsd, .sig.dsd::before, .sig.dsd::after, .sig.dsd > span::after, .sig.hires::before, .sig.hires, .sig.dsd .dot::before, .sig.dsd .dot::after, .sigpop .dsd h3 .dot::before, .sigpop .dsd h3 .dot::after, .sig.q-low .dot { animation: none; } }
 .vol { display: flex; align-items: center; gap: 4px; width: 178px; flex: none; }
 .vol .slider { flex: 1; }
 .vol .db { width: 56px; font-size: 11.5px; color: var(--text-3); text-align: right; white-space: nowrap; }
@@ -477,7 +596,7 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .np-cover img.ok { opacity: 1; }
 #np.paused .np-cover { transform: scale(.94); }
 .np-info { margin-top: 22px; width: clamp(260px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); }
-.np-title { color: rgb(var(--np-ink)); font: 700 26px/1.2 var(--font-display); letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.np-title { color: rgb(var(--np-ink)); font: 700 26px/1.32 var(--font-display); /* 1.2 cut off descenders (g, y, p) */ letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .np-artist { color: rgba(var(--np-ink), .66); font-size: 16px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-artist a { cursor: pointer; }
 .np-artist a:hover { color: rgb(var(--np-ink)); text-decoration: underline; }

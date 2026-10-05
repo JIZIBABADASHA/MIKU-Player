@@ -26,3 +26,9 @@
 .cvt-foot { display: flex; align-items: center; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--line); }
 .cvt-status { flex: 1; font-size: 13px; min-width: 0; }
 @media (max-width: 600px) { .cvt-k { width: 56px; } }
+/* 格式: 無損 / 有損 groups */
+.cvt-fmt { display: inline-flex; align-items: center; gap: 8px; }
+.cvt-fmt-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 650; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; }
+.cvt-fmt-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+.cvt-fmt.lossless .cvt-fmt-tag { color: var(--teal); background: rgba(var(--teal-rgb), .12); }
+.cvt-fmt.lossy .cvt-fmt-tag { color: #ff8a3d; background: rgba(255, 138, 61, .12); }

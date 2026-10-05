@@ -61,25 +61,34 @@
       it.setAttribute('aria-selected', i === sel.selectedIndex);
       it.innerHTML = '<span class="msel-txt"></span><span class="msel-ck">' + CHECK + '</span>';
       fill(it.firstChild, o);
-      it.onmouseenter = () => setActive(i);
+      it.onmouseenter = () => setActive(i, false); // hover never scrolls the list (it used to jump under the cursor)
       it.onmousedown = e => e.preventDefault();
       it.onclick = () => { if (!o.disabled) choose(sel, i); };
       menu.append(it); return it;
     });
-    const setActive = i => { items.forEach((x, k) => x.classList.toggle('act', k === i)); active = i; items[i] && items[i].scrollIntoView({ block: 'nearest' }); };
+    // scroll only the menu itself, and only for the keyboard / when opening
+    const reveal = it => {
+      if (!it) return;
+      const t = it.offsetTop - 6, b = it.offsetTop + it.offsetHeight + 6;
+      if (t < menu.scrollTop) menu.scrollTop = t;
+      else if (b > menu.scrollTop + menu.clientHeight) menu.scrollTop = b - menu.clientHeight;
+    };
+    const setActive = (i, scroll = true) => { items.forEach((x, k) => x.classList.toggle('act', k === i)); active = i; if (scroll) reveal(items[i]); };
     document.body.append(menu);
     // position
     const r = w.btn.getBoundingClientRect();
     menu.style.minWidth = r.width + 'px';
-    const mh = Math.min(menu.scrollHeight, 320);
     const below = innerHeight - r.bottom - 12;
+    // a short list (about 10 options) opens whole, without a scrollbar, when there is room
+    const mh = Math.min(menu.scrollHeight, Math.max(320, Math.min(460, Math.max(below, r.top - 12))));
+    menu.style.maxHeight = mh + 'px';
     const up = below < mh && r.top > below;
     menu.style.left = Math.min(r.left, innerWidth - menu.offsetWidth - 8) + 'px';
     menu.style.top = (up ? r.top - mh - 6 : r.bottom + 6) + 'px';
     menu.classList.toggle('up', up);
     requestAnimationFrame(() => menu.classList.add('show'));
     w.root.classList.add('open'); w.btn.setAttribute('aria-expanded', 'true');
-    if (items[active]) items[active].scrollIntoView({ block: 'nearest' });
+    reveal(items[active]);
     openMenu = { menu, sel, items, get active() { return active; }, setActive };
   };
 

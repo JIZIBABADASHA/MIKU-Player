@@ -642,7 +642,7 @@ const App = {
   /* ── signal path badge ── */
   renderSignal() {
     const sg = this.state.signal, el = $('#b-sig');
-    const cls = 'sig' + (sg ? ' q-' + sg.quality : '');
+    const cls = 'sig' + (sg ? ' q-' + sg.quality : '') + sigShine(sg);
     if (el.className !== cls) el.className = cls;
     if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? '已停止' : '未播放'); return; }
     const src = sg.dsd ? sg.dsdLabel : `${sg.sourceBits || ''}${sg.sourceBits ? '/' : ''}${khz(sg.sourceRate)}`;
@@ -935,7 +935,8 @@ function artistItems(names) {
 }
 
 /** An album's menu. On its own page (onPage) the page already has 播放 / 隨機 and the artist links: left out. */
-function albumMenu(al, anchor, onPage) {
+async function albumMenu(al, anchor, onPage) {
+  const cue = await Convert.cueFor(al);  // 「按 CUE 標記切開…」 only when the album's folder has a CUE sheet for its big file
   menu([
     !onPage && { label: '播放', icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
     !onPage && { label: '隨機播放', icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
@@ -947,6 +948,7 @@ function albumMenu(al, anchor, onPage) {
     { label: '封面…', icon: 'image', run: () => CoverView.open(al) },
     { label: '編輯標籤…', icon: 'list', run: () => TagEditor.open(al) },
     { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
+    cue && { label: `按 CUE 標記切開（${cue.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue }) },
     { label: '在 Finder 中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
     { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
@@ -973,6 +975,8 @@ async function rereadAlbum(al) {
 
 /* ═════════════════════════════ signal path ═════════════════════════════ */
 const QLabel = { bitperfect: 'Bit-perfect', enhanced: '已處理', high: '無損', low: '有損來源' };
+/** The badge's extra shine: DSD glows gold; bit-perfect hi-res (above 16-bit / 48 kHz) sparkles like a diamond. */
+const sigShine = sg => !sg ? '' : sg.dsd ? ' dsd' : sg.quality === 'bitperfect' && ((sg.sourceBits || 0) > 16 || (sg.sourceRate || 0) > 48000) ? ' hires' : '';
 const QLead = {
   bitperfect: '依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。',
   enhanced: '訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。',
@@ -987,8 +991,9 @@ const SignalPop = {
     if (!sg) {
       box.append(h('h3', null, '訊號路徑'), h('div', { class: 'lead' }, '目前沒有播放中的曲目。'));
     } else {
-      box.className = 'q-' + sg.quality;
-      box.append(h('h3', { html: `<i class="dot"></i>${QLabel[sg.quality]}` }), h('div', { class: 'lead' }, QLead[sg.quality]));
+      const shine = sigShine(sg);
+      box.className = 'q-' + sg.quality + shine;
+      box.append(h('h3', { html: `<i class="dot"></i>${QLabel[sg.quality]}${shine === ' hires' ? ' · Hi-Res' : shine === ' dsd' ? ' · DSD' : ''}` }), h('div', { class: 'lead' }, QLead[sg.quality]));
       const stage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
       const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
       // a module's core may draw its own path (SignalInfo.Custom, MikuExt signalPath)

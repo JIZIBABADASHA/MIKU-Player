@@ -410,7 +410,7 @@ const Views = {
     if (typeof Vinyl !== 'undefined') Vinyl.mount(hero, cover, al);
     Flip.play(al.id, cover);
     artNote(al, meta);
-    Convert.cueNote(al, meta);
+    Convert.cueFor(al);  // look for a CUE sheet now, so the 「⋯」 menu opens without waiting
     const list = h('div', { class: 'tracks' }, thead('作曲'));
     let lastDisc = null;
     al.tracks.forEach((t, i) => {
