@@ -6,6 +6,7 @@ installer .pkg that picks the right one at install time.  Runs on Linux or macOS
   python3 make_pkg.py --electron-dir DL --ffmpeg-dir DL --out OUT [--rcodesign PATH] [--mkbom PATH]
 
 DL must contain electron-vX-darwin-{arm64,x64}.zip and ffmpeg/ffprobe-darwin-{arm64,x64}(.gz).
+--fpcalc PATH adds Chromaprint's fpcalc (macOS universal binary) for 聲紋辨識.
 """
 import argparse, gzip, hashlib, io, json, os, plistlib, shutil, stat, subprocess, sys, time, zlib, glob
 from xml.sax.saxutils import escape
@@ -50,6 +51,9 @@ def build_app(arch, a, version, work):
             with gzip.open(src + '.gz', 'rb') as fi, open(dst, 'wb') as fo: shutil.copyfileobj(fi, fo)
         else: shutil.copyfile(src, dst)
         os.chmod(dst, 0o755)
+    # fpcalc (Chromaprint, universal binary) for the tag editor's 聲紋辨識
+    if a.fpcalc:
+        shutil.copyfile(a.fpcalc, os.path.join(bindir, 'fpcalc')); os.chmod(os.path.join(bindir, 'fpcalc'), 0o755)
     # icon
     shutil.copyfile(os.path.join(HERE, 'MIKU.icns'), os.path.join(res, 'MIKU.icns'))
     try: os.remove(os.path.join(res, 'electron.icns'))
@@ -71,7 +75,7 @@ def build_app(arch, a, version, work):
     with open(ip, 'wb') as f: plistlib.dump(pl, f)
     # ad-hoc signature (Apple Silicon refuses to run unsigned code; editing the bundle broke Electron's own seal)
     if a.rcodesign:
-        for tool in ('ffmpeg', 'ffprobe'):
+        for tool in os.listdir(bindir):
             sh(a.rcodesign, 'sign', os.path.join(bindir, tool), stdout=subprocess.DEVNULL)
         sh(a.rcodesign, 'sign', app, stdout=subprocess.DEVNULL)
     elif shutil.which('codesign'):
@@ -233,7 +237,7 @@ def xar(out, tree):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--electron-dir', required=True); ap.add_argument('--ffmpeg-dir', required=True)
-    ap.add_argument('--out', required=True); ap.add_argument('--rcodesign'); ap.add_argument('--mkbom')
+    ap.add_argument('--out', required=True); ap.add_argument('--rcodesign'); ap.add_argument('--mkbom'); ap.add_argument('--fpcalc')
     ap.add_argument('--work', default=os.path.join(HERE, 'work'))
     a = ap.parse_args()
     with open(os.path.join(APP_SRC, 'package.json')) as f: version = json.load(f)['version']

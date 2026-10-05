@@ -2,7 +2,7 @@
 // Lyrics: sidecar LRC, embedded, cached online results, LRCLIB and NetEase (port of Lyrics.cs)
 const fs = require('fs');
 const path = require('path');
-const { AppPaths, Log, decodeUnknown, similarity, http } = require('./common');
+const { AppPaths, Log, decodeUnknown, similarity, http, firstArtist, sleep } = require('./common');
 const ff = require('./ffmpeg');
 
 const TimeTag = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/y;
@@ -73,7 +73,64 @@ function mergeTranslation(lines, trans) {
 
 class LyricsService {
   constructor(settings) { this.s = settings; this.inflight = new Map(); }
-  cachePath(t) { return path.join(AppPaths.Lyrics, t.id + '.json'); }
+  /** v2: stricter length matching, manual choices (old caches are fetched again) */
+  cachePath(t) { return LyricsService.cacheFile(t.id); }
+  static cacheFile(id) { return path.join(AppPaths.Lyrics, id + '.v2.json'); }
+
+  /** Look up lyrics for every track (local files and cache first, online only when needed). */
+  async fetchAll(tracks, progress, signal) {
+    const list = tracks.slice();
+    let done = 0, found = 0;
+    progress && progress({ done: 0, total: list.length, found: 0 });
+    for (const t of list) {
+      if (signal && signal.aborted) break;
+      const had = fs.existsSync(this.cachePath(t));
+      const r = await this.get(t);
+      if (r.lines.length || r.instrumental) found++;
+      done++;
+      if (done % 5 === 0 || done === list.length) progress && progress({ done, total: list.length, found });
+      if (!had && fs.existsSync(this.cachePath(t))) await sleep(350);
+    }
+  }
+
+  /** All plausible matches from LRCLIB and NetEase, without the strict length filter, closest first. */
+  async candidates(t) {
+    const artist = firstArtist(t.artist || t.albumArtist);
+    const lrclib = (async () => {
+      const arr = await json('https://lrclib.net/api/search?track_name=' + encodeURIComponent(t.title) + '&artist_name=' + encodeURIComponent(artist));
+      return (arr || []).filter(e => e.syncedLyrics || e.plainLyrics).map(e => ({ key: 'lrclib:' + e.id, source: 'LRCLIB', title: e.trackName, artist: e.artistName, album: e.albumName, duration: typeof e.duration === 'number' ? e.duration : 0, synced: !!e.syncedLyrics }));
+    })().catch(e => { Log.info('LRCLIB candidates: ' + e.message); return []; });
+    const netease = (async () => {
+      const q = encodeURIComponent((t.title + ' ' + artist).trim());
+      const j = await json(`https://music.163.com/api/search/get/web?csrf_token=&hlpretag=&hlposttag=&s=${q}&type=1&offset=0&total=true&limit=12`, { Referer: 'https://music.163.com/' });
+      const songs = (j && j.result && j.result.songs) || [];
+      return songs.filter(s => similarity(s.name, t.title) >= 0.5).map(s => ({ key: 'ne:' + s.id, source: '網易雲音樂', title: s.name, artist: (s.artists || []).map(a => a.name).join(', '), album: s.album && s.album.name, duration: typeof s.duration === 'number' ? s.duration / 1000 : 0, synced: true }));
+    })().catch(e => { Log.info('NetEase candidates: ' + e.message); return []; });
+    const list = [...await lrclib, ...await netease];
+    for (const c of list) c.diff = t.duration > 0 && c.duration > 0 ? Math.round((c.duration - t.duration) * 10) / 10 : 0;
+    const k = c => c.duration > 0 && t.duration > 0 ? Math.abs(c.diff) : 30;
+    return list.sort((a, b) => k(a) - k(b) || (a.synced ? 0 : 1) - (b.synced ? 0 : 1)).slice(0, 15);
+  }
+
+  /** Download the chosen candidate and pin it as this track's lyrics. */
+  async apply(t, key) {
+    let r = null;
+    if (key.startsWith('lrclib:')) {
+      const h = await json('https://lrclib.net/api/get/' + encodeURIComponent(key.slice(7))).catch(() => null);
+      if (h && h.syncedLyrics) r = { source: 'LRCLIB', synced: true, lines: parse(h.syncedLyrics) };
+      else if (h && h.plainLyrics) r = { source: 'LRCLIB', synced: false, lines: plain(h.plainLyrics) };
+    } else if (key.startsWith('ne:')) r = await netEaseLyric(key.slice(3)).catch(() => null);
+    if (!r) return null;
+    r.instrumental = !!r.instrumental; r.manual = true; r.fetched = new Date().toISOString();
+    try { fs.writeFileSync(this.cachePath(t), JSON.stringify(r)); } catch { }
+    return r;
+  }
+
+  /** "None of these are right": remember it, so the wrong lyrics never come back on their own. */
+  clear(t) {
+    const r = { source: '已標記為錯誤', synced: false, instrumental: false, lines: [], manual: true, fetched: new Date().toISOString() };
+    try { fs.writeFileSync(this.cachePath(t), JSON.stringify(r)); } catch { }
+  }
   get(t, refresh = false) {
     if (refresh) try { fs.unlinkSync(this.cachePath(t)); } catch { }
     if (!this.inflight.has(t.id)) {
@@ -106,8 +163,10 @@ class LyricsService {
     if (fs.existsSync(cache)) {
       try {
         const c = JSON.parse(fs.readFileSync(cache, 'utf8'));
+        if (c.manual) return c.lines.length ? c : (plainFallback || c);
         if (c.synced && c.lines.length) return c;
-        if (c.lines.length || c.instrumental || Date.now() - new Date(c.fetched).getTime() < 3 * 864e5) return plainFallback || c;
+        // a previous "not found" is only trusted for a few minutes
+        if (c.lines.length || c.instrumental || Date.now() - new Date(c.fetched).getTime() < 10 * 60e3) return plainFallback || c;
       } catch { }
     }
     if (!this.s.onlineLyrics) return plainFallback || empty();
@@ -148,7 +207,7 @@ async function json(url, headers) {
 }
 
 async function lrcLib(t) {
-  const artist = t.artist || t.albumArtist || '';
+  const artist = firstArtist(t.artist || t.albumArtist);
   let hit = await json('https://lrclib.net/api/get?artist_name=' + encodeURIComponent(artist) + '&track_name=' + encodeURIComponent(t.title) +
     '&album_name=' + encodeURIComponent(t.album || '') + '&duration=' + Math.round(t.duration || 0)).catch(() => null);
   if (!hit || (!hit.syncedLyrics && !hit.instrumental)) {
@@ -156,7 +215,7 @@ async function lrcLib(t) {
     let best = null, bestDiff = 99;
     for (const e of arr || []) {
       let d = typeof e.duration === 'number' ? Math.abs(e.duration - t.duration) : 50;
-      if (t.duration > 0 && d > 4) continue;
+      if (t.duration > 0 && d > 2.5) continue;
       if (similarity(e.trackName, t.title) < 0.7) continue;
       if (e.syncedLyrics) d -= 10;
       if (d < bestDiff) { bestDiff = d; best = e; }
@@ -171,7 +230,7 @@ async function lrcLib(t) {
 }
 
 async function netEase(t) {
-  const artist = t.artist || t.albumArtist || '';
+  const artist = firstArtist(t.artist || t.albumArtist);
   const q = encodeURIComponent((t.title + ' ' + artist).trim());
   const hdr = { Referer: 'https://music.163.com/' };
   const j = await json(`https://music.163.com/api/search/get/web?csrf_token=&hlpretag=&hlposttag=&s=${q}&type=1&offset=0&total=true&limit=12`, hdr);
@@ -183,12 +242,17 @@ async function netEase(t) {
     const ar = (s.artists || []).map(a => a.name).join(' ');
     const artistSim = !artist ? 0.5 : Math.max(similarity(artist, ar), similarity(artist, ar, false));
     const dur = typeof s.duration === 'number' ? s.duration / 1000 : 0;
-    const durScore = t.duration <= 0 || dur <= 0 ? 0.5 : Math.abs(dur - t.duration) <= 3 ? 1 : Math.abs(dur - t.duration) <= 8 ? 0.4 : 0;
+    const durScore = t.duration <= 0 || dur <= 0 ? 0.5 : Math.abs(dur - t.duration) <= 1.5 ? 1 : Math.abs(dur - t.duration) <= 3 ? 0.6 : 0;
     if (titleSim < 0.7 || durScore === 0) continue;
     const score = titleSim * 0.45 + artistSim * 0.3 + durScore * 0.25;
     if (score > bestScore) { bestScore = score; bestId = s.id; }
   }
   if (!bestId || bestScore < 0.62) return null;
+  return netEaseLyric(bestId);
+}
+
+async function netEaseLyric(bestId) {
+  const hdr = { Referer: 'https://music.163.com/' };
   const ld = await json(`https://music.163.com/api/song/lyric?id=${bestId}&lv=1&kv=1&tv=-1`, hdr);
   if (!ld) return null;
   const lrc = ld.lrc && ld.lrc.lyric, tl = ld.tlyric && ld.tlyric.lyric;

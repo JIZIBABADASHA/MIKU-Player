@@ -47,7 +47,7 @@ MIKU.Extensibility/  Windows 版的擴充模組介面
 
 ### 編譯 macOS 版
 
-在 Mac 上執行 `mac/build/build.sh`，會下載 Electron 與 FFmpeg 並產生 `dist/MIKU-<版本>-mac.pkg`。
+在 Finder 雙擊 `mac/編譯 Mac 版.command`（或在終端機執行 `bash mac/build/build.sh`），會下載 Electron、FFmpeg 與 fpcalc 並產生 `mac/dist/MIKU-<版本>-mac.pkg`。
 詳見 [mac/README.md](mac/README.md)。
 
 ## 第三方元件

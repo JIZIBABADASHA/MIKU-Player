@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
 const { nativeImage } = require('electron');
-const { AppPaths, Log, hash, norm, similarity, getJson, getBytes, sleep } = require('./common');
+const { AppPaths, Log, hash, norm, similarity, getJson, getBytes, http, firstArtist, RateGate } = require('./common');
 const ff = require('./ffmpeg');
 
 const MissExt = '.miss3';
@@ -36,7 +36,46 @@ function validImage(buf) {
 
 const exists = f => { try { fs.accessSync(f); return true; } catch { return false; } };
 const recentlyMissed = f => { try { return Date.now() - fs.statSync(f).mtimeMs < 5 * 864e5; } catch { return false; } };
-const cleanArtist = s => (!s || s === 'Various Artists' || s === '未知演出者') ? '' : s.trim().replace(/^[【\[(]+|[】\])]+$/g, '').trim();
+const cleanArtist = s => firstArtist(s).replace(/^[【\[(]+|[】\])]+$/g, '').trim();
+const Bracketed = /\s*[(（\[【][^)）\]】]*[)）\]】]/g;
+const Joiners = /\s*(?:,|、|&|＆|×|\/|／|\bfeat\.?(?=\s)|\bft\.|\bwith\b)\s*/i;
+/** The artist to put in a search: the first name only, without "(CV. …)" (ArtworkService.SearchArtist). */
+function searchArtist(s) {
+  let first = firstArtist(s);
+  const bare = first.replace(Bracketed, '').trim();
+  if (bare) first = bare;
+  const part = first.split(Joiners).map(p => p.trim()).find(p => p) || first;
+  return part.replace(/^[【\[(]+|[】\])]+$/g, '').trim();
+}
+/** Version of the album picture rules (core.js ART_RULES). 2: the embedded picture wins over a folder picture. */
+const Rules = 2;
+const artistId = name => hash('artist|' + norm(name));
+
+/** Pixel size from the first bytes of a JPEG / PNG / WebP, or null. */
+function parseDimensions(b, n = b.length) {
+  if (n >= 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return [b.readUInt32BE(16), b.readUInt32BE(20)];
+  if (n >= 30 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP') {
+    const k = b.toString('latin1', 12, 16);
+    if (k === 'VP8 ') return [(b[26] | (b[27] << 8)) & 0x3FFF, (b[28] | (b[29] << 8)) & 0x3FFF];
+    if (k === 'VP8L') { const v = b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] << 24); return [(v & 0x3FFF) + 1, ((v >> 14) & 0x3FFF) + 1]; }
+    if (k === 'VP8X') return [1 + (b[24] | (b[25] << 8) | (b[26] << 16)), 1 + (b[27] | (b[28] << 8) | (b[29] << 16))];
+    return null;
+  }
+  if (n >= 4 && b[0] === 0xFF && b[1] === 0xD8) {
+    let i = 2;
+    while (i + 9 < n) {
+      if (b[i] !== 0xFF) { i++; continue; }
+      const m = b[i + 1];
+      if (m === 0xFF) { i++; continue; }
+      if (m === 0xD8 || m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { i += 2; continue; }
+      const len = (b[i + 2] << 8) | b[i + 3];
+      if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) return [(b[i + 7] << 8) | b[i + 8], (b[i + 5] << 8) | b[i + 6]];
+      if (len < 2) return null;
+      i += 2 + len;
+    }
+  }
+  return null;
+}
 
 class ArtworkService extends EventEmitter {
   constructor(lib, settings) {
@@ -46,7 +85,25 @@ class ArtworkService extends EventEmitter {
     this.onlineGate = new Semaphore(2);
     this.inflight = new Map();
     this.onlineInflight = new Map();
-    this.lastMB = 0; this.lastIT = 0; this.itChain = Promise.resolve();
+    this.dims = new Map();
+    lib.on('tracksRead', tracks => this.reread(tracks));
+    ArtworkService.dropOldThumbs();
+  }
+
+  /** Thumbnails made under older picture rules are deleted once (Art/Thumbs/.rules). */
+  static dropOldThumbs() {
+    const mark = path.join(AppPaths.Thumbs, '.rules');
+    try {
+      if (exists(mark) && fs.readFileSync(mark, 'utf8').trim() === String(Rules)) return;
+      for (const f of fs.readdirSync(AppPaths.Thumbs)) if (f.endsWith('.jpg')) try { fs.unlinkSync(path.join(AppPaths.Thumbs, f)); } catch { }
+      fs.writeFileSync(mark, String(Rules));
+    } catch (e) { Log.error('Thumbs', e); }
+  }
+
+  /** Tags read again: drop thumbnails made from the old pictures and tell the UI. */
+  reread(tracks) {
+    for (const id of new Set(tracks.map(t => t.albumId).filter(Boolean))) { this.forgetThumbs('a_' + id); this.emit('updated', 'album', id); }
+    for (const t of tracks.filter(t => { const a = this.lib.getAlbum(t.albumId); return !a || a.loose; }).slice(0, 500)) { this.forgetThumbs('t_' + t.id); this.emit('updated', 'track', t.id); }
   }
   overridePath(id) { return path.join(AppPaths.Override, 'a_' + id + '.jpg'); }
   online(name) { return path.join(AppPaths.OnlineArt, name + '.jpg'); }
@@ -65,8 +122,9 @@ class ArtworkService extends EventEmitter {
     if (!a) return null;
     const ov = this.overridePath(albumId);
     if (exists(ov)) try { return fs.readFileSync(ov); } catch { }
-    if (a.artPath) try { return fs.readFileSync(a.artPath); } catch { }
+    // the picture in the files first: it is what the tag editor updates, while an old cover.jpg often stays behind
     for (const t of a.tracks.filter(t => t.hasPic).slice(0, 3)) { const b = await ff.picture(t.path); if (b && b.length > 100) return b; }
+    if (a.artPath) try { return fs.readFileSync(a.artPath); } catch { }
     const on = this.online('a_' + albumId);
     if (exists(on)) return fs.readFileSync(on);
     if (this.s.onlineArt) (a.loose && a.tracks.length ? this.fetchTrackOnline(a.tracks[0]) : this.fetchAlbumOnline(a)).catch(() => { });
@@ -213,41 +271,71 @@ class ArtworkService extends EventEmitter {
     const a = this.lib.getAlbum(id);
     if (!a) return 'none';
     if (exists(this.overridePath(id))) return 'override';
-    if (a.artPath) return 'folder';
     if (a.tracks.some(t => t.hasPic)) return 'embedded';
+    if (a.artPath) return 'folder';
     if (exists(this.online('a_' + id))) return 'online';
     if (a.loose && a.tracks.length && exists(this.online('t_' + a.tracks[0].id))) return 'online';
     return 'none';
   }
-  async candidates(albumId, query) {
+  /** Candidates for the picker; part: 'albums' | 'songs' | null (both). Every service is asked at the same time. */
+  async candidates(albumId, query, part = null) {
     const a = this.lib.getAlbum(albumId);
-    const list = [];
+    const albums = part !== 'songs', songs = part !== 'albums';
+    const tasks = [];
     if (query && query.trim()) {
-      list.push(...await this.albumCandidates('', query, 25));
-      list.push(...await this.songCandidates('', query, 15));
+      if (albums) tasks.push(this.albumCandidates('', query, 25, true));
+      if (songs) tasks.push(this.songCandidates('', query, 15, true));
     } else if (a) {
-      const artist = cleanArtist(a.artist);
+      const artist = searchArtist(a.artist);
       const title = a.loose ? path.basename(a.folder || '') : a.title;
-      list.push(...await this.albumCandidates(artist, title, 20));
-      if (list.length < 6) list.push(...await this.albumCandidates('', title, 20));
-      for (const t of a.tracks.slice(0, 3)) list.push(...await this.songCandidates(cleanArtist(t.artist), t.title, 8));
+      if (albums) { tasks.push(this.albumCandidates(artist, title, 20, true)); if (artist) tasks.push(this.albumCandidates('', title, 20, true)); }
+      if (songs) for (const t of a.tracks.slice(0, 3)) tasks.push(this.songCandidates(searchArtist(t.artist), t.title, 8, true));
     }
-    const seen = new Set(), out = [];
-    for (const c of list) { if (!c.url || seen.has(c.url)) continue; seen.add(c.url); const { duration, ...rest } = c; out.push(rest); }
-    return out.slice(0, 60);
+    const lists = await Promise.all(tasks.map(p => p.catch(() => [])));
+    return dedupe(lists.flat()).slice(0, 60);
+  }
+
+  /** Real pixel sizes of candidate pictures ("1400×1400"), read from the first bytes of each. */
+  async dimensions(urls) {
+    const list = [...new Set((urls || []).filter(u => typeof u === 'string' && /^https?:\/\//.test(u)))].slice(0, 80);
+    const out = {};
+    let i = 0;
+    await Promise.all(Array.from({ length: 8 }, async () => {
+      while (i < list.length) {
+        const u = list[i++];
+        if (this.dims.has(u)) { out[u] = this.dims.get(u); continue; }
+        const d = await readDimensions(u);
+        if (d) this.dims.set(u, d);
+        out[u] = d || '';
+      }
+    }));
+    return out;
+  }
+  /** The bytes of the picture an album shows now, or null. */
+  currentPicture(albumId) { return this.albumSource(albumId); }
+  async sourceDims(albumId) {
+    try { const b = await this.albumSource(albumId); const wh = b && parseDimensions(b); return wh ? `${wh[0]}×${wh[1]}` : null; } catch { return null; }
+  }
+  /** A new cover was written into the files: drop MIKU's own pictures for the album, which would hide it. */
+  dropStoredArt(albumId) {
+    const a = this.lib.getAlbum(albumId);
+    try { fs.unlinkSync(this.overridePath(albumId)); } catch { }
+    try { fs.unlinkSync(this.online('a_' + albumId)); } catch { }
+    if (a && a.tracks.length) try { fs.unlinkSync(this.online('t_' + a.tracks[0].id)); } catch { }
+    this.forgetThumbs('a_' + albumId);
+    this.emit('updated', 'album', albumId);
+  }
+  /** The album's id changed (its title was edited): the picture chosen for it goes along. */
+  moveStoredArt(oldId, newId) {
+    if (!oldId || !newId || oldId === newId) return;
+    for (const [from, to] of [[this.overridePath(oldId), this.overridePath(newId)], [this.online('a_' + oldId), this.online('a_' + newId)]])
+      try { if (exists(from) && !exists(to)) fs.renameSync(from, to); } catch { }
+    this.forgetThumbs('a_' + newId);
+    this.emit('updated', 'album', newId);
   }
   async setOverrideFromUrl(id, url) { return this.setOverride(id, await getBytes(url)); }
   setOverride(albumId, bytes) {
-    if (!bytes || bytes.length < 500) throw new Error('圖片太小或無效');
-    let data = bytes;
-    try {
-      const img = nativeImage.createFromBuffer(bytes);
-      if (!img.isEmpty()) {
-        const { width, height } = img.getSize();
-        if (width < 50) throw new Error('圖片太小');
-        data = resize(bytes, Math.min(3000, Math.max(width, height))) || bytes;
-      }
-    } catch (e) { if (e.message === '圖片太小') throw e; }
+    const data = userPicture(bytes);
     fs.mkdirSync(AppPaths.Override, { recursive: true });
     fs.writeFileSync(this.overridePath(albumId), data);
     this.forgetThumbs('a_' + albumId);
@@ -267,28 +355,22 @@ class ArtworkService extends EventEmitter {
   }
 
   // ───────────── providers ─────────────
-  async albumCandidates(artist, title, limit) {
-    const all = [];
-    all.push(...await deezerAlbums(artist, title, limit));
-    all.push(...await this.itunes(artist, title, 'album', 'tw', limit));
-    all.push(...await this.itunes(artist, title, 'album', 'jp', limit));
-    if (all.length < 3) all.push(...await this.musicBrainz(artist, title));
+  async albumCandidates(artist, title, limit, user = false) {
+    const lists = await Promise.all([deezerAlbums(artist, title, limit), this.itunes(artist, title, 'album', 'tw', limit, user), this.itunes(artist, title, 'album', 'jp', limit, user)]);
+    const all = lists.flat();
+    if (all.length < 3) all.push(...await this.musicBrainz(artist, title, user));
     return all;
   }
-  async songCandidates(artist, title, limit) {
-    const all = [];
-    all.push(...await deezerSongs(artist, title, limit));
-    all.push(...await this.itunes(artist, title, 'song', 'tw', limit));
-    all.push(...await this.itunes(artist, title, 'song', 'jp', limit));
-    return all;
+  async songCandidates(artist, title, limit, user = false) {
+    // a search the user waits for asks only Apple's jp store (same covers as tw; Apple allows few requests)
+    const tasks = [deezerSongs(artist, title, limit), this.itunes(artist, title, 'song', 'jp', limit, user)];
+    if (!user) tasks.push(this.itunes(artist, title, 'song', 'tw', limit, user));
+    return (await Promise.all(tasks)).flat();
   }
-  itunes(artist, title, entity, country, limit) {
-    // the Apple search API allows roughly 20 requests a minute: serialise and space them
-    const job = this.itChain.then(async () => {
-      const wait = 2600 - (Date.now() - this.lastIT);
-      if (wait > 0) await sleep(wait);
-      this.lastIT = Date.now();
-      const list = [];
+  async itunes(artist, title, entity, country, limit, user = false) {
+    const list = [];
+    try {
+      await RateGate.Apple.wait(user);
       const term = encodeURIComponent(((artist || '') + ' ' + (title || '')).trim());
       const j = await getJson(`https://itunes.apple.com/search?term=${term}&entity=${entity}&limit=${limit}&country=${country}`);
       for (const e of (j && j.results) || []) {
@@ -297,17 +379,13 @@ class ArtworkService extends EventEmitter {
         list.push({ url: art.replace('100x100bb', '1600x1600bb'), thumb: art.replace('100x100bb', '300x300bb'), title: entity === 'song' ? e.trackName : e.collectionName,
           artist: e.artistName, source: 'Apple Music' + (country === 'jp' ? ' JP' : ''), size: '1600px', duration: e.trackTimeMillis ? e.trackTimeMillis / 1000 : 0 });
       }
-      return list;
-    }).catch(() => []);
-    this.itChain = job.catch(() => { });
-    return job;
+    } catch { }
+    return list;
   }
-  async musicBrainz(artist, title) {
+  async musicBrainz(artist, title, user = false) {
     const list = [];
     try {
-      const wait = 1100 - (Date.now() - this.lastMB);
-      if (wait > 0) await sleep(wait);
-      this.lastMB = Date.now();
+      await RateGate.MusicBrainz.wait(user);
       const q = `releasegroup:"${title.replace(/"/g, '')}"` + (artist ? ` AND artist:"${artist.replace(/"/g, '')}"` : '');
       const j = await getJson('https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=8&query=' + encodeURIComponent(q));
       for (const e of (j && j['release-groups']) || []) {
@@ -319,14 +397,54 @@ class ArtworkService extends EventEmitter {
   }
 
   // ───────────── artist pictures ─────────────
+  artistOverridePath(id) { return path.join(AppPaths.Override, 'r_' + id + '.jpg'); }
   artistAsync(name, size) {
-    const id = hash('artist|' + norm(name));
+    const id = artistId(name);
     return this.cached('r_' + id, size, () => {
+      const ov = this.artistOverridePath(id);
+      if (exists(ov)) try { return fs.readFileSync(ov); } catch { }
       const file = this.online('r_' + id);
       if (exists(file)) return fs.readFileSync(file);
       if (this.s.artistImages && this.s.onlineArt) this.fetchArtist(name, id, file).catch(() => { });
       return null;
     });
+  }
+  artistSourceOf(name) {
+    const id = artistId(name);
+    if (exists(this.artistOverridePath(id))) return 'override';
+    if (exists(this.online('r_' + id))) return 'online';
+    return 'none';
+  }
+  /** Deezer artist photos, then album covers found by the name. */
+  async artistCandidates(name, query) {
+    const q = query && query.trim() ? query.trim() : cleanArtist(name);
+    const list = [];
+    if (!q) return list;
+    const j = await getJson('https://api.deezer.com/search/artist?limit=25&q=' + encodeURIComponent(q));
+    for (const e of (j && j.data) || []) {
+      const pic = e.picture_xl;
+      if (!pic || pic.includes('/artist//')) continue;
+      list.push({ url: pic, thumb: e.picture_medium || pic, title: e.name, artist: e.nb_fan > 0 ? `${e.nb_fan.toLocaleString('en-US')} 位粉絲` : '', source: 'Deezer', size: '1000×1000' });
+    }
+    list.push(...await this.albumCandidates('', q, 20, true));
+    return dedupe(list).slice(0, 60);
+  }
+  async setArtistOverrideFromUrl(name, url) { return this.setArtistOverride(name, await getBytes(url)); }
+  setArtistOverride(name, bytes) {
+    const data = userPicture(bytes);
+    const id = artistId(name);
+    fs.mkdirSync(AppPaths.Override, { recursive: true });
+    fs.writeFileSync(this.artistOverridePath(id), data);
+    this.forgetThumbs('r_' + id);
+    this.emit('updated', 'artist', name);
+    return true;
+  }
+  clearArtistOverride(name) {
+    const id = artistId(name);
+    try { fs.unlinkSync(this.artistOverridePath(id)); } catch { }
+    try { fs.unlinkSync(this.online('r_' + id) + MissExt); } catch { }
+    this.forgetThumbs('r_' + id);
+    this.emit('updated', 'artist', name);
   }
   fetchArtist(name, id, target) {
     if (!name || !name.trim() || name === 'Various Artists' || name === '未知演出者') return Promise.resolve(false);
@@ -344,6 +462,43 @@ class ArtworkService extends EventEmitter {
       return ok;
     });
   }
+}
+
+function dedupe(list) {
+  const seen = new Set(), out = [];
+  for (const c of list) { if (!c || !c.url || seen.has(c.url)) continue; seen.add(c.url); const { duration, ...rest } = c; out.push(rest); }
+  return out;
+}
+/** A picture the user picked: anything Chromium reads → high quality JPEG (at most 3000 px); WebP etc. as-is. */
+function userPicture(bytes) {
+  if (!bytes || bytes.length < 500) throw new Error('圖片太小或無效');
+  let data = bytes;
+  const img = nativeImage.createFromBuffer(bytes);
+  if (!img.isEmpty()) {
+    const { width, height } = img.getSize();
+    if (width < 50) throw new Error('圖片太小');
+    data = resize(bytes, Math.min(3000, Math.max(width, height))) || bytes;
+  }
+  return data;
+}
+async function readDimensions(url) {
+  try {
+    const res = await http(url, { timeout: 10000, headers: { Range: 'bytes=0-262143', Accept: 'image/*' } });
+    if (!res.ok || !res.body) return null;
+    const reader = res.body.getReader();
+    let buf = Buffer.alloc(0);
+    try {
+      while (buf.length < 262144) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf = Buffer.concat([buf, Buffer.from(value)]);
+        const wh = parseDimensions(buf);
+        if (wh) return `${wh[0]}×${wh[1]}`;
+      }
+    } finally { try { reader.cancel(); } catch { } }
+    const wh = parseDimensions(buf);
+    return wh ? `${wh[0]}×${wh[1]}` : null;
+  } catch { return null; }
 }
 
 function bestAlbum(c, artist, title, strict) {
@@ -390,4 +545,4 @@ async function download(url, target) {
   } catch { return false; }
 }
 
-module.exports = { ArtworkService };
+module.exports = { ArtworkService, searchArtist, parseDimensions, resize };

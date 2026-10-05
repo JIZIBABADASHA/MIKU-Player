@@ -30,6 +30,81 @@ function albumFolder(p) {
   return dir;
 }
 
+/**
+ * Discs of one album in sibling folders whose names don't say "Disc 2", found from the tags: folders under the same
+ * parent holding the same album title and album artist, each with its own disc numbers (none shared). Returns
+ * folder (lower case) → the parent folder to group them under. (Library.cs DiscSiblings)
+ */
+function discSiblings(tracks) {
+  const merge = new Map(), groups = new Map();
+  for (const t of tracks) {
+    if (!t || !t.path || !t.album || !t.album.trim()) continue;
+    const dir = path.dirname(t.path);
+    if (lc(albumFolder(t.path)) !== lc(dir)) continue;   // a "Disc 2" folder already
+    const key = lc(path.dirname(dir)) + '|' + norm(t.album) + '|' + norm(t.albumArtist || '');
+    let g = groups.get(key); if (!g) groups.set(key, g = new Map());
+    let f = g.get(lc(dir)); if (!f) g.set(lc(dir), f = { dir, discs: new Set() });
+    f.discs.add(t.discNo);
+  }
+  for (const g of groups.values()) {
+    if (g.size < 2) continue;
+    const folders = [...g.values()];
+    const parent = path.dirname(folders[0].dir);
+    if (!parent || parent === '/' ) continue;
+    const discs = folders.flatMap(f => [...f.discs]);
+    if (new Set(discs).size !== discs.length) continue;   // a disc number in two folders: separate albums
+    for (const f of folders) merge.set(lc(f.dir), parent);
+  }
+  return merge;
+}
+
+/**
+ * The same album in several folders / formats (Library.cs GroupVersions): same title, same album artist or folders
+ * near each other, and the same music (track lengths). Marked with a common versionGroup.
+ */
+function groupVersions(all) {
+  const buckets = new Map();
+  for (const a of all) { a.versionGroup = null; if (a.loose) continue; const k = norm(a.title); (buckets.get(k) || buckets.set(k, []).get(k)).push(a); }
+  const compilation = s => s === 'Various Artists' || s === '未知演出者' || !s || !s.trim();
+  const near = (x, y) => {
+    const p = x.split(path.sep).filter(Boolean), q = y.split(path.sep).filter(Boolean);
+    let c = 0;
+    while (c < p.length && c < q.length && lc(p[c]) === lc(q[c])) c++;
+    return c >= 2 && p.length - c <= 2 && q.length - c <= 2;
+  };
+  const sameTitle = (a, b) => { const p = norm(a, true), q = norm(b, true); return p.length > 0 && q.length > 0 && (p === q || (Math.min(p.length, q.length) >= 2 && (p.includes(q) || q.includes(p)))); };
+  const sameMusic = (x, y) => {
+    const [small, large] = x.tracks.length <= y.tracks.length ? [x, y] : [y, x];
+    const pool = large.tracks.filter(t => t.duration > 0);
+    let hits = 0;
+    for (const t of small.tracks.filter(t => t.duration > 0)) {
+      const d = t.duration;
+      let k = pool.findIndex(p => Math.abs(p.duration - d) <= 0.5);
+      if (k < 0) k = pool.findIndex(p => Math.abs(p.duration - d) <= 2.0 && sameTitle(p.title, t.title));
+      if (k >= 0) { hits++; pool.splice(k, 1); }
+    }
+    return hits > 0 && hits * 2 >= small.tracks.length;
+  };
+  for (const list of buckets.values()) {
+    if (list.length < 2) continue;
+    const parent = new Map(list.map(a => [a, a]));
+    const find = a => { while (parent.get(a) !== a) { parent.set(a, parent.get(parent.get(a))); a = parent.get(a); } return a; };
+    for (let i = 0; i < list.length; i++)
+      for (let j = i + 1; j < list.length; j++) {
+        const x = list[i], y = list[j];
+        const sameArtist = !compilation(x.artist) && norm(x.artist) === norm(y.artist);
+        if ((sameArtist || near(x.folder, y.folder)) && sameMusic(x, y)) parent.set(find(x), find(y));
+      }
+    const groups = new Map();
+    for (const a of list) { const r = find(a); (groups.get(r) || groups.set(r, []).get(r)).push(a); }
+    for (const g of groups.values()) {
+      if (g.length < 2) continue;
+      const id = hash('versions|' + g.map(a => a.id).sort().join('|'));
+      for (const a of g) a.versionGroup = id;
+    }
+  }
+}
+
 class MusicLibrary extends EventEmitter {
   constructor(settings) {
     super();
@@ -43,6 +118,7 @@ class MusicLibrary extends EventEmitter {
   }
   getTrack(id) { return id ? this.byId.get(id) || null : null; }
   getAlbum(id) { return id ? this.albums.get(id) || null : null; }
+  get allTracks() { return [...this.byId.values()]; }
   get count() { return this.byId.size; }
   albumList() { return [...this.albums.values()]; }
 
@@ -57,11 +133,13 @@ class MusicLibrary extends EventEmitter {
 
   build(tracks, folderArt) {
     const albums = new Map(), byId = new Map();
+    const siblings = discSiblings(tracks);
     for (const t of tracks) {
       if (!t || !t.path) continue;
       t.id = t.id || hash(t.path.toLowerCase());
       byId.set(t.id, t);
-      const folder = albumFolder(t.path);
+      let folder = albumFolder(t.path);
+      if (siblings.has(lc(folder))) folder = siblings.get(lc(folder));
       const loose = !t.album || !t.album.trim();
       const title = loose ? path.basename(folder) : t.album.trim();
       const id = hash(folder.toLowerCase() + '|' + norm(title));
@@ -90,6 +168,7 @@ class MusicLibrary extends EventEmitter {
       if (n === 1 && fa.has(lc(a.folder))) a.artPath = fa.get(lc(a.folder));
       else { const d = lc(path.dirname(a.tracks[0].path)); if (n === 1 && fa.has(d)) a.artPath = fa.get(d); }
     }
+    groupVersions(albums.values());
     this.byId = byId; this.albums = albums; this.folderArt = folderArt; this.revision++;
   }
 
@@ -139,6 +218,9 @@ class MusicLibrary extends EventEmitter {
       const changed = todo.length > 0 || result.length !== existing.size;
       if (changed || full || JSON.stringify(folderArt) !== JSON.stringify(this.folderArt)) {
         this.build(result, folderArt); this.save(result); this.emit('changed');
+        // files read again that were already known: thumbnails made from their old pictures are stale
+        const again = new Set(todo.filter(f => existing.has(lc(f.path))).map(f => lc(f.path)));
+        if (again.size) this.emit('tracksRead', result.filter(t => again.has(lc(t.path))));
       }
       p.done = result.length;
     } catch (e) { Log.error('Scan', e); }
@@ -149,8 +231,16 @@ class MusicLibrary extends EventEmitter {
 
   async walk(dir, files, folderArt, p, cancelled) {
     if (cancelled()) return;
+    const subs = await this.scanFolder(dir, files, folderArt);
+    if (!subs) return;
+    if (files.length - p.found > 500) { p.found = files.length; this.report(p); }
+    for (const s of subs) await this.walk(s, files, folderArt, p, cancelled);
+  }
+
+  /** The audio files of one folder (not its subfolders) and its album picture; returns the subfolders, null when unreadable. */
+  async scanFolder(dir, files, folderArt) {
     let entries;
-    try { entries = await fs.promises.readdir(dir, { withFileTypes: true }); } catch { return; }
+    try { entries = await fs.promises.readdir(dir, { withFileTypes: true }); } catch { return null; }
     let bestArt = null, bestRank = Infinity, bestSize = 0;
     const images = [], subs = [];
     for (const e of entries) {
@@ -174,15 +264,50 @@ class MusicLibrary extends EventEmitter {
     }
     if (!bestArt && images.length === 1 && images[0].size > 15000) bestArt = images[0].full;
     if (bestArt) folderArt[dir] = bestArt;
-    if (files.length - p.found > 500) { p.found = files.length; this.report(p); }
-    for (const s of subs) await this.walk(s, files, folderArt, p, cancelled);
+    return subs;
+  }
+
+  /**
+   * Read the tags of one album again (album menu, after the tag editor): every audio file in the folders holding its
+   * tracks, and the folder pictures. `moved`: old path → new path of renamed files. Returns { albumId, tracks }.
+   */
+  async rereadAlbum(albumId, moved = null) {
+    if (this.progress.scanning) throw new Error('媒體庫正在掃描，請等掃描完成後再試');
+    const album = this.getAlbum(albumId);
+    if (!album) throw new Error('找不到這張專輯');
+    const paths = album.tracks.map(t => t.path);
+    const dirs = new Set(paths.map(p => lc(path.dirname(p))));
+    const dirList = [...new Map(paths.map(p => [lc(path.dirname(p)), path.dirname(p)])).values()];
+    const files = [], art = {};
+    for (const d of dirList) await this.scanFolder(d, files, art);
+    const seen = new Set(), fresh = [];
+    const uniq = files.filter(f => !seen.has(lc(f.path)) && seen.add(lc(f.path)));
+    let i = 0;
+    await Promise.all(Array.from({ length: 4 }, async () => { while (i < uniq.length) { const t = await readTrack(uniq[i++]); if (t) fresh.push(t); } }));
+    const list = [...this.byId.values()].filter(t => !dirs.has(lc(path.dirname(t.path)))).concat(fresh);
+    const folderArt = Object.fromEntries(Object.entries(this.folderArt).filter(([d]) => !dirs.has(lc(d))));
+    Object.assign(folderArt, art);
+    this.build(list, folderArt);
+    this.save(list);
+    this.emit('changed');
+    this.emit('tracksRead', fresh);
+    const movedLc = new Map(Object.entries(moved || {}).map(([k, v]) => [lc(k), v]));
+    const counts = new Map();
+    for (const p of paths) {
+      const np = movedLc.get(lc(p)) || p;
+      const t = this.getTrack(hash(np.toLowerCase()));
+      if (t) counts.set(t.albumId, (counts.get(t.albumId) || 0) + 1);
+    }
+    const newId = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    return { albumId: newId, tracks: newId ? (this.getAlbum(newId)?.tracks.length || 0) : 0 };
   }
 
   /** Compact JSON: arrays instead of objects keep 30k+ tracks small and fast to parse. */
   exportJson() {
     const albums = [], tracks = [];
     for (const a of this.albums.values()) {
-      albums.push([a.id, a.title, a.artist, a.year, a.genre, Math.floor(a.added / 1e7), (a.artPath || a.tracks.some(t => t.hasPic)) ? 1 : 0, a.loose ? 1 : 0]);
+      // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
+      albums.push([a.id, a.title, a.artist, a.year, a.genre, Math.floor(a.added / 1e7), (a.artPath || a.tracks.some(t => t.hasPic)) ? 1 : 0, a.loose ? 1 : 0, a.versionGroup || '', path.basename(a.folder || '')]);
       for (const t of a.tracks) tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '']);
     }
     return Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks }));
@@ -262,4 +387,4 @@ async function readTrack(f) {
   return t;
 }
 
-module.exports = { MusicLibrary, isDsd, isLossy, Extensions };
+module.exports = { MusicLibrary, isDsd, isLossy, Extensions, readTrack };

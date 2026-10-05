@@ -65,7 +65,7 @@ const Api = {
   },
   art(kind, id, size) {
     const s = Math.round(size * Math.min(window.devicePixelRatio || 2, 3));
-    return `/media/art/${kind}/${encodeURIComponent(id)}?s=${s}&t=${this.token}`;
+    return `/media/art/${kind}/${encodeURIComponent(id)}?s=${s}&r=2&t=${this.token}`;   // r: ArtworkService.Rules
   },
 };
 /** RPC that reports failures as a toast instead of throwing. */

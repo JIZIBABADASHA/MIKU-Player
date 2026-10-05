@@ -17,6 +17,24 @@ const NowPlaying = {
     $('#np-trans').onclick = () => { this.showTrans = !this.showTrans; setUiPref('npTrans', this.showTrans ? '1' : '0'); this.renderLyrics(); };
     $('#ly-minus').onclick = () => this.nudge(-0.1);
     $('#ly-plus').onclick = () => this.nudge(0.1);
+    $('#ly-auto').onclick = async () => {
+      const ly = this.ly, b = $('#ly-auto');
+      if (!ly || !ly.synced || b.disabled) return;
+      b.disabled = true; b.textContent = '分析中…';
+      try {
+        const r = await Host.call('lyrics.autoAlign', { id: ly.id });
+        if (this.ly !== ly) return;
+        if (r && r.ok) {
+          ly.offset = r.offset;
+          $('#ly-off').textContent = (ly.offset >= 0 ? '+' : '') + ly.offset.toFixed(1) + 's';
+          this.active = -2; this.layoutLines(true);
+          toast(`已自動對齊（${ly.offset >= 0 ? '+' : ''}${ly.offset.toFixed(1)} 秒）`);
+        } else toast((r && r.reason) || '自動對齊失敗');
+      } catch { toast('自動對齊失敗'); }
+      finally { b.disabled = false; b.textContent = '自動'; }
+    };
+    $('#np-cand').onclick = e => { e.stopPropagation(); this.togglePicker(); };
+    document.addEventListener('click', e => { const p = $('#ly-pick'); if (!p.hidden && !p.contains(e.target)) p.hidden = true; });
     const box = $('#lyrics');
     box.addEventListener('wheel', e => {
       if (!this.ly || !this.ly.synced) return;
@@ -63,6 +81,7 @@ const NowPlaying = {
 
   trackChanged(t) {
     this.ly = null;
+    this.cands = null; $('#ly-pick').hidden = true; $('#np-cand').style.display = 'none';
     this.active = -2;
     this.renderLyrics();
     this.paint();
@@ -75,7 +94,71 @@ const NowPlaying = {
       this.ly = { id: r.id || id, synced: r.synced, lines: (r.lines || []).map(l => ({ t: l.t, text: l.text, trans: l.trans, words: l.words })), offset: r.offset || 0, source: r.source, instrumental: r.instrumental };
       this.renderLyrics();
       this.applyLayout();
+      this.cands = null;
+      this.updateCandBtn(t);
+      // nothing found with strict matching: look for looser matches the user can choose from
+      if (!t.live && !this.ly.lines.length && !this.ly.instrumental && App.settings.onlineLyrics && this.ly.source !== '已標記為錯誤')
+        this.loadCands(t.id, false);
     }).catch(() => {});
+  },
+
+  /* ── manual lyric choice / report wrong lyrics ── */
+  cands: null,
+  updateCandBtn(t) {
+    const b = $('#np-cand');
+    if (!t || t.live || !this.ly) { b.style.display = 'none'; return; }
+    if (this.cands && this.cands.length && !this.ly.lines.length) { b.textContent = `可能的歌詞 (${this.cands.length})`; b.classList.add('on'); }
+    else if (this.ly.lines.length) { b.textContent = '歌詞不對？'; b.classList.remove('on'); }
+    else { b.textContent = '找歌詞'; b.classList.remove('on'); }
+    b.style.display = '';
+  },
+  async loadCands(id, open) {
+    const p = $('#ly-pick');
+    if (open) { p.hidden = false; p.replaceChildren(h('div', { class: 'ly-pick-msg' }, '搜尋中…')); }
+    let list = [];
+    try { list = await Host.call('lyrics.candidates', { id }) || []; } catch { }
+    if (App.state.trackId !== id) return;
+    this.cands = list;
+    this.updateCandBtn(App.track());
+    if (!p.hidden) this.drawPicker();
+  },
+  togglePicker() {
+    const p = $('#ly-pick');
+    if (!p.hidden) { p.hidden = true; return; }
+    const id = App.state.trackId;
+    if (this.cands) { p.hidden = false; this.drawPicker(); } else this.loadCands(id, true);
+  },
+  drawPicker() {
+    const p = $('#ly-pick'), id = App.state.trackId;
+    const fmt = s => s > 0 ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}` : '?';
+    const rows = (this.cands || []).map(c => {
+      const diff = c.diff === 0 ? '長度相同' : (c.diff > 0 ? '長 ' : '短 ') + Math.abs(c.diff).toFixed(1) + ' 秒';
+      const warn = Math.abs(c.diff) > 3 ? ' warn' : '';
+      return h('button', { class: 'ly-cand', onclick: async () => {
+        p.hidden = true;
+        const r = await Host.call('lyrics.apply', { id, key: c.key }).catch(() => null);
+        if (!r) { toast('無法下載這份歌詞'); return; }
+        if (App.state.trackId !== id) return;
+        this.ly = { id: r.id, synced: r.synced, lines: (r.lines || []).map(l => ({ t: l.t, text: l.text, trans: l.trans, words: l.words })), offset: r.offset || 0, source: r.source + '（手動選擇）', instrumental: r.instrumental };
+        this.active = -2; this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
+        toast('已套用，之後會固定使用這份歌詞');
+      } },
+        h('div', { class: 'c1' }, c.title || '?', h('span', { class: 'tag' }, c.source)),
+        h('div', { class: 'c2' }, [c.artist, c.album].filter(Boolean).join(' · ')),
+        h('div', { class: 'c3' + warn }, `${fmt(c.duration)} · ${diff}` + (c.synced ? ' · 同步' : ' · 純文字')));
+    });
+    p.replaceChildren(
+      h('div', { class: 'ly-pick-head' }, '選擇正確的歌詞'),
+      ...(rows.length ? rows : [h('div', { class: 'ly-pick-msg' }, '找不到其他候選。')]),
+      h('div', { class: 'ly-pick-foot' },
+        h('button', { class: 'btn small ghost', onclick: async () => {
+          p.hidden = true;
+          await Host.call('lyrics.clear', { id });
+          if (App.state.trackId !== id) return;
+          this.ly = { id, synced: false, lines: [], offset: 0, source: '已標記為錯誤' };
+          this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
+          toast('已回報，這首歌不再自動顯示錯誤的歌詞');
+        } }, '都不對，不要顯示歌詞')));
   },
 
   /* paints cover, background and text for the current track */
@@ -112,9 +195,10 @@ const NowPlaying = {
       small.src = t.live ? bigYtImg(t.img, 120) : artUrl(kind, id, 64);
     }
     $('#np-title').textContent = t.title;
-    const artist = h('a', { onclick: () => { this.hide(); go(t.live ? '#/ytmusic' : '#/artist/' + encodeURIComponent(t.artist)); } }, t.artist || '');
+    const artist = t.live ? [h('a', { onclick: () => { this.hide(); go('#/ytmusic'); } }, t.artist || '')]
+      : artistLinks(t.artists?.length ? t.artists : [t.artist || ''], () => this.hide());
     const album = h('a', { onclick: () => { this.hide(); go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); } }, t.album?.title || '');
-    $('#np-artist').replaceChildren(artist, ' — ', album);
+    $('#np-artist').replaceChildren(...artist, ' — ', album);
     const b = $('#np-badges');
     b.textContent = '';
     b.append(h('span', { class: 'badge' }, t.codec));

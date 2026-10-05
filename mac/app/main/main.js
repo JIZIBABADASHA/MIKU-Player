@@ -26,6 +26,13 @@ const { Player } = require('./player');
 const { RemoteServer } = require('./remote');
 const AutoEq = require('./autoeq');
 const ff = require('./ffmpeg');
+const TagWriter = require('./tagwriter');
+const Metadata = require('./metadata');
+const LyricAlign = require('./lyricalign');
+const { FingerprintService } = require('./fingerprint');
+const { resize } = require('./artwork');
+const { getBytes } = require('./common');
+const { nativeImage } = require('electron');
 
 const Bg = '#0e0f13';
 const WWW = path.join(__dirname, '..', 'wwwroot');
@@ -42,7 +49,7 @@ const defaults = () => ({
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
   repeat: 'off', autoContinue: 'off', shuffle: false, queue: [], queueIndex: -1, resumePosition: 0, favorites: [], recent: [], searchHistory: [], artConfirmed: [],
-  lyricOffsets: {}, ui: {}, remoteEnabled: true, remotePort: 8765, window: null, maximized: false,
+  lyricOffsets: {}, ui: {}, acoustIdKey: null, remoteEnabled: true, remotePort: 8765, window: null, maximized: false,
 });
 const S = Object.assign(defaults(), Json.load(AppPaths.Settings, {}));
 S.dsp = Object.assign(defaults().dsp, S.dsp || {});
@@ -62,6 +69,16 @@ const art = new ArtworkService(lib, S);
 const lyrics = new LyricsService(S);
 const engine = new AudioEngine(S);
 const player = new Player(engine, lib, S);
+const fp = new FingerprintService(S);
+let lyricsJob = null, fpJob = null, tagsBusy = false;
+
+// a file the tag editor rewrote is checked before it replaces the original: same audio stream, same length
+TagWriter.setVerifier(async (orig, tmp) => {
+  const [a, b] = await Promise.all([ff.probe(orig), ff.probe(tmp)]);
+  const sa = (a.streams || []).find(x => x.codec_type === 'audio'), sb = (b.streams || []).find(x => x.codec_type === 'audio');
+  const da = parseFloat((a.format || {}).duration) || 0, db = parseFloat((b.format || {}).duration) || 0;
+  if (!sb || (sa && sa.codec_name !== sb.codec_name) || Math.abs(da - db) > 0.5) throw new Error('寫入後的檔案檢查失敗，原檔沒有被更動');
+});
 
 let win = null, ready = false, scanStarted = false, autoArtStarted = false, artJob = null, remote = null, remoteTick = 0, quitting = false;
 
@@ -194,6 +211,173 @@ function state() {
 const queueDto = () => ({ ids: player.queue.slice(), index: player.index, shuffle: S.shuffle, repeat: S.repeat });
 const init = () => ({ settings: S, version: app.getVersion(), ffmpeg: ff.Ffmpeg.available, asio: [], scan: lib.progress, state: state(), queue: queueDto(), platform: 'mac' });
 
+function lyricsDto(t, r) {
+  return { id: t.id, source: r.source, synced: r.synced, instrumental: !!r.instrumental, lines: r.lines.map(l => ({ ...l, trans: cleanTranslation(l.trans) })), offset: S.lyricOffsets[t.id] || 0 };
+}
+const dataBytes = d => { d = String(d || ''); const c = d.indexOf(','); if (c >= 0 && d.startsWith('data:')) d = d.slice(c + 1); return Buffer.from(d, 'base64'); };
+
+// ───────────── tag editor ─────────────
+function tagsDto(albumId) {
+  const al = lib.getAlbum(albumId);
+  if (!al) throw new Error('找不到這張專輯');
+  return {
+    id: al.id, folder: al.folder, loose: al.loose, artSource: art.sourceOf(al.id),
+    tracks: al.tracks.map(t => ({
+      id: t.id, file: path.basename(t.path), path: t.path, title: t.title, artist: t.artist, albumArtist: t.albumArtist, album: t.album,
+      genre: t.genre, composer: t.composer, year: t.year, track: t.trackNo, disc: t.discNo, dur: Math.round(t.duration * 100) / 100,
+      codec: t.codec, hasPic: !!t.hasPic, writable: TagWriter.canWrite(t.path),
+    })),
+  };
+}
+
+/** The cover to embed: JPEG / PNG up to 1600 px and 2.5 MB as they are, anything else as a JPEG of at most 1600 px. */
+function prepareCover(bytes) {
+  if (!bytes || bytes.length < 500) throw new Error('圖片太小或無效');
+  const jpeg = bytes[0] === 0xFF && bytes[1] === 0xD8, png = bytes[0] === 0x89 && bytes[1] === 0x50;
+  const img = nativeImage.createFromBuffer(bytes);
+  if (img.isEmpty()) throw new Error('無法讀取這張圖片（請用 JPEG 或 PNG）');
+  const { width: w, height: h } = img.getSize();
+  if (w < 50 || h < 50) throw new Error('圖片太小');
+  if ((jpeg || png) && Math.max(w, h) <= 1600 && bytes.length <= 2500000) return { data: bytes, mime: jpeg ? 'image/jpeg' : 'image/png' };
+  const out = resize(bytes, Math.min(1600, Math.max(w, h)));
+  if (!out || out[0] !== 0xFF || out[1] !== 0xD8) throw new Error('無法轉換這張圖片');
+  return { data: out, mime: 'image/jpeg' };
+}
+
+const BadName = /[\/:*?"<>|\x00-\x1F]/;
+async function saveTags(a) {
+  if (tagsBusy) throw new Error('正在儲存標籤，請稍候');
+  if (lib.progress.scanning) throw new Error('媒體庫正在掃描，請等掃描完成後再儲存');
+  const albumId = a.id;
+  const album = lib.getAlbum(albumId);
+  if (!album) throw new Error('找不到這張專輯');
+  const edits = new Map();
+  for (const e of Array.isArray(a.tracks) ? a.tracks : []) {
+    if (!e || !e.id || !e.set || typeof e.set !== 'object') continue;
+    const d = {};
+    for (const [k, v] of Object.entries(e.set)) if (TagWriter.Fields.includes(k)) d[k] = typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '';
+    if (Object.keys(d).length) edits.set(e.id, d);
+  }
+  let cover = null, removeCover = false, coverIds = null;
+  const cv = a.cover;
+  if (cv && typeof cv === 'object') {
+    if (Array.isArray(cv.ids) && cv.ids.length) coverIds = new Set(cv.ids);
+    if (cv.mode === 'remove') removeCover = true;
+    else if (cv.mode === 'current') {
+      const bytes = await art.currentPicture(albumId);
+      if (!bytes) throw new Error('這張專輯沒有封面可以寫入');
+      cover = prepareCover(bytes);
+    } else if (cv.mode === 'set') {
+      let bytes;
+      if (cv.data) bytes = dataBytes(cv.data);
+      else if (cv.url && /^https?:\/\//i.test(cv.url)) { try { bytes = await getBytes(cv.url); } catch (e) { throw new Error('封面下載失敗：' + e.message); } }
+      else throw new Error('封面圖片無效');
+      cover = prepareCover(bytes);
+    }
+  }
+  const coverChanged = !!cover || removeCover;
+  const renames = new Map();
+  for (const e of Array.isArray(a.rename) ? a.rename : []) {
+    const t = e && e.id ? lib.getTrack(e.id) : null;
+    let name = e && typeof e.name === 'string' ? e.name.trim() : '';
+    if (!t || t.albumId !== albumId || !name) continue;
+    if (BadName.test(name) || name === '.' || name === '..' || name.startsWith('.')) throw new Error('檔名含有不能用的字元：' + name);
+    const ext = path.extname(t.path);
+    if (!name.toLowerCase().endsWith(ext.toLowerCase())) name += ext;
+    if (name !== path.basename(t.path)) renames.set(t.id, name);
+  }
+  const coverFor = t => coverChanged && (!coverIds || coverIds.has(t.id));
+  const targets = album.tracks.filter(t => edits.has(t.id) || coverFor(t) || renames.has(t.id));
+  const wholeAlbumCover = coverChanged && album.tracks.every(coverFor);
+  if (!targets.length) return { albumId, tracks: album.tracks.length, written: 0, failed: [] };
+
+  tagsBusy = true;
+  try {
+    const paths = new Set(targets.map(t => t.path.toLowerCase()));
+    const cur = engine.track;
+    const touchesCurrent = !!(cur && paths.has(cur.path.toLowerCase()) && player.current && player.current.id === cur.id);
+    let wasPlaying = false, pos = 0;
+    if (touchesCurrent) { wasPlaying = engine.isPlaying; pos = engine.position; engine.stop(); await new Promise(r => setTimeout(r, 250)); }
+    else engine.invalidateNext();
+    try {
+      const failed = [];
+      let done = 0, written = 0;
+      for (const t of targets) {
+        try {
+          const withCover = coverFor(t);
+          if (withCover || edits.has(t.id)) { await TagWriter.write(t.path, edits.get(t.id) || {}, withCover ? cover : null, withCover && removeCover); written++; }
+        } catch (e) {
+          const msg = e.code === 'EACCES' || e.code === 'EPERM' ? '沒有寫入權限' : e.code === 'EBUSY' ? '檔案正在被其他程式使用' : e.message;
+          failed.push({ file: path.basename(t.path), error: msg });
+          Log.error('Write tags ' + t.path, e);
+        }
+        done++;
+        post('tagsProgress', { done, total: targets.length, file: path.basename(t.path) });
+      }
+      Log.info(`Tags written: ${album.title} — ${written}/${targets.length} files` + (coverChanged ? (removeCover ? ', cover removed' : ', cover embedded') : ''));
+      const moved = renames.size ? renameFiles(album.tracks.filter(t => renames.has(t.id)).map(t => [t, renames.get(t.id)]), failed) : {};
+      if (Object.keys(moved).length) moveTrackIds(moved);
+      if (wholeAlbumCover && failed.length < targets.length) { art.dropStoredArt(albumId); S.artConfirmed = S.artConfirmed.filter(x => x !== albumId); saveSoon(); }
+      const r = await lib.rereadAlbum(albumId, moved);
+      if (!wholeAlbumCover) art.moveStoredArt(albumId, r.albumId);
+      return { albumId: r.albumId, tracks: r.tracks, written, renamed: Object.keys(moved).length, failed };
+    } finally {
+      if (touchesCurrent) { try { await player.reload(pos, wasPlaying); } catch (e) { Log.error('Resume after tags', e); } }
+    }
+  } finally { tagsBusy = false; }
+}
+
+/** Renames files in their folders, through temporary names (so names can be swapped); lyrics files go along. */
+function renameFiles(list, failed) {
+  const moved = {};
+  const leaving = new Set(list.map(([t]) => t.path.toLowerCase()));
+  const taken = new Set(), plan = [];
+  for (const [t, name] of list) {
+    const to = path.join(path.dirname(t.path), name);
+    const same = to.toLowerCase() === t.path.toLowerCase();
+    if (taken.has(to.toLowerCase())) { failed.push({ file: path.basename(t.path), error: '和另一首的新檔名相同' }); continue; }
+    taken.add(to.toLowerCase());
+    if (!same && fs.existsSync(to) && !leaving.has(to.toLowerCase())) { failed.push({ file: path.basename(t.path), error: '已經有同名的檔案：' + name }); continue; }
+    plan.push({ from: t.path, to, tmp: t.path + '.miku-rename-' + Math.random().toString(16).slice(2, 10) });
+  }
+  const parked = [];
+  for (const p of plan) {
+    try { fs.renameSync(p.from, p.tmp); parked.push(p); }
+    catch (e) { failed.push({ file: path.basename(p.from), error: '沒有改名：' + e.message }); Log.error('Rename ' + p.from, e); }
+  }
+  for (const p of parked) {
+    try {
+      fs.renameSync(p.tmp, p.to);
+      moved[p.from] = p.to;
+      const base = s => s.slice(0, s.length - path.extname(s).length);
+      for (const ext of ['.lrc', '.LRC', '.txt']) {
+        const side = base(p.from) + ext, sideTo = base(p.to) + ext;
+        try { if (fs.existsSync(side) && !fs.existsSync(sideTo)) fs.renameSync(side, sideTo); } catch (e) { Log.error('Rename lyrics ' + side, e); }
+      }
+    } catch (e) {
+      try { fs.renameSync(p.tmp, p.from); } catch (e2) { Log.error('Rename back ' + p.tmp, e2); }
+      failed.push({ file: path.basename(p.from), error: '沒有改名：' + e.message });
+    }
+  }
+  Log.info(`Renamed ${Object.keys(moved).length}/${list.length} files`);
+  return moved;
+}
+
+/** Track ids come from paths: favourites, recent plays, lyric offsets, the lyrics cache and the queue follow renamed files. */
+function moveTrackIds(moved) {
+  const map = new Map(Object.entries(moved).map(([a, b]) => [hash(a.toLowerCase()), hash(b.toLowerCase())]));
+  for (const [from, to] of map) {
+    if (from === to) continue;
+    if (S.favorites.includes(from)) S.favorites = S.favorites.map(x => x === from ? to : x);
+    S.recent = S.recent.map(x => x === from ? to : x);
+    if (from in S.lyricOffsets) { S.lyricOffsets[to] = S.lyricOffsets[from]; delete S.lyricOffsets[from]; }
+    try { const c = LyricsService.cacheFile(from), c2 = LyricsService.cacheFile(to); if (fs.existsSync(c) && !fs.existsSync(c2)) fs.renameSync(c, c2); } catch { }
+  }
+  player.renameIds(map);
+  saveSoon();
+  post('favs', S.favorites);
+}
+
 function openExternal(u) { if (u && /^https?:\/\//.test(u)) shell.openExternal(u).catch(() => { }); }
 
 async function mediaAsync(p, query) {
@@ -215,7 +399,7 @@ async function devicesDto() {
 }
 
 const OutputKeys = new Set(['deviceId', 'bufferMs', 'dsdPcmRate', 'replayGain', 'replayGainPreamp', 'gapless']);
-const Protected = new Set(['queue', 'folders', 'favorites', 'recent', 'searchHistory']);
+const Protected = new Set(['queue', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey']);
 async function applySettings(patch) {
   let device = false, volume = false, rg = false, rem = false;
   for (const [k, v] of Object.entries(patch || {})) {
@@ -319,7 +503,62 @@ async function handleRpc(m, a) {
       const t = lib.getTrack(a.id);
       if (!t) return null;
       const r = await lyrics.get(t, a.refresh === true);
-      return { id: t.id, source: r.source, synced: r.synced, instrumental: r.instrumental, lines: r.lines.map(l => ({ ...l, trans: cleanTranslation(l.trans) })), offset: S.lyricOffsets[t.id] || 0 };
+      return lyricsDto(t, r);
+    }
+    case 'lyrics.candidates': { const t = lib.getTrack(a.id); return t ? lyrics.candidates(t) : null; }
+    case 'lyrics.apply': {
+      const t = lib.getTrack(a.id);
+      if (!t) return null;
+      const r = await lyrics.apply(t, String(a.key || ''));
+      return r ? lyricsDto(t, r) : null;
+    }
+    case 'lyrics.clear': { const t = lib.getTrack(a.id); if (t) lyrics.clear(t); return null; }
+    case 'lyrics.autoAlign': {
+      const t = lib.getTrack(a.id);
+      if (!t) return null;
+      const ly = await lyrics.get(t);
+      if (!ly.synced || ly.lines.length < 4) return { ok: false, reason: '這首歌沒有同步歌詞' };
+      const r = await LyricAlign.estimate(t, ly.lines.filter(l => l.text.length).map(l => l.t)).catch(e => { Log.error('Align', e); return null; });
+      if (!r) return { ok: false, reason: '無法分析這首歌的音訊' };
+      if (!r.ok) return { ok: false, reason: '分析結果不夠可靠，請手動調整', offset: r.offset, confidence: r.confidence };
+      S.lyricOffsets[t.id] = r.offset; saveSoon();
+      return { ok: true, offset: r.offset, confidence: r.confidence };
+    }
+    case 'lyrics.fetchAll': {
+      if (lyricsJob) lyricsJob.abort();
+      const ac = lyricsJob = new AbortController();
+      lyrics.fetchAll(lib.allTracks, p => post('lyricsJob', p), ac.signal).catch(e => Log.info('Lyrics job: ' + e.message)).finally(() => post('lyricsJob', { done: -1 }));
+      return null;
+    }
+    case 'lyrics.cancel': if (lyricsJob) lyricsJob.abort(); return null;
+    case 'album.reread': return lib.rereadAlbum(a.id);
+    case 'tags.load': return tagsDto(a.id);
+    case 'tags.search': return Metadata.search(a.album, a.artist, lib.getAlbum(a.id), L(a, 'sources'));
+    case 'tags.release': return Metadata.get(a.source, a.id, a.country);
+    case 'tags.save': return saveTags(a);
+    case 'acoustid.info': return { hasKey: fp.hasKey, hasTool: !!fp.fpcalcPath };
+    case 'acoustid.key': S.acoustIdKey = String(a.key || '').trim(); saveSettings(); return { hasKey: fp.hasKey };
+    case 'tags.identify': {
+      const al = lib.getAlbum(a.id);
+      if (!al) throw new Error('找不到這張專輯');
+      const ids = new Set(L(a, 'ids'));
+      const list = al.tracks.filter(t => !ids.size || ids.has(t.id));
+      if (fpJob) fpJob.abort();
+      const ac = fpJob = new AbortController();
+      try { return await fp.identify(list, p => post('fpProgress', p), ac.signal); }
+      catch (e) { if (ac.signal.aborted) return null; throw e; }
+    }
+    case 'tags.identifyCancel': if (fpJob) fpJob.abort(); return null;
+    case 'artistArt.info': return { source: art.artistSourceOf(a.name) };
+    case 'artistArt.candidates': return art.artistCandidates(a.name, a.q);
+    case 'artistArt.setUrl': return art.setArtistOverrideFromUrl(a.name, a.url);
+    case 'artistArt.setData': return art.setArtistOverride(a.name, dataBytes(a.data));
+    case 'artistArt.clear': art.clearArtistOverride(a.name); return null;
+    case 'art.dims': return art.dimensions(L(a, 'urls'));
+    case 'fullscreen': {
+      const on = typeof a.on === 'boolean' ? a.on : !win.isFullScreen();
+      win.setFullScreen(on);
+      return on;
     }
     case 'lyricsOffset': S.lyricOffsets[a.id] = N(a, 'offset'); saveSoon(); return null;
     case 'fav': setFav(a.id, a.on === true); saveSoon(); post('favs', S.favorites); return null;
@@ -336,16 +575,13 @@ async function handleRpc(m, a) {
     case 'search.remove': S.searchHistory = S.searchHistory.filter(x => x.toLowerCase() !== String(a.q || '').toLowerCase()); saveSoon(); return null;
     case 'search.clear': S.searchHistory = []; saveSoon(); return null;
     case 'art.retry': art.retryAlbum(a.id); return null;
-    case 'art.info': return { source: art.sourceOf(a.id), confirmed: S.artConfirmed.includes(a.id) };
-    case 'art.candidates': return art.candidates(a.id, a.q);
+    case 'art.info': return { source: art.sourceOf(a.id), confirmed: S.artConfirmed.includes(a.id), dims: a.dims === true ? await art.sourceDims(a.id) : null };
+    case 'art.candidates': return art.candidates(a.id, a.q, a.part || null);
     case 'art.setUrl':
       await art.setOverrideFromUrl(a.id, a.url);
       if (!S.artConfirmed.includes(a.id)) S.artConfirmed.push(a.id); saveSoon(); return true;
     case 'art.setData': {
-      let data = String(a.data || '');
-      const comma = data.indexOf(',');
-      if (comma >= 0 && data.startsWith('data:')) data = data.slice(comma + 1);
-      art.setOverride(a.id, Buffer.from(data, 'base64'));
+      art.setOverride(a.id, dataBytes(a.data));
       if (!S.artConfirmed.includes(a.id)) S.artConfirmed.push(a.id); saveSoon(); return true;
     }
     case 'art.clear': art.clearOverride(a.id); S.artConfirmed = S.artConfirmed.filter(x => x !== a.id); saveSoon(); return null;
@@ -505,6 +741,8 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'main-preload.js'), contextIsolation: true, sandbox: true, spellcheck: false, backgroundThrottling: false },
   });
   if (S.maximized) win.maximize();
+  win.on('enter-full-screen', () => post('fullscreen', { on: true }));
+  win.on('leave-full-screen', () => post('fullscreen', { on: false }));
   win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('miku://app/')) { e.preventDefault(); openExternal(url); } });

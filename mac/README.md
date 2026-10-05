@@ -25,6 +25,8 @@ Windows 版 MIKU（C# + WebView2 + NAudio）移植到 macOS 的版本。介面�
 | 曲庫、封面搜尋、歌詞（LRCLIB / 網易雲 + 簡轉繁）、手機遙控 | 有 | 有（資料格式相同） |
 | YouTube Music | 聲音導入 MIKU 的 DSP | 內建面板直接播放，不經過 DSP |
 | 媒體鍵 | 有 | 有（也會顯示在控制中心的「正在播放」） |
+| 編輯標籤、重新命名檔案、線上專輯資料、聲紋辨識（AcoustID） | 有（TagLib） | 有（內建寫入程式：FLAC、MP3、WAV、AIFF、DSF、M4A、OGG/Opus、APE、WavPack；fpcalc 內建於 App） |
+| 專輯版本切換、演出者圖片自訂、歌詞候選／自動對齊 | 有 | 有 |
 
 FLAC / WAV / MP3 / AAC / OGG / Opus 由 Chromium 直接解碼；ALAC、AIFF、APE、WavPack、TAK、TTA、WMA、DSD
 由內建的 FFmpeg 無損解碼成 FLAC（暫存在 `~/Library/Caches/MIKU/Transcode`，上限約 3 GB）。
@@ -39,17 +41,35 @@ app/
   engine/      播放引擎（隱藏視窗：<audio> → ReplayGain → DSP AudioWorklet → Core Audio）
   wwwroot/     介面（來自 Windows 版，已改成 Mac 快捷鍵與輸出設定；mac-bridge.js 提供 chrome.webview 相容層）
 build/
-  build.sh     下載 Electron 與 FFmpeg 後打包成 .pkg（Mac 或 Linux 都能跑）
+  build.sh     下載 Electron、FFmpeg 與 fpcalc 後打包成 .pkg（Mac 或 Linux 都能跑）
+  sync_wwwroot.py  把 Windows 版介面（windows/wwwroot）同步過來，套用 Mac 專屬的修改（⌘ 快捷鍵、Core Audio 文字等）
+  wwwroot-mac/ Mac 版自己的輸出裝置選單（art.js 結尾）
   make_pkg.py  建立 MIKU.app（arm64 + x64）、ad-hoc 簽章、產生安裝檔
   MIKU.icns    App 圖示
 ```
 
-## 自己重新打包
+## 同步 Windows 版的介面
+
+Windows 版介面有修改時，執行 `python3 mac/build/sync_wwwroot.py`。`settings.js` 和 `mac-bridge.js` 是 Mac 版自己的檔案，不會被覆蓋。
+新的後端 RPC 要在 `app/main/main.js` 另外實作。
+
+## 自己編譯（最簡單的方法）
+
+1. 在 Finder 打開 `mac` 資料夾，雙擊 **`編譯 Mac 版.command`**。
+2. 第一次如果跳出「命令列開發者工具」的安裝視窗，按「安裝」，裝好後再雙擊一次。
+3. 等它跑完（第一次要下載約 400 MB，之後會重複使用），裝好的安裝檔會出現在 `mac/dist`，資料夾會自動打開。
+
+它會依序：同步 Windows 版介面（`build/sync_wwwroot.py`）→ 下載 Electron、FFmpeg、fpcalc → 打包成 `dist/MIKU-<版本>-mac.pkg`。
+版本號在 `app/package.json` 的 `version`。
+
+> 從 GitHub 網頁下載 ZIP 解壓的話，第一次雙擊可能被 macOS 擋下：在檔案上按右鍵 →「打開」即可。用 `git clone` 取得的不會有這個問題。
+
+## 用終端機重新打包
 
 在 Mac 上：
 
 ```
-cd mac/build && ./build.sh
+cd mac/build && bash build.sh
 ```
 
 產生的安裝檔在 `dist/`。開發時也可以直接執行：下載 Electron 後 `electron app`。

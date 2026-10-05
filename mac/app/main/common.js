@@ -15,6 +15,8 @@ const AppPaths = {
   Thumbs: path.join(Cache, 'Thumbs'),
   Transcode: path.join(Cache, 'Transcode'),
   Lyrics: path.join(Root, 'Lyrics'),
+  Tools: path.join(Root, 'tools'),
+  Fingerprints: path.join(Root, 'fingerprints.json'),
   Settings: path.join(Root, 'settings.json'),
   Library: path.join(Root, 'library.json'),
   LogFile: path.join(Root, 'miku.log'),
@@ -155,8 +157,10 @@ const UA = 'Miku/1.0 (desktop music player)';
 async function http(url, opts = {}) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), opts.timeout || 15000);
+  const outer = opts.signal;
+  if (outer) { if (outer.aborted) ctl.abort(); else outer.addEventListener('abort', () => ctl.abort(), { once: true }); }
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json, */*', ...(opts.headers || {}) }, signal: ctl.signal, redirect: 'follow' });
+    const res = await fetch(url, { method: opts.method || 'GET', body: opts.body, headers: { 'User-Agent': UA, Accept: 'application/json, */*', ...(opts.headers || {}) }, signal: ctl.signal, redirect: 'follow' });
     return res;
   } finally { clearTimeout(timer); }
 }
@@ -183,6 +187,40 @@ const TicksEpoch = 621355968000000000n;
 const msToTicks = ms => Number(BigInt(Math.round(ms)) * 10000n + TicksEpoch);
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/** The first of several ';'-separated names that isn't a compilation placeholder (Text.FirstArtist). */
+const firstArtist = s => (s || '').split(';').map(x => x.trim()).filter(Boolean).find(n => n !== 'Various Artists' && n !== '未知演出者') || '';
+
+/**
+ * Rate limit for an online service (port of RateGate in Common.cs): at most `max` calls in `windowMs` and `spacing`
+ * between calls. Calls the user waits for (`user`) go first: background calls wait while one is queued, and use at
+ * most `bgMax` of the window.
+ */
+class RateGate {
+  constructor(max, bgMax, windowMs, spacingMs) { this.max = max; this.bgMax = bgMax; this.window = windowMs; this.spacing = spacingMs; this.calls = []; this.last = 0; this.urgent = 0; }
+  async wait(user, signal) {
+    if (user) this.urgent++;
+    try {
+      for (;;) {
+        if (signal && signal.aborted) throw new Error('cancelled');
+        const now = Date.now();
+        while (this.calls.length && now - this.calls[0] >= this.window) this.calls.shift();
+        let wait;
+        if (!user && this.urgent > 0) wait = 250;
+        else {
+          wait = this.calls.length >= (user ? this.max : this.bgMax) ? this.calls[0] + this.window - now : 0;
+          const gap = this.last + this.spacing - now;
+          if (gap > wait) wait = gap;
+        }
+        if (wait <= 0) { this.last = now; this.calls.push(now); return; }
+        await sleep(Math.max(20, wait));
+      }
+    } finally { if (user) this.urgent--; }
+  }
+}
+RateGate.Apple = new RateGate(20, 12, 60000, 200);
+RateGate.MusicBrainz = new RateGate(1, 1, 1050, 0);
+RateGate.AcoustId = new RateGate(3, 3, 1050, 0);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-module.exports = { AppPaths, Log, Json, hash, norm, similarity, decodeUnknown, toTraditional, cleanTranslation, http, getJson, getBytes, getText, msToTicks, sleep, clamp };
+module.exports = { AppPaths, Log, Json, hash, norm, similarity, decodeUnknown, toTraditional, cleanTranslation, http, getJson, getBytes, getText, msToTicks, sleep, clamp, firstArtist, RateGate, UA };

@@ -202,6 +202,15 @@ class Player extends EventEmitter {
     this.index = cur == null ? (this.queue.length ? 0 : -1) : Math.max(this.queue.indexOf(cur), this.queue.length ? 0 : -1);
     this.persist(); this.changedQueue();
   }
+  /** Track ids follow their files' paths: renamed files get new ids in the queue. */
+  renameIds(map) {
+    const m = id => map.get(id) || id;
+    this.queue = this.queue.map(m);
+    if (this.unshuffled) this.unshuffled = this.unshuffled.map(m);
+    this.persist();
+  }
+  /** Loads the current track again at `pos` (after its file was rewritten, e.g. new tags). */
+  reload(pos, play) { this.engine.invalidateNext(); return this.load(this.current, pos, play); }
   saveState() { this.persist(); if (this.engine.track) this.s.resumePosition = this.engine.position; }
 }
 

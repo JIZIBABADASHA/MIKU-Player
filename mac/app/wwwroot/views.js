@@ -152,7 +152,11 @@ function albumCard(al, size) {
   art.dataset.album = al.id;
   const play = h('button', { class: 'play', title: '播放', html: icon('play', true), onclick: e => { e.stopPropagation(); App.playTracks(al.tracks, 0, false); } });
   art.append(play);
-  const c = h('div', { class: 'card', onclick: () => { Flip.capture(al.id, art); go('#/album/' + al.id); } },
+  const c = h('div', { class: 'card', onclick: () => {
+    const open = () => { Flip.capture(al.id, art); go('#/album/' + al.id); };
+    if (typeof Vinyl !== 'undefined' && Vinyl.pullOut(c, open)) return;   // VINYL: pull the record out of the sleeve first
+    open();
+  } },
     art, h('div', { class: 't1', title: al.title }, al.title), h('div', { class: 't2' }, al.artist + (al.year ? ' · ' + al.year : '')));
   c.oncontextmenu = e => { e.preventDefault(); albumMenu(al, { x: e.clientX, y: e.clientY }); };
   // keep play button alive across art refreshes
@@ -270,7 +274,7 @@ const YT = {
   frame: null, shown: false,
   sync() {
     const f = YT.frame;
-    const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !(window.ArtPicker && ArtPicker.el));
+    const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !(window.ArtPicker && ArtPicker.el) && !(window.CoverView && CoverView.el));
     if (visible) {
       const r = f.getBoundingClientRect();
       Host.call('yt.show', { x: r.left, y: r.top, w: r.width, h: r.height, dpr: window.devicePixelRatio || 1 });
@@ -307,7 +311,8 @@ const Views = {
     };
     view.append(h('div', { style: { height: '8px' } }));
     const recentTracks = (App.settings.recent || []).map(id => Lib.trackById.get(id)).filter(Boolean);
-    rail('最近聆聽', [...new Set(recentTracks.map(t => t.album).filter(Boolean))].slice(0, 24), '#/recent');
+    // an album played in several versions (FLAC and DSD…) shows once, as its best version, like the album lists
+    rail('最近聆聽', [...new Set(recentTracks.map(t => t.album && (t.album.versions ? t.album.versions[0] : t.album)).filter(Boolean))].slice(0, 24), '#/recent');
     rail('最近加入', Lib.albums.slice().sort((a, b) => b.added - a.added).slice(0, 24), '#/albums');
     const favAlbums = [...new Set([...App.favs].map(id => Lib.trackById.get(id)?.album).filter(Boolean))].slice(0, 24);
     rail('我的最愛', favAlbums, '#/favorites');
@@ -325,7 +330,7 @@ const Views = {
   onboarding(view) {
     const box = h('div', { class: 'box' });
     box.innerHTML = `<div style="display:flex;justify-content:center;gap:16px;align-items:center">${Brand.svg(70)}</div>`;
-    box.append(h('h2', null, '加入音樂資料夾'), h('p', null, '選擇存放音樂的資料夾，MIKU 會讀取標籤並建立曲庫。音樂檔案不會被修改。'));
+    box.append(h('h2', null, '加入音樂資料夾'), h('p', null, '選擇存放音樂的資料夾，MIKU 會讀取標籤並建立曲庫。除非你用「編輯標籤」修改，音樂檔案不會被更動。'));
     box.append(h('button', { class: 'btn primary', html: icon('folder') + '選擇資料夾', onclick: async () => { const f = await Host.call('folder.add'); if (f) { App.settings.folders = f; Router.render(); } } }));
     const chips = h('div', { class: 'chips' });
     box.append(chips);
@@ -377,22 +382,26 @@ const Views = {
     const f = al.tracks[0] || {};
     const discs = new Set(al.tracks.map(t => t.disc)).size;
     const cover = artBox('cover', kind, artId, 300, al.title);
-    cover.onclick = () => ArtPicker.open(al);
+    cover.onclick = () => CoverView.open(al);
     const meta = h('div', { class: 'meta' },
         h('div', { class: 'kind' }, al.loose ? '資料夾' : '專輯'),
         h('h1', { title: al.title }, al.title),
-        h('div', { class: 'by' }, h('a', { onclick: () => go('#/artist/' + encodeURIComponent(al.artist)) }, al.artist)),
+        h('div', { class: 'by' }, ...artistLinks(al.artists.length ? al.artists : [al.artist])),
         h('div', { class: 'facts num' },
           al.year ? h('span', null, al.year) : null,
           h('span', null, `${al.tracks.length} 首 · ${fmtLong(al.dur)}`),
           al.genre ? h('span', null, '· ' + al.genre) : null,
-          h('span', { class: 'badge ' + al.qc }, (f.codec === 'DSF' || f.codec === 'DFF') ? al.q : `${f.codec} ${al.q}`)),
+          al.versions
+            ? h('button', { class: 'badge ver ' + al.qc, title: `這張專輯有 ${al.versions.length} 個版本，點一下切換`, onclick: e => versionMenu(al, e.currentTarget) },
+              qualityLabel(al), h('span', { class: 'ver-n' }, `${al.versions.length} 個版本`), h('span', { class: 'caret', html: icon('down') }))
+            : h('span', { class: 'badge ' + al.qc }, qualityLabel(al))),
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary', html: icon('play', true) + '播放', onclick: () => App.playTracks(al.tracks, 0, false) }),
           h('button', { class: 'btn', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(al.tracks, -1, true) }),
           h('button', { class: 'icon-btn', title: '更多', html: icon('more'), onclick: e => albumMenu(al, e.currentTarget) })));
     const hero = h('div', { class: 'hero album' }, heroBg(kind, artId), cover, meta);
     view.append(hero);
+    if (typeof Vinyl !== 'undefined') Vinyl.mount(hero, cover, al);
     Flip.play(al.id, cover);
     artNote(al, meta);
     const list = h('div', { class: 'tracks' }, thead('作曲'));
@@ -404,10 +413,11 @@ const Views = {
       list.append(row);
     });
     view.append(list);
-    // more by this artist
-    const more = (Lib.artistMap.get(al.artist)?.albums || []).filter(a => a !== al);
-    if (more.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${al.artist} 的作品`)));
+    // more by this artist (each of them when there are several)
+    for (const name of al.artists.filter(realArtist).slice(0, 3)) {
+      const more = (Lib.artistMap.get(name)?.albums || []).filter(a => a !== al && !(al.versions || []).includes(a));
+      if (!more.length) continue;
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${name} 的作品`)));
       const r = h('div', { class: 'rail' });
       more.slice(0, 20).forEach(a => r.append(albumCard(a, 176)));
       view.append(r);
@@ -428,7 +438,7 @@ const Views = {
     const tracks = own.flatMap(a => a.tracks);
     const hero = h('div', { class: 'hero artist' },
       first ? heroBg('a', first.id) : null,
-      artBox('cover', 'r', name, 260, name),
+      Object.assign(artBox('cover', 'r', name, 260, name), { onclick: () => ArtPicker.openArtist(name) }),
       h('div', { class: 'meta' },
         h('div', { class: 'kind' }, '演出者'),
         h('h1', null, name),
@@ -529,7 +539,7 @@ const Views = {
     return cleanup;
   },
 
-  settings(view) { return Settings.render(view); },
+  settings(view, tab) { return Settings.render(view, tab); },
 
   ytmusic(view) {
     const nav = to => Host.call('yt.nav', { to });

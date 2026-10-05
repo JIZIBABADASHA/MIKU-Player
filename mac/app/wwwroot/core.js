@@ -75,6 +75,20 @@ function fmtQuality(codec, rate, bits) {
   if (!rate) return codec;
   return `${bits || 16}/${khz(rate)}`;
 }
+/** An album's format as shown on its page: "FLAC 24/96", "DSD128", "MP3". */
+function qualityLabel(al) {
+  const f = al.tracks[0];
+  if (!f) return '';
+  return f.codec === 'DSF' || f.codec === 'DFF' || al.q === f.codec ? al.q : `${f.codec} ${al.q}`;
+}
+/** Sort key for an album's versions, best first: DSD, then lossless by bits and rate, then lossy. */
+function qualityRank(al) {
+  const f = al.tracks[0];
+  if (!f) return 0;
+  if (f.codec === 'DSF' || f.codec === 'DFF') return 3e9 + f.rate;
+  if (['MP3', 'AAC', 'OGG', 'OPUS', 'WMA'].includes(f.codec)) return f.rate || 0;
+  return (f.bits || 16) * 1e7 + (f.rate || 0);
+}
 function qualityClass(codec, rate, bits) {
   if (codec === 'DSF' || codec === 'DFF') return 'dsd';
   if (bits > 16 || rate > 48000) return 'hi';
@@ -92,11 +106,15 @@ function toast(msg, opts = {}) {
 
 /* ═════════════════════════════ artwork ═════════════════════════════ */
 const ArtVer = {};
+/** ArtworkService.Rules: a picture cached by WebView2 under older rules isn't used. */
+const ART_RULES = 2;
+/** Changes counted in ArtVer start again at every start, while WebView2 keeps pictures cached for a day: make each start's URLs its own. */
+const ART_BOOT = Date.now().toString(36);
 function artUrl(kind, id, size) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const s = Math.round(size * dpr);
   const v = ArtVer[kind + id] || 0;
-  return `${MEDIA}/art/${kind}/${encodeURIComponent(id)}?s=${s}${v ? '&v=' + v : ''}`;
+  return `${MEDIA}/art/${kind}/${encodeURIComponent(id)}?s=${s}&r=${ART_RULES}${v ? `&v=${ART_BOOT}.${v}` : ''}`;
 }
 /** Fills `box` with a placeholder and lazily fades the real image in on top. */
 function fillArt(box, kind, id, size, label, opts = {}) {
@@ -218,12 +236,32 @@ const ArtSharp = {
 ArtSharp.onDpr();
 
 /* ═════════════════════════════ library store ═════════════════════════════ */
-/** Some files carry the same name many times (several tag blocks / taggers): keep each ';'-separated name once. */
-function dedupeNames(s) {
-  if (!s || s.indexOf(';') < 0) return s || '';
+/** Artist and genre tags: ';' separates several values ("ほぼ日P ;  初音ミク", "Niconico; Vocaloid"). */
+const splitNames = s => {
+  // some files carry the same name many times (several tag blocks / taggers): keep each name once
   const seen = new Set(), out = [];
-  for (const x of s.split(';')) { const v = x.trim(), k = v.toLowerCase(); if (v && !seen.has(k)) { seen.add(k); out.push(v); } }
-  return out.join('; ');
+  for (const x of (s || '').split(';')) { const v = x.trim(), k = v.toLowerCase(); if (v && !seen.has(k)) { seen.add(k); out.push(v); } }
+  return out;
+};
+/** Several values shown as one text. */
+const joinNames = names => names.join(' / ');
+const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
+/** The artist to put in an online search: the first name only, without "(CV. …)" (ArtworkService.SearchArtist). */
+const searchArtist = s => {
+  const first = splitNames(s).find(realArtist) || '';
+  const bare = first.replace(/\s*[(（\[【][^)）\]】]*[)）\]】]/g, '').trim() || first;
+  return (bare.split(/\s*(?:,|、|&|＆|×|\/|／|\bfeat\.?(?=\s)|\bft\.|\bwith\b)\s*/i).find(p => p.trim()) || bare).trim();
+};
+/** The artist page for a track: its album's artist (unless a compilation), else the track's first artist. */
+const mainArtist = t => (t.album?.artists || []).find(realArtist) || t.artists?.[0] || t.artist;
+/** Names as links to their artist pages, separated like joinNames. */
+function artistLinks(names, before) {
+  const out = [];
+  names.forEach((n, i) => {
+    if (i) out.push(' / ');
+    out.push(realArtist(n) ? h('a', { onclick: () => { before && before(); go('#/artist/' + encodeURIComponent(n)); } }, n) : n);
+  });
+  return out;
 }
 
 const Lib = {
@@ -235,37 +273,56 @@ const Lib = {
     } catch (e) { console.error(e); data = { albums: [], tracks: [] }; }
     const albums = [], albumById = new Map(), trackById = new Map(), tracks = [];
     for (const a of data.albums) {
-      const al = { id: a[0], title: a[1], artist: dedupeNames(a[2]), year: a[3], genre: a[4], added: a[5], hasArt: !!a[6], loose: !!a[7], tracks: [], dur: 0 };
+      const artists = splitNames(a[2]);
+      const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], vg: a[8] || '', folder: a[9] || '', tracks: [], dur: 0 };
       albums.push(al); albumById.set(al.id, al);
     }
     for (const r of data.tracks) {
-      const t = { id: r[0], title: r[1], artist: dedupeNames(r[2]), albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: dedupeNames(r[11]) };
+      const artists = splitNames(r[2]);
+      const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: joinNames(splitNames(r[11])) };
       const al = albumById.get(t.albumId);
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
     }
-    const artistMap = new Map();
     for (const al of albums) {
       const f = al.tracks[0];
       al.q = f ? fmtQuality(f.codec, f.rate, f.bits) : '';
       al.qc = f ? qualityClass(f.codec, f.rate, f.bits) : '';
+      al.versions = null; al.hidden = false;
       al.s = norm(al.title + ' ' + al.artist);
-      if (al.artist && al.artist !== 'Various Artists' && al.artist !== '未知演出者') {
-        let ar = artistMap.get(al.artist);
-        if (!ar) artistMap.set(al.artist, ar = { name: al.artist, albums: [], s: norm(al.artist) });
+    }
+    // the same album in several folders / formats (Library.GroupVersions): each knows the others, best first. Lists
+    // show the album once, as its best version (that's the one opened); the others are reached from its version menu.
+    const groups = new Map();
+    for (const al of albums) if (al.vg) (groups.get(al.vg) || groups.set(al.vg, []).get(al.vg)).push(al);
+    for (const g of groups.values()) {
+      g.sort((x, y) => qualityRank(y) - qualityRank(x) || y.tracks.length - x.tracks.length);
+      for (const al of g) { al.versions = g; al.hidden = al !== g[0]; }
+    }
+    const shown = albums.filter(al => !al.hidden);
+    const artistMap = new Map();
+    for (const al of shown) {
+      // each of several album artists ("Various Artists ; 初音ミク") gets the album, and so do the artists of its other
+      // versions, written otherwise ("kensuke ushio" / "牛尾憲輔")
+      const names = new Set((al.versions || [al]).flatMap(v => v.artists).filter(realArtist));
+      for (const name of names) {
+        let ar = artistMap.get(name);
+        if (!ar) artistMap.set(name, ar = { name, albums: [], s: norm(name) });
         ar.albums.push(al);
       }
     }
     for (const t of tracks) t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : ''));
+    const shownTracks = tracks.filter(t => !t.album?.hidden);
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
-      albums, tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
+      // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
+      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
       artists: [...artistMap.values()].sort((a, b) => coll.compare(a.name, b.name)),
     });
-    $('#c-albums').textContent = albums.length || '';
+    $('#c-albums').textContent = shown.length || '';
     $('#c-artists').textContent = this.artists.length || '';
-    $('#c-tracks').textContent = tracks.length || '';
+    $('#c-tracks').textContent = shownTracks.length || '';
   },
   artistAlbums(name) {
     const own = this.artistMap.get(name)?.albums || [];
@@ -292,6 +349,7 @@ const App = {
     Host.on('remotePaired', p => toast(`「${p.name}」已配對，可以用手機遙控了`));
     Host.on('favs', f => { this.favs = new Set(f || []); this.renderFav(); });
     Host.on('scan', p => this.scan(p));
+    Host.on('fullscreen', ({ on }) => { this.fullscreen = on; document.documentElement.classList.toggle('fullscreen', on); });
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       await Lib.load();
@@ -306,6 +364,8 @@ const App = {
     this.lastRecent = (init.settings.recent || [])[0] || null;
     this.queue = init.queue;
     this.ffmpeg = init.ffmpeg;
+    this.rplay = !!init.rplay;
+    this.rplayCommit = init.rplayCommit || '';
     this.version = init.version;
     this.scan(init.scan);
     await Lib.load();
@@ -342,6 +402,10 @@ const App = {
     if (!this.seeking && !settling) { this.posBase = s.pos; this.posAt = performance.now(); }
     const key = s.trackId + '|' + (s.live ? s.live.title + '|' + s.live.artist : '');
     if (this.trackKey !== key) { this.trackKey = key; this.trackChanged(); }
+    if (s.playing && s.meter && s.meter.resampleMeterAvailable === true && s.meter.resampleOverloads > 0 && this.overloadWarningTrack !== key) {
+      this.overloadWarningTrack = key;
+      toast('重取樣輸出峰值超過 0 dBFS。請在訊號路徑查看已解碼區段的量測，並自行調整數位音量或前級增益。', { error: true, ms: 9000 });
+    }
     // states arrive before the library has loaded at startup (library.json can take a moment): a local track that
     // isn't in Lib yet was drawn empty, so don't remember it as drawn and try again with the next state
     if (s.trackId && !s.live && !Lib.trackById.has(s.trackId)) this.trackKey = null;
@@ -503,7 +567,7 @@ const App = {
     $('#b-fav').onclick = () => { const t = this.track(); if (t) this.toggleFav(t.id); };
     $('#b-art').onclick = () => NowPlaying.show();
     $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
-    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(t.album?.artist && t.album.artist !== 'Various Artists' ? t.album.artist : t.artist)); };
+    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
     $('#b-queue').onclick = () => Drawer.toggle('queue');
     $('#b-dsp').onclick = () => Drawer.toggle('dsp');
     $('#b-sig').onclick = e => SignalPop.toggle(e.currentTarget);
@@ -566,8 +630,9 @@ const App = {
       const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#q').focus(); $('#q').select(); return; }
       if (e.key === 'F12' || (e.metaKey && e.altKey && e.key.toLowerCase() === 'i')) { Host.call('devtools'); return; }
+      if (e.key === 'F11') { e.preventDefault(); Host.call('fullscreen'); return; }
       if (typing) return;
-      if (e.key === 'Escape') { if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); }
+      if (e.key === 'Escape') { if (CoverView.close()) return; if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); }
       if (e.key === ' ') { e.preventDefault(); this.toggle(); }
       else if (e.key === 'ArrowRight' && !e.altKey) { e.preventDefault(); this.seek(Math.min(this.state.dur, this.pos + (e.shiftKey ? 30 : 5))); }
       else if (e.key === 'ArrowLeft' && !e.altKey) { e.preventDefault(); this.seek(Math.max(0, this.pos - (e.shiftKey ? 30 : 5))); }
@@ -652,24 +717,42 @@ function slider(el, { start, move, end, tip }) {
 }
 
 /* ═════════════════════════════ popovers & menus ═════════════════════════════ */
+/** The Rplay core's icon (shown only where the Rplay core is in use). */
+const rplayIcon = (size = 18) => h('img', { class: 'rp-icon', src: 'img/rplay.png', width: size, height: size, alt: 'Rplay', draggable: 'false' });
+/** The icon and the word "Rplay" as one rounded grey pill (the signal path popover's badge). */
+const rplayBadge = (attrs = {}) => h('span', { class: 'rp-badge', ...attrs }, rplayIcon(18), 'Rplay');
+
 const Popover = {
   el: null,
   show(content, anchor, opts = {}) {
+    // a second click on the button that opened it closes it: the pointerdown (outside the popover) has just closed
+    // it, so don't open it again from that click
+    if (this.closedBy && this.closedBy === anchor && performance.now() - this.closedAt < 600) { this.closedBy = null; return null; }
+    this.closedBy = null;
     this.close();
     const el = h('div', { class: 'pop ' + (opts.cls || '') }, content);
     document.body.append(el);
     const r = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y, width: 0, height: 0 };
     const w = el.offsetWidth, hh = el.offsetHeight;
     let x = opts.align === 'right' ? r.right - w : r.left;
-    let y = opts.above ? r.top - hh - 10 : r.bottom + 6;
-    if (y + hh > innerHeight - 8) y = Math.max(8, r.top - hh - 6);
-    if (y < 8) y = 8;
     x = Math.max(8, Math.min(innerWidth - w - 8, x));
-    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.left = x + 'px';
+    // Pin the edge next to the anchor, so content that changes later (the output picker switching between ASIO and
+    // WASAPI device lists) grows away from it instead of off the screen; it opens on the asked side unless the
+    // content only fits on the other, and scrolls inside when it fits on neither.
+    const spaceAbove = r.top - 10 - 8, spaceBelow = innerHeight - r.bottom - 6 - 8;
+    const above = opts.above ? (hh <= spaceAbove || spaceAbove >= spaceBelow) : !(hh <= spaceBelow || spaceBelow >= spaceAbove);
+    if (above) { el.style.bottom = (innerHeight - r.top + 10) + 'px'; el.style.maxHeight = Math.max(120, spaceAbove) + 'px'; }
+    else { el.style.top = (r.bottom + 6) + 'px'; el.style.maxHeight = Math.max(120, spaceBelow) + 'px'; }
+    el.style.overflowY = 'auto';
     this.el = el;
     YT.sync();
     setTimeout(() => {
-      this.off = e => { if (!el.contains(e.target)) this.close(); };
+      this.off = e => {
+        if (el.contains(e.target)) return;
+        if (anchor instanceof Element && anchor.contains(e.target)) { this.closedBy = anchor; this.closedAt = performance.now(); }
+        this.close();
+      };
       document.addEventListener('pointerdown', this.off, true);
     });
     return el;
@@ -703,10 +786,27 @@ function trackMenu(t, anchor, list) {
     '-',
     { label: App.favs.has(t.id) ? '從最愛移除' : '加入我的最愛', icon: 'heart', run: () => App.toggleFav(t.id) },
     { label: '前往專輯', icon: 'album', run: () => go('#/album/' + t.albumId) },
-    { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(t.artist)) },
+    ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
     { label: '在 Finder 中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
+}
+
+/** The album's versions (other folders / formats) to switch to, from the format badge on its page. */
+function versionMenu(al, anchor) {
+  const vs = al.versions || [al];
+  const artists = new Set(vs.map(v => v.artist));
+  menu(vs.map(v => ({
+    label: [qualityLabel(v), `${v.tracks.length} 首`, v.folder, artists.size > 1 ? v.artist : ''].filter(Boolean).join(' · '),
+    icon: v === al ? 'check' : 'album',
+    run: () => { if (v !== al) go('#/album/' + v.id); },
+  })), anchor);
+}
+
+/** "Go to artist" menu items: one per artist when there are several. */
+function artistItems(names) {
+  names = names.filter(Boolean);
+  return names.map(n => ({ label: names.length > 1 ? `前往演出者：${n}` : '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
 function albumMenu(al, anchor) {
@@ -716,16 +816,38 @@ function albumMenu(al, anchor) {
     { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast('已排在下一首'); } },
     { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
     '-',
-    { label: '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(al.artist)) },
+    ...artistItems(al.artists.filter(realArtist)),
+    { label: '查看封面', icon: 'image', run: () => CoverView.open(al) },
     { label: '更換封面…', icon: 'image', run: () => ArtPicker.open(al) },
+    { label: '編輯標籤…', icon: 'list', run: () => TagEditor.open(al) },
     { label: '在 Finder 中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
+    '-',
+    { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
   ], anchor);
+}
+
+/** Read the album's tags again (after editing them in another program) and show the page with the new data. */
+async function rereadAlbum(al) {
+  toast('正在重新讀取專輯資訊…');
+  let r;
+  try { r = await Host.call('album.reread', { id: al.id }); }
+  catch (e) { toast('重新讀取失敗：' + e.message, { error: true }); return; }
+  await Lib.load();
+  App.trackKey = null;   // the track objects were rebuilt: the now-playing bar redraws with the new ones
+  if (!r || !r.albumId) { toast('這張專輯的檔案已經不在了'); if (Router.cur.name === 'album') history.back(); return; }
+  toast(`已重新讀取 ${r.tracks} 首`);
+  const hash = '#/album/' + r.albumId;
+  if (location.hash.startsWith('#/album/')) {
+    // the id changes with the album title: replace the page instead of adding a history entry
+    if (location.hash !== hash) history.replaceState({ i: Router.idx }, '', hash);
+    Router.render(true, 'none');
+  }
 }
 
 /* ═════════════════════════════ signal path ═════════════════════════════ */
 const QLabel = { bitperfect: 'Bit-perfect', enhanced: '已處理', high: '無損', low: '有損來源' };
 const QLead = {
-  bitperfect: '音訊原封不動送到 DAC，沒有任何重新取樣或數位處理。',
+  bitperfect: '依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。',
   enhanced: '訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。',
   high: '無損音訊以 32-bit 浮點經 Core Audio 送到 DAC，取樣率與裝置相同、沒有 DSP 或數位音量處理。',
   low: '來源為有損壓縮格式。',
@@ -742,8 +864,15 @@ const SignalPop = {
       box.append(h('h3', { html: `<i class="dot"></i>${QLabel[sg.quality]}` }), h('div', { class: 'lead' }, QLead[sg.quality]));
       const stage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
       const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
+      if (sg.rplay) this.drawRplay(box, sg, stage, src);
+      else {
       box.append(stage('來源', src, false));
-      if (sg.dop) box.append(stage('DSD', `DoP 封裝 → ${khz(sg.outputRate)} kHz`, false));
+      if (sg.decoder) box.append(stage('解碼器', sg.decoder, false));
+      const gain = sg.resamplerGainDb;
+      const gainText = gain == null ? '' : Math.abs(gain) < 1e-9 ? ' · 維持原音量' : ` · ${gain > 0 ? '+' : ''}${gain} dB`;
+      const bandwidthText = sg.resamplerBandwidth ? ` · 頻寬 ${Math.round(sg.resamplerBandwidth * 100)}%` : '';
+      if (sg.dsdDirect) box.append(stage('DSD', `${sg.dsdTransport === 'Dop' ? 'DoP 封裝' : sg.dsdTransport === 'Dcs' ? 'dCS 封裝' : 'DSD 原生直送'} → ${khz(sg.outputRate)} kHz`, false));
+      else if (sg.dop) box.append(stage('DSD', `DoP 封裝 → ${khz(sg.outputRate)} kHz`, false));
       else if (sg.dsd) box.append(stage('DSD 轉 PCM', `${khz(App.settings.dsdPcmRate || 176400)} kHz · FFmpeg · 預留 1 dB`, true));
       if (sg.resampled) box.append(stage('重新取樣', `${khz(sg.dsd ? (App.settings.dsdPcmRate || 176400) : sg.sourceRate)} → ${khz(sg.outputRate)} kHz · Core Audio`, true));
       if (sg.replayGainDb != null) box.append(stage('ReplayGain', `${sg.replayGainDb > 0 ? '+' : ''}${sg.replayGainDb.toFixed(1)} dB`, true));
@@ -753,9 +882,42 @@ const SignalPop = {
       box.append(stage('音量', vm === 'digital' ? (Math.abs(db) < 1e-9 ? '數位音量 · 0 dB（不處理）' : `數位音量 · ${db.toFixed(1)} dB`) : vm === 'hardware' ? `DAC 硬體音量 · ${db.toFixed(1)} dB` : vm === 'none' ? '無（請使用 DAC 旋鈕）' : '固定 0 dB', vm === 'digital' && Math.abs(db) > 1e-9));
       box.append(stage('輸出', `${sg.mode} · ${sg.device}`, false));
       box.append(stage('格式', `${sg.outputFormat} / ${khz(sg.outputRate)} kHz`, false));
+      if (sg.mode && sg.mode.startsWith('WASAPI') && sg.eventDriven != null) box.append(stage('補充音訊方式', sg.eventDriven ? '事件驅動' : '定時喚醒', false));
+      if (sg.quantization) box.append(stage('量化', sg.quantization, false));
+      const meter = App.state.meter;
+      if (sg.resampled && meter && meter.resampleMeterAvailable === true) {
+        const peak = Number(meter.resamplePeak || 0);
+        const db = peak > 0 ? (20 * Math.log10(peak)).toFixed(2) + ' dBFS' : '−∞ dBFS';
+        box.append(stage('重取樣輸出峰值', db + ' · 已解碼區段，ReplayGain／DSP 前', peak > 1));
+        box.append(h('div', { class: 'note' }, '解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。'));
+        if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, `已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
+      } else if (sg.resampled) box.append(stage('重取樣峰值量測', '此播放內核未提供', false));
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
+      }
     }
     Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
+  },
+  /** The Rplay core's layout: decoder, then what the Core and the output side (輸出端) each do; the MIKU core keeps the one above. */
+  drawRplay(box, sg, stage, src) {
+    const rp = sg.rplay;
+    box.append(stage('來源', src, false));
+    const own = /^Rplay\s*/.exec(rp.decoder || '');   // decoded by Rplay itself
+    box.append(stage('解碼', own ? [rplayBadge(), rp.decoder.slice(own[0].length)] : rp.decoder, false));
+    box.append(h('div', { class: 'sig-sect' }, 'Core', rplayBadge()));
+    (rp.core || []).forEach(r => box.append(stage(r.k, r.v, r.mod)));
+    box.append(h('div', { class: 'sig-sect' }, '輸出端'));
+    if (rp.dsd) box.append(stage('DSD 傳送', rp.dsd, false));
+    const dsp = sg.dspActive && sg.dspSummary;
+    if (dsp) box.append(stage('DSP', sg.dspSummary, true));
+    const vm = sg.volumeMode, db = App.state.volumeDb;
+    box.append(stage('音量', vm === 'digital' ? (Math.abs(db) < 1e-9 ? '數位音量 · 0 dB（不處理）' : `數位音量 · ${db.toFixed(1)} dB`) : vm === 'hardware' ? `DAC 硬體音量 · ${db.toFixed(1)} dB` : vm === 'none' ? '無（請使用 DAC 旋鈕）' : '固定 0 dB', vm === 'digital' && Math.abs(db) > 1e-9));
+    // MIKU's DSP / digital volume change the samples on the output side, which then dithers them to the device's bits
+    const touched = !sg.dsdDirect && (dsp || (vm === 'digital' && Math.abs(db) > 1e-9));
+    if (touched && rp.deviceValidBits < 32) box.append(stage('量化', `TPDF 抖動 → ${rp.deviceValidBits}-bit（裝置有效位元）`, true));
+    box.append(stage('輸出', `${sg.mode} · ${sg.device}`, false));
+    box.append(stage('裝置格式', rp.deviceFormat, false));
+    (rp.notes || []).forEach(n => box.append(h('div', { class: 'note' }, n)));
+    if (rp.details) box.append(h('details', { class: 'sig-details' }, h('summary', null, '技術細節'), h('div', null, rp.details)));
   },
 };
 
@@ -956,6 +1118,8 @@ const Router = {
     return { name: parts[0] || 'home', arg: parts.slice(1).map(decodeURIComponent).join('/') };
   },
   render(keepScroll, dir = 'fade') {
+    // VINYL theme: put the record back in its sleeve before leaving the album page
+    if (!keepScroll && this.cur.name === 'album' && typeof Vinyl !== 'undefined' && Vinyl.beforeLeave(() => this.render(keepScroll, dir))) return;
     const content = $('#content');
     // leaving an album page: remember its cover so it can fly back into the grid
     if (this.cur.name === 'album' && !keepScroll) Flip.captureBack(this.cur.arg, $('.hero.album .cover'));
@@ -970,9 +1134,11 @@ const Router = {
     if (r.name !== 'search' && document.activeElement !== $('#q')) $('#q').value = '';
     const view = $('#view');
     view.textContent = '';
-    view.classList.remove('enter', 'enter-fwd', 'enter-back', 'enter-fade');
+    view.classList.remove('enter', 'enter-fwd', 'enter-back', 'enter-fade', 'enter-flip');
     void view.offsetWidth;
-    if (Flip.from && r.name === 'album' && Flip.from.id === r.arg) dir = 'fade';
+    // a cover is flying: never fade the element it lands on (a fading parent is what made it flash)
+    if (Flip.from && r.name === 'album' && Flip.from.id === r.arg) dir = 'flip';
+    else if (Flip.back && r.name !== 'album') dir = 'none';
     Motion.quiet = dir === 'none';
     if (dir !== 'none' && (!keepScroll || !same)) view.classList.add('enter-' + dir);
     const fn = Views[r.name] || Views.home;
@@ -1015,7 +1181,126 @@ function onUserScroll(f) {
   return off;
 }
 
-/** Shared-element transition: the clicked album cover flies into the album page header. */
+/** Shared-element transition: the clicked album cover flies into the album page header.
+ *  No copy is made and nothing is swapped at the end: the REAL destination element is moved
+ *  (FLIP: start where the source was, transform back to its own place). Under the destination's
+ *  <img> we lay the already-loaded small picture, so it is visible from the first frame and the
+ *  full-size image simply appears on top of an identical picture. Nothing can flash. */
+function flipInto(el, from, src) {
+  const t = el.getBoundingClientRect();
+  if (!t.width || !from.width) return;
+  let under = null;
+  if (src) {
+    under = h('img', { class: 'flip-under', src });
+    el.prepend(under);
+  }
+  const dx = from.left - t.left, dy = from.top - t.top, sx = from.width / t.width, sy = from.height / t.height;
+  Object.assign(el.style, { transition: 'none', transformOrigin: '0 0', transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, zIndex: 60, position: el.style.position || '' });
+  // z-index only works inside the nearest stacking context: lift every positioned ancestor (card, grid row…)
+  // up to the scroller as well, otherwise neighbouring cards painted later cover the flying cover
+  const lifted = [];
+  for (let p = el.parentElement; p && p.id !== 'content' && p !== document.body; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (cs.position !== 'static' || cs.transform !== 'none' || cs.zIndex !== 'auto' || +cs.opacity < 1) {
+      lifted.push([p, p.style.zIndex, p.style.position]);
+      if (cs.position === 'static') p.style.position = 'relative';
+      p.style.zIndex = 60;
+    }
+  }
+  void el.offsetWidth;
+  const wild = typeof Blast !== 'undefined' && Blast.on;
+  requestAnimationFrame(() => {
+    let anim = null;
+    if (wild) {
+      // BLAST theme: a random, different crazy trajectory every time
+      el.style.transform = '';
+      const tm = Blast.flightTiming();
+      anim = el.animate(Blast.flight(dx, dy, sx, sy), tm);
+      anim.onfinish = () => end();
+      setTimeout(() => end(), tm.duration + 200);
+    } else {
+      el.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+      el.style.transform = '';
+    }
+    let finished = false;
+    const end = () => {
+      if (finished) return; finished = true;
+      stop();
+      Object.assign(el.style, { transition: '', transformOrigin: '', zIndex: '' });
+      lifted.forEach(([p, z, pos]) => { p.style.zIndex = z; p.style.position = pos; });
+      if (under) {
+        // drop the stand-in only once the real picture is fully shown on top of it
+        const img = [...el.querySelectorAll('img')].find(i => i !== under);
+        const drop = () => under.remove();
+        if (!img) return;
+        if (img.classList.contains('ok')) setTimeout(drop, 600);
+        else { img.addEventListener('load', () => setTimeout(drop, 600), { once: true }); setTimeout(drop, 3000); }
+      }
+    };
+    const stop = onUserScroll(() => { if (anim) anim.cancel(); el.style.transition = 'none'; el.style.transform = ''; end(); });
+    if (!wild) {
+      el.addEventListener('transitionend', e => { if (e.target === el && e.propertyName === 'transform') end(); });
+      setTimeout(end, 650);
+    }
+  });
+}
+/** Flying back into a list: the card sits deep inside grid rows / rails with their own stacking and
+ *  clipping, so instead of moving it in place we fly an exact clone of it (wrapped in .card so every theme
+ *  rule still matches) on top of the whole page, then show the real card and drop the clone in the same frame. */
+function flyBackClone(target, b) {
+  const t = target.getBoundingClientRect();
+  if (!t.width) return;
+  const clone = target.cloneNode(true);
+  clone.querySelectorAll('.play, .flip-under').forEach(n => n.remove());
+  let img = clone.querySelector('img');
+  if (!img) { img = h('img'); clone.append(img); }
+  if (!img.classList.contains('ok')) { img.src = b.src; img.classList.add('ok'); }
+  img.style.transition = 'none';
+  Object.assign(clone.style, { width: t.width + 'px', height: t.height + 'px', margin: 0, transition: 'none', transform: 'none', animation: 'none' });
+  const card = target.closest('.card');
+  const wrap = h('div', { class: (card ? card.className : 'card') + ' flip-fly' }, clone);
+  wrap.classList.remove('pop-in', 'playing');
+  // clip the flight to the content area so the cover never flies over the player bar / sidebar
+  const cr = ($('#content') || document.body).getBoundingClientRect();
+  const clip = h('div', { class: 'flip-clip' });
+  Object.assign(clip.style, { position: 'fixed', left: cr.left + 'px', top: cr.top + 'px', width: cr.width + 'px', height: cr.height + 'px', overflow: 'hidden', zIndex: 30, pointerEvents: 'none' });
+  Object.assign(wrap.style, { position: 'absolute', left: (t.left - cr.left) + 'px', top: (t.top - cr.top) + 'px', width: t.width + 'px', margin: 0, zIndex: 1,
+    pointerEvents: 'none', transformOrigin: '0 0', animation: 'none',
+    transform: `translate(${b.rect.left - t.left}px, ${b.rect.top - t.top}px) scale(${b.rect.width / t.width}, ${b.rect.height / t.height})` });
+  clip.append(wrap); document.body.append(clip);
+  target.style.visibility = 'hidden';
+  if (card) card.classList.add('flip-dest');                 // VINYL: the record travels inside the flying sleeve, not ahead of it
+  const ti = target.querySelector('img'); if (ti) ti.style.transition = 'none';
+  void wrap.offsetWidth;
+  const wild = typeof Blast !== 'undefined' && Blast.on;
+  requestAnimationFrame(() => {
+    if (wild) {
+      const start = wrap.style.transform, tm = Blast.flightTiming();
+      wrap.style.transform = 'none';
+      const kf = Blast.flight(b.rect.left - t.left, b.rect.top - t.top, b.rect.width / t.width, b.rect.height / t.height);
+      kf[0] = { transform: start };
+      const an = wrap.animate(kf, tm);
+      an.onfinish = () => end();
+      setTimeout(() => end(), tm.duration + 200);
+    } else {
+      wrap.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+      wrap.style.transform = 'none';
+    }
+    let finished = false;
+    const end = () => {
+      if (finished) return; finished = true;
+      stop();
+      target.style.visibility = '';
+      if (card) card.classList.remove('flip-dest');
+      requestAnimationFrame(() => clip.remove());
+    };
+    const stop = onUserScroll(end);
+    if (!wild) {
+      wrap.addEventListener('transitionend', e => { if (e.target === wrap) end(); });
+      setTimeout(end, 650);
+    }
+  });
+}
 const Flip = {
   from: null,
   capture(id, artEl) {
@@ -1032,72 +1317,28 @@ const Flip = {
     const b = this.back;
     this.back = null;
     if (!b) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    // the album grid is virtualised: its cards are created a frame or two after the view, so wait for ours
+    let tries = 0;
+    const find = () => {
       const content = $('#content').getBoundingClientRect();
       const target = [...document.querySelectorAll(`[data-album="${CSS.escape(b.id)}"]`)].find(el => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.bottom > content.top && r.top < content.bottom;
       });
-      if (!target) return;
-      const t = target.getBoundingClientRect();
-      const ghost = h('div', { class: 'flip-ghost' }, h('img', { src: b.src }));
-      Object.assign(ghost.style, { left: b.rect.left + 'px', top: b.rect.top + 'px', width: b.rect.width + 'px', height: b.rect.height + 'px', borderRadius: '12px' });
-      document.body.append(ghost);
-      target.style.visibility = 'hidden';
-      requestAnimationFrame(() => {
-        const sx = t.width / b.rect.width, sy = t.height / b.rect.height;
-        ghost.style.transform = `translate(${t.left - b.rect.left}px, ${t.top - b.rect.top}px) scale(${sx}, ${sy})`;
-        ghost.style.borderRadius = (10 / sx) + 'px';
-        let finished = false;
-        const done = quick => {
-          if (finished) return; finished = true;
-          stop();
-          target.style.visibility = '';
-          // scrolling moves the cards under the (fixed) flying picture: drop it at once instead of landing in the wrong place
-          if (quick === true) { ghost.remove(); return; }
-          ghost.style.transition = 'opacity .2s'; ghost.style.opacity = 0;
-          setTimeout(() => ghost.remove(), 220);
-        };
-        const stop = onUserScroll(() => done(true));
-        ghost.addEventListener('transitionend', done, { once: true });
-        setTimeout(done, 650);
-      });
-    }));
+      if (!target) { if (++tries < 20) requestAnimationFrame(find); return; }
+      const card = target.closest('.card');
+      if (card) { card.classList.remove('pop-in'); card.style.animation = 'none'; }
+      flyBackClone(target, b);
+    };
+    requestAnimationFrame(find);
   },
   play(id, coverEl) {
     const f = this.from;
     this.from = null;
     if (!f || f.id !== id || !coverEl) return;
-    const ghost = h('div', { class: 'flip-ghost' }, h('img', { src: f.src }));
-    Object.assign(ghost.style, { left: f.rect.left + 'px', top: f.rect.top + 'px', width: f.rect.width + 'px', height: f.rect.height + 'px' });
-    document.body.append(ghost);
-    coverEl.classList.add('flip-hide');
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      // measure the cover's final resting place (the page fade has no movement, so this is exact)
-      const t = coverEl.getBoundingClientRect();
-      const sx = t.width / f.rect.width, sy = t.height / f.rect.height;
-      ghost.style.transform = `translate(${t.left - f.rect.left}px, ${t.top - f.rect.top}px) scale(${sx}, ${sy})`;
-      ghost.style.borderRadius = (12 / sx) + 'px';
-      let finished = false;
-      const stop = onUserScroll(() => { if (finished) return; finished = true; coverEl.classList.remove('flip-hide'); ghost.remove(); });
-      const reveal = () => {
-        if (finished) return; finished = true;
-        stop();
-        coverEl.classList.remove('flip-hide');
-        ghost.style.transition = 'opacity .3s'; ghost.style.opacity = 0;
-        setTimeout(() => ghost.remove(), 320);
-      };
-      // keep the flying picture until the full-size cover has actually loaded, then cross-fade
-      const whenCover = () => {
-        const img = coverEl.querySelector('img');
-        if (!img || img.classList.contains('ok')) return reveal();
-        img.addEventListener('load', () => setTimeout(reveal, 30), { once: true });
-        img.addEventListener('error', reveal, { once: true });
-        setTimeout(reveal, 1500);
-      };
-      ghost.addEventListener('transitionend', whenCover, { once: true });
-      setTimeout(whenCover, 650);
-    }));
+    // the router resets the scroll position right after the view is built; measure only after that,
+    // otherwise the start point is off by the old scroll distance (the cover came "from below")
+    Promise.resolve().then(() => flipInto(coverEl, f.rect, f.src));
   },
 };
 
