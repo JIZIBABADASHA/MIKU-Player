@@ -36,7 +36,7 @@ const Settings = {
       const schemes = App.rplay ? [['miku', 'FFmpeg'], ['rplay', 'Rplay']] : [['miku', 'FFmpeg']];
       const coreSel = select(schemes, usingRplay ? 'rplay' : 'miku', async v => { await this.set({ audioCore: v }); Router.render(); });
       const rplayOpt = coreSel.querySelector('option[value="rplay"]');
-      if (rplayOpt) { rplayOpt.dataset.icon = 'img/rplay.png'; rplayOpt.dataset.pill = 'rp-badge'; }   // the Rplay icon inside the dropdown (select.js)
+      if (rplayOpt) { rplayOpt.dataset.icon = 'img/rplay-black.png'; rplayOpt.dataset.pill = 'rp-badge'; }   // the Rplay icon inside the dropdown (select.js)
       out.append(field('播放方案', '切換時會從目前位置繼續播放。', coreSel));
       // the Rplay core's compatibility mode, right under it while Rplay is chosen
       if (usingRplay) out.append(field([rplayBadge(), '相容模式'], '修正模式使用 Rplay 的修正；原行為模式沿用作者研究中記錄的行為，供比對使用。',

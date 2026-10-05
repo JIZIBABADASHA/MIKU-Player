@@ -716,7 +716,8 @@ function slider(el, { start, move, end, tip }) {
 
 /* ═════════════════════════════ popovers & menus ═════════════════════════════ */
 /** The Rplay core's icon (shown only where the Rplay core is in use). */
-const rplayIcon = (size = 18) => h('img', { class: 'rp-icon', src: 'img/rplay.png', width: size, height: size, alt: 'Rplay', draggable: 'false' });
+// the picture follows the theme (app.css --rp-icon: the black tile on light themes, the white one on dark ones)
+const rplayIcon = (size = 18) => h('img', { class: 'rp-icon', src: 'img/rplay-black.png', width: size, height: size, alt: 'Rplay', draggable: 'false' });
 /** The icon and the word "Rplay" as one rounded grey pill (the signal path popover's badge). */
 const rplayBadge = (attrs = {}) => h('span', { class: 'rp-badge', ...attrs }, rplayIcon(18), 'Rplay');
 
