@@ -318,8 +318,10 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .np-ext[hidden] { display: none; }
 #np-ext { position: absolute; inset: 0; z-index: 2; display: block; pointer-events: none; }
 #np-ext > * { pointer-events: auto; }
-.np-mini .art { width: 60px; height: 60px; border-radius: 8px; overflow: hidden; background: var(--surface-2); flex: none; cursor: pointer; position: relative; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), calc(.35 * var(--sh))); transition: transform .25s var(--ease-out); }
-.np-mini .art:hover { transform: scale(1.04); }
+.np-mini .art { --art: 60px; width: var(--art); height: var(--art); border-radius: 8px; overflow: hidden; background: var(--surface-2); flex: none; cursor: pointer; position: relative; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), calc(.35 * var(--sh))); transition: width .25s var(--ease-out), height .25s var(--ease-out), margin .25s var(--ease-out); }
+/* hover: the cover itself grows (redrawn at each size, so it stays sharp; a scale transform showed it blurred until
+   the end), the negative margin keeping its room in the bar so nothing beside it moves */
+.np-mini .art:hover { width: calc(var(--art) * 1.04); height: calc(var(--art) * 1.04); margin: calc(var(--art) * -.02); }
 .np-mini .art img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s; }
 .np-mini .art img.ok { opacity: 1; }
 .np-mini .txt { min-width: 0; }
@@ -692,7 +694,7 @@ a.link:hover { text-decoration: underline; }
   .sig { padding: 0 10px; }
   .vol { width: 128px; }
   .vol .db { display: none; }
-  .np-mini .art { width: 50px; height: 50px; }
+  .np-mini .art { --art: 50px; }
 }
 
 /* output switcher */
