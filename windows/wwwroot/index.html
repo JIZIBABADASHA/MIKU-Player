@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MIKU</title>
-<link rel="stylesheet" href="app.css?v=20261005c1">
+<link rel="stylesheet" href="app.css?v=20261005c1-ext3">
 <link rel="stylesheet" href="themes.css?v=20261004np20">
-<link rel="stylesheet" href="responsive.css?v=20261005r12">
+<link rel="stylesheet" href="responsive.css?v=20261005r12-art">
 <link rel="stylesheet" href="tagedit.css?v=20261005t3">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem("miku.theme")||"miku"}catch(e){document.documentElement.dataset.theme="miku"}</script>
 </head>
@@ -39,6 +39,7 @@
 
   <footer id="bar">
     <div class="np-mini">
+      <div class="np-ext" id="b-ext" hidden></div>
       <div class="art" id="b-art" title="正在播放"></div>
       <div class="txt" id="b-txt"><div class="t" id="b-title"></div><div class="a" id="b-artist"></div></div>
       <button class="icon-btn" id="b-fav" title="加入最愛"><svg class="i"><use href="#i-heart"/></svg></button>
@@ -74,6 +75,7 @@
 
 <div id="np" class="nolyrics">
   <div class="np-bg"><div class="layer a"></div><div class="layer b"></div></div>
+  <div class="np-ext" id="np-ext" hidden></div>
   <div class="np-top">
     <button class="icon-btn" id="np-close" title="收起 (Esc)"><svg class="i"><use href="#i-down"/></svg></button>
     <div class="grow"></div>
@@ -168,7 +170,7 @@
   <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></symbol>
 </svg>
 
-<script src="core.js?v=20261005a6"></script>
+<script src="core.js?v=20261005a6-ext3"></script>
 <script src="smooth.js?v=20261004s16"></script>
 <script src="themes.js?v=20261004np20"></script>
 <script src="views.js?v=20261005t2"></script>

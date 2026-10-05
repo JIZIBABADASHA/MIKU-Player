@@ -310,7 +310,8 @@ public sealed class LyricsService
 
         // 4. online: LRCLIB, then NetEase (much better coverage of Japanese / Chinese music)
         LyricsResult online = null;
-        try { online = await LrcLib(t); } catch (Exception ex) { Log.Info("LRCLIB: " + ex.Message); }
+        bool failed = false;                       // a service could not be asked (offline, timeout, refused)
+        try { online = await LrcLib(t); } catch (Exception ex) { failed = true; Log.Info("LRCLIB: " + ex.Message); }
         if (online == null || !online.Synced || (_s.LyricsTranslation && online.Lines.All(l => l.Trans == null) && LikelyForeign(online)))
         {
             try
@@ -318,11 +319,14 @@ public sealed class LyricsService
                 var ne = await NetEase(t);
                 if (ne != null && (online == null || (ne.Synced && !online.Synced) || (ne.Synced && ne.Lines.Any(l => l.Trans != null)))) online = ne;
             }
-            catch (Exception ex) { Log.Info("NetEase: " + ex.Message); }
+            catch (Exception ex) { failed = true; Log.Info("NetEase: " + ex.Message); }
         }
         var result = online ?? new LyricsResult();
         result.Fetched = DateTime.UtcNow;
-        try { await File.WriteAllTextAsync(cache, Json.Serialize(result)); } catch { }
+        // "not found" is remembered only when the services answered: a lookup that failed (e.g. many songs skipped
+        // quickly, some requests timed out or were refused) would otherwise hide lyrics that exist for 10 minutes
+        if (result.Lines.Count > 0 || result.Instrumental || !failed)
+            try { await File.WriteAllTextAsync(cache, Json.Serialize(result)); } catch { }
         if (result.Lines.Count == 0 && plainFallback != null) return plainFallback;
         if (!result.Synced && plainFallback != null) return plainFallback;
         return result;
@@ -338,6 +342,16 @@ public sealed class LyricsService
         return kana > 5 || latin > han * 2;
     }
 
+    /// <summary>
+    /// A reply that is not an answer (too many requests, a server error …) is a failed lookup, not "no lyrics": it
+    /// throws, so the result is not remembered as "not found". LRCLIB's 404 on /get is its "no such song".
+    /// </summary>
+    static void Answered(System.Net.Http.HttpResponseMessage res, bool notFoundIsAnAnswer = false)
+    {
+        if (res.IsSuccessStatusCode || (notFoundIsAnAnswer && res.StatusCode == System.Net.HttpStatusCode.NotFound)) return;
+        throw new System.Net.Http.HttpRequestException($"{(int)res.StatusCode} {res.ReasonPhrase}", null, res.StatusCode);
+    }
+
     static async Task<LyricsResult> LrcLib(Track t)
     {
         // the first of several artists ("ほぼ日P ;  初音ミク"): the services match one name
@@ -349,6 +363,7 @@ public sealed class LyricsService
         JsonElement? hit = null;
         using (var res = await Net.Http.GetAsync(url))
         {
+            Answered(res, notFoundIsAnAnswer: true);
             if (res.IsSuccessStatusCode)
             {
                 using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
@@ -359,6 +374,7 @@ public sealed class LyricsService
         {
             string s = "https://lrclib.net/api/search?track_name=" + Uri.EscapeDataString(t.Title) + "&artist_name=" + Uri.EscapeDataString(artist ?? "");
             using var res = await Net.Http.GetAsync(s);
+            Answered(res);
             if (res.IsSuccessStatusCode)
             {
                 using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
@@ -392,7 +408,7 @@ public sealed class LyricsService
             $"https://music.163.com/api/search/get/web?csrf_token=&hlpretag=&hlposttag=&s={q}&type=1&offset=0&total=true&limit=12");
         req.Headers.Referrer = new Uri("https://music.163.com/");
         using var res = await Net.Http.SendAsync(req);
-        if (!res.IsSuccessStatusCode) return null;
+        Answered(res);
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         if (!doc.RootElement.TryGetProperty("result", out var result) || !result.TryGetProperty("songs", out var songs)) return null;
         long bestId = 0; double bestScore = 0;
@@ -417,7 +433,7 @@ public sealed class LyricsService
         using var req2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, $"https://music.163.com/api/song/lyric?id={bestId}&lv=1&kv=1&tv=-1");
         req2.Headers.Referrer = new Uri("https://music.163.com/");
         using var res2 = await Net.Http.SendAsync(req2);
-        if (!res2.IsSuccessStatusCode) return null;
+        Answered(res2);
         using var ld = JsonDocument.Parse(await res2.Content.ReadAsStringAsync());
         var root = ld.RootElement;
         string lrc = root.TryGetProperty("lrc", out var l) ? Str(l, "lyric") : null;

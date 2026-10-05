@@ -143,6 +143,8 @@ public sealed class Settings
     public List<string> Queue { get; set; } = new();
     public int QueueIndex { get; set; } = -1;
     public double ResumePosition { get; set; }
+    /// <summary>Where the queue came from, when an extension module started it (MikuExt play's source); null otherwise.</summary>
+    public JsonElement? QueueSource { get; set; }
     public HashSet<string> Favorites { get; set; } = new();
     public List<string> Recent { get; set; } = new();         // track ids, most recent first
     public List<string> SearchHistory { get; set; } = new();  // search queries, most recent first

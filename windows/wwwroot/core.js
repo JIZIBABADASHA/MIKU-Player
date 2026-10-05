@@ -333,6 +333,97 @@ const Lib = {
 };
 
 /* ═════════════════════════════ app state ═════════════════════════════ */
+/* ═════════════════════════════ extension modules ═════════════════════════════ */
+/**
+ * Optional modules (MIKU.Extensibility/README.md). MIKU lists them in init.extensions; their scripts call
+ * MikuExt.register({ id, init(api) }) and are set up before the first page is drawn. A module that fails to load
+ * is logged and left out.
+ */
+const MikuExt = {
+  defs: {}, settings: {}, slots: {}, slotKey: null, slotDef: null, slotSeq: 0,
+  register(def) { if (def && def.id) this.defs[def.id] = def; },
+
+  async load(list) {
+    for (const x of list || []) {
+      try {
+        for (const href of x.styles || []) document.head.append(h('link', { rel: 'stylesheet', href }));
+        for (const src of x.scripts || []) {
+          await new Promise((ok, fail) => document.head.append(h('script', { src, onload: ok, onerror: () => fail(new Error('cannot load ' + src)) })));
+        }
+        const def = this.defs[x.id];
+        if (def && def.init) await def.init(this.api(x.id));
+      } catch (e) { console.error('[ext]', x.id, e); }
+    }
+  },
+
+  /**
+   * While the queue was started by a module with a source: the module draws the player bar's slot (left of the
+   * cover) and the now-playing page's slot, and <html data-ext-source="<id>"> lets its stylesheet restyle both.
+   * Redrawn when the source changes; cleared when something else is played.
+   */
+  slot(source) {
+    const def = source && source.ext && this.slots[source.ext];
+    const key = def ? JSON.stringify(source) : null;
+    if (key === this.slotKey) return;
+    this.slotKey = key;
+    const prev = this.slotDef;
+    this.slotDef = def || null;
+    const leaving = ++this.slotSeq;
+    if (def) document.documentElement.dataset.extSource = source.ext;
+    else delete document.documentElement.dataset.extSource;
+    for (const [sel, fn] of [['#b-ext', def && def.bar], ['#np-ext', def && def.nowPlaying]]) {
+      const el = $(sel);
+      // leaving a module's list: its bar slot may play a way out (leaveBar, at most a second) before it is emptied
+      if (!def && sel === '#b-ext' && prev && prev.leaveBar && !el.hidden) {
+        let out;
+        try { out = prev.leaveBar(el); } catch (e) { console.error('[ext]', e); }
+        Promise.race([Promise.resolve(out), new Promise(r => setTimeout(r, 1000))]).then(() => {
+          if (this.slotSeq === leaving) { el.textContent = ''; el.hidden = true; }
+        });
+        continue;
+      }
+      el.textContent = '';
+      el.hidden = !fn;
+      if (fn) try { fn(el, source); } catch (e) { console.error('[ext]', source.ext, e); }
+    }
+  },
+
+  /** What a module gets: its own RPC and events, playback, and places in the sidebar, the router and the settings. */
+  api(id) {
+    return {
+      id,
+      rpc: (method, args) => Host.call(`ext.${id}.${method}`, args),
+      on: (ev, f) => Host.on(`ext.${id}.${ev}`, f),
+      /**
+       * Play a list. opts.at: where the first track starts (seconds); opts.source: what made the list (any JSON
+       * object), kept with the queue and handed to the module's playerSlot until something else is played.
+       */
+      play: (ids, shuffle = false, start = -1, opts = {}) =>
+        Host.call('play', { ids, shuffle, start, at: opts.at || 0, source: opts.source ? { ...opts.source, ext: id } : undefined }),
+      /**
+       * { bar(el, source), nowPlaying(el, source), leaveBar(el) }: draw the player bar's and the now-playing page's
+       * slots while a list this module played with a source is the queue; leaveBar (optional) plays the bar slot's
+       * way out when another list is played, and returns a promise (waited for up to a second).
+       */
+      playerSlot: def => { this.slots[id] = def; this.slotKey = null; this.slot(App.queue && App.queue.source); },
+      /** A sidebar link to #/<route>; after = the data-r of the link to follow (default: before the 系統 section). */
+      addNav: ({ route, label, icon: svg, after }) => {
+        const a = h('a', { href: '#/' + route, 'data-r': route, html: svg || '' }, h('span', null, label));
+        const prev = after && $(`#nav a[data-r="${after}"]`);
+        if (prev) prev.after(a);
+        else { const labels = $$('#nav .nav-label'); labels.length ? labels[labels.length - 1].before(a) : $('#nav').append(a); }
+        return a;
+      },
+      addRoute: (name, fn) => {
+        if (Views[name]) throw new Error(`route "${name}" exists`);
+        Views[name] = fn;
+      },
+      /** A block at the end of a settings tab (audio / library / look / other): fn(root, { section, field, sw, select }). */
+      addSettings: (tab, fn) => (this.settings[tab] = this.settings[tab] || []).push(fn),
+    };
+  },
+};
+
 const App = {
   settings: {}, state: {}, queue: { ids: [], index: -1 }, favs: new Set(),
   posBase: 0, posAt: 0, seeking: false,
@@ -342,7 +433,7 @@ const App = {
     this.bindBar();
     this.bindKeys();
     Host.on('state', s => this.setState(s));
-    Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); });
+    Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); MikuExt.slot(q.source); });
     Host.on('error', e => toast(e.message, { error: true }));
     // phone remote: show the pairing code a phone asked for, and keep favourites in sync with it
     Host.on('remotePair', p => toast(`「${p.name}」要求用手機遙控 MIKU，配對碼：${p.code}`, { ms: 180000 }));
@@ -372,6 +463,7 @@ const App = {
     this.trackKey = null; // states received while the library was loading may have drawn an empty now-playing bar
     this.setState(init.state);
     this.renderFav();
+    await MikuExt.load(init.extensions);   // extension modules, before the first page is drawn
     Outputs.refresh();
     ScrollBubble.init();
     Router.start();

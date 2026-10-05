@@ -55,6 +55,8 @@ public sealed class Player
     }
 
     public List<string> Queue { get { lock (_lock) return _queue.ToList(); } }
+    /// <summary>Who made the queue (an extension module's source object), kept while the queue is the same list.</summary>
+    public System.Text.Json.JsonElement? Source { get { lock (_lock) return _s.QueueSource; } }
     public int Index { get { lock (_lock) return _index; } }
     public Track Current { get { lock (_lock) return _index >= 0 && _index < _queue.Count ? _lib.GetTrack(_queue[_index]) : null; } }
 
@@ -143,7 +145,9 @@ public sealed class Player
 
     // ───────────────────────────── commands ─────────────────────────────
 
-    public Task PlayList(IList<string> ids, int start, bool shuffle)
+    /// <param name="at">Where the first track starts, in seconds.</param>
+    /// <param name="source">Who made the list (shown by the player bar); a list without one clears it.</param>
+    public Task PlayList(IList<string> ids, int start, bool shuffle, double at = 0, System.Text.Json.JsonElement? source = null)
     {
         var list = ids.Where(id => _lib.GetTrack(id) != null).ToList();
         if (list.Count == 0) return Task.CompletedTask;
@@ -151,6 +155,7 @@ public sealed class Player
         start = Math.Clamp(start, 0, list.Count - 1);
         lock (_lock)
         {
+            _s.QueueSource = source;
             _s.Shuffle = shuffle;
             if (shuffle)
             {
@@ -175,7 +180,7 @@ public sealed class Player
         Engine.InvalidateNext();
         Persist();
         QueueChanged?.Invoke();
-        return Load(Current, 0, true);
+        return Load(Current, Math.Max(0, at), true);
     }
 
     public Task JumpTo(int i)

@@ -1165,7 +1165,8 @@ public sealed class MainForm : Form
             {
                 var ids = L(a, "ids");
                 bool shuffle = a.TryGetProperty("shuffle", out var sh) ? sh.ValueKind == JsonValueKind.True : _s.Shuffle;
-                await _player.PlayList(ids, I(a, "start", -1), shuffle);
+                JsonElement? source = a.TryGetProperty("source", out var so) && so.ValueKind == JsonValueKind.Object ? so.Clone() : null;
+                await _player.PlayList(ids, I(a, "start", -1), shuffle, D(a, "at"), source);
                 return null;
             }
             case "toggle":
@@ -1562,7 +1563,7 @@ public sealed class MainForm : Form
         };
     }
 
-    object QueueDto() => new { ids = _player.Queue, index = _player.Index, shuffle = _s.Shuffle, repeat = _s.Repeat };
+    object QueueDto() => new { ids = _player.Queue, index = _player.Index, shuffle = _s.Shuffle, repeat = _s.Repeat, source = _player.Source };
 
     /// <summary>
     /// PCM sample rates an ASIO driver accepts, for the settings page's fixed rate. A driver that the playing core has
