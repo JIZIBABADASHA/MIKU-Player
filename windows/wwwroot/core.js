@@ -340,7 +340,7 @@ const Lib = {
  * is logged and left out.
  */
 const MikuExt = {
-  defs: {}, settings: {}, slots: {}, slotKey: null,
+  defs: {}, settings: {}, slots: {}, slotKey: null, slotDef: null, slotSeq: 0,
   register(def) { if (def && def.id) this.defs[def.id] = def; },
 
   async load(list) {
@@ -366,10 +366,22 @@ const MikuExt = {
     const key = def ? JSON.stringify(source) : null;
     if (key === this.slotKey) return;
     this.slotKey = key;
+    const prev = this.slotDef;
+    this.slotDef = def || null;
+    const leaving = ++this.slotSeq;
     if (def) document.documentElement.dataset.extSource = source.ext;
     else delete document.documentElement.dataset.extSource;
     for (const [sel, fn] of [['#b-ext', def && def.bar], ['#np-ext', def && def.nowPlaying]]) {
       const el = $(sel);
+      // leaving a module's list: its bar slot may play a way out (leaveBar, at most a second) before it is emptied
+      if (!def && sel === '#b-ext' && prev && prev.leaveBar && !el.hidden) {
+        let out;
+        try { out = prev.leaveBar(el); } catch (e) { console.error('[ext]', e); }
+        Promise.race([Promise.resolve(out), new Promise(r => setTimeout(r, 1000))]).then(() => {
+          if (this.slotSeq === leaving) { el.textContent = ''; el.hidden = true; }
+        });
+        continue;
+      }
       el.textContent = '';
       el.hidden = !fn;
       if (fn) try { fn(el, source); } catch (e) { console.error('[ext]', source.ext, e); }
@@ -389,8 +401,9 @@ const MikuExt = {
       play: (ids, shuffle = false, start = -1, opts = {}) =>
         Host.call('play', { ids, shuffle, start, at: opts.at || 0, source: opts.source ? { ...opts.source, ext: id } : undefined }),
       /**
-       * { bar(el, source), nowPlaying(el, source) }: draw the player bar's and the now-playing page's slots while a
-       * list this module played with a source is the queue.
+       * { bar(el, source), nowPlaying(el, source), leaveBar(el) }: draw the player bar's and the now-playing page's
+       * slots while a list this module played with a source is the queue; leaveBar (optional) plays the bar slot's
+       * way out when another list is played, and returns a promise (waited for up to a second).
        */
       playerSlot: def => { this.slots[id] = def; this.slotKey = null; this.slot(App.queue && App.queue.source); },
       /** A sidebar link to #/<route>; after = the data-r of the link to follow (default: before the 系統 section). */
