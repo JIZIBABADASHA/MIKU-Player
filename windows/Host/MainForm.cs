@@ -1104,6 +1104,9 @@ public sealed class MainForm : Form
         }));
     }
 
+    string _lastTickJson;    // the last periodic state sent to the page
+    long _lastTickAt;
+
     void Post(string ev, object data, bool tick = false)
     {
         if (IsDisposed) return;
@@ -1115,6 +1118,14 @@ public sealed class MainForm : Form
         }
         if (!_ready) return;
         json ??= Json.Serialize(new { ev, d = data });
+        if (tick)
+        {
+            // paused / stopped: the periodic state is the same every time; don't make the page parse and redraw it
+            // 5×/s (a change is posted at once by PostSoon, and the same state still goes out once a second)
+            long now = Environment.TickCount64;
+            if (json == _lastTickJson && now - _lastTickAt < 1000) return;
+            _lastTickJson = json; _lastTickAt = now;
+        }
         if (InvokeRequired) { try { BeginInvoke(new Action(() => Send(json))); } catch { } }
         else Send(json);
     }

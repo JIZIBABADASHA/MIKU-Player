@@ -631,7 +631,7 @@ const TagEditor = {
       box.append(img, h('div', { class: 'te-art-badge' }, s.cover.ids ? `新封面 · ${s.cover.ids.length} 首` : '新封面'));
       return;
     }
-    const kind = al.loose && al.tracks[0] ? 't' : 'a', id = kind === 't' ? al.tracks[0].id : al.id;
+    const [kind, id] = albumArt(al);
     fillArt(box, kind, id, 150, al.title);
     if (s.data.artSource && s.data.artSource !== 'embedded')
       box.append(h('div', { class: 'te-art-badge dim', title: '這張封面不在音樂檔裡' }, { override: '只在 MIKU', folder: '資料夾圖片', online: '網路', none: '沒有封面' }[s.data.artSource] || ''));

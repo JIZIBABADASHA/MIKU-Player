@@ -86,7 +86,9 @@ public static class Json
     public static void SaveAtomic<T>(string path, T value)
     {
         string tmp = path + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(value, Options));
+        // straight into the file: a large library is never held as one big string
+        using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16))
+            JsonSerializer.Serialize(fs, value, Options);
         File.Move(tmp, path, true);
     }
 }

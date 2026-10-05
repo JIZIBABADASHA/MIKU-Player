@@ -103,7 +103,9 @@ function colsControl(kind = 'album') {
     h('button', { onclick: () => { setGridCols(cur() + 1, kind); draw(); } }, '+'),
     h('button', { onclick: () => { setGridCols(0, kind); draw(); } }, '自動'));
   draw();
-  window.addEventListener('gridcols', draw);
+  // the page is rebuilt on every visit: stop listening once this control has left it
+  const onCols = () => { if (box.isConnected) draw(); else window.removeEventListener('gridcols', onCols); };
+  window.addEventListener('gridcols', onCols);
   return box;
 }
 // Ctrl + mouse wheel over a grid changes the number per row
@@ -146,9 +148,7 @@ function vlist(container, items, rowH, render) {
 
 /* ═════════════════════════════ building blocks ═════════════════════════════ */
 function albumCard(al, size) {
-  const kind = al.loose && al.tracks[0] ? 't' : 'a';
-  const id = kind === 't' ? al.tracks[0].id : al.id;
-  const art = artBox('art', kind, id, size || 200, al.title);
+  const art = artBox('art', ...albumArt(al), size || 200, al.title);
   art.dataset.album = al.id;
   const play = h('button', { class: 'play', title: '播放', html: icon('play', true), onclick: e => { e.stopPropagation(); App.playTracks(al.tracks, 0, false); } });
   art.append(play);
@@ -177,7 +177,7 @@ function trackRow(t, i, list, opts = {}) {
     h('span', null, opts.number ?? t.no ?? i + 1),
     h('div', { class: 'pi', html: icon('play', true) }),
     h('div', { class: 'eq', html: '<i></i><i></i><i></i>' }));
-  if (opts.art) n.replaceChildren(artBox('thumb', t.album?.loose ? 't' : 'a', t.album?.loose ? t.id : t.albumId, 40, t.album?.title), h('div', { class: 'eq', html: '<i></i><i></i><i></i>' }));
+  if (opts.art) n.replaceChildren(artBox('thumb', ...trackArt(t), 40, t.album?.title), h('div', { class: 'eq', html: '<i></i><i></i><i></i>' }));
   const alCell = h('div', { class: 'al' });
   if (opts.album !== false && t.album) alCell.append(h('a', { onclick: e => { e.stopPropagation(); go('#/album/' + t.albumId); } }, t.album.title));
   else if (opts.album === false) alCell.textContent = t.composer || '';
@@ -191,8 +191,9 @@ function trackRow(t, i, list, opts = {}) {
     h('div', { class: 'fmt' }, fmtQuality(t.codec, t.rate, t.bits)),
     h('div', { class: 'd num' }, fmtTime(t.dur)),
     fav);
-  r.ondblclick = () => App.playTracks(list, list.indexOf(t));
-  n.onclick = e => { e.stopPropagation(); App.playTracks(list, list.indexOf(t)); };
+  const at = () => list[i] === t ? i : list.indexOf(t);
+  r.ondblclick = () => App.playTracks(list, at());
+  n.onclick = e => { e.stopPropagation(); App.playTracks(list, at()); };
   r.onclick = () => { $$('.row.sel').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); };
   r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }, list); };
   return r;
@@ -229,7 +230,11 @@ function setUiPref(k, v) { (App.settings.ui = App.settings.ui || {})[k] = v; Hos
 
 /* rails (home page) use the same albums-per-row setting */
 function sizeRail(r) {
+  let seen = false;
   const apply = () => {
+    // the home page is rebuilt on every visit: a rail that has left it stops listening (once it had been shown)
+    if (!r.isConnected) { if (seen) { window.removeEventListener('gridcols', apply); ro.disconnect(); } return; }
+    seen = true;
     const n = gridCols('album');
     if (!n) { r.style.gridAutoColumns = ''; return; }
     const W = r.clientWidth - 72;
@@ -237,7 +242,8 @@ function sizeRail(r) {
   };
   requestAnimationFrame(apply);
   window.addEventListener('gridcols', apply);
-  new ResizeObserver(apply).observe(r);
+  const ro = new ResizeObserver(apply);
+  ro.observe(r);
 }
 
 /* Horizontal rails: ‹ › buttons in the header (the scrollbar is hidden and a mouse wheel scrolls the page),
@@ -378,7 +384,7 @@ const Views = {
   album(view, id) {
     const al = Lib.albumById.get(id);
     if (!al) { view.append(h('div', { class: 'empty' }, '找不到這張專輯')); return; }
-    const kind = al.loose && al.tracks[0] ? 't' : 'a', artId = kind === 't' ? al.tracks[0].id : al.id;
+    const [kind, artId] = albumArt(al);
     const f = al.tracks[0] || {};
     const discs = new Set(al.tracks.map(t => t.disc)).size;
     const cover = artBox('cover', kind, artId, 300, al.title);

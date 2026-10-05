@@ -430,12 +430,29 @@ public sealed class MusicLibrary
     public byte[] ExportJson()
     {
         List<Album> albums;
-        lock (_lock) albums = _albums.Values.ToList();
+        int revision;
+        lock (_lock)
+        {
+            // the library only changes in Build (which raises Revision): the same revision is the same JSON
+            if (_export != null && _exportRevision == Revision) return _export;
+            albums = _albums.Values.ToList();
+            revision = Revision;
+        }
+        byte[] json = WriteExport(albums, revision);
+        lock (_lock) if (revision == Revision) { _export = json; _exportRevision = revision; }
+        return json;
+    }
+
+    byte[] _export;
+    int _exportRevision;
+
+    static byte[] WriteExport(List<Album> albums, int revision)
+    {
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms, new JsonWriterOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }))
         {
             w.WriteStartObject();
-            w.WriteNumber("revision", Revision);
+            w.WriteNumber("revision", revision);
             w.WriteStartArray("albums");
             foreach (var a in albums)
             {

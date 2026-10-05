@@ -122,11 +122,13 @@ public sealed class ArtworkService
         return null;
     }
 
+    static readonly int[] ThumbSizes = { 64, 128, 256, 384, 512, 768, 1024, 1600, 2400 };
+
     async Task<byte[]> Cached(string key, int size, Func<byte[]> source)
     {
         size = Math.Clamp(size <= 0 ? 600 : size, 32, 2400);
         // snap to a few sizes so the cache stays small
-        size = new[] { 64, 128, 256, 384, 512, 768, 1024, 1600, 2400 }.First(s => s >= size);
+        size = Array.Find(ThumbSizes, s => s >= size);
         string thumb = Path.Combine(AppPaths.Thumbs, $"{key}_{size}.jpg");
         if (File.Exists(thumb)) { try { return await File.ReadAllBytesAsync(thumb); } catch { } }
         var task = _inflight.GetOrAdd(thumb, _ => Task.Run(async () =>

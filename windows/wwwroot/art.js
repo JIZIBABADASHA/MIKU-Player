@@ -179,7 +179,7 @@ const CoverView = {
   },
   /** The album page cover. */
   open(al) {
-    const kind = al.loose && al.tracks[0] ? 't' : 'a', id = kind === 't' ? al.tracks[0].id : al.id;
+    const [kind, id] = albumArt(al);
     this.show((img, info, btns) => {
       // the shown size first (cached), then the large one
       img.src = artUrl(kind, id, 300);
