@@ -402,7 +402,7 @@ svg.i.fill { fill: currentColor; stroke: none; }
 /* the icon + "Rplay" pill (decoder, Rplay Core, settings, dropdown) */
 .rp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 18px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
 .rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
-.sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
+.sigpop .stage .v > .rp-badge { margin-right: 6px; }
 /* 關於: the Rplay row, its tile large beside the name and 播放內核 · commit */
 .field.rp-about { gap: 16px; padding-top: 16px; padding-bottom: 16px; }
 .field.rp-about .rp-icon { width: 56px; height: 56px; border-radius: 24%; vertical-align: 0; }
@@ -414,9 +414,11 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .sigpop .sig-sect > .rp-badge { margin-left: -2px; }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
-/* the signal path's Rplay badge: the icon twice its size (36 px), the word, padding, gaps and the Core heading's room to match */
-.sigpop .rp-badge { gap: 10px; padding: 3px 15px 3px 3px; font-size: 16px; line-height: 36px; }
-.sigpop .rp-badge .rp-icon { width: 36px; height: 36px; border-radius: 24%; }
+/* the signal path's Rplay badge (and the one before 相容模式 in the settings): the icon twice its size (36 px), the word,
+   padding, gaps and the Core heading's room to match */
+.sigpop .rp-badge, .field .lbl b > .rp-badge { gap: 10px; padding: 3px 15px 3px 3px; font-size: 16px; line-height: 36px; }
+.sigpop .rp-badge .rp-icon, .field .lbl b > .rp-badge .rp-icon { width: 36px; height: 36px; border-radius: 24%; }
+.field .lbl b > .rp-badge { margin-right: 10px; }
 .sigpop .stage .v > .rp-badge { margin-right: 10px; }
 .sigpop .stage .v:has(> .rp-badge) { margin-top: 4px; }
 .sigpop .sig-sect:has(> .rp-badge) { margin: 18px 0 10px; gap: 12px; }
