@@ -391,21 +391,38 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .stage .v { font-size: 13.5px; }
 .sigpop .note { margin-top: 10px; font-size: 12.5px; color: var(--pink-text); background: var(--pink-dim); padding: 9px 11px; border-radius: 9px; }
 /* Rplay core: Core / 輸出端 sections and the collapsed technical details */
-/* Rplay icon: next to labels and titles; a hairline keeps the navy badge visible on dark themes */
+/* Rplay icon: next to labels and titles. The black tile on light themes, the white one on dark themes (whatever
+   picture the element was given; the dropdown's copy too); a hairline keeps its edge on a background of its colour */
+:root { --rp-icon: url(img/rplay-black.png); }
+[data-theme="night"], [data-theme="wood"], [data-theme="glass"], [data-theme="neon"] { --rp-icon: url(img/rplay-white.png); }
+.rp-icon, .msel-ico[src*="rplay"] { content: var(--rp-icon); }
 .rp-icon { display: inline-block; flex: none; vertical-align: -3px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); user-select: none; }
 /* a picture in a custom dropdown option (select.js data-icon) */
 .msel-ico { width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; border-radius: 22%; box-shadow: 0 0 0 1px rgba(var(--ink), .10); flex: none; }
 /* the icon + "Rplay" pill (decoder, Rplay Core, settings, dropdown) */
 .rp-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 999px; background: rgba(var(--ink), .06); font-size: 14px; font-weight: 600; letter-spacing: 0; line-height: 18px; color: var(--text-2); vertical-align: middle; white-space: nowrap; }
 .rp-badge .rp-icon, .rp-badge .msel-ico { width: 18px; height: 18px; margin: 0; vertical-align: 0; }
-.sigpop .stage .v > .rp-badge, .field .lbl b > .rp-badge { margin-right: 6px; }
-/* 關於: the icon before "Rplay" in the row title's own font, as tall as the text line */
-.field .lbl b > .rp-icon { width: 1.4em; height: 1.4em; margin-right: .45em; }
+.sigpop .stage .v > .rp-badge { margin-right: 6px; }
+/* 關於: the Rplay row, its tile large beside the name and 播放內核 · commit */
+.field.rp-about { gap: 16px; padding-top: 16px; padding-bottom: 16px; }
+.field.rp-about .rp-icon { width: 56px; height: 56px; border-radius: 24%; vertical-align: 0; }
+.field.rp-about .lbl b { font-size: 17px; font-weight: 700; letter-spacing: .01em; }
+.field.rp-about .lbl small { margin-top: 5px; font-size: 13px; }
+.rp-commit { font-family: var(--mono, "Cascadia Mono", "Cascadia Code", Consolas, monospace); font-size: 12.5px; color: var(--amber); letter-spacing: .02em; }
 /* text after the pill sits on the pill's vertical centre */
-.sigpop .stage .v:has(> .rp-badge), .field .lbl b:has(> .rp-badge), .field .lbl b:has(> .rp-icon) { display: flex; align-items: center; }
+.sigpop .stage .v:has(> .rp-badge), .field .lbl b:has(> .rp-badge) { display: flex; align-items: center; }
 .sigpop .sig-sect > .rp-badge { margin-left: -2px; }
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+/* the signal path's Rplay badge (and the one before 相容模式 in the settings): the icon twice its size (36 px), the word,
+   padding, gaps and the Core heading's room to match */
+.sigpop .rp-badge, .field .lbl b > .rp-badge { gap: 10px; padding: 3px 15px 3px 3px; font-size: 16px; line-height: 36px; }
+.sigpop .rp-badge .rp-icon, .field .lbl b > .rp-badge .rp-icon { width: 36px; height: 36px; border-radius: 24%; }
+.field .lbl b > .rp-badge { margin-right: 10px; }
+.sigpop .stage .v > .rp-badge { margin-right: 10px; }
+.sigpop .stage .v:has(> .rp-badge) { margin-top: 4px; }
+.sigpop .sig-sect:has(> .rp-badge) { margin: 18px 0 10px; gap: 12px; }
+.sigpop .sig-sect > .rp-badge { margin-left: 0; }
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
 .sigpop .sig-details summary { cursor: pointer; user-select: none; }
 .sigpop .sig-details > div { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; line-height: 1.5; word-break: break-word; }
