@@ -979,7 +979,7 @@ const QLead = {
   bitperfect: '依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。',
   enhanced: '訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。',
   high: 'Windows 混音器會依系統格式處理音訊。改用獨佔模式可達到 Bit-perfect。',
-  low: '來源為有損壓縮格式。',
+  low: '來源為有損壓縮格式：部分聲音資訊在壓縮時已被永久丟棄，無法還原。',
 };
 const SignalPop = {
   toggle(anchor) {

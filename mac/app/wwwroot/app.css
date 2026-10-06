@@ -371,122 +371,31 @@ svg.i.fill { fill: currentColor; stroke: none; }
 /* lossy source: the dot blinks red */
 .sig.q-low .dot { animation: sig-blink 1.2s ease-in-out infinite; }
 @keyframes sig-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--q), 0 0 3px var(--q); } 50% { opacity: .18; box-shadow: 0 0 0 transparent; } }
-/* DSD: a rainbow four-point star that flares and turns, sparkles twinkling around the pill, a sheen, a colour-shifting halo */
-.sig.dsd { color: var(--text); text-shadow: 0 0 8px rgba(170, 225, 255, .7); animation: star-halo 4s linear infinite; }
-@keyframes star-halo {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(170, 230, 255, .7), 0 0 14px rgba(140, 215, 255, .45), 0 0 26px rgba(140, 215, 255, .18); }
-  33% { box-shadow: inset 0 0 0 1px rgba(255, 190, 240, .7), 0 0 14px rgba(255, 170, 235, .45), 0 0 26px rgba(255, 170, 235, .18); }
-  66% { box-shadow: inset 0 0 0 1px rgba(255, 240, 180, .7), 0 0 14px rgba(255, 230, 160, .45), 0 0 26px rgba(255, 230, 160, .18); }
-}
-/* the star: ::before is the star itself, ::after the long cross flare; the glow is a filter on the holder so the clip-path doesn't cut it */
-.sig.dsd .dot, .sigpop .dsd h3 .dot {
-  position: relative; width: 12px; height: 12px; border-radius: 0; background: none; box-shadow: none; opacity: 1; overflow: visible;
-  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 5px rgba(150, 225, 255, 1)) drop-shadow(0 0 9px rgba(255, 170, 240, .8));
-}
-.sigpop .dsd h3 .dot { width: 14px; height: 14px; }
-.sig.dsd .dot::before, .sigpop .dsd h3 .dot::before {
-  content: ''; position: absolute; inset: -3px;
-  background: conic-gradient(from 0deg, #fff, #c6f1ff, #ffd6f6, #fff4c4, #c9ffe9, #dcd9ff, #fff);
-  clip-path: polygon(50% 0, 59% 41%, 100% 50%, 59% 59%, 50% 100%, 41% 59%, 0 50%, 41% 41%);
-  animation: star-turn 2.4s cubic-bezier(.5, 0, .3, 1) infinite;
-}
-.sig.dsd .dot::after, .sigpop .dsd h3 .dot::after {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, rgba(255, 255, 255, .95) 50%, transparent) center / 100% 1.5px no-repeat,
-    linear-gradient(0deg, transparent, rgba(255, 255, 255, .95) 50%, transparent) center / 1.5px 100% no-repeat;
-  animation: star-flare 2.4s ease-in-out infinite;
-}
-@keyframes star-turn { 0% { transform: rotate(0) scale(.85); } 50% { transform: rotate(45deg) scale(1.15); } 100% { transform: rotate(90deg) scale(.85); } }
-@keyframes star-flare { 0%, 100% { opacity: .15; transform: scale(.35) rotate(0); } 45% { opacity: 1; transform: scale(1) rotate(0); } 55% { opacity: 1; transform: scale(1.05) rotate(0); } }
-/* sheen across the pill (DSD and hi-res) */
-.sig.dsd::before, .sig.hires::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-  background: linear-gradient(105deg, transparent 34%, rgba(255, 255, 255, .6) 47%, rgba(205, 240, 255, .4) 51%, rgba(255, 210, 245, .25) 55%, transparent 66%);
-  transform: translateX(-130%); animation: dia-sheen 3.4s cubic-bezier(.45, 0, .25, 1) infinite;
-}
-@keyframes dia-sheen { 0% { transform: translateX(-130%); } 45%, 100% { transform: translateX(130%); } }
-/* small sparkles: ::after on the pill and on its text twinkle at different moments and places */
-.sig.dsd::after, .sig.dsd > span::after {
-  content: ''; position: absolute; width: 9px; height: 9px; pointer-events: none; background: #fff; filter: drop-shadow(0 0 2px rgba(170, 230, 255, 1));
-  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
-  opacity: 0;
-}
-.sig.dsd::after { left: 3px; top: 2px; animation: twinkle-a 2.9s ease-in-out infinite; }
-.sig.dsd > span::after { right: 10px; bottom: 2px; width: 8px; height: 8px; animation: twinkle-b 3.7s ease-in-out infinite .9s; }
-@keyframes twinkle-a {
-  0%, 6% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(0); }
-  14% { opacity: 1; transform: translate(0, 0) scale(1) rotate(45deg); }
-  24%, 48% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(90deg); }
-  50% { transform: translate(14px, 17px) scale(.2); }
-  58% { opacity: 1; transform: translate(14px, 17px) scale(.8) rotate(45deg); }
-  68%, 100% { opacity: 0; transform: translate(14px, 17px) scale(.2) rotate(90deg); }
-}
-@keyframes twinkle-b {
-  0%, 10% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(0); }
-  18% { opacity: .95; transform: translate(0, 0) scale(1) rotate(45deg); }
-  28%, 55% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(90deg); }
-  57% { transform: translate(-28px, -16px) scale(.2); }
-  65% { opacity: .9; transform: translate(-28px, -16px) scale(.9) rotate(45deg); }
-  75%, 100% { opacity: 0; transform: translate(-28px, -16px) scale(.2) rotate(90deg); }
-}
-/* bit-perfect, ordinary lossless (≤ 16-bit / 48 kHz): the same star, quieter — silver-blue, a softer flare, no sheen, no twinkles */
-.sig.q-bitperfect:not(.dsd):not(.hires) { color: var(--text); box-shadow: inset 0 0 0 1px rgba(170, 225, 255, .28), 0 0 10px rgba(140, 210, 255, .14); }
+/* bit-perfect, ordinary lossless (≤ 16-bit / 48 kHz): the same star, quieter — silver-blue, a softer flare, no sheen, no twinkles; it breathes */
+.sig.q-bitperfect:not(.dsd):not(.hires) { color: var(--text); animation: ring-breathe 4s ease-in-out infinite; }
+@keyframes ring-breathe { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(170, 225, 255, .18), 0 0 4px rgba(140, 210, 255, .06); } 50% { box-shadow: inset 0 0 0 1px rgba(170, 225, 255, .45), 0 0 14px rgba(140, 210, 255, .28); } }
 .sig.q-bitperfect:not(.dsd):not(.hires) .dot, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot {
   position: relative; width: 11px; height: 11px; border-radius: 0; background: none; box-shadow: none; overflow: visible; opacity: .9;
   filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, .8)) drop-shadow(0 0 4px rgba(140, 215, 255, .7));
 }
 .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot { width: 13px; height: 13px; }
 .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before {
-  content: ''; position: absolute; inset: -3px;
+  content: ''; position: absolute; inset: -5px;
   background: radial-gradient(circle, #fff 0 18%, #d6f1ff 40%, #9fd8ff 75%);
-  clip-path: polygon(50% 0, 55.5% 44.5%, 100% 50%, 55.5% 55.5%, 50% 100%, 44.5% 55.5%, 0 50%, 44.5% 44.5%);
-  animation: star-twinkle 3.2s ease-in-out infinite;
+  clip-path: polygon(50.0% 0.0%, 53.1% 42.6%, 71.2% 28.8%, 57.4% 46.9%, 100.0% 50.0%, 57.4% 53.1%, 71.2% 71.2%, 53.1% 57.4%, 50.0% 100.0%, 46.9% 57.4%, 28.8% 71.2%, 42.6% 53.1%, 0.0% 50.0%, 42.6% 46.9%, 28.8% 28.8%, 46.9% 42.6%);  /* eight points: long on the axes, short on the diagonals */
+  animation: star-breathe 4s ease-in-out infinite;
 }
 .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after {
   content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; pointer-events: none;
   background:
     linear-gradient(90deg, transparent, rgba(230, 245, 255, .8) 50%, transparent) center / 100% 1px no-repeat,
     linear-gradient(0deg, transparent, rgba(230, 245, 255, .8) 50%, transparent) center / 1px 100% no-repeat;
-  animation: star-flash 3.2s ease-in-out infinite;
+  animation: flare-breathe 4s ease-in-out infinite;
 }
-/* a star twinkles: it rests dim, then flashes twice — no spinning */
-@keyframes star-twinkle { 0%, 38%, 100% { opacity: .7; transform: scale(.78); } 48% { opacity: 1; transform: scale(1.3); } 56% { opacity: .75; transform: scale(.85); } 64% { opacity: 1; transform: scale(1.12); } 76% { opacity: .7; transform: scale(.78); } }
-@keyframes star-flash { 0%, 38%, 100% { opacity: 0; transform: scale(.3); } 48% { opacity: .85; transform: scale(1); } 56% { opacity: .15; transform: scale(.55); } 64% { opacity: .55; transform: scale(.8); } 76% { opacity: 0; transform: scale(.35); } }
-/* bit-perfect hi-res: the star in gold — gold star and flare, gold twinkles, a gold sheen, a halo shifting gold / amber / champagne */
-.sig.hires { --q: #ffc93c; color: var(--text); text-shadow: 0 0 8px rgba(255, 200, 80, .7); animation: gold-halo 4s linear infinite; }
-@keyframes gold-halo {
-  0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 210, 100, .8), 0 0 14px rgba(255, 195, 60, .5), 0 0 28px rgba(255, 180, 40, .22); }
-  33% { box-shadow: inset 0 0 0 1px rgba(255, 175, 70, .8), 0 0 14px rgba(255, 160, 50, .5), 0 0 28px rgba(255, 140, 30, .22); }
-  66% { box-shadow: inset 0 0 0 1px rgba(255, 235, 170, .85), 0 0 14px rgba(255, 228, 150, .5), 0 0 28px rgba(255, 215, 120, .22); }
-}
-.sig.hires .dot, .sigpop .hires h3 .dot {
-  position: relative; width: 12px; height: 12px; border-radius: 0; background: none; box-shadow: none; opacity: 1; overflow: visible;
-  filter: drop-shadow(0 0 2px #fff6d8) drop-shadow(0 0 5px rgba(255, 200, 60, 1)) drop-shadow(0 0 10px rgba(255, 160, 20, .85));
-}
-.sigpop .hires h3 .dot { width: 14px; height: 14px; }
-.sig.hires .dot::before, .sigpop .hires h3 .dot::before {
-  content: ''; position: absolute; inset: -3px;
-  background: conic-gradient(from 0deg, #fffbea, #ffe07a, #ffb52e, #fff1b8, #ffcf4d, #e8a10c, #fffbea);
-  clip-path: polygon(50% 0, 59% 41%, 100% 50%, 59% 59%, 50% 100%, 41% 59%, 0 50%, 41% 41%);
-  animation: star-turn 2.4s cubic-bezier(.5, 0, .3, 1) infinite;
-}
-.sig.hires .dot::after, .sigpop .hires h3 .dot::after {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, rgba(255, 240, 190, .95) 50%, transparent) center / 100% 1.5px no-repeat,
-    linear-gradient(0deg, transparent, rgba(255, 240, 190, .95) 50%, transparent) center / 1.5px 100% no-repeat;
-  animation: star-flare 2.4s ease-in-out infinite;
-}
-.sig.hires::before { background: linear-gradient(105deg, transparent 34%, rgba(255, 248, 215, .7) 47%, rgba(255, 215, 110, .45) 52%, rgba(255, 180, 60, .25) 56%, transparent 66%); }
-.sig.hires::after, .sig.hires > span::after {
-  content: ''; position: absolute; width: 9px; height: 9px; pointer-events: none; background: #ffe9a8;
-  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
-  opacity: 0;
-}
-.sig.hires::after { left: 3px; top: 2px; animation: twinkle-a 2.9s ease-in-out infinite; }
-.sig.hires > span::after { right: 10px; bottom: 2px; width: 8px; height: 8px; animation: twinkle-b 3.7s ease-in-out infinite .9s; }
-@media (prefers-reduced-motion: reduce) { .sig.hires::after, .sig.hires > span::after, .sig.hires .dot::before, .sig.hires .dot::after, .sigpop .hires h3 .dot::before, .sigpop .hires h3 .dot::after, .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before, .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after, .sig.dsd, .sig.dsd::before, .sig.dsd::after, .sig.dsd > span::after, .sig.hires::before, .sig.hires, .sig.dsd .dot::before, .sig.dsd .dot::after, .sigpop .dsd h3 .dot::before, .sigpop .dsd h3 .dot::after, .sig.q-low .dot { animation: none; } }
+/* a breathing light: the star swells and glows, then slowly dims */
+@keyframes star-breathe { 0%, 100% { opacity: .45; transform: scale(.78); } 50% { opacity: 1; transform: scale(1.12); } }
+@keyframes flare-breathe { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: .6; transform: scale(.9); } }
+@media (prefers-reduced-motion: reduce) { .sig.q-bitperfect:not(.dsd):not(.hires), .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before, .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before, .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after, .sig.q-low .dot { animation: none; } }
 .vol { display: flex; align-items: center; gap: 4px; width: 178px; flex: none; }
 .vol .slider { flex: 1; }
 .vol .db { width: 56px; font-size: 11.5px; color: var(--text-3); text-align: right; white-space: nowrap; }
@@ -518,6 +427,13 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .stage .k { font-size: 12px; color: var(--text-3); }
 .stage .v { font-size: 13.5px; }
 .sigpop .note { margin-top: 10px; font-size: 12.5px; color: var(--pink-text); background: var(--pink-dim); padding: 9px 11px; border-radius: 9px; }
+/* light surfaces (light pop-ups: miku, flat, washi, vinyl; light player bar: flat, washi, vinyl): the SR star's white light vanishes on paper,
+   so it gets deeper colours and a thin dark edge */
+:root:is([data-theme="miku"], [data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot, :root:is([data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot { filter: drop-shadow(0 0 .6px rgba(30, 60, 110, .8)) drop-shadow(0 0 4px rgba(80, 140, 220, .65)); }
+:root:is([data-theme="miku"], [data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before, :root:is([data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before { background: radial-gradient(circle, #fff 0 14%, #8cc2f2 40%, #3f7fc8 80%); }
+:root:is([data-theme="miku"], [data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after, :root:is([data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after { background:
+    linear-gradient(90deg, transparent, rgba(60, 120, 200, .75) 50%, transparent) center / 100% 1px no-repeat,
+    linear-gradient(0deg, transparent, rgba(60, 120, 200, .75) 50%, transparent) center / 1px 100% no-repeat; }
 /* the signal path drawn in sections (a module's core: SignalInfo.Custom) and its collapsed technical details */
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
@@ -531,6 +447,297 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .toast.out { animation: toastOut .25s var(--ease) forwards; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+
+/* ═════════════ rarity cards: the signal badge and its pop-up dressed like card-game rarities ═════════════
+   SR  = bit-perfect (silver)      SSR = bit-perfect hi-res (gold foil)      UR = DSD (prismatic holo foil)
+   SSR / UR are always dark "cards" (any theme): a metal frame with light running round it, a foil sheen,
+   metal title, gems down the path (no rarity lettering, no particles). Opening one plays a reveal; the badge plays one when the class arrives. */
+@property --rar-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+@keyframes rar-spin { to { --rar-a: 360deg; } }
+@keyframes rar-hue { to { filter: hue-rotate(360deg); } }
+@keyframes rar-pan { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
+
+/* ── the badge: a mini card ── */
+:root:root .sig.hires, :root:root .sig.dsd {
+  position: relative; isolation: isolate; overflow: hidden; border: 0; text-shadow: 0 1px 0 rgba(0, 0, 0, .7); font-weight: 600; letter-spacing: .01em;
+}
+:root:root .sig.hires {
+  color: #fbeec8; background: radial-gradient(120% 160% at 18% 0%, #4a3410 0%, #1a1207 52%, #0b0803 100%);
+  animation: rar-badge-in .9s cubic-bezier(.2, .9, .25, 1.2) both, rar-aura-ssr 3.2s ease-in-out 1s infinite;
+}
+:root:root .sig.dsd {
+  color: #f1f3ff; background: radial-gradient(120% 160% at 18% 0%, #2b2a6e 0%, #121238 52%, #06061a 100%);
+  animation: rar-badge-in .9s cubic-bezier(.2, .9, .25, 1.2) both, rar-aura-ur 4s ease-in-out 1s infinite;
+}
+@keyframes rar-badge-in {
+  0% { transform: scale(.6) rotateX(70deg); filter: brightness(3) saturate(0); }
+  45% { transform: scale(1.12) rotateX(0); filter: brightness(1.8) saturate(1.2); }
+  100% { transform: none; filter: none; }
+}
+@keyframes rar-aura-ssr {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 10px rgba(255, 190, 70, .25), 0 3px 10px rgba(0, 0, 0, .35); }
+  50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 22px rgba(255, 196, 80, .6), 0 3px 10px rgba(0, 0, 0, .35); }
+}
+@keyframes rar-aura-ur {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 12px rgba(150, 190, 255, .35), 0 3px 10px rgba(0, 0, 0, .35); }
+  33% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 24px rgba(255, 150, 230, .55), 0 3px 10px rgba(0, 0, 0, .35); }
+  66% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), 0 0 24px rgba(140, 255, 220, .5), 0 3px 10px rgba(0, 0, 0, .35); }
+}
+/* the frame: a metal ring with a bright point of light running round it */
+:root:root .sig:is(.hires, .dsd)::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 2;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: rar-spin 3.6s linear infinite;
+}
+:root:root .sig.hires::after { background: conic-gradient(from var(--rar-a), #5e400d, #c99a3e 12%, #fff6d0 18%, #c99a3e 24%, #6e4e17 40%, #e9c46a 60%, #fff1c2 66%, #b8862b 72%, #5e400d); }
+:root:root .sig.dsd::after { background: conic-gradient(from var(--rar-a), #ff9ad5, #fff 8%, #9ad8ff 18%, #b6ffda 34%, #fff3a6 50%, #fff 56%, #d0a6ff 66%, #9ad8ff 82%, #ff9ad5); }
+/* foil: a sheen sweeping across, glitter that drifts */
+:root:root .sig:is(.hires, .dsd)::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  background:
+    linear-gradient(105deg, transparent 38%, rgba(255, 250, 230, .75) 48%, rgba(255, 255, 255, .95) 50%, rgba(255, 250, 230, .75) 52%, transparent 62%) -150% 0 / 250% 100% no-repeat,
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent);
+  animation: rar-badge-foil 3.4s ease-in-out infinite;
+}
+:root:root .sig.dsd::before {
+  background:
+    linear-gradient(105deg, transparent 38%, rgba(255, 210, 245, .7) 46%, rgba(255, 255, 255, .95) 50%, rgba(190, 240, 255, .7) 54%, transparent 62%) -150% 0 / 250% 100% no-repeat,
+    linear-gradient(110deg, rgba(255, 120, 200, .22), rgba(120, 200, 255, .22), rgba(140, 255, 200, .2), rgba(255, 240, 140, .2), rgba(200, 140, 255, .22), rgba(255, 120, 200, .22)) 0% 0 / 300% 100% no-repeat,
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent);
+  animation: rar-badge-foil-ur 4s linear infinite;
+}
+@keyframes rar-badge-foil { 0% { background-position: -150% 0, 0 0, 6px 5px; } 55%, 100% { background-position: 250% 0, 31px 23px, -30px 46px; } }
+@keyframes rar-badge-foil-ur { 0% { background-position: -150% 0, 0% 0, 0 0, 6px 5px; } 55% { background-position: 250% 0, 100% 0, 31px 23px, -30px 46px; } 100% { background-position: 250% 0, 0% 0, 62px 46px, -73px 83px; } }
+/* the label only: the click ripple is a <span> too and must stay absolutely positioned */
+:root:root .sig:is(.hires, .dsd) > span:not(.ripple), :root:root .sig:is(.hires, .dsd) .dot { position: relative; z-index: 3; }
+:root:root .sig:is(.hires, .dsd, .q-low) > .ripple { z-index: 4; }
+
+/* ── the star (badge and pop-up title): eight points, breathing, a lens glint now and then ── */
+:root:root .sig:is(.hires, .dsd) .dot, .sigpop > :is(.hires, .dsd) h3 .dot {
+  width: 12px; height: 12px; border-radius: 0; background: none; box-shadow: none; opacity: 1; overflow: visible; flex: none; position: relative;
+}
+.sigpop > :is(.hires, .dsd) h3 .dot { width: 18px; height: 18px; }
+:root:root .sig:is(.hires, .dsd) .dot::before, .sigpop > :is(.hires, .dsd) h3 .dot::before {
+  content: ''; position: absolute; inset: -4px;
+  clip-path: polygon(50.0% 0.0%, 53.1% 42.6%, 71.2% 28.8%, 57.4% 46.9%, 100.0% 50.0%, 57.4% 53.1%, 71.2% 71.2%, 53.1% 57.4%, 50.0% 100.0%, 46.9% 57.4%, 28.8% 71.2%, 42.6% 53.1%, 0.0% 50.0%, 42.6% 46.9%, 28.8% 28.8%, 46.9% 42.6%);
+}
+:root:root .sig.hires .dot, .sigpop > .hires h3 .dot { animation: rar-star-ssr 3.2s ease-in-out infinite; }
+:root:root .sig.hires .dot::before, .sigpop > .hires h3 .dot::before { background: radial-gradient(circle, #fff 0 14%, #fff0c0 30%, #f0c450 58%, #b07a1e 100%); }
+:root:root .sig.dsd .dot, .sigpop > .dsd h3 .dot { animation: rar-star-ur 3.2s ease-in-out infinite; }
+:root:root .sig.dsd .dot::before, .sigpop > .dsd h3 .dot::before { background: conic-gradient(from 0deg, #fff, #ffc4ec, #bfe6ff, #c9ffe3, #fff1b5, #dccbff, #fff); animation: rar-hue 5s linear infinite; }
+@keyframes rar-star-ssr {
+  0%, 100% { transform: scale(.9); filter: drop-shadow(0 0 1.5px rgba(255, 240, 200, .9)) drop-shadow(0 0 4px rgba(255, 180, 50, .5)); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 2.5px #fffbe8) drop-shadow(0 0 9px rgba(255, 190, 60, .95)) drop-shadow(0 0 16px rgba(255, 150, 20, .5)); }
+}
+@keyframes rar-star-ur {
+  0%, 100% { transform: scale(.9); filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 4px rgba(170, 200, 255, .6)); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 2.5px #fff) drop-shadow(0 0 9px rgba(255, 170, 235, .9)) drop-shadow(0 0 16px rgba(140, 220, 255, .6)); }
+}
+/* the glint: a long thin anamorphic streak with a short vertical one */
+:root:root .sig:is(.hires, .dsd) .dot::after, .sigpop > :is(.hires, .dsd) h3 .dot::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 46px; height: 18px; margin: -9px 0 0 -23px; pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, .95) 50%, transparent) center / 100% 1.5px no-repeat,
+    linear-gradient(0deg, transparent, rgba(255, 255, 255, .8) 50%, transparent) center / 1px 100% no-repeat;
+  opacity: 0; animation: rar-glint 3.2s ease-in-out infinite;
+}
+@keyframes rar-glint { 0%, 40%, 70%, 100% { opacity: 0; transform: scaleX(.2); } 52% { opacity: 1; transform: scaleX(1); } }
+
+/* ── the pop-up: a card ── */
+:root:root .pop.sigpop:has(> .hires), :root:root .pop.sigpop:has(> .dsd) {
+  border: 0; border-radius: 16px; backdrop-filter: none; overflow: hidden; isolation: isolate;
+  animation: rar-reveal .42s cubic-bezier(.2, .85, .25, 1.1) both;
+}
+:root:root .pop.sigpop:has(> .hires) {
+  color: #f7ecd0; background: radial-gradient(130% 80% at 12% 0%, #4a3410 0%, #1b1308 42%, #0c0905 100%);
+  box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(201, 154, 62, .5), 0 0 50px rgba(255, 180, 60, .28), 0 30px 70px rgba(0, 0, 0, .6);
+}
+:root:root .pop.sigpop:has(> .dsd) {
+  color: #eef1ff; background: radial-gradient(130% 80% at 12% 0%, #2c2b78 0%, #12123a 42%, #06061a 100%);
+  box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(190, 200, 255, .45), 0 0 50px rgba(170, 140, 255, .3), 0 30px 70px rgba(0, 0, 0, .6);
+}
+@keyframes rar-reveal {
+  0% { opacity: 0; transform: perspective(900px) translateY(16px) scale(.92) rotateY(-16deg); }
+  60% { opacity: 1; transform: perspective(900px) translateY(-2px) scale(1.01) rotateY(2deg); }
+  100% { opacity: 1; transform: none; }
+}
+.sigpop > :is(.hires, .dsd) { position: relative; isolation: isolate; }
+/* the frame: an inner ring of metal, light chasing round it */
+.sigpop > :is(.hires, .dsd)::after {
+  content: ''; position: absolute; inset: -11px -11px -7px; border-radius: 10px; padding: 1.5px; pointer-events: none; z-index: 4;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: rar-spin 5s linear infinite;
+}
+.sigpop > .hires::after { background: conic-gradient(from var(--rar-a), #4a320b, #b8862b 10%, #fff7d6 15%, #b8862b 20%, #5e400d 35%, #e9c46a 55%, #fffbe8 60%, #c99a3e 65%, #4a320b 85%); }
+.sigpop > .dsd::after { background: conic-gradient(from var(--rar-a), #ff9ad5, #fff 6%, #9ad8ff 15%, #b6ffda 30%, #fff3a6 45%, #fff 50%, #d0a6ff 62%, #9ad8ff 80%, #ff9ad5); }
+/* foil, glitter and a slow sweeping sheen over the whole card */
+.sigpop > :is(.hires, .dsd)::before {
+  content: ''; position: absolute; inset: -18px -18px -14px; z-index: -1; pointer-events: none;
+}
+.sigpop > .hires::before {
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(255, 228, 160, .22) 45%, rgba(255, 250, 225, .42) 50%, rgba(255, 228, 160, .22) 55%, transparent 70%) -100% 0 / 300% 100% no-repeat,
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent);
+  animation: rar-foil-ssr 6s ease-in-out infinite;
+}
+.sigpop > .dsd::before {
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(255, 200, 245, .25) 44%, rgba(255, 255, 255, .45) 50%, rgba(190, 240, 255, .25) 56%, transparent 70%) -100% 0 / 300% 100% no-repeat,
+    linear-gradient(115deg, rgba(255, 110, 200, .13), rgba(110, 190, 255, .13), rgba(120, 255, 190, .12), rgba(255, 235, 120, .12), rgba(190, 120, 255, .13), rgba(255, 110, 200, .13)) 0% 0% / 300% 300% no-repeat,
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent),
+    linear-gradient(transparent, transparent);
+  animation: rar-foil-ur 8s linear infinite;
+}
+@keyframes rar-foil-ssr { 0% { background-position: -100% 0, 0 0, 0 0, 23px 17px, 41px 29px; } 50%, 100% { background-position: 200% 0, 0 0, 53px 47px, -48px 76px, 138px -60px; } }
+@keyframes rar-foil-ur { 0% { background-position: -100% 0, 0% 0%, 0 0, 0 0, 23px 17px, 41px 29px; } 50% { background-position: 200% 0, 100% 100%, 0 0, 53px 47px, -48px 76px, 138px -60px; } 100% { background-position: 200% 0, 0% 0%, 0 0, 106px 94px, -119px 135px, 235px -149px; } }
+/* the title: polished metal lettering */
+.sigpop > :is(.hires, .dsd) h3 { font-size: 16.5px; font-weight: 800; letter-spacing: .02em; margin-bottom: 6px; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.sigpop > .hires h3 { background-image: linear-gradient(180deg, #fffbe8 0%, #f6d98a 40%, #c48d2c 52%, #f2cf74 70%, #fff3c8 100%); filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .8)) drop-shadow(0 0 10px rgba(255, 190, 70, .35)); }
+.sigpop > .dsd h3 { background-image: linear-gradient(180deg, #ffffff 0%, #e3e8ff 40%, #a9a3f0 52%, #dfe4ff 70%, #ffffff 100%); filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .8)) drop-shadow(0 0 10px rgba(190, 170, 255, .45)); }
+.sigpop > .hires .lead { color: rgba(247, 232, 200, .6); }
+.sigpop > .dsd .lead { color: rgba(222, 226, 255, .62); }
+/* the path: a metal rail with light running down it, gems that catch the light one after another */
+.sigpop > :is(.hires, .dsd) > :is(.stage, .sig-sect, .note, .sig-details) { animation: rar-row .28s cubic-bezier(.2, .8, .3, 1) both; }
+.sigpop > :is(.hires, .dsd) .stage::before { width: 2px; left: 8px; top: 18px; border-radius: 1px; animation: rar-rail 2.4s linear infinite; }
+.sigpop > .hires .stage::before { background: linear-gradient(180deg, transparent, rgba(255, 246, 215, .95), transparent) 0 -40px / 100% 40px no-repeat, linear-gradient(180deg, #d9a845, #6e4e17); box-shadow: 0 0 6px rgba(255, 190, 70, .45); }
+.sigpop > .dsd .stage::before { background: linear-gradient(180deg, transparent, rgba(255, 255, 255, .95), transparent) 0 -40px / 100% 40px no-repeat, linear-gradient(180deg, #9ad8ff, #d0a6ff, #ff9ad5); box-shadow: 0 0 6px rgba(180, 170, 255, .5); }
+@keyframes rar-rail { to { background-position: 0 calc(100% + 40px), 0 0; } }
+@keyframes rar-row { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+.sigpop > :is(.hires, .dsd) .stage .d { width: 10px; height: 10px; margin: 5px 0 0 4px; border-radius: 1.5px; transform: rotate(45deg); animation: rar-gem 3s ease-in-out infinite; }
+.sigpop > .hires .stage .d { background: linear-gradient(135deg, #fff9e0 0%, #f2c75a 30%, #8a5d10 50%, #f6d77c 70%, #fff3c8 100%); box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 0 8px rgba(255, 190, 70, .55); }
+.sigpop > .dsd .stage .d { background: conic-gradient(from 45deg, #fff, #ffc4ec, #bfe6ff, #fff, #c9ffe3, #fff1b5, #fff, #dccbff, #fff); box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 0 9px rgba(190, 170, 255, .7); }
+@keyframes rar-gem { 0%, 80%, 100% { filter: brightness(1); } 88% { filter: brightness(2.1) drop-shadow(0 0 6px #fff); } }
+.sigpop > :is(.hires, .dsd) .stage .k { font-size: 11px; letter-spacing: .14em; }
+.sigpop > .hires .stage .k { color: rgba(232, 198, 120, .85); }
+.sigpop > .dsd .stage .k { color: rgba(190, 200, 255, .8); }
+.sigpop > :is(.hires, .dsd) .stage .v { color: #fffaf0; font-weight: 500; text-shadow: 0 1px 0 rgba(0, 0, 0, .6); }
+.sigpop > .hires .sig-sect { color: #e9c66f; }
+.sigpop > .dsd .sig-sect { color: #c9c2ff; }
+.sigpop > :is(.hires, .dsd) .sig-sect::after { border-top: 0; height: 1px; background: linear-gradient(90deg, currentColor, transparent); opacity: .6; }
+.sigpop > :is(.hires, .dsd) .sig-details { color: rgba(240, 232, 215, .55); }
+.sigpop > :is(.hires, .dsd) .rp-badge { text-shadow: none; font-weight: 700; }
+.sigpop > :is(.hires, .dsd) .rp-badge .rp-icon { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .2); }
+/* the Rplay tile shown as a circle in the signal path (the picture cropped round) */
+:root:root .sigpop .rp-badge .rp-icon { border-radius: 50%; object-fit: cover; clip-path: circle(50%); }
+.sigpop > .hires .rp-badge { color: #f6dc96; background: linear-gradient(180deg, rgba(255, 220, 140, .14), rgba(255, 220, 140, .05)); box-shadow: inset 0 0 0 1px rgba(232, 196, 110, .45), inset 0 1px 0 rgba(255, 240, 200, .18); }
+.sigpop > .dsd .rp-badge { color: #e6e3ff; background: linear-gradient(180deg, rgba(210, 205, 255, .14), rgba(210, 205, 255, .05)); box-shadow: inset 0 0 0 1px rgba(200, 195, 255, .42), inset 0 1px 0 rgba(255, 255, 255, .16); }
+.sigpop > :is(.hires, .dsd) > :nth-child(3) { animation-delay: 0.08s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(3) .d { animation-delay: 0.00s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(4) { animation-delay: 0.11s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(4) .d { animation-delay: 0.25s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(5) { animation-delay: 0.14s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(5) .d { animation-delay: 0.50s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(6) { animation-delay: 0.17s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(6) .d { animation-delay: 0.75s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(7) { animation-delay: 0.20s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(7) .d { animation-delay: 1.00s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(8) { animation-delay: 0.23s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(8) .d { animation-delay: 1.25s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(9) { animation-delay: 0.26s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(9) .d { animation-delay: 1.50s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(10) { animation-delay: 0.29s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(10) .d { animation-delay: 1.75s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(11) { animation-delay: 0.32s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(11) .d { animation-delay: 2.00s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(12) { animation-delay: 0.35s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(12) .d { animation-delay: 2.25s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(13) { animation-delay: 0.38s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(13) .d { animation-delay: 2.50s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(14) { animation-delay: 0.41s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(14) .d { animation-delay: 2.75s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(15) { animation-delay: 0.44s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(15) .d { animation-delay: 3.00s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(16) { animation-delay: 0.47s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(16) .d { animation-delay: 3.25s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(17) { animation-delay: 0.50s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(17) .d { animation-delay: 3.50s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(18) { animation-delay: 0.53s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(18) .d { animation-delay: 3.75s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(19) { animation-delay: 0.56s; }
+.sigpop > :is(.hires, .dsd) > :nth-child(19) .d { animation-delay: 4.00s; }
+@media (prefers-reduced-motion: reduce) { :root:root .sig:is(.hires, .dsd), :root:root .sig:is(.hires, .dsd)::before, :root:root .sig:is(.hires, .dsd)::after, :root:root .sig:is(.hires, .dsd) .dot, :root:root .sig:is(.hires, .dsd) .dot::before, :root:root .sig:is(.hires, .dsd) .dot::after, :root:root .pop.sigpop:has(> :is(.hires, .dsd)), .sigpop > :is(.hires, .dsd)::before, .sigpop > :is(.hires, .dsd)::after, .sigpop > :is(.hires, .dsd) *, .sigpop > :is(.hires, .dsd) h3 .dot::before, .sigpop > :is(.hires, .dsd) h3 .dot::after { animation: none !important; } }
+
+/* ═════════════ lossy source: an alarm ═════════════
+   A dark red warning card that shakes in, pulses red like an alarm light, warning tape scrolling across it,
+   a blinking warning triangle. Any theme. */
+@keyframes low-shake { 0%, 100% { transform: none; } 10%, 50%, 90% { transform: translateX(-3px) rotate(-1deg); } 30%, 70% { transform: translateX(3px) rotate(1deg); } }
+@keyframes low-tape { to { background-position: 24px 0; } }  /* exactly one tile: seamless loop */
+@keyframes low-tri { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .25; } }
+/* the badge */
+:root:root .sig.q-low {
+  position: relative; isolation: isolate; overflow: hidden; border: 0; color: #ffe1e3; font-weight: 700; text-shadow: 0 0 8px rgba(255, 40, 60, .8);
+  background: #2a0407; animation: low-shake .6s ease-in-out both, low-alarm 1s ease-in-out .6s infinite;
+}
+@keyframes low-alarm {
+  0%, 100% { background-color: #2a0407; box-shadow: 0 0 0 1px rgba(255, 45, 65, .7), 0 0 6px rgba(255, 30, 50, .3); }
+  50% { background-color: #5a0810; box-shadow: 0 0 0 1.5px #ff2a3d, 0 0 20px rgba(255, 30, 50, .9), 0 0 42px rgba(255, 0, 30, .4); }
+}
+:root:root .sig.q-low::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: linear-gradient(-45deg, rgba(255, 40, 60, .26) 25%, transparent 25% 50%, rgba(255, 40, 60, .26) 50% 75%, transparent 75%) 0 0 / 24px 24px;
+  -webkit-mask: linear-gradient(90deg, #000, rgba(0, 0, 0, .25) 45%, rgba(0, 0, 0, .25) 55%, #000);
+  animation: low-tape .8s linear infinite;
+}
+:root:root .sig.q-low > span:not(.ripple) { position: relative; z-index: 1; }
+/* the warning triangle (badge and pop-up title) */
+:root:root .sig.q-low .dot, .sigpop > .q-low h3 .dot {
+  position: relative; z-index: 1; width: 14px; height: 12px; border-radius: 0; background: none; box-shadow: none; opacity: 1; flex: none;
+  filter: drop-shadow(0 0 4px rgba(255, 30, 50, .95)); animation: low-tri .8s steps(1) infinite;
+}
+:root:root .sig.q-low .dot::before, .sigpop > .q-low h3 .dot::before {
+  content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, #ff6b78, #ff1f35); clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+:root:root .sig.q-low .dot::after, .sigpop > .q-low h3 .dot::after {
+  content: '!'; position: absolute; left: 0; right: 0; bottom: -1px; text-align: center; font: 900 9px/1 Arial, sans-serif; color: #2a0407; text-shadow: none;
+}
+.sigpop > .q-low h3 .dot { width: 20px; height: 17px; }
+.sigpop > .q-low h3 .dot::after { font-size: 12px; bottom: 0; }
+/* the pop-up */
+:root:root .pop.sigpop:has(> .q-low) {
+  border: 0; border-radius: 16px; backdrop-filter: none; overflow: hidden; isolation: isolate; color: #ffe3e5;
+  background: radial-gradient(130% 80% at 15% 0%, #520a10 0%, #1c0305 50%, #0c0102 100%);
+  animation: low-shake .55s ease-in-out both, low-pop-alarm 1.2s ease-in-out .55s infinite;
+}
+@keyframes low-pop-alarm {
+  0%, 100% { box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(255, 45, 65, .45), 0 0 26px rgba(255, 20, 40, .25), 0 30px 70px rgba(0, 0, 0, .6); }
+  50% { box-shadow: 0 0 0 1px #000, 0 0 0 2px #ff2a3d, 0 0 60px rgba(255, 20, 40, .7), 0 30px 70px rgba(0, 0, 0, .6); }
+}
+/* the whole card flashes red, like a room under an alarm light */
+:root:root .pop.sigpop:has(> .q-low)::before {
+  content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(90% 70% at 50% 0%, rgba(255, 30, 50, .32), transparent 70%); animation: low-flash 1.2s ease-in-out infinite;
+}
+@keyframes low-flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+.sigpop > .q-low { position: relative; isolation: isolate; padding-top: 6px; }
+/* warning tape along the top and the bottom edge */
+.sigpop > .q-low::before, .sigpop > .q-low::after {
+  content: ''; position: absolute; left: -18px; right: -18px; height: 9px; pointer-events: none; z-index: 4;
+  background: linear-gradient(-45deg, #ff2a3d 25%, #140102 25% 50%, #ff2a3d 50% 75%, #140102 75%) 0 0 / 24px 24px;
+  box-shadow: 0 0 12px rgba(255, 30, 50, .7); animation: low-tape .8s linear infinite;
+}
+.sigpop > .q-low::before { top: -18px; }
+.sigpop > .q-low::after { bottom: -14px; animation-direction: reverse; }
+.sigpop > .q-low h3 { color: #ff4d5e; font-size: 16.5px; font-weight: 900; letter-spacing: .04em; text-shadow: 0 0 12px rgba(255, 40, 60, .8); animation: low-flicker 2.4s linear infinite; }
+@keyframes low-flicker { 0%, 18%, 22%, 62%, 64%, 100% { opacity: 1; } 20%, 63% { opacity: .35; } }
+.sigpop > .q-low .lead { color: #ffb3ba; font-weight: 600; }
+.sigpop > .q-low .stage::before { background: linear-gradient(180deg, #ff3b4f, #6a0a12); box-shadow: 0 0 6px rgba(255, 40, 60, .6); }
+.sigpop > .q-low .stage .d { background: #ff3b4f; box-shadow: 0 0 0 3px rgba(255, 40, 60, .2), 0 0 10px rgba(255, 40, 60, .9); }
+.sigpop > .q-low .stage .k { color: rgba(255, 170, 178, .78); }
+.sigpop > .q-low .stage .v { color: #fff0f1; }
+.sigpop > .q-low .sig-sect { color: #ff6b78; }
+.sigpop > .q-low .sig-sect::after { border-top-color: rgba(255, 80, 95, .35); }
+.sigpop > .q-low .sig-details { color: rgba(255, 210, 214, .55); }
+@media (prefers-reduced-motion: reduce) {
+  :root:root .sig.q-low, :root:root .sig.q-low::before, :root:root .sig.q-low .dot, :root:root .pop.sigpop:has(> .q-low), :root:root .pop.sigpop:has(> .q-low)::before,
+  .sigpop > .q-low::before, .sigpop > .q-low::after, .sigpop > .q-low h3, .sigpop > .q-low h3 .dot { animation: none !important; }
+}
 
 /* ───────────── drawers ───────────── */
 .scrim { position: fixed; inset: 0; background: rgba(var(--shadow-rgb), calc(.35 * var(--sh))); z-index: 90; opacity: 0; transition: opacity .3s var(--ease); pointer-events: none; }
