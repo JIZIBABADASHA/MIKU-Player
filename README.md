@@ -36,8 +36,9 @@ MIKU.Extensibility/  Windows 版的擴充模組介面
 
 ### 編譯 Windows 版
 
-需要 .NET 8 SDK。在 `windows` 資料夾執行 `build.cmd`，程式會輸出到上一層的 `MIKU` 資料夾；
-`make-installer.cmd` 會產生安裝檔（自動下載 FFmpeg 與 Inno Setup）。
+在 `windows` 資料夾執行 `build.cmd` 需要 .NET 8 SDK，程式會輸出到上一層的 `MIKU` 資料夾。
+執行 `make-installer.cmd` 會自動準備 .NET 8 SDK（放在 repo 的 `.tools` 資料夾，不改動系統安裝）、下載 FFmpeg 與安裝 Inno Setup，再產生安裝檔。
+產生的 MIKU 是獨立版，使用者不需要另外安裝 .NET；若電腦缺少 WebView2，安裝程式會提示開啟 Microsoft 的下載頁面。
 
 ### 擴充模組（Windows 版）
 

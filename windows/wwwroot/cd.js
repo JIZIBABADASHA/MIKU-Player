@@ -64,14 +64,14 @@ const Cd = {
     this.album = al;
   },
 
-  /** A separate CD section in the sidebar, shown while a disc is in. */
+  /** Keep the CD section in the sidebar even when the drive is empty. */
   nav() {
     const a = $('#nav a[data-r="cd"]'), label = $('#nav-cd-label');
     if (!a || !label) return;
-    a.style.display = label.style.display = this.album ? '' : 'none';
+    a.style.display = label.style.display = '';
     const sp = a.querySelector('span');
     if (sp) sp.textContent = this.album ? (this.album.title === T('音樂 CD') ? 'CD' : this.album.title) : 'CD';
-    a.title = this.album ? `${this.info.disc.drive} ${this.album.title}` : '';
+    a.title = this.album ? `${this.info.disc.drive} ${this.album.title}` : T('未偵測到光碟');
     NavPill.move();
   },
 

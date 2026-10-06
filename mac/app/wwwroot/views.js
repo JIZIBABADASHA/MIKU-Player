@@ -533,7 +533,11 @@ const Views = {
 
   /** The audio CD in the drive (cd.js): its album page, with 抓取 CD. */
   cd(view) {
-    if (!Cd.album) { view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' }, h('p', null, T('光碟機裡沒有音樂 CD。放入光碟後會出現在這裡。'))))); return; }
+    if (!Cd.album) {
+      view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } },
+        h('div', { class: 'box' }, h('h2', null, T('未偵測到光碟')), h('p', null, T('放入音樂 CD 後會顯示在這裡。')))));
+      return;
+    }
     return Views.album(view, Cd.album.id);
   },
 
