@@ -385,15 +385,18 @@ public sealed class ArtworkService
     /// Candidate pictures for the picker. <paramref name="part"/>: "albums" (album results, shown first), "songs"
     /// (song results for the first tracks, added after), or null for both. Every service is asked at the same time.
     /// </summary>
-    public async Task<List<ArtCandidate>> Candidates(string albumId, string query, string part = null)
+    public async Task<List<ArtCandidate>> Candidates(string albumId, string query, string part = null,
+        Action<List<ArtCandidate>> onResults = null, CancellationToken ct = default)
     {
         var a = _lib.GetAlbum(albumId);
         bool albums = part != "songs", songs = part != "albums";
-        var tasks = new List<Task<List<ArtCandidate>>>();
+        var all = new List<ArtCandidate>();
         if (!string.IsNullOrWhiteSpace(query))
         {
-            if (albums) tasks.Add(AlbumCandidates("", query, 25, true));
-            if (songs) tasks.Add(SongCandidates("", query, 15, true));
+            if (albums) all.AddRange(await AlbumCandidates("", query, 25, true, onResults, ct));
+            ct.ThrowIfCancellationRequested();
+            if (songs && (!albums || all.Select(c => c.Url).Distinct().Count() < 12))
+                all.AddRange(await SongCandidates("", query, 15, true, onResults, ct));
         }
         else if (a != null)
         {
@@ -401,14 +404,18 @@ public sealed class ArtworkService
             string title = a.Loose ? Path.GetFileName(a.Folder ?? "") : a.Title;
             if (albums)
             {
-                tasks.Add(AlbumCandidates(artist, title, 20, true));
-                if (artist.Length > 0) tasks.Add(AlbumCandidates("", title, 20, true));
+                all.AddRange(await AlbumCandidates(artist, title, 20, true, onResults, ct));
+                ct.ThrowIfCancellationRequested();
+                if (artist.Length > 0 && all.Select(c => c.Url).Distinct().Count() < 3)
+                    all.AddRange(await AlbumCandidates("", title, 20, true, onResults, ct));
             }
-            if (songs) foreach (var t in a.Tracks.Take(3)) tasks.Add(SongCandidates(SearchArtist(t.Artist), t.Title, 8, true));
+            ct.ThrowIfCancellationRequested();
+            if (songs && (!albums || all.Select(c => c.Url).Distinct().Count() < 12))
+                all.AddRange((await Task.WhenAll(a.Tracks.Take(3).Select(t =>
+                    SongCandidates(SearchArtist(t.Artist), t.Title, 8, true, onResults, ct)))).SelectMany(l => l));
         }
-        var lists = await Task.WhenAll(tasks);
         // de-duplicate by image
-        return lists.SelectMany(l => l).Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
+        return all.Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
     }
 
     public async Task<bool> SetOverrideFromUrl(string albumId, string url)
@@ -502,22 +509,38 @@ public sealed class ArtworkService
         [System.Text.Json.Serialization.JsonIgnore] public double Duration { get; set; }
     }
 
-    /// <summary>Album covers from Deezer and Apple Music (tw, jp), asked at the same time; MusicBrainz when they have little.</summary>
-    async Task<List<ArtCandidate>> AlbumCandidates(string artist, string title, int limit, bool user = false)
+    static async Task<List<ArtCandidate>> Collect(IEnumerable<Task<List<ArtCandidate>>> tasks, Action<List<ArtCandidate>> onResults)
     {
-        var lists = await Task.WhenAll(DeezerAlbums(artist, title, limit), ITunes(artist, title, "album", "tw", limit, user), ITunes(artist, title, "album", "jp", limit, user));
-        var all = lists.SelectMany(l => l).ToList();
-        if (all.Count < 3) all.AddRange(await MusicBrainz(artist, title, user));
+        var lists = await Task.WhenAll(tasks.Select(async task => {
+            var batch = await task;
+            if (batch.Count > 0) onResults?.Invoke(batch);
+            return batch;
+        }));
+        return lists.SelectMany(l => l).ToList();
+    }
+
+    /// <summary>Album covers from Deezer and Apple Music (tw, jp), reported as each provider replies; MusicBrainz when they have little.</summary>
+    async Task<List<ArtCandidate>> AlbumCandidates(string artist, string title, int limit, bool user = false,
+        Action<List<ArtCandidate>> onResults = null, CancellationToken ct = default)
+    {
+        var all = await Collect(new[] { DeezerAlbums(artist, title, limit, user, ct),
+            ITunes(artist, title, "album", "tw", limit, user, ct), ITunes(artist, title, "album", "jp", limit, user, ct) }, onResults);
+        if (all.Count < 3 && !ct.IsCancellationRequested)
+        {
+            var extra = await MusicBrainz(artist, title, user, ct);
+            if (extra.Count > 0) onResults?.Invoke(extra);
+            all.AddRange(extra);
+        }
         return all;
     }
 
     /// <summary>Covers of albums holding a song: Deezer and Apple Music; a search the user waits for asks only Apple's jp store (it has the same covers as tw, and Apple allows few requests).</summary>
-    async Task<List<ArtCandidate>> SongCandidates(string artist, string title, int limit, bool user = false)
+    async Task<List<ArtCandidate>> SongCandidates(string artist, string title, int limit, bool user = false,
+        Action<List<ArtCandidate>> onResults = null, CancellationToken ct = default)
     {
-        var tasks = new List<Task<List<ArtCandidate>>> { DeezerSongs(artist, title, limit), ITunes(artist, title, "song", "jp", limit, user) };
-        if (!user) tasks.Add(ITunes(artist, title, "song", "tw", limit, user));
-        var lists = await Task.WhenAll(tasks);
-        return lists.SelectMany(l => l).ToList();
+        var tasks = new List<Task<List<ArtCandidate>>> { DeezerSongs(artist, title, limit, user, ct), ITunes(artist, title, "song", "jp", limit, user, ct) };
+        if (!user) tasks.Add(ITunes(artist, title, "song", "tw", limit, user, ct));
+        return await Collect(tasks, onResults);
     }
 
     readonly ConcurrentDictionary<string, string> _dims = new();
@@ -615,27 +638,52 @@ public sealed class ArtworkService
         return null;
     }
 
-    static async Task<JsonDocument> GetJson(string url, Action<System.Net.Http.HttpRequestMessage> setup = null)
+    static async Task<JsonDocument> GetJson(string url, Action<System.Net.Http.HttpRequestMessage> setup = null, CancellationToken ct = default)
     {
         using var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, url);
         setup?.Invoke(req);
-        using var res = await Net.Http.SendAsync(req);
+        using var res = await Net.Http.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
-        var s = await res.Content.ReadAsStreamAsync();
-        return await JsonDocument.ParseAsync(s);
+        using var s = await res.Content.ReadAsStreamAsync(ct);
+        return await JsonDocument.ParseAsync(s, cancellationToken: ct);
+    }
+
+    static readonly ConcurrentDictionary<string, (DateTime expires, string json)> SearchCache = new();
+    static async Task<JsonDocument> SearchJson(string url, RateGate gate, bool user, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (SearchCache.TryGetValue(url, out var cached) && cached.expires > DateTime.UtcNow)
+            return JsonDocument.Parse(cached.json);
+        // Background discovery can wait for its quota; only interactive searches cap that wait.
+        if (gate != null && !user) await gate.WaitAsync(false, ct);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(user ? 8 : 15));
+        if (gate != null && user) await gate.WaitAsync(true, deadline.Token);
+        var doc = await GetJson(url, ct: deadline.Token);
+        if (doc != null)
+        {
+            var root = doc.RootElement;
+            if ((root.TryGetProperty("results", out var rows) || root.TryGetProperty("data", out rows) || root.TryGetProperty("release-groups", out rows))
+                && rows.ValueKind == JsonValueKind.Array)
+            {
+                SearchCache[url] = (DateTime.UtcNow.AddSeconds(rows.GetArrayLength() > 0 ? 300 : 30), root.GetRawText());
+                if (SearchCache.Count > 256)
+                    foreach (var old in SearchCache.OrderBy(p => p.Value.expires).Take(SearchCache.Count - 256)) SearchCache.TryRemove(old.Key, out _);
+            }
+        }
+        return doc;
     }
 
     static string Str(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    async Task<List<ArtCandidate>> ITunes(string artist, string title, string entity, string country, int limit, bool user = false)
+    async Task<List<ArtCandidate>> ITunes(string artist, string title, string entity, string country, int limit, bool user = false, CancellationToken ct = default)
     {
         var list = new List<ArtCandidate>();
         try
         {
             // the Apple search API allows roughly 20 requests a minute (shared with the tag editor's searches)
-            await RateGate.Apple.WaitAsync(user);
             string term = Uri.EscapeDataString((artist + " " + title).Trim());
-            using var doc = await GetJson($"https://itunes.apple.com/search?term={term}&entity={entity}&limit={limit}&country={country}");
+            using var doc = await SearchJson($"https://itunes.apple.com/search?term={term}&entity={entity}&limit={limit}&country={country}", RateGate.Apple, user, ct);
             if (doc == null || !doc.RootElement.TryGetProperty("results", out var r)) return list;
             foreach (var e in r.EnumerateArray())
             {
@@ -658,13 +706,13 @@ public sealed class ArtworkService
         return list;
     }
 
-    static async Task<List<ArtCandidate>> DeezerAlbums(string artist, string title, int limit)
+    static async Task<List<ArtCandidate>> DeezerAlbums(string artist, string title, int limit, bool user = false, CancellationToken ct = default)
     {
         var list = new List<ArtCandidate>();
         try
         {
             string q = string.IsNullOrWhiteSpace(artist) ? title : $"artist:\"{artist}\" album:\"{title}\"";
-            using var doc = await GetJson($"https://api.deezer.com/search/album?limit={limit}&q=" + Uri.EscapeDataString(q));
+            using var doc = await SearchJson($"https://api.deezer.com/search/album?limit={limit}&q=" + Uri.EscapeDataString(q), null, user, ct);
             if (doc == null || !doc.RootElement.TryGetProperty("data", out var data)) return list;
             foreach (var e in data.EnumerateArray())
             {
@@ -677,13 +725,13 @@ public sealed class ArtworkService
         return list;
     }
 
-    static async Task<List<ArtCandidate>> DeezerSongs(string artist, string title, int limit)
+    static async Task<List<ArtCandidate>> DeezerSongs(string artist, string title, int limit, bool user = false, CancellationToken ct = default)
     {
         var list = new List<ArtCandidate>();
         try
         {
             string q = string.IsNullOrWhiteSpace(artist) ? title : $"artist:\"{artist}\" track:\"{title}\"";
-            using var doc = await GetJson($"https://api.deezer.com/search?limit={limit}&q=" + Uri.EscapeDataString(q));
+            using var doc = await SearchJson($"https://api.deezer.com/search?limit={limit}&q=" + Uri.EscapeDataString(q), null, user, ct);
             if (doc == null || !doc.RootElement.TryGetProperty("data", out var data)) return list;
             foreach (var e in data.EnumerateArray())
             {
@@ -698,14 +746,13 @@ public sealed class ArtworkService
         return list;
     }
 
-    async Task<List<ArtCandidate>> MusicBrainz(string artist, string title, bool user = false)
+    async Task<List<ArtCandidate>> MusicBrainz(string artist, string title, bool user = false, CancellationToken ct = default)
     {
         var list = new List<ArtCandidate>();
         try
         {
-            await RateGate.MusicBrainz.WaitAsync(user);
             string q = $"releasegroup:\"{title.Replace("\"", "")}\"" + (string.IsNullOrWhiteSpace(artist) ? "" : $" AND artist:\"{artist.Replace("\"", "")}\"");
-            using var doc = await GetJson("https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=8&query=" + Uri.EscapeDataString(q));
+            using var doc = await SearchJson("https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=8&query=" + Uri.EscapeDataString(q), RateGate.MusicBrainz, user, ct);
             if (doc == null || !doc.RootElement.TryGetProperty("release-groups", out var rgs)) return list;
             foreach (var e in rgs.EnumerateArray())
             {
@@ -764,25 +811,31 @@ public sealed class ArtworkService
     /// Candidate pictures for the artist picker: Deezer artist photos (the source of the automatic picture), then
     /// album covers by the artist (Apple Music / Deezer), e.g. for artists Deezer has no photo of.
     /// </summary>
-    public async Task<List<ArtCandidate>> ArtistCandidates(string name, string query)
+    public async Task<List<ArtCandidate>> ArtistCandidates(string name, string query,
+        Action<List<ArtCandidate>> onResults = null, CancellationToken ct = default)
     {
         string q = string.IsNullOrWhiteSpace(query) ? CleanArtist(name) : query.Trim();
-        var list = new List<ArtCandidate>();
-        if (q == "") return list;
-        try
+        if (q == "") return new();
+        async Task<List<ArtCandidate>> Photos()
         {
-            using var doc = await GetJson("https://api.deezer.com/search/artist?limit=25&q=" + Uri.EscapeDataString(q));
-            if (doc != null && doc.RootElement.TryGetProperty("data", out var data))
-                foreach (var e in data.EnumerateArray())
-                {
-                    string pic = Str(e, "picture_xl");
-                    if (pic == null || pic.Contains("/artist//")) continue;
-                    int fans = e.TryGetProperty("nb_fan", out var f) && f.TryGetInt32(out var n) ? n : 0;
-                    list.Add(new ArtCandidate { Url = pic, Thumb = Str(e, "picture_medium") ?? pic, Title = Str(e, "name"), Artist = fans > 0 ? $"{fans:N0} 位粉絲" : "", Source = "Deezer", Size = "1000×1000" });
-                }
+            var list = new List<ArtCandidate>();
+            try
+            {
+                using var doc = await SearchJson("https://api.deezer.com/search/artist?limit=25&q=" + Uri.EscapeDataString(q), null, true, ct);
+                if (doc != null && doc.RootElement.TryGetProperty("data", out var data))
+                    foreach (var e in data.EnumerateArray())
+                    {
+                        string pic = Str(e, "picture_xl");
+                        if (pic == null || pic.Contains("/artist//")) continue;
+                        int fans = e.TryGetProperty("nb_fan", out var f) && f.TryGetInt32(out var n) ? n : 0;
+                        list.Add(new ArtCandidate { Url = pic, Thumb = Str(e, "picture_medium") ?? pic, Title = Str(e, "name"), Artist = fans > 0 ? $"{fans:N0} 位粉絲" : "", Source = "Deezer", Size = "1000×1000" });
+                    }
+            }
+            catch { }
+            if (list.Count > 0) onResults?.Invoke(list);
+            return list;
         }
-        catch { }
-        list.AddRange(await AlbumCandidates("", q, 20, true));   // free-text search: the artist name finds their albums
+        var list = (await Task.WhenAll(Photos(), AlbumCandidates("", q, 20, true, onResults, ct))).SelectMany(l => l);
         return list.Where(c => c.Url != null).GroupBy(c => c.Url).Select(g => g.First()).Take(60).ToList();
     }
 

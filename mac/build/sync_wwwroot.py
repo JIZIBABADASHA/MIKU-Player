@@ -14,7 +14,7 @@ the replacement below.
 Mac-only files (never overwritten): settings.js, mac-bridge.js. The output picker (the end of art.js, from
 `const shortDevice`) comes from wwwroot-mac/outputs.js.
 """
-import os, shutil, sys
+import os, re, shutil, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.normpath(os.path.join(HERE, '..', '..', 'windows', 'wwwroot'))
@@ -72,6 +72,18 @@ PATCHES = {
 }
 
 
+CJK = '[\u3400-\u9fff\uff00-\uffef]'
+
+
+def ui_wrapped(code):
+    """A replacement snippet as it reads after the UI strings were wrapped: '中文' → T('中文'), `…中文…` → T`…中文…`."""
+    code = re.sub(r"(?<!T\()(?<![A-Za-z_$])'([^'\n]*" + CJK + r"[^'\n]*)'", r"T('\1')", code)
+    parts = code.split('`')   # odd parts are template bodies (the snippets have no nested templates)
+    for i in range(1, len(parts) - 1, 2):
+        if re.search(CJK, parts[i]) and not re.search(r'[A-Za-z_$]$', parts[i - 1]): parts[i - 1] += 'T'
+    return '`'.join(parts)
+
+
 def main():
     if not os.path.isdir(SRC): sys.exit('missing ' + SRC)
     # everything is prepared first and written only when every replacement matched: a failed sync changes nothing
@@ -85,6 +97,9 @@ def main():
             if f.endswith(('.js', '.css', '.html', '.json')):
                 text = open(src, encoding='utf-8', newline='').read().replace('\r\n', '\n')
                 for old, new in PATCHES.get(r, []):
+                    if old not in text and r.endswith('.js'):
+                        # the UI strings are wrapped for i18n.js (T('…') / T`…`): match the wrapped form too
+                        old, new = ui_wrapped(old), ui_wrapped(new)
                     if old not in text: sys.exit(f'{r}: text to replace not found:\n  {old[:120]}')
                     text = text.replace(old, new, 1)
                 if r == 'art.js':

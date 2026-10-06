@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MIKU</title>
-<link rel="stylesheet" href="app.css?v=20261007r9">
+<link rel="stylesheet" href="app.css?v=20261006w1">
 <link rel="stylesheet" href="themes.css?v=20261004np20">
 <link rel="stylesheet" href="responsive.css?v=20261005r12-art">
 <link rel="stylesheet" href="tagedit.css?v=20261005t3">
-<link rel="stylesheet" href="convert.css?v=20261006c4">
+<link rel="stylesheet" href="convert.css?v=20261007cd8">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem("miku.theme")||"miku"}catch(e){document.documentElement.dataset.theme="miku"}</script>
 </head>
 <body>
@@ -23,6 +23,8 @@
       <a href="#/tracks" data-r="tracks"><svg class="i"><use href="#i-list"/></svg><span>曲目</span><em class="count" id="c-tracks"></em></a>
       <a href="#/ytmusic" data-r="ytmusic"><svg class="i"><use href="#i-yt"/></svg><span>YouTube Music</span></a>
       <a href="#/favorites" data-r="favorites"><svg class="i"><use href="#i-heart"/></svg><span>我的最愛</span></a>
+      <div class="nav-label" id="nav-cd-label" style="display:none">CD</div>
+      <a href="#/cd" data-r="cd" style="display:none"><svg class="i"><use href="#i-disc"/></svg><span>CD</span></a>
       <div class="nav-label">系統</div>
       <a href="#/settings" data-r="settings"><svg class="i"><use href="#i-gear"/></svg><span>設定</span></a>
     </nav>
@@ -131,6 +133,8 @@
     <linearGradient id="g-brand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#39c5bb"/><stop offset="1" stop-color="#e5307e"/></linearGradient>
   </defs>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M12 6.3a5.7 5.7 0 0 1 5.7 5.7"/></symbol>
+  <symbol id="i-eject" viewBox="0 0 24 24"><path d="M12 5 5 13h14z"/><path d="M5 18h14"/></symbol>
   <symbol id="i-album" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.6"/></symbol>
   <symbol id="i-artist" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.9-3.6 3.9-5.6 7.5-5.6s6.6 2 7.5 5.6"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.6" cy="6.5" r=".9"/><circle cx="4.6" cy="12" r=".9"/><circle cx="4.6" cy="17.5" r=".9"/></symbol>
@@ -171,20 +175,24 @@
   <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="6.5" rx="1.6"/><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.6"/></symbol>
 </svg>
 
-<script src="core.js?v=20261007r3"></script>
+<script src="i18n-dict.js?v=l1"></script>
+<script src="i18n.js?v=l1"></script>
+<script src="core.js?v=20261007u2-l1"></script>
 <script src="smooth.js?v=20261004s16"></script>
-<script src="themes.js?v=20261004np20"></script>
-<script src="views.js?v=20261006c2"></script>
-<script src="vinyl.js?v=20261004np20"></script>
-<script src="nowplaying.js?v=20261005o1"></script>
-<script src="dsp.js?v=20261005o1"></script>
+<script src="themes.js?v=20261007v1-l1"></script>
+<script src="views.js?v=20261007cd7-l1w"></script>
+<script src="vinyl.js?v=20261004np20-l1"></script>
+<script src="nowplaying.js?v=20261005o1-l1"></script>
+<script src="dsp.js?v=20261005o1-l1"></script>
 <script src="qr.js?v=20261004np20"></script>
-<script src="select.js?v=20261006c2"></script>
+<script src="select.js?v=20261007r9-l1"></script>
 <script src="fit.js?v=20261005f1"></script>
-<script src="settings.js?v=20261006c2"></script>
-<script src="art.js?v=20261005o1"></script>
-<script src="tagedit.js?v=20261005o1"></script>
-<script src="convert.js?v=20261006c4"></script>
+<script src="settings.js?v=20261006c2-l1"></script>
+<script src="art.js?v=20261007n2-l1"></script>
+<script src="tagedit.js?v=20261007t2-l1"></script>
+<script src="convert.js?v=20261007t1-l1"></script>
+<script src="cd.js?v=20261007cd8-l1"></script>
+<script src="navdrag.js?v=20261006d1"></script>
 <script>App.start();</script>
 </body>
 </html>

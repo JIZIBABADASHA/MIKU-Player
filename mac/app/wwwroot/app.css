@@ -98,13 +98,13 @@ svg.i.fill { fill: currentColor; stroke: none; }
   padding: 22px 12px 12px;
   min-height: 0;
 }
-.brand { display: flex; align-items: center; gap: 11px; padding: 4px 14px 26px; }
+.brand { display: flex; flex: none; align-items: center; gap: 11px; padding: 4px 14px 26px; }
 .brand svg { display: block; }
-.nav { display: flex; flex-direction: column; gap: 2px; }
-.nav-label { color: var(--text-3); font-size: 11.5px; letter-spacing: .08em; padding: 18px 12px 6px; }
+.nav { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.nav-label { flex: none; color: var(--text-3); font-size: 11.5px; letter-spacing: .08em; padding: 18px 12px 6px; }
 .nav a {
   display: flex; align-items: center; gap: 13px;
-  height: 38px; padding: 0 12px; border-radius: 10px;
+  flex: none; height: 38px; padding: 0 12px; border-radius: 10px;
   color: var(--text-2); text-decoration: none; font-weight: 500;
   transition: background .18s var(--ease), color .18s var(--ease);
   position: relative;
@@ -116,7 +116,8 @@ svg.i.fill { fill: currentColor; stroke: none; }
   background: var(--teal);
 }
 .nav a .count { margin-left: auto; color: var(--text-3); font-size: 12px; }
-.side-foot { margin-top: auto; padding: 10px 12px 2px; color: var(--text-3); font-size: 12px; }
+.nav a[data-r="cd"] > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-foot { flex: none; margin-top: auto; padding: 10px 12px 2px; color: var(--text-3); font-size: 12px; }
 .scanline { display: flex; align-items: center; gap: 8px; }
 .scanline .bar { flex: 1; height: 3px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
 .scanline .bar i { display: block; height: 100%; background: var(--teal); width: 0; transition: width .3s var(--ease); }
@@ -176,7 +177,16 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .seg { display: inline-flex; background: rgba(var(--ink), .05); border-radius: 10px; padding: 3px; gap: 2px; }
 .seg button { height: 30px; padding: 0 13px; border-radius: 8px; color: var(--text-2); font-size: 13px; transition: background .18s, color .18s; white-space: nowrap; }
 .seg button:hover { color: var(--text); }
-.seg button.on { background: rgba(var(--ink), .1); color: var(--text); }
+.seg button.on { background: rgba(var(--teal-rgb), .2); color: var(--text); font-weight: 600; box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .5); }   /* the chosen one must read at a glance */
+/* sort direction beside a sort selector (views.js sortDir) */
+.sortdir .i { transition: transform .25s var(--ease); }
+.sortdir.rev .i { transform: rotate(180deg); }
+/* fixed widths, so switching sort / direction never shifts the toolbar */
+.sortdir .sd-w { display: inline-grid; justify-items: center; }
+.sortdir .sd-w > * { grid-area: 1 / 1; }
+.sortdir .sd-w > i { visibility: hidden; font-style: normal; }
+.seg button[data-label] { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; }
+.seg button[data-label]::after { content: attr(data-label); font-weight: 600; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; user-select: none; }
 
 .btn {
   height: 38px; padding: 0 18px; border-radius: 19px; display: inline-flex; align-items: center; gap: 8px;
@@ -599,8 +609,8 @@ svg.i.fill { fill: currentColor; stroke: none; }
 @keyframes rar-foil-ur { 0% { background-position: -100% 0, 0% 0%, 0 0, 0 0, 23px 17px, 41px 29px; } 50% { background-position: 200% 0, 100% 100%, 0 0, 53px 47px, -48px 76px, 138px -60px; } 100% { background-position: 200% 0, 0% 0%, 0 0, 106px 94px, -119px 135px, 235px -149px; } }
 /* the title: polished metal lettering */
 .sigpop > :is(.hires, .dsd) h3 { font-size: 16.5px; font-weight: 800; letter-spacing: .02em; margin-bottom: 6px; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.sigpop > .hires h3 { background-image: linear-gradient(180deg, #fffbe8 0%, #f6d98a 40%, #c48d2c 52%, #f2cf74 70%, #fff3c8 100%); filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .8)) drop-shadow(0 0 10px rgba(255, 190, 70, .35)); }
-.sigpop > .dsd h3 { background-image: linear-gradient(180deg, #ffffff 0%, #e3e8ff 40%, #a9a3f0 52%, #dfe4ff 70%, #ffffff 100%); filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .8)) drop-shadow(0 0 10px rgba(190, 170, 255, .45)); }
+.sigpop > .hires h3 { background-image: linear-gradient(180deg, #fffbe8 0%, #f8de96 45%, #e2b048 56%, #f6d784 75%, #fff3c8 100%); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .9)) drop-shadow(0 0 8px rgba(255, 190, 70, .4)); }
+.sigpop > .dsd h3 { background-image: linear-gradient(180deg, #ffffff 0%, #f4f5ff 45%, #dcd8ff 56%, #ffffff 100%); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .9)) drop-shadow(0 0 8px rgba(190, 170, 255, .5)); }
 .sigpop > .hires .lead { color: rgba(247, 232, 200, .6); }
 .sigpop > .dsd .lead { color: rgba(222, 226, 255, .62); }
 /* the path: a metal rail with light running down it, gems that catch the light one after another */
@@ -624,8 +634,9 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .sigpop > :is(.hires, .dsd) .sig-details { color: rgba(240, 232, 215, .55); }
 .sigpop > :is(.hires, .dsd) .rp-badge { text-shadow: none; font-weight: 700; }
 .sigpop > :is(.hires, .dsd) .rp-badge .rp-icon { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .2); }
-/* the Rplay tile shown as a circle in the signal path (the picture cropped round) */
-:root:root .sigpop .rp-badge .rp-icon { border-radius: 50%; object-fit: cover; clip-path: circle(50%); }
+/* Rplay badges use the same circular icon in the signal path and audio settings. */
+:root:root .sigpop .rp-badge .rp-icon,
+:root:root .settings .rp-badge .rp-icon { border-radius: 50%; object-fit: cover; clip-path: circle(50%); }
 .sigpop > .hires .rp-badge { color: #f6dc96; background: linear-gradient(180deg, rgba(255, 220, 140, .14), rgba(255, 220, 140, .05)); box-shadow: inset 0 0 0 1px rgba(232, 196, 110, .45), inset 0 1px 0 rgba(255, 240, 200, .18); }
 .sigpop > .dsd .rp-badge { color: #e6e3ff; background: linear-gradient(180deg, rgba(210, 205, 255, .14), rgba(210, 205, 255, .05)); box-shadow: inset 0 0 0 1px rgba(200, 195, 255, .42), inset 0 1px 0 rgba(255, 255, 255, .16); }
 .sigpop > :is(.hires, .dsd) > :nth-child(3) { animation-delay: 0.08s; }
@@ -737,6 +748,202 @@ svg.i.fill { fill: currentColor; stroke: none; }
 @media (prefers-reduced-motion: reduce) {
   :root:root .sig.q-low, :root:root .sig.q-low::before, :root:root .sig.q-low .dot, :root:root .pop.sigpop:has(> .q-low), :root:root .pop.sigpop:has(> .q-low)::before,
   .sigpop > .q-low::before, .sigpop > .q-low::after, .sigpop > .q-low h3, .sigpop > .q-low h3 .dot { animation: none !important; }
+}
+
+/* ═════════════ DSP on: toxic green and sickly purple ═════════════
+   The signal is being processed, so the badge and its pop-up turn into a slimy, wobbling, glitching mess:
+   a green / purple swirl that churns, slime dripping off the edges, bubbles rising, the text jittering with
+   green / purple ghosts. Any theme. */
+@keyframes dsp-churn { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes dsp-wobble { 0%, 100% { transform: skewX(0) scale(1, 1); } 20% { transform: skewX(-4deg) scale(1.03, .96); } 45% { transform: skewX(3deg) scale(.97, 1.04); } 70% { transform: skewX(-2deg) scale(1.02, .98); } }
+@keyframes dsp-ghost {
+  0%, 100% { text-shadow: 1.5px 0 0 rgba(140, 255, 40, .85), -1.5px 0 0 rgba(170, 60, 255, .85); }
+  25% { text-shadow: -2px 1px 0 rgba(140, 255, 40, .85), 2px -1px 0 rgba(170, 60, 255, .85); }
+  50% { text-shadow: 1px -1px 0 rgba(140, 255, 40, .85), -1px 1px 0 rgba(170, 60, 255, .85); }
+  75% { text-shadow: -1px 0 0 rgba(140, 255, 40, .85), 2.5px 0 0 rgba(170, 60, 255, .85); }
+}
+@keyframes dsp-drip { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+@keyframes dsp-bubble { from { background-position: 0 100%, 0 100%, 0 100%; } to { background-position: 0 -40px, 0 -70px, 0 -55px; } }
+@keyframes dsp-glitch { 0%, 92%, 100% { clip-path: none; transform: none; } 93% { clip-path: inset(10% 0 55% 0); transform: translateX(-3px); } 95% { clip-path: inset(60% 0 8% 0); transform: translateX(3px); } 97% { clip-path: inset(30% 0 30% 0); transform: translateX(-1px); } }
+/* the badge: a lump of rotting sludge, oozing goo off the bottom nonstop and giving off stink lines.
+   Deliberately dull and murky, no neon, no flicker: everything moves slowly and continuously. */
+@keyframes dsp-sludge { 0%, 100% { background-position: 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
+@keyframes dsp-squish { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, .985) translateY(.5px); } }
+@keyframes dsp-goo {
+  /* layers: rim, drop A, strand A, drop B, strand B, mucus string C, blob on C */
+  0%   { background-position: 0 0, 5px 0, 11px 0, 22% -6px, 22% 0, 56% -9px, 56% 0, 84% 0, 84% 0;    background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 3px, 5px 6px; }
+  30%  { background-position: 0 0, 5px 0, 11px 0, 22% 2px,  22% 0, 56% -9px, 56% 0, 84% 0, 84% 6px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 3px, 6px 9px, 2px 0, 2px 9px, 5px 6px; }
+  38%  { background-position: 0 0, 5px 0, 11px 0, 22% 6px,  22% 0, 56% -9px, 56% 0, 84% 0, 84% 10px; background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 7px, 6px 9px, 2px 0, 2px 13px, 5px 6px; }
+  42%  { background-position: 0 0, 5px 0, 11px 0, 22% 11px, 22% 0, 56% -9px, 56% 0, 84% 0, 84% 11px; background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 14px, 5px 6px; }
+  48%  { background-position: 0 0, 5px 0, 11px 0, 22% 22px, 22% 0, 56% -7px, 56% 0, 84% 0, 84% 9px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 12px, 5px 6px; }
+  53%  { background-position: 0 0, 5px 0, 11px 0, 22% 40px, 22% 0, 56% -5px, 56% 0, 84% 0, 84% 4px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 6px, 5px 6px; }
+  75%  { background-position: 0 0, 5px 0, 11px 0, 22% 40px, 22% 0, 56% 3px,  56% 0, 84% 0, 84% 1px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 5px, 2px 3px, 5px 6px; }
+  77%  { background-position: 0 0, 5px 0, 11px 0, 22% 40px, 22% 0, 56% 4px,  56% 0, 84% 0, 84% 1px;  background-size: 13px 5px, 29px 8px, 47px 10px, 0 0, 2px 0, 6px 9px, 2px 6px, 2px 3px, 5px 6px; }
+  80%  { background-position: 0 0, 5px 0, 11px 0, 22% -6px, 22% 0, 56% 5px,  56% 0, 84% 0, 84% 2px;  background-size: 13px 5px, 29px 8px, 47px 10px, 0 0, 2px 0, 6px 9px, 2px 7px, 2px 4px, 5px 6px; }
+  82%  { background-position: 0 0, 5px 0, 11px 0, 22% -6px, 22% 0, 56% 7px,  56% 0, 84% 0, 84% 2px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 9px, 2px 4px, 5px 6px; }
+  86%  { background-position: 0 0, 5px 0, 11px 0, 22% -6px, 22% 0, 56% 12px, 56% 0, 84% 0, 84% 3px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 5px, 5px 6px; }
+  92%  { background-position: 0 0, 5px 0, 11px 0, 22% -6px, 22% 0, 56% 24px, 56% 0, 84% 0, 84% 2px;  background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 4px, 5px 6px; }
+  97%, 100% { background-position: 0 0, 5px 0, 11px 0, 22% -6px, 22% 0, 56% 40px, 56% 0, 84% 0, 84% 0; background-size: 13px 5px, 29px 8px, 47px 10px, 7px 10px, 2px 0, 6px 9px, 2px 0, 2px 3px, 5px 6px; }
+}
+@keyframes dsp-stink {
+  0% { transform: translateY(5px) scaleX(.9); opacity: 0; }
+  30% { opacity: .8; }
+  100% { transform: translateY(-9px) scaleX(1.15); opacity: 0; }
+}
+:root:root .sig.dsp {
+  position: relative; isolation: isolate; overflow: visible; border: 0; color: #d6dd9a; font-weight: 800;
+  text-shadow: 0 1px 0 rgba(20, 22, 0, .7);
+  background:
+    radial-gradient(ellipse 62% 44% at 58% 40%, rgba(50, 42, 14, .85), rgba(170, 176, 128, .45) 26%, rgba(120, 140, 60, .28) 48%, rgba(100, 120, 40, 0) 70%) 100% 0% / 16px 16px no-repeat,
+    radial-gradient(ellipse 48% 66% at 40% 62%, rgba(70, 45, 22, .8), rgba(160, 166, 120, .42) 28%, rgba(110, 130, 55, .26) 50%, rgba(90, 110, 40, 0) 72%) 100% 100% / 13px 13px no-repeat,
+    radial-gradient(ellipse 40% 70% at 50% 50%, rgba(110, 120, 20, .55), transparent 70%) 0 40% / 160% 200%,
+    radial-gradient(ellipse 30% 60% at 50% 50%, rgba(80, 40, 60, .55), transparent 70%) 100% 60% / 140% 200%,
+    radial-gradient(ellipse 25% 50% at 50% 50%, rgba(140, 120, 40, .35), transparent 70%) 30% 0 / 180% 220%,
+    linear-gradient(180deg, #4a4f14, #33370c 60%, #2a2a0b);
+  box-shadow: 0 0 0 1.5px #7d8a24, inset 0 1px 0 rgba(200, 210, 110, .18), inset 0 -4px 6px rgba(70, 50, 12, .65), 0 0 10px rgba(120, 140, 30, .22);
+  animation: dsp-sludge 9s ease-in-out infinite, dsp-squish 3.4s ease-in-out infinite;
+}
+:root:root .sig.dsp > span:not(.ripple) { position: relative; z-index: 1; }
+:root:root .sig.dsp .dot { background: radial-gradient(circle at 35% 30%, #d8e070, #8a9a1c 55%, #4e560c); box-shadow: 0 0 0 1px rgba(30, 32, 0, .5); border-radius: 50% 50% 50% 0; }
+/* goo oozing off the bottom: a lumpy rim, two drops that stretch on a string, let go and fall, and a mucus string that never quite lets go */
+:root:root .sig.dsp::after {
+  content: ''; position: absolute; left: 9%; right: 9%; top: calc(100% - 2px); height: 30px; pointer-events: none; z-index: -1; inset-inline: 9%;
+  --g: radial-gradient(ellipse 50% 50% at 42% 38%, #e2ea8c 0 14%, #a4b324 34%, #6c7a10 64%, rgba(70, 80, 10, 0) 72%);
+  background:
+    radial-gradient(ellipse 50% 100% at 50% 0, #6e7c12 0 70%, rgba(110, 124, 18, 0) 74%) 0 0 / 13px 5px repeat-x,
+    radial-gradient(ellipse 40% 100% at 30% 0, #5f6b0e 0 70%, rgba(95, 107, 14, 0) 74%) 5px 0 / 29px 8px repeat-x,
+    radial-gradient(ellipse 30% 100% at 60% 0, #75831a 0 70%, rgba(117, 131, 26, 0) 74%) 11px 0 / 47px 10px repeat-x,
+    var(--g) 22% -6px / 7px 10px no-repeat,
+    linear-gradient(#7e8c16, #a4b324) 22% 0 / 2px 0 no-repeat,
+    var(--g) 56% -9px / 6px 9px no-repeat,
+    linear-gradient(#7e8c16, #a4b324) 56% 0 / 2px 0 no-repeat,
+    linear-gradient(rgba(126, 140, 22, .95), rgba(150, 165, 30, .8)) 84% 0 / 2px 3px no-repeat,
+    var(--g) 84% 0 / 5px 6px no-repeat;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45));
+  -webkit-mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  animation: dsp-goo 3.6s linear infinite;
+}
+/* stink rising off it */
+:root:root .sig.dsp::before {
+  content: ''; position: absolute; left: 14%; right: 14%; bottom: calc(100% - 1px); height: 16px; pointer-events: none; z-index: -1; transform-origin: bottom;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='16' fill='none' stroke='rgb(160,172,70)' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M7 15c-3-3 3-5 0-8s2-4 0-6'/%3E%3Cpath d='M25 15c-2-2.5 2.5-3.5 0-6s1.4-2.6-.4-4.5' opacity='.6'/%3E%3C/svg%3E") 3px 100% / 44px 16px repeat-x;
+  filter: blur(.25px);
+  animation: dsp-stink 2.8s ease-out infinite;
+}
+/* the pop-up */
+@keyframes dsp-goo-l {
+  /* layers: rim, drop A, strand A, drop B, strand B, mucus string C, blob on C */
+  0%   { background-position: 0 0, 8px 0, 17.6px 0, 22% -9.6px, 22% 0, 56% -14.4px, 56% 0, 84% 0, 84% 0;    background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 4.8px, 8px 9.6px; }
+  30%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 3.2px,  22% 0, 56% -14.4px, 56% 0, 84% 0, 84% 9.6px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 4.8px, 9.6px 14.4px, 3.2px 0, 3.2px 14.4px, 8px 9.6px; }
+  38%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 9.6px,  22% 0, 56% -14.4px, 56% 0, 84% 0, 84% 16px; background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 11.2px, 9.6px 14.4px, 3.2px 0, 3.2px 20.8px, 8px 9.6px; }
+  42%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 17.6px, 22% 0, 56% -14.4px, 56% 0, 84% 0, 84% 17.6px; background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 22.4px, 8px 9.6px; }
+  48%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 35.2px, 22% 0, 56% -11.2px, 56% 0, 84% 0, 84% 14.4px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 19.2px, 8px 9.6px; }
+  53%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 64px, 22% 0, 56% -8px, 56% 0, 84% 0, 84% 6.4px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 9.6px, 8px 9.6px; }
+  75%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 64px, 22% 0, 56% 4.8px,  56% 0, 84% 0, 84% 1.6px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 8px, 3.2px 4.8px, 8px 9.6px; }
+  77%  { background-position: 0 0, 8px 0, 17.6px 0, 22% 64px, 22% 0, 56% 6.4px,  56% 0, 84% 0, 84% 1.6px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 0 0, 3.2px 0, 9.6px 14.4px, 3.2px 9.6px, 3.2px 4.8px, 8px 9.6px; }
+  80%  { background-position: 0 0, 8px 0, 17.6px 0, 22% -9.6px, 22% 0, 56% 8px,  56% 0, 84% 0, 84% 3.2px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 0 0, 3.2px 0, 9.6px 14.4px, 3.2px 11.2px, 3.2px 6.4px, 8px 9.6px; }
+  82%  { background-position: 0 0, 8px 0, 17.6px 0, 22% -9.6px, 22% 0, 56% 11.2px,  56% 0, 84% 0, 84% 3.2px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 14.4px, 3.2px 6.4px, 8px 9.6px; }
+  86%  { background-position: 0 0, 8px 0, 17.6px 0, 22% -9.6px, 22% 0, 56% 19.2px, 56% 0, 84% 0, 84% 4.8px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 8px, 8px 9.6px; }
+  92%  { background-position: 0 0, 8px 0, 17.6px 0, 22% -9.6px, 22% 0, 56% 38.4px, 56% 0, 84% 0, 84% 3.2px;  background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 6.4px, 8px 9.6px; }
+  97%, 100% { background-position: 0 0, 8px 0, 17.6px 0, 22% -9.6px, 22% 0, 56% 64px, 56% 0, 84% 0, 84% 0; background-size: 20.8px 8px, 46.4px 12.8px, 75.2px 16px, 11.2px 16px, 3.2px 0, 9.6px 14.4px, 3.2px 0, 3.2px 4.8px, 8px 9.6px; }
+}
+/* the card: the same rotting sludge as the badge. Murky, slow, no flicker; goo oozes off the bottom edge,
+   sludge sags off the top, stink rises above it, a few gas bubbles creep up the side gutters. Text stays clean. */
+:root:root .pop.sigpop:has(> .dsp) {
+  border: 0; border-radius: 18px 18px 22px 16px; backdrop-filter: none; overflow: visible; isolation: isolate; color: #e6e8cc;
+  background:
+    radial-gradient(ellipse 62% 44% at 58% 40%, rgba(50, 42, 14, .85), rgba(170, 176, 128, .45) 26%, rgba(120, 140, 60, .28) 48%, rgba(100, 120, 40, 0) 70%) 100% 0% / 46px 46px no-repeat,
+    radial-gradient(ellipse 48% 66% at 40% 62%, rgba(70, 45, 22, .8), rgba(160, 166, 120, .42) 28%, rgba(110, 130, 55, .26) 50%, rgba(90, 110, 40, 0) 72%) 100% 100% / 40px 40px no-repeat,
+    radial-gradient(ellipse 40% 50% at 50% 50%, rgba(95, 105, 18, .45), transparent 70%) 0 30% / 170% 160%,
+    radial-gradient(ellipse 35% 45% at 50% 50%, rgba(75, 35, 60, .5), transparent 70%) 100% 70% / 150% 170%,
+    radial-gradient(ellipse 30% 40% at 50% 50%, rgba(120, 100, 35, .3), transparent 70%) 30% 0 / 190% 200%,
+    linear-gradient(170deg, #262a0b, #1c1d09 45%, #211419 75%, #181708);
+  box-shadow: 0 0 0 2px #6f7c1e, inset 0 0 0 1px rgba(0, 0, 0, .5), inset 0 -16px 26px rgba(70, 50, 12, .6), inset 6px 0 18px rgba(60, 30, 45, .35), 0 0 26px rgba(110, 125, 25, .18), 0 30px 70px rgba(0, 0, 0, .6);
+  animation: dsp-pop-in .5s cubic-bezier(.3, 1.4, .5, 1) both, dsp-sludge 12s ease-in-out infinite;
+}
+@keyframes dsp-pop-in { 0% { opacity: 0; transform: scale(.85, 1.12); } 60% { opacity: 1; transform: scale(1.03, .97); } 100% { opacity: 1; transform: none; } }
+/* sludge sagging off the top edge */
+@keyframes dsp-sag { 0%, 100% { transform: scaleY(.8); } 50% { transform: scaleY(1.15); } }
+:root:root .pop.sigpop:has(> .dsp)::before {
+  content: ''; position: absolute; left: 10px; right: 10px; top: 0; height: 16px; pointer-events: none; z-index: -1; transform-origin: top;
+  background:
+    linear-gradient(#55601a, #55601a) 0 0 / 100% 3px no-repeat,
+    radial-gradient(ellipse 50% 100% at 50% 0, #5d6914 0 70%, rgba(93, 105, 20, 0) 74%) 0 0 / 21px 8px repeat-x,
+    radial-gradient(ellipse 40% 100% at 30% 0, #4d5710 0 70%, rgba(77, 87, 16, 0) 74%) 7px 0 / 46px 13px repeat-x,
+    radial-gradient(ellipse 30% 100% at 60% 0, #66741a 0 70%, rgba(102, 116, 26, 0) 74%) 19px 0 / 75px 16px repeat-x;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .5));
+  animation: dsp-sag 5s ease-in-out infinite;
+}
+/* goo oozing off the bottom edge, same as the badge, scaled up */
+:root:root .pop.sigpop:has(> .dsp)::after {
+  content: ''; position: absolute; left: 8%; right: 8%; top: calc(100% - 3px); height: 48px; pointer-events: none; z-index: -1;
+  --g: radial-gradient(ellipse 50% 50% at 42% 38%, #d8e07e 0 14%, #96a420 34%, #616e0e 64%, rgba(70, 80, 10, 0) 72%);
+  background:
+    radial-gradient(ellipse 50% 100% at 50% 0, #5d6914 0 70%, rgba(93, 105, 20, 0) 74%) 0 0 / 21px 8px repeat-x,
+    radial-gradient(ellipse 40% 100% at 30% 0, #4d5710 0 70%, rgba(77, 87, 16, 0) 74%) 8px 0 / 46.4px 12.8px repeat-x,
+    radial-gradient(ellipse 30% 100% at 60% 0, #66741a 0 70%, rgba(102, 116, 26, 0) 74%) 17.6px 0 / 75.2px 16px repeat-x,
+    var(--g) 22% -9.6px / 11.2px 16px no-repeat,
+    linear-gradient(#6f7c16, #96a420) 22% 0 / 3.2px 0 no-repeat,
+    var(--g) 56% -14.4px / 9.6px 14.4px no-repeat,
+    linear-gradient(#6f7c16, #96a420) 56% 0 / 3.2px 0 no-repeat,
+    linear-gradient(rgba(111, 124, 22, .95), rgba(140, 155, 30, .8)) 84% 0 / 3.2px 4.8px no-repeat,
+    var(--g) 84% 0 / 8px 9.6px no-repeat;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .5));
+  -webkit-mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  animation: dsp-goo-l 4.4s linear infinite;
+}
+.sigpop > .dsp { position: relative; isolation: isolate; }
+/* stink rising off the top of the card */
+.sigpop > .dsp::before {
+  content: ''; position: absolute; left: 12%; right: 12%; top: -44px; height: 24px; pointer-events: none; z-index: 3; transform-origin: bottom;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='66' height='24' fill='none' stroke='rgb(150,162,66)' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M10 23c-4-4 4-7 0-11s3-6 0-9'/%3E%3Cpath d='M38 23c-3-3.5 3.5-5.5 0-9s2.2-4-.6-7' opacity='.6'/%3E%3C/svg%3E") 6px 100% / 66px 24px repeat-x;
+  filter: blur(.3px);
+  animation: dsp-stink 3.2s ease-out infinite;
+}
+/* gas bubbles rising up the side gutters only, so nothing sits behind the text */
+.sigpop > .dsp::after {
+  content: ''; position: absolute; inset: -18px -18px -14px; z-index: -1; pointer-events: none; border-radius: inherit; overflow: hidden;
+  background:
+    radial-gradient(circle, rgba(140, 155, 45, .45) 0 3px, transparent 4px) 5px 0 / 8px 150px repeat-y,
+    radial-gradient(circle, rgba(120, 75, 105, .45) 0 2px, transparent 3px) 11px 0 / 6px 230px repeat-y,
+    radial-gradient(circle, rgba(140, 155, 45, .4) 0 2.5px, transparent 3.5px) right 6px top 0 / 7px 190px repeat-y,
+    radial-gradient(circle, rgba(120, 75, 105, .4) 0 2px, transparent 3px) right 12px top 0 / 6px 260px repeat-y;
+  animation: dsp-rise 6s linear infinite;
+}
+@keyframes dsp-rise { from { background-position: 5px 0, 11px 0, right 6px top 0, right 12px top 0; } to { background-position: 5px -300px, 11px -230px, right 6px top -380px, right 12px top -260px; } }
+/* flies buzzing around it, now and then landing on it */
+@keyframes dsp-fly { 0% { offset-distance: 0%; } 34% { offset-distance: 38%; } 44%, 58% { offset-distance: 50%; } 100% { offset-distance: 100%; } }
+@keyframes dsp-buzz { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(1px, -1px); } 50% { transform: translate(-1px, .5px); } 75% { transform: translate(.5px, 1px); } }
+:root:root .sig.dsp > span:not(.dot):not(.ripple)::after {
+  content: ''; position: absolute; left: 0; top: 0; width: 9px; height: 7px; pointer-events: none; z-index: 2;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 10'%3E%3Cellipse cx='5' cy='3' rx='4' ry='2.2' fill='rgba(200,210,220,.55)' transform='rotate(-25 5 3)'/%3E%3Cellipse cx='9' cy='3' rx='4' ry='2.2' fill='rgba(200,210,220,.55)' transform='rotate(25 9 3)'/%3E%3Cellipse cx='7' cy='6' rx='2.4' ry='3.4' fill='%23111'/%3E%3Ccircle cx='7' cy='2.6' r='1.7' fill='%23200'/%3E%3C/svg%3E") center / contain no-repeat;
+  offset-path: path('M 70 -16 C 100 -26 112 -4 96 6 S 60 4 48 -3 C 30 -12 0 -22 -12 -6 S 10 18 40 22 S 96 30 104 10 S 92 -10 70 -16');
+  offset-rotate: auto 90deg;
+  animation: dsp-fly 6.5s ease-in-out infinite, dsp-buzz .18s linear infinite;
+}
+.sigpop > .dsp h3::after {
+  content: ''; position: absolute; left: 0; top: 0; width: 13px; height: 10px; pointer-events: none; z-index: 4;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 10'%3E%3Cellipse cx='5' cy='3' rx='4' ry='2.2' fill='rgba(200,210,220,.55)' transform='rotate(-25 5 3)'/%3E%3Cellipse cx='9' cy='3' rx='4' ry='2.2' fill='rgba(200,210,220,.55)' transform='rotate(25 9 3)'/%3E%3Cellipse cx='7' cy='6' rx='2.4' ry='3.4' fill='%23111'/%3E%3Ccircle cx='7' cy='2.6' r='1.7' fill='%23200'/%3E%3C/svg%3E") center / contain no-repeat;
+  offset-path: path('M 250 -40 C 300 -70 340 -40 310 -20 S 250 -14 230 -17 C 200 -20 150 -60 110 -42 S 120 10 180 -8 S 230 -30 250 -40');
+  offset-rotate: auto 90deg;
+  animation: dsp-fly 8s ease-in-out infinite, dsp-buzz .18s linear infinite;
+}
+.sigpop > .dsp h3 { color: #c3cc6a; font-weight: 900; letter-spacing: .03em; text-shadow: 0 1px 0 rgba(0, 0, 0, .6); }
+.sigpop > .dsp h3 .dot { background: radial-gradient(circle at 35% 30%, #d8e070, #8a9a1c 55%, #4e560c); box-shadow: 0 0 0 1px rgba(30, 32, 0, .5); border-radius: 50% 50% 50% 0; }
+.sigpop > .dsp .lead { color: #bfae9e; }
+.sigpop > .dsp .stage::before { width: 3px; border-radius: 2px; background: linear-gradient(180deg, #6f7c1e, #4d3a44); box-shadow: none; }
+.sigpop > .dsp .stage .d { background: radial-gradient(circle at 35% 30%, #d0d86a, #87961c 55%, #4e560c); border-radius: 50% 50% 50% 0; box-shadow: 0 0 0 3px rgba(40, 42, 8, .7); }
+.sigpop > .dsp .stage .d.mod { background: radial-gradient(circle at 35% 30%, #c49ab8, #7a4a6e 60%, #3e2236); box-shadow: 0 0 0 3px rgba(40, 20, 35, .7); }
+.sigpop > .dsp .stage .k { color: #a9b552; }
+.sigpop > .dsp .stage .v { color: #ecebd8; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
+.sigpop > .dsp .note { color: #e6e8cc; background: rgba(110, 124, 18, .16); box-shadow: inset 0 0 0 1px rgba(110, 124, 18, .4); }
+.sigpop > .dsp .sig-sect { color: #a9b552; }
+.sigpop > .dsp .sig-sect::after { border-top-color: rgba(110, 124, 30, .4); }
+@media (prefers-reduced-motion: reduce) {
+  :root:root .sig.dsp, :root:root .sig.dsp::before, :root:root .sig.dsp::after, :root:root .sig.dsp .dot, :root:root .pop.sigpop:has(> .dsp), :root:root .pop.sigpop:has(> .dsp)::before, :root:root .pop.sigpop:has(> .dsp)::after,
+  .sigpop > .dsp::before, .sigpop > .dsp::after, .sigpop > .dsp h3::after, :root:root .sig.dsp > span:not(.dot):not(.ripple)::after { animation: none !important; }
+}
 }
 
 /* ───────────── drawers ───────────── */
@@ -975,6 +1182,11 @@ a.link:hover { text-decoration: underline; }
 .nav-pill::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--teal); box-shadow: 0 0 12px var(--teal); }
 .nav { position: relative; }
 .nav a { position: relative; z-index: 1; }
+.nav a { user-select: none; -webkit-user-drag: none; }
+.nav.nav-dragging, .nav.nav-dragging a { cursor: grabbing; }
+.nav.nav-dragging a:not(.nav-drag) { pointer-events: none; }
+:root:root:root .nav a.nav-drag { z-index: 3; color: var(--text); background: linear-gradient(rgba(var(--ink), .08), rgba(var(--ink), .08)), var(--bg-2, #222); box-shadow: 0 0 0 1px var(--line-2), 0 10px 26px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); backdrop-filter: blur(14px); }
+.nav a.nav-drag svg.i { transform: scale(1.12); }
 .nav a.on { background: transparent; }
 .nav a.on::before { display: none; }
 .btn, .icon-btn, .round-btn, .chip, .seg button, .sig, .out-btn, .playbtn { position: relative; overflow: hidden; }

@@ -96,12 +96,12 @@ function setGridCols(n, kind = 'album') {
 function colsControl(kind = 'album') {
   const label = h('span', { class: 'num', style: { minWidth: '62px', textAlign: 'center', fontSize: '13px', color: 'var(--text-2)', lineHeight: '30px' } });
   const cur = () => { const n = gridCols(kind); if (n) return n; const vg = $('.vgrid'); return vg ? Math.max(2, Math.floor((vg.clientWidth + 22) / (178 + 22))) : 6; };
-  const draw = () => label.textContent = gridCols(kind) ? `每排 ${gridCols(kind)}` : '自動';
-  const box = h('div', { class: 'seg', title: '每排顯示數量（⌘ + 滾輪也可以調整）' },
+  const draw = () => label.textContent = gridCols(kind) ? T`每排 ${gridCols(kind)}` : T('自動');
+  const box = h('div', { class: 'seg', title: T('每排顯示數量（⌘ + 滾輪也可以調整）') },
     h('button', { onclick: () => { setGridCols(Math.max(2, cur() - 1), kind); draw(); } }, '−'),
     label,
     h('button', { onclick: () => { setGridCols(cur() + 1, kind); draw(); } }, '+'),
-    h('button', { onclick: () => { setGridCols(0, kind); draw(); } }, '自動'));
+    h('button', { onclick: () => { setGridCols(0, kind); draw(); } }, T('自動')));
   draw();
   // the page is rebuilt on every visit: stop listening once this control has left it
   const onCols = () => { if (box.isConnected) draw(); else window.removeEventListener('gridcols', onCols); };
@@ -150,7 +150,7 @@ function vlist(container, items, rowH, render) {
 function albumCard(al, size) {
   const art = artBox('art', ...albumArt(al), size || 200, al.title);
   art.dataset.album = al.id;
-  const play = h('button', { class: 'play', title: '播放', html: icon('play', true), onclick: e => { e.stopPropagation(); App.playTracks(al.tracks, 0, false); } });
+  const play = h('button', { class: 'play', title: T('播放'), html: icon('play', true), onclick: e => { e.stopPropagation(); App.playTracks(al.tracks, 0, false); } });
   art.append(play);
   const c = h('div', { class: 'card', onclick: () => {
     const open = () => { Flip.capture(al.id, art); go('#/album/' + al.id); };
@@ -168,7 +168,7 @@ function albumCard(al, size) {
 function artistCard(ar, size) {
   const c = h('div', { class: 'card artist', onclick: () => go('#/artist/' + encodeURIComponent(ar.name)) },
     artBox('art', 'r', ar.name, size || 200, ar.name),
-    h('div', { class: 't1' }, ar.name), h('div', { class: 't2' }, `${ar.albums.length} 張專輯`));
+    h('div', { class: 't1' }, ar.name), h('div', { class: 't2' }, T`${ar.albums.length} 張專輯`));
   return c;
 }
 
@@ -181,7 +181,7 @@ function trackRow(t, i, list, opts = {}) {
   const alCell = h('div', { class: 'al' });
   if (opts.album !== false && t.album) alCell.append(h('a', { onclick: e => { e.stopPropagation(); go('#/album/' + t.albumId); } }, t.album.title));
   else if (opts.album === false) alCell.textContent = t.composer || '';
-  const fav = h('button', { class: 'icon-btn more' + (App.favs.has(t.id) ? ' fav-on' : ''), html: icon(App.favs.has(t.id) ? 'heartf' : 'heart'), title: '最愛' });
+  const fav = h('button', { class: 'icon-btn more' + (App.favs.has(t.id) ? ' fav-on' : ''), html: icon(App.favs.has(t.id) ? 'heartf' : 'heart'), title: T('最愛') });
   fav.onclick = e => { e.stopPropagation(); const on = App.toggleFav(t.id); fav.classList.toggle('fav-on', on); fav.innerHTML = icon(on ? 'heartf' : 'heart'); };
   if (App.favs.has(t.id)) fav.style.opacity = 1;
   const r = h('div', { class: 'row', 'data-id': t.id },
@@ -199,8 +199,8 @@ function trackRow(t, i, list, opts = {}) {
   return r;
 }
 
-function thead(albumLabel = '專輯') {
-  return h('div', { class: 'thead' }, h('div', { style: { textAlign: 'center' } }, '#'), h('div', null, '標題'), h('div', null, albumLabel), h('div', { class: 'fmt' }, '格式'), h('div', { style: { textAlign: 'right' } }, '時間'), h('div'));
+function thead(albumLabel = T('專輯')) {
+  return h('div', { class: 'thead' }, h('div', { style: { textAlign: 'center' } }, '#'), h('div', null, T('標題')), h('div', null, albumLabel), h('div', { class: 'fmt' }, T('格式')), h('div', { style: { textAlign: 'right' } }, T('時間')), h('div'));
 }
 
 function heroBg(kind, id) {
@@ -218,7 +218,7 @@ function pageHead(title, sub, tools) {
 function seg(options, value, onchange) {
   const box = h('div', { class: 'seg' });
   for (const [v, label] of options) {
-    const b = h('button', { class: v === value ? 'on' : '' }, label);
+    const b = h('button', { class: v === value ? 'on' : '', 'data-label': typeof label === 'string' ? label : null }, label);   // data-label: app.css keeps the bold width reserved
     b.onclick = () => { $$('button', box).forEach(x => x.classList.remove('on')); b.classList.add('on'); onchange(v); };
     box.append(b);
   }
@@ -226,6 +226,20 @@ function seg(options, value, onchange) {
 }
 
 const uiPref = (k, d) => (App.settings.ui && App.settings.ui[k]) || d;
+
+/**
+ * The sort direction beside a sort selector: says which way the list runs for the sort chosen
+ * (新→舊 / 舊→新 for dates, A→Z / Z→A for names); a click turns it round. rev() is read when drawing.
+ */
+function sortDir(key, sortNow, ondraw) {
+  const words = { added: [T('新→舊'), T('舊→新')], year: [T('新→舊'), T('舊→新')] };
+  const b = h('button', { class: 'btn small sortdir', title: T('反向排列') });
+  const all = [T('新→舊'), T('舊→新'), 'A→Z', 'Z→A'];   // every label stacked in one cell, so the button never changes width
+  const paint = () => { const w = words[sortNow()] || ['A→Z', 'Z→A']; const cur = w[uiPref(key, '') === 'rev' ? 1 : 0]; b.innerHTML = icon('down') + `<span class="sd-w"><span>${cur}</span>${all.filter(x => x !== cur).map(x => `<i aria-hidden="true">${x}</i>`).join('')}</span>`; b.classList.toggle('rev', uiPref(key, '') === 'rev'); };
+  b.onclick = () => { setUiPref(key, uiPref(key, '') === 'rev' ? 'fwd' : 'rev'); paint(); ondraw(); };
+  paint();
+  return { el: b, paint, rev: () => uiPref(key, '') === 'rev' };
+}
 function setUiPref(k, v) { (App.settings.ui = App.settings.ui || {})[k] = v; Host.call('ui', { key: k, value: v }); }
 
 /* rails (home page) use the same albums-per-row setting */
@@ -254,8 +268,8 @@ function attachRailNav(root) {
     r.dataset.nav = '1';
     let head = r.previousElementSibling;
     if (!head || !head.classList.contains('rail-head')) continue;
-    const prev = h('button', { class: 'round-btn rail-btn', title: '向左', html: icon('left') });
-    const next = h('button', { class: 'round-btn rail-btn', title: '向右', html: icon('right') });
+    const prev = h('button', { class: 'round-btn rail-btn', title: T('向左'), html: icon('left') });
+    const next = h('button', { class: 'round-btn rail-btn', title: T('向右'), html: icon('right') });
     const step = dir => r.scrollBy({ left: dir * Math.max(200, r.clientWidth * 0.85), behavior: 'smooth' });
     prev.onclick = () => step(-1);
     next.onclick = () => step(1);
@@ -280,7 +294,7 @@ const YT = {
   frame: null, shown: false,
   sync() {
     const f = YT.frame;
-    const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !(window.ArtPicker && ArtPicker.el) && !(window.CoverView && CoverView.el));
+    const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !document.querySelector('.modal-scrim') && !(window.ArtPicker && ArtPicker.el) && !(window.CoverView && CoverView.el));
     if (visible) {
       const r = f.getBoundingClientRect();
       Host.call('yt.show', { x: r.left, y: r.top, w: r.width, h: r.height, dpr: window.devicePixelRatio || 1 });
@@ -302,13 +316,13 @@ const Views = {
   home(view) {
     if (!App.settings.folders || App.settings.folders.length === 0) return Views.onboarding(view);
     if (!Lib.albums.length) {
-      view.append(h('div', { class: 'empty' }, h('div', { class: 'box' }, h('h2', null, '正在建立曲庫'), h('p', null, '第一次掃描大型曲庫需要幾分鐘，完成後會自動顯示。'))));
+      view.append(h('div', { class: 'empty' }, h('div', { class: 'box' }, h('h2', null, T('正在建立曲庫')), h('p', null, T('第一次掃描大型曲庫需要幾分鐘，完成後會自動顯示。')))));
       return;
     }
     shuffleSeed = shuffleSeed || Lib.albums.map(a => [Math.random(), a]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
     const rail = (title, albums, link) => {
       if (!albums.length) return;
-      const [label, act] = typeof link === 'string' ? ['顯示全部', () => go(link)] : (link || []);
+      const [label, act] = typeof link === 'string' ? [T('顯示全部'), () => go(link)] : (link || []);
       view.append(h('div', { class: 'rail-head' }, h('h2', null, title), act ? h('a', { onclick: act }, label) : null));
       const r = h('div', { class: 'rail' });
       sizeRail(r);
@@ -318,15 +332,15 @@ const Views = {
     view.append(h('div', { style: { height: '8px' } }));
     const recentTracks = (App.settings.recent || []).map(id => Lib.trackById.get(id)).filter(Boolean);
     // an album played in several versions (FLAC and DSD…) shows once, as its best version, like the album lists
-    rail('最近聆聽', [...new Set(recentTracks.map(t => t.album && (t.album.versions ? t.album.versions[0] : t.album)).filter(Boolean))].slice(0, 24), '#/recent');
-    rail('最近加入', Lib.albums.slice().sort((a, b) => b.added - a.added).slice(0, 24), '#/albums');
+    rail(T('最近聆聽'), [...new Set(recentTracks.map(t => t.album && (t.album.versions ? t.album.versions[0] : t.album)).filter(Boolean))].slice(0, 24), '#/recent');
+    rail(T('最近加入'), Lib.albums.slice().sort((a, b) => b.added - a.added).slice(0, 24), '#/albums');
     const favAlbums = [...new Set([...App.favs].map(id => Lib.trackById.get(id)?.album).filter(Boolean))].slice(0, 24);
-    rail('我的最愛', favAlbums, '#/favorites');
-    rail('高解析度', shuffleSeed.filter(a => a.qc).slice(0, 24), ['顯示全部', () => { setUiPref('albumFilter', 'hires'); go('#/albums'); }]);
-    rail('隨機探索', shuffleSeed.filter(a => !a.qc).slice(0, 24), ['換一批', () => { shuffleSeed = null; Router.render(true, 'none'); }]);
+    rail(T('我的最愛'), favAlbums, '#/favorites');
+    rail(T('高解析度'), shuffleSeed.filter(a => a.qc).slice(0, 24), [T('顯示全部'), () => { setUiPref('albumFilter', 'hires'); go('#/albums'); }]);
+    rail(T('隨機探索'), shuffleSeed.filter(a => !a.qc).slice(0, 24), [T('換一批'), () => { shuffleSeed = null; Router.render(true, 'none'); }]);
     const artists = Lib.artists.filter(a => a.albums.length > 1);
     if (artists.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, '演出者'), h('a', { onclick: () => go('#/artists') }, '顯示全部')));
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, T('演出者', 'nav')), h('a', { onclick: () => go('#/artists') }, T('顯示全部'))));
       const r = h('div', { class: 'rail', style: { gridAutoColumns: '150px' } });
       artists.map(a => [Math.random(), a]).sort((x, y) => x[0] - y[0]).slice(0, 20).forEach(([, a]) => r.append(artistCard(a, 150)));
       view.append(r);
@@ -336,8 +350,8 @@ const Views = {
   onboarding(view) {
     const box = h('div', { class: 'box' });
     box.innerHTML = `<div style="display:flex;justify-content:center;gap:16px;align-items:center">${Brand.svg(70)}</div>`;
-    box.append(h('h2', null, '加入音樂資料夾'), h('p', null, '選擇存放音樂的資料夾，MIKU 會讀取標籤並建立曲庫。除非你用「編輯標籤」修改，音樂檔案不會被更動。'));
-    box.append(h('button', { class: 'btn primary', html: icon('folder') + '選擇資料夾', onclick: async () => { const f = await Host.call('folder.add'); if (f) { App.settings.folders = f; Router.render(); } } }));
+    box.append(h('h2', null, T('加入音樂資料夾')), h('p', null, T('選擇存放音樂的資料夾，MIKU 會讀取標籤並建立曲庫。除非你用「編輯標籤」修改，音樂檔案不會被更動。')));
+    box.append(h('button', { class: 'btn primary', html: icon('folder') + T('選擇資料夾'), onclick: async () => { const f = await Host.call('folder.add'); if (f) { App.settings.folders = f; Router.render(); } } }));
     const chips = h('div', { class: 'chips' });
     box.append(chips);
     Host.call('suggestFolders').then(list => (list || []).forEach(p => chips.append(h('button', {
@@ -363,7 +377,8 @@ const Views = {
       host.textContent = '';
       let list = Lib.albums.filter(a => filter === 'all' || (filter === 'hires' ? a.qc === 'hi' : filter === 'dsd' ? a.qc === 'dsd' : true));
       list.sort(sorters[sort]);
-      head.querySelector('.sub').textContent = `${list.length} 張`;
+      if (dir.rev()) list.reverse();
+      head.querySelector('.sub').textContent = T`${list.length} 張`;
       const firstChar = s => { const c = [...(s || '').trim()][0] || '#'; return /[a-z]/i.test(c) ? c.toUpperCase() : c; };
       const labels = {
         added: a => { const d = new Date((a.added - 62135596800) * 1000); return isNaN(d) ? '' : `${d.getFullYear()} / ${d.getMonth() + 1}`; },
@@ -371,9 +386,11 @@ const Views = {
       };
       cleanup = vgrid(host, list, { render: albumCard, label: labels[sort] });
     };
-    const head = pageHead('專輯', '', [
-      seg([['all', '全部'], ['hires', 'Hi-Res'], ['dsd', 'DSD']], filter, v => { filter = v; setUiPref('albumFilter', v); draw(); }),
-      seg([['added', '最近加入'], ['artist', '演出者'], ['title', '名稱'], ['year', '年份']], sort, v => { sort = v; setUiPref('albumSort', v); draw(); }),
+    const dir = sortDir('albumSortDir', () => sort, () => draw());
+    const head = pageHead(T('專輯', 'nav'), '', [
+      seg([['all', T('全部')], ['hires', 'Hi-Res'], ['dsd', 'DSD']], filter, v => { filter = v; setUiPref('albumFilter', v); draw(); }),
+      seg([['added', T('最近加入')], ['artist', T('演出者')], ['title', T('名稱')], ['year', T('年份')]], sort, v => { sort = v; setUiPref('albumSort', v); dir.paint(); draw(); }),
+      dir.el,
       colsControl('album'),
     ]);
     view.append(head, host);
@@ -382,36 +399,47 @@ const Views = {
   },
 
   album(view, id) {
-    const al = Lib.albumById.get(id);
-    if (!al) { view.append(h('div', { class: 'empty' }, '找不到這張專輯')); return; }
+    let al = Lib.albumById.get(id);
+    if (!al) {
+      // the album was changed and got a new id (tags saved, files renamed…): show it under its new address
+      const now = Lib.resolve(id);
+      if (now) { history.replaceState(history.state, '', '#/album/' + now); al = Lib.albumById.get(now); }
+    }
+    if (!al) { view.append(h('div', { class: 'empty' }, T('找不到這張專輯'))); return; }
     const [kind, artId] = albumArt(al);
     const f = al.tracks[0] || {};
     const discs = new Set(al.tracks.map(t => t.disc)).size;
     const cover = artBox('cover', kind, artId, 300, al.title);
-    cover.onclick = () => CoverView.open(al);
+    if (!al.cd) cover.onclick = () => CoverView.open(al);
     const meta = h('div', { class: 'meta' },
-        h('div', { class: 'kind' }, al.loose ? '資料夾' : '專輯'),
+        h('div', { class: 'kind' }, al.cd ? T`音樂 CD · ${Cd.info.disc.drive}` : al.loose ? T('資料夾') : T('專輯')),
         h('h1', { title: al.title }, al.title),
         h('div', { class: 'by' }, ...artistLinks(al.artists.length ? al.artists : [al.artist])),
         h('div', { class: 'facts num' },
           al.year ? h('span', null, al.year) : null,
-          h('span', null, `${al.tracks.length} 首 · ${fmtLong(al.dur)}`),
+          h('span', null, T`${al.tracks.length} 首 · ${fmtLong(al.dur)}`),
           al.genre ? h('span', null, '· ' + al.genre) : null,
           al.versions
-            ? h('button', { class: 'badge ver ' + al.qc, title: `這張專輯有 ${al.versions.length} 個版本，點一下切換`, onclick: e => versionMenu(al, e.currentTarget) },
-              qualityLabel(al), h('span', { class: 'ver-n' }, `${al.versions.length} 個版本`), h('span', { class: 'caret', html: icon('down') }))
+            ? h('button', { class: 'badge ver ' + al.qc, title: T`這張專輯有 ${al.versions.length} 個版本，點一下切換`, onclick: e => versionMenu(al, e.currentTarget) },
+              qualityLabel(al), h('span', { class: 'ver-n' }, T`${al.versions.length} 個版本`), h('span', { class: 'caret', html: icon('down') }))
             : h('span', { class: 'badge ' + al.qc }, qualityLabel(al))),
         h('div', { class: 'actions' },
-          h('button', { class: 'btn primary', html: icon('play', true) + '播放', onclick: () => App.playTracks(al.tracks, 0, false) }),
-          h('button', { class: 'btn', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(al.tracks, -1, true) }),
-          h('button', { class: 'icon-btn', title: '更多', html: icon('more'), onclick: e => albumMenu(al, e.currentTarget, true) })));
+          h('button', { class: 'btn primary', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(al.tracks, 0, false) }),
+          h('button', { class: 'btn', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(al.tracks, -1, true) }),
+          al.cd ? h('button', { class: 'btn', html: icon('disc') + T('抓取 CD'), onclick: () => Cd.ripDialog() }) : null,
+          al.cd ? h('button', { class: 'btn cd-info-launch', html: icon('search') + T('查找 CD 資訊'), onclick: () => Cd.infoDialog() }) : null,
+          al.cd ? h('button', { class: 'icon-btn', title: T('退出光碟'), html: icon('eject'), onclick: () => Cd.eject() }) : null,
+          !al.cd ? h('button', { class: 'icon-btn', title: T('更多'), html: icon('more'), onclick: e => albumMenu(al, e.currentTarget, true) }) : null),
+        al.cd && Cd.lookupText() ? h('div', { class: 'art-note' }, Cd.lookupText()) : null);
     const hero = h('div', { class: 'hero album' }, heroBg(kind, artId), cover, meta);
     view.append(hero);
     if (typeof Vinyl !== 'undefined') Vinyl.mount(hero, cover, al);
     Flip.play(al.id, cover);
-    artNote(al, meta);
-    Convert.cueFor(al);  // look for a CUE sheet now, so the 「⋯」 menu opens without waiting
-    const list = h('div', { class: 'tracks' }, thead('作曲'));
+    if (!al.cd) {
+      artNote(al, meta);
+      Convert.cueFor(al);  // look for a CUE sheet now, so the 「⋯」 menu opens without waiting
+    }
+    const list = h('div', { class: 'tracks' }, thead(T('作曲')));
     let lastDisc = null;
     al.tracks.forEach((t, i) => {
       if (discs > 1 && t.disc !== lastDisc) { lastDisc = t.disc; list.append(h('div', { class: 'disc' }, `DISC ${t.disc}`)); }
@@ -424,7 +452,7 @@ const Views = {
     for (const name of al.artists.filter(realArtist).slice(0, 3)) {
       const more = (Lib.artistMap.get(name)?.albums || []).filter(a => a !== al && !(al.versions || []).includes(a));
       if (!more.length) continue;
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, `更多 ${name} 的作品`)));
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, T`更多 ${name} 的作品`)));
       const r = h('div', { class: 'rail' });
       more.slice(0, 20).forEach(a => r.append(albumCard(a, 176)));
       view.append(r);
@@ -432,7 +460,7 @@ const Views = {
   },
 
   artists(view) {
-    view.append(pageHead('演出者', `${Lib.artists.length} 位`, [colsControl('artist')]));
+    view.append(pageHead(T('演出者', 'nav'), T`${Lib.artists.length} 位`, [colsControl('artist')]));
     const host = h('div');
     view.append(host);
     return vgrid(host, Lib.artists, { minW: 160, extra: 50, render: artistCard, kind: 'artist', label: a => ([...a.name.trim()][0] || '#').toUpperCase() });
@@ -447,12 +475,12 @@ const Views = {
       first ? heroBg('a', first.id) : null,
       Object.assign(artBox('cover', 'r', name, 260, name), { onclick: () => ArtPicker.openArtist(name) }),
       h('div', { class: 'meta' },
-        h('div', { class: 'kind' }, '演出者'),
+        h('div', { class: 'kind' }, T('演出者')),
         h('h1', null, name),
-        h('div', { class: 'facts' }, `${own.length} 張專輯 · ${tracks.length} 首`),
+        h('div', { class: 'facts' }, T`${own.length} 張專輯 · ${tracks.length} 首`),
         h('div', { class: 'actions' },
-          h('button', { class: 'btn primary', html: icon('play', true) + '播放', onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), 0, false) }),
-          h('button', { class: 'btn', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), -1, true) }))));
+          h('button', { class: 'btn primary', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), 0, false) }),
+          h('button', { class: 'btn', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), -1, true) }))));
     view.append(hero);
     const section = (title, albums) => {
       if (!albums.length) return;
@@ -461,7 +489,7 @@ const Views = {
       view.append(host);
       return vgrid(host, albums, { render: albumCard });
     };
-    const c1 = section('專輯', own), c2 = section('參與作品', appears);
+    const c1 = section(T('專輯', 'nav'), own), c2 = section(T('參與作品'), appears);
     return () => { c1 && c1(); c2 && c2(); };
   },
 
@@ -478,11 +506,14 @@ const Views = {
       if (sort === 'title') list.sort((a, b) => coll.compare(a.title, b.title));
       else if (sort === 'added') list.sort((a, b) => (b.album?.added || 0) - (a.album?.added || 0) || a.disc - b.disc || a.no - b.no);
       else list.sort((a, b) => coll.compare(a.album?.artist || '', b.album?.artist || '') || coll.compare(a.album?.title || '', b.album?.title || '') || a.disc - b.disc || a.no - b.no);
+      if (dir.rev()) list.reverse();
       cleanup = vlist(host, list, 68, (t, i) => trackRow(t, i, list, { art: true }));
     };
-    view.append(pageHead('曲目', `${Lib.tracks.length} 首`, [
-      seg([['artist', '演出者'], ['title', '標題'], ['added', '最近加入']], sort, v => { sort = v; setUiPref('trackSort', v); draw(); }),
-      h('button', { class: 'btn small', html: icon('shuffle') + '全部隨機', onclick: () => App.playTracks(Lib.tracks, -1, true) }),
+    const dir = sortDir('trackSortDir', () => sort, () => draw());
+    view.append(pageHead(T('曲目', 'nav'), T`${Lib.tracks.length} 首`, [
+      seg([['artist', T('演出者')], ['title', T('標題')], ['added', T('最近加入')]], sort, v => { sort = v; setUiPref('trackSort', v); dir.paint(); draw(); }),
+      dir.el,
+      h('button', { class: 'btn small', html: icon('shuffle') + T('全部隨機'), onclick: () => App.playTracks(Lib.tracks, -1, true) }),
     ]), host);
     draw();
     return () => cleanup && cleanup();
@@ -490,26 +521,48 @@ const Views = {
 
   favorites(view) {
     const list = [...App.favs].map(id => Lib.trackById.get(id)).filter(Boolean);
-    view.append(pageHead('我的最愛', `${list.length} 首`, list.length ? [
-      h('button', { class: 'btn primary small', html: icon('play', true) + '播放', onclick: () => App.playTracks(list, 0, false) }),
-      h('button', { class: 'btn small', html: icon('shuffle') + '隨機', onclick: () => App.playTracks(list, -1, true) }),
+    view.append(pageHead(T('我的最愛'), T`${list.length} 首`, list.length ? [
+      h('button', { class: 'btn primary small', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(list, 0, false) }),
+      h('button', { class: 'btn small', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(list, -1, true) }),
     ] : null));
-    if (!list.length) { view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' }, h('p', null, '在曲目旁按愛心，就會收藏到這裡。')))); return; }
+    if (!list.length) { view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' }, h('p', null, T('在曲目旁按愛心，就會收藏到這裡。'))))); return; }
     const host = h('div', { class: 'tracks' }, thead());
     list.forEach((t, i) => host.append(trackRow(t, i, list, { art: true })));
     view.append(host);
   },
 
+  /** The audio CD in the drive (cd.js): its album page, with 抓取 CD. */
+  cd(view) {
+    if (!Cd.album) { view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' }, h('p', null, T('光碟機裡沒有音樂 CD。放入光碟後會出現在這裡。'))))); return; }
+    return Views.album(view, Cd.album.id);
+  },
+
   recent(view) {
     const list = (App.settings.recent || []).map(id => Lib.trackById.get(id)).filter(Boolean);
-    view.append(pageHead('最近聆聽', `${list.length} 首`, list.length ? [
-      h('button', { class: 'btn primary small', html: icon('play', true) + '播放', onclick: () => App.playTracks(list, 0, false) }),
-      h('button', { class: 'btn small', html: icon('trash') + '清除紀錄', onclick: () => { App.settings.recent = []; App.lastRecent = null; Host.call('recent.clear'); Router.render(true); } }),
-    ] : null));
-    if (!list.length) { view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' }, h('p', null, '播放過的曲目會出現在這裡。')))); return; }
-    const host = h('div', { class: 'tracks' }, thead());
-    list.forEach((t, i) => host.append(trackRow(t, i, list, { art: true })));
+    // 以曲目: every track played, newest first; 以專輯: the albums they come from, in the order last played
+    const albums = [...new Set(list.map(t => t.album && (t.album.versions ? t.album.versions[0] : t.album)).filter(Boolean))];
+    let by = uiPref('recentBy', 'track'), cleanup;
+    const host = h('div');
+    const sub = () => by === 'album' ? T`${albums.length} 張專輯` : T`${list.length} 首`;
+    const draw = () => {
+      cleanup && cleanup(); cleanup = null;
+      host.textContent = '';
+      head.querySelector('.sub').textContent = sub();
+      if (by === 'album') { cleanup = vgrid(host, albums, { render: albumCard }); return; }
+      const t = h('div', { class: 'tracks' }, thead());
+      list.forEach((x, i) => t.append(trackRow(x, i, list, { art: true })));
+      host.append(t);
+    };
+    const head = pageHead(T('最近聆聽'), sub(), list.length ? [
+      seg([['track', T('以曲目')], ['album', T('以專輯')]], by, v => { by = v; setUiPref('recentBy', v); draw(); }),
+      h('button', { class: 'btn primary small', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(list, 0, false) }),
+      h('button', { class: 'btn small', html: icon('trash') + T('清除紀錄'), onclick: () => { App.settings.recent = []; App.lastRecent = null; Host.call('recent.clear'); Router.render(true); } }),
+    ] : null);
+    view.append(head);
+    if (!list.length) { view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' }, h('p', null, T('播放過的曲目會出現在這裡。'))))); return; }
     view.append(host);
+    draw();
+    return () => cleanup && cleanup();
   },
 
   search(view, q) {
@@ -524,21 +577,21 @@ const Views = {
     const artists = Lib.artists.filter(a => match(a.s)).slice(0, 10);
     const albums = Lib.albums.filter(a => match(a.s)).slice(0, 18);
     const tracks = Lib.tracks.filter(t => match(t.s)).slice(0, 80);
-    view.append(pageHead(`「${q}」`, `${artists.length + albums.length + tracks.length ? '' : '沒有符合的結果'}`));
+    view.append(pageHead(T`「${q}」`, `${artists.length + albums.length + tracks.length ? '' : T('沒有符合的結果')}`));
     if (artists.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, '演出者')));
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, T('演出者', 'nav'))));
       const r = h('div', { class: 'rail', style: { gridAutoColumns: '150px' } });
       artists.forEach(a => r.append(artistCard(a, 150)));
       view.append(r);
     }
     if (albums.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, '專輯')));
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, T('專輯', 'nav'))));
       const r = h('div', { class: 'rail' });
       albums.forEach(a => r.append(albumCard(a, 176)));
       view.append(r);
     }
     if (tracks.length) {
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, '曲目')));
+      view.append(h('div', { class: 'rail-head' }, h('h2', null, T('曲目', 'nav'))));
       const host = h('div', { class: 'tracks' });
       tracks.forEach((t, i) => host.append(trackRow(t, i, tracks, { art: true })));
       view.append(host);
@@ -551,14 +604,14 @@ const Views = {
   ytmusic(view) {
     const nav = to => Host.call('yt.nav', { to });
     const bar = h('div', { class: 'yt-bar' },
-      h('button', { class: 'round-btn', title: '上一頁', html: icon('left'), onclick: () => nav('back') }),
-      h('button', { class: 'round-btn', title: '下一頁', html: icon('right'), onclick: () => nav('forward') }),
-      h('button', { class: 'round-btn', title: '重新整理', html: icon('refresh'), onclick: () => nav('reload') }),
+      h('button', { class: 'round-btn', title: T('上一頁'), html: icon('left'), onclick: () => nav('back') }),
+      h('button', { class: 'round-btn', title: T('下一頁'), html: icon('right'), onclick: () => nav('forward') }),
+      h('button', { class: 'round-btn', title: T('重新整理'), html: icon('refresh'), onclick: () => nav('reload') }),
       h('span', { class: 'yt-title' }, 'YouTube Music'),
-      h('button', { class: 'chip', html: icon('home') + '首頁', onclick: () => nav('home') }),
-      h('button', { class: 'chip', html: icon('heart') + '喜歡的音樂', onclick: () => nav('liked') }),
-      h('button', { class: 'chip', html: icon('album') + '音樂庫', onclick: () => nav('library') }));
-    const frame = h('div', { class: 'yt-frame' }, h('div', { class: 'muted' }, '載入 YouTube Music…'));
+      h('button', { class: 'chip', html: icon('home') + T('首頁'), onclick: () => nav('home') }),
+      h('button', { class: 'chip', html: icon('heart') + T('喜歡的音樂'), onclick: () => nav('liked') }),
+      h('button', { class: 'chip', html: icon('album') + T('音樂庫'), onclick: () => nav('library') }));
+    const frame = h('div', { class: 'yt-frame' }, h('div', { class: 'muted' }, T('載入 YouTube Music…')));
     view.append(bar, frame);
     view.classList.add('yt-view');
     // the library search bar has nothing to do with YouTube Music: hide the top bar and let the page move up into its place

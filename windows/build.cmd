@@ -23,10 +23,4 @@ if errorlevel 1 (
   del /q "%~dp0..\MIKU\wwwroot\mock.js" 2>nul
   del /q "%~dp0..\MIKU\Microsoft.Web.WebView2.Wpf.dll" 2>nul
   echo 完成！程式在 ..\MIKU\MIKU.exe
-  rem Claude can ask for an installer too: installer.flag next to this file
-  if exist "%~dp0installer.flag" (
-    del "%~dp0installer.flag"
-    echo 打包安裝檔中，需要幾分鐘...
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0make-installer.ps1"
-  )
 )

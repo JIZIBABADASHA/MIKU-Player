@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -26,6 +27,7 @@ public sealed class MainForm : Form
     readonly WebView2 _web;
     readonly Settings _s;
     readonly MusicLibrary _lib;
+    readonly CdService _cd;
     readonly ArtworkService _art;
     readonly LyricsService _lyrics;
     readonly MetadataService _meta = new();
@@ -37,6 +39,8 @@ public sealed class MainForm : Form
     readonly System.Windows.Forms.Timer _saveTimer;
     bool _ready;
     CancellationTokenSource _artJob;
+    CancellationTokenSource _artSearch;
+    string _artSearchId;
     CancellationTokenSource _lyricsJob;
     readonly string _debugDir;
     readonly System.Windows.Forms.Timer _debugTimer;
@@ -406,6 +410,9 @@ public sealed class MainForm : Form
         Controls.Add(_web);
 
         _lib = new MusicLibrary(_s);
+        _cd = new CdService(_s);
+        _cd.Changed += () => { var d = _cd.Disc; Post("cd", _cd.Info()); if (d != null) Post("art", new { kind = "a", id = d.Album.Id }); _player?.Validate(); };
+        _cd.RipProgress += p => Post("cdRip", p);
         _art = new ArtworkService(_lib, _s);
         ArtworkService.DropOldThumbs();
         _lyrics = new LyricsService(_s);
@@ -618,6 +625,7 @@ public sealed class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        _artSearch?.Cancel();
         _tick.Stop();
         _player.SaveState();
         // closed in full screen: remember the window as it was before it
@@ -654,7 +662,10 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             Log.Error("WebView2", ex);
-            MessageBox.Show(this, "需要 Microsoft Edge WebView2 執行階段才能顯示介面。\n請至 https://go.microsoft.com/fwlink/p/?LinkId=2124703 安裝後再開啟。\n\n" + ex.Message,
+            MessageBox.Show(this, Tr("需要 Microsoft Edge WebView2 執行階段才能顯示介面。\n請至 https://go.microsoft.com/fwlink/p/?LinkId=2124703 安裝後再開啟。",
+                "需要 Microsoft Edge WebView2 运行时才能显示界面。\n请到 https://go.microsoft.com/fwlink/p/?LinkId=2124703 安装后再打开。",
+                "MIKU needs the Microsoft Edge WebView2 Runtime to show its interface.\nInstall it from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and open MIKU again.",
+                "画面の表示には Microsoft Edge WebView2 ランタイムが必要です。\nhttps://go.microsoft.com/fwlink/p/?LinkId=2124703 からインストールしてから、もう一度開いてください。") + "\n\n" + ex.Message,
                 Program.AppName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             Close();
             return;
@@ -751,6 +762,7 @@ public sealed class MainForm : Form
             data = await Task.Run(() => _lib.ExportJson());
             type = "application/json; charset=utf-8"; cache = "no-store";
         }
+        else if (path.StartsWith("/art/a/cd-")) data = _cd.CoverImage(size);
         else if (path.StartsWith("/art/a/")) data = await _art.AlbumAsync(Uri.UnescapeDataString(path[7..]), size);
         else if (path.StartsWith("/art/t/")) data = await _art.TrackAsync(Uri.UnescapeDataString(path[7..]), size);
         else if (path.StartsWith("/art/r/")) data = await _art.ArtistAsync(Uri.UnescapeDataString(path[7..]), size);
@@ -1358,6 +1370,36 @@ public sealed class MainForm : Form
     static List<string> L(JsonElement a, string n) => a.ValueKind == JsonValueKind.Object && a.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Array
         ? v.EnumerateArray().Select(x => x.GetString()).Where(x => x != null).ToList() : new List<string>();
 
+    async Task<object> SearchArt(JsonElement a, bool artist)
+    {
+        _artSearch?.Cancel();
+        var cts = _artSearch = new CancellationTokenSource(TimeSpan.FromSeconds(18));
+        string search = _artSearchId = S(a, "search");
+        var found = new Dictionary<string, ArtworkService.ArtCandidate>();
+        void Results(List<ArtworkService.ArtCandidate> batch)
+        {
+            if (cts.IsCancellationRequested) return;
+            lock (found) foreach (var item in batch) if (item.Url != null && found.Count < 60) found.TryAdd(item.Url, item);
+            if (_artSearchId == search) Post("artSearch", new { search, items = batch });
+        }
+        try
+        {
+            var items = artist
+                ? await _art.ArtistCandidates(S(a, "name"), S(a, "q"), Results, cts.Token)
+                : await _art.Candidates(S(a, "id"), S(a, "q"), S(a, "part"), Results, cts.Token);
+            return new { items, timedOut = cts.IsCancellationRequested };
+        }
+        catch (OperationCanceledException)
+        {
+            lock (found) return new { items = found.Values.ToList(), timedOut = true };
+        }
+        finally
+        {
+            if (ReferenceEquals(_artSearch, cts)) { _artSearch = null; _artSearchId = null; }
+            cts.Dispose();
+        }
+    }
+
     async Task<object> HandleRpc(string m, JsonElement a)
     {
         if (m.StartsWith("ext.", StringComparison.Ordinal)) return m == "ext.list" ? _ext.List() : await _ext.Rpc(m, a);
@@ -1370,6 +1412,19 @@ public sealed class MainForm : Form
                 return Init();
             case "init": return Init();
             case "state": return State();
+            // audio CD (Library/Cd.cs)
+            case "cd.info": return _cd.Info();
+            case "cd.lookup": await _cd.RefreshInfo(S(a, "disc")); return _cd.Info();
+            case "cd.eject": _cd.Eject(); return null;
+            case "cd.release": await _cd.ChooseRelease(S(a, "id"), S(a, "disc")); return _cd.Info();
+            case "cd.cancel": _cd.CancelRip(); return null;
+            case "cd.rip":
+            {
+                var r = await _cd.Rip(a, AudioConverter.SafeName);
+                string outDir = S(a, "dir");
+                if (!string.IsNullOrEmpty(outDir) && _s.Folders.Any(f => outDir.StartsWith(f, StringComparison.OrdinalIgnoreCase))) _lib.StartScan();
+                return r;
+            }
             case "queue": return QueueDto();
 
             // transport
@@ -1451,7 +1506,7 @@ public sealed class MainForm : Form
                 });
             case "folder.add":
             {
-                using var dlg = new FolderBrowserDialog { Description = "選擇音樂資料夾", UseDescriptionForTitle = true, ShowNewFolderButton = false };
+                using var dlg = new FolderBrowserDialog { Description = Tr("選擇音樂資料夾", "选择音乐文件夹", "Choose a music folder", "音楽フォルダーを選択"), UseDescriptionForTitle = true, ShowNewFolderButton = false };
                 if (dlg.ShowDialog(this) != DialogResult.OK) return null;
                 if (!_s.Folders.Contains(dlg.SelectedPath, StringComparer.OrdinalIgnoreCase)) _s.Folders.Add(dlg.SelectedPath);
                 SaveSettings();
@@ -1578,7 +1633,7 @@ public sealed class MainForm : Form
             case "convert.info": return await Task.Run(() => AudioConverter.Info("資源回收筒"));
             case "convert.pickFolder":
             {
-                using var dlg = new FolderBrowserDialog { Description = "選擇轉換後的檔案要放的資料夾", UseDescriptionForTitle = true, ShowNewFolderButton = true };
+                using var dlg = new FolderBrowserDialog { Description = Tr("選擇轉換後的檔案要放的資料夾", "选择转换后的文件要放的文件夹", "Choose a folder for the converted files", "変換後のファイルの保存先フォルダーを選択"), UseDescriptionForTitle = true, ShowNewFolderButton = true };
                 string start = S(a, "dir");
                 if (!string.IsNullOrEmpty(start) && Directory.Exists(start)) dlg.InitialDirectory = start;
                 return dlg.ShowDialog(this) == DialogResult.OK ? dlg.SelectedPath : null;
@@ -1631,7 +1686,8 @@ public sealed class MainForm : Form
                 string dims = B(a, "dims") ? await Task.Run(() => _art.SourceDims(id)) : null;
                 return new { source = _art.SourceOf(id), confirmed = _s.ArtConfirmed.Contains(id), dims };
             }
-            case "art.candidates": return await _art.Candidates(S(a, "id"), S(a, "q"), S(a, "part"));
+            case "art.candidates": return S(a, "search") != null ? await SearchArt(a, false) : await _art.Candidates(S(a, "id"), S(a, "q"), S(a, "part"));
+            case "art.searchCancel": if (_artSearchId == S(a, "search")) _artSearch?.Cancel(); return null;
             case "art.dims": return await _art.Dimensions(L(a, "urls"));
             case "art.setUrl":
                 await _art.SetOverrideFromUrl(S(a, "id"), S(a, "url"));
@@ -1676,7 +1732,7 @@ public sealed class MainForm : Form
             }
             case "lyrics.cancel": _lyricsJob?.Cancel(); return null;
             case "artistArt.info": return new { source = _art.ArtistSourceOf(S(a, "name")) };
-            case "artistArt.candidates": return await _art.ArtistCandidates(S(a, "name"), S(a, "q"));
+            case "artistArt.candidates": return S(a, "search") != null ? await SearchArt(a, true) : await _art.ArtistCandidates(S(a, "name"), S(a, "q"));
             case "artistArt.setUrl": return await _art.SetArtistOverrideFromUrl(S(a, "name"), S(a, "url"));
             case "artistArt.setData":
             {
@@ -1745,6 +1801,8 @@ public sealed class MainForm : Form
     {
         settings = _s,
         version = Application.ProductVersion,
+        installLang = InstallLang(),                       // the language picked in the installer (i18n.js)
+        sysLang = CultureInfo.CurrentUICulture.Name,
         ffmpeg = Ffmpeg.Available,
         cores = CoresDto(),
         asio = Devices.AsioDrivers(),
@@ -1753,6 +1811,36 @@ public sealed class MainForm : Form
         queue = QueueDto(),
         extensions = _ext.List(),
     };
+
+    // ───────────────────────────── interface language ─────────────────────────────
+
+    static readonly string[] Langs = { "zh-Hant", "zh-Hans", "en", "ja" };
+
+    /// <summary>The language chosen in the installer: language.txt next to MIKU.exe (installer.iss), or null.</summary>
+    static string InstallLang()
+    {
+        try
+        {
+            var f = Path.Combine(AppPaths.AppDir, "language.txt");
+            if (!File.Exists(f)) return null;
+            var l = File.ReadAllText(f).Trim();
+            return Array.IndexOf(Langs, l) >= 0 ? l : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>The interface language (Settings → 其他 → 語言; else the installer's choice; else Windows').</summary>
+    string UiLang()
+    {
+        if (_s.Ui.TryGetValue("lang", out var l) && Array.IndexOf(Langs, l) >= 0) return l;
+        var inst = InstallLang();
+        if (inst != null) return inst;
+        var c = CultureInfo.CurrentUICulture.Name.ToLowerInvariant();
+        return c.StartsWith("ja") ? "ja" : c.StartsWith("zh") ? (c.Contains("hans") || c.EndsWith("-cn") || c.EndsWith("-sg") ? "zh-Hans" : "zh-Hant") : "en";
+    }
+
+    /// <summary>A text Windows draws itself (dialogs), in the interface language.</summary>
+    string Tr(string zhHant, string zhHans, string en, string ja) => UiLang() switch { "zh-Hans" => zhHans, "en" => en, "ja" => ja, _ => zhHant };
 
     object State()
     {

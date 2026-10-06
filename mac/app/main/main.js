@@ -71,7 +71,40 @@ const lyrics = new LyricsService(S);
 const engine = new AudioEngine(S);
 const player = new Player(engine, lib, S);
 const fp = new FingerprintService(S);
+// audio CD in the drive (cd.js): its album and tracks are found like the library's own
+const { CdService } = require('./cd');
+const cd = new CdService(S, resize);
+player.cd = cd;
+{
+  const getTrack = lib.getTrack.bind(lib), getAlbum = lib.getAlbum.bind(lib);
+  lib.getTrack = id => getTrack(id) || (id && id.startsWith('cd-') ? cd.getTrack(id) : null);
+  lib.getAlbum = id => getAlbum(id) || (id && id.startsWith('cd-') ? cd.getAlbum(id) : null);
+}
 let lyricsJob = null, fpJob = null, tagsBusy = false;
+let artSearch = null, artSearchId = null;
+async function searchArt(a, artist) {
+  if (artSearch) artSearch.abort();
+  const ac = artSearch = new AbortController();
+  const search = artSearchId = a.search;
+  const found = new Map();
+  const report = items => {
+    if (ac.signal.aborted) return;
+    for (const item of items) if (item.url && found.size < 60 && !found.has(item.url)) found.set(item.url, item);
+    if (artSearchId === search) post('artSearch', { search, items });
+  };
+  const timer = setTimeout(() => ac.abort(), 18000);
+  try {
+    const items = artist ? await art.artistCandidates(a.name, a.q, report, ac.signal)
+      : await art.candidates(a.id, a.q, a.part || null, report, ac.signal);
+    return { items, timedOut: ac.signal.aborted };
+  } catch (e) {
+    if (!ac.signal.aborted) throw e;
+    return { items: [...found.values()], timedOut: true };
+  } finally {
+    clearTimeout(timer);
+    if (artSearch === ac) { artSearch = null; artSearchId = null; }
+  }
+}
 
 // a file the tag editor rewrote is checked before it replaces the original: same audio stream, same length
 TagWriter.setVerifier(async (orig, tmp) => {
@@ -154,6 +187,8 @@ lib.on('progress', p => {
 });
 lib.on('changed', () => { player.validate(); post('library', { revision: lib.revision }); });
 art.on('updated', (kind, id) => post('art', { kind, id }));
+cd.on('changed', () => { const i = cd.info(); post('cd', i); if (i.disc) post('art', { kind: 'a', id: i.disc.id }); });
+cd.on('rip', p => post('cdRip', p));
 
 // keep the Mac awake enough to keep playing (display may sleep)
 let psb = null;
@@ -218,7 +253,7 @@ function state() {
   };
 }
 const queueDto = () => ({ ids: player.queue.slice(), index: player.index, shuffle: S.shuffle, repeat: S.repeat });
-const init = () => ({ settings: S, version: app.getVersion(), ffmpeg: ff.Ffmpeg.available, asio: [], scan: lib.progress, state: state(), queue: queueDto(), platform: 'mac' });
+const init = () => ({ settings: S, version: app.getVersion(), ffmpeg: ff.Ffmpeg.available, asio: [], scan: lib.progress, state: state(), queue: queueDto(), platform: 'mac', sysLang: sysLang() });
 
 function lyricsDto(t, r) {
   return { id: t.id, source: r.source, synced: r.synced, instrumental: !!r.instrumental, lines: r.lines.map(l => ({ ...l, trans: cleanTranslation(l.trans) })), offset: S.lyricOffsets[t.id] || 0 };
@@ -528,6 +563,7 @@ async function mediaAsync(p, query) {
   const size = clamp(parseInt(query && query.get('s'), 10) || 600, 16, 2000);
   let data = null, type = 'image/jpeg', cache = 'max-age=86400';
   if (p === '/library.json') { data = lib.exportJson(); type = 'application/json; charset=utf-8'; cache = 'no-store'; }
+  else if (p.startsWith('/art/a/cd-')) data = cd.coverImage(size);
   else if (p.startsWith('/art/a/')) data = await art.albumAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/t/')) data = await art.trackAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/r/')) data = await art.artistAsync(decodeURIComponent(p.slice(7)), size);
@@ -619,7 +655,7 @@ async function handleRpc(m, a) {
     case 'devices': return devicesDto();
     case 'probe': return (await devicesDto()).caps;
     case 'folder.add': {
-      const r = await dialog.showOpenDialog(win, { title: '選擇音樂資料夾', properties: ['openDirectory'], buttonLabel: '加入' });
+      const r = await dialog.showOpenDialog(win, { title: tr('選擇音樂資料夾'), properties: ['openDirectory'], buttonLabel: tr('加入') });
       if (r.canceled || !r.filePaths.length) return null;
       const p = r.filePaths[0];
       if (!S.folders.some(f => f.toLowerCase() === p.toLowerCase())) S.folders.push(p);
@@ -682,12 +718,23 @@ async function handleRpc(m, a) {
     case 'tags.save': return saveTags(a);
     case 'convert.info': return Converter.info('垃圾桶');
     case 'convert.pickFolder': {
-      const r = await dialog.showOpenDialog(win, { title: '選擇轉換後的檔案要放的資料夾', properties: ['openDirectory', 'createDirectory'], buttonLabel: '選擇', defaultPath: a.dir && fs.existsSync(a.dir) ? a.dir : undefined });
+      const r = await dialog.showOpenDialog(win, { title: tr('選擇轉換後的檔案要放的資料夾'), properties: ['openDirectory', 'createDirectory'], buttonLabel: tr('選擇'), defaultPath: a.dir && fs.existsSync(a.dir) ? a.dir : undefined });
       return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
     }
     case 'convert.start': return convertJobRun(a, null);
     case 'convert.cancel': if (convertJob) convertJob.abort(); return null;
     case 'convert.open': if (a.path && fs.existsSync(a.path)) await shell.openPath(a.path); return null;
+    case 'cd.info': return cd.info();
+    case 'cd.lookup': await cd.refreshInfo(a.disc); return cd.info();
+    case 'cd.eject': await cd.eject(); return null;
+    case 'cd.release': await cd.chooseRelease(a.id, a.disc); return cd.info();
+    case 'cd.cancel': cd.cancelRip(); return null;
+    case 'cd.rip': {
+      const r = await cd.rip(a);
+      saveSoon();
+      if (r.done > 0 && S.folders.some(f => isUnder(r.dir, f))) lib.startScan();
+      return r;
+    }
     case 'cue.info': {
       const cue = Converter.cueForAlbum(lib.getAlbum(a.id));
       return cue ? { cue: cue.path, cueName: path.basename(cue.path), tracks: cue.tracks.map(t => ({ no: t.no, title: t.title, performer: t.performer, dur: Math.round(t.length * 100) / 100 })) } : null;
@@ -713,7 +760,7 @@ async function handleRpc(m, a) {
     }
     case 'tags.identifyCancel': if (fpJob) fpJob.abort(); return null;
     case 'artistArt.info': return { source: art.artistSourceOf(a.name) };
-    case 'artistArt.candidates': return art.artistCandidates(a.name, a.q);
+    case 'artistArt.candidates': return a.search != null ? searchArt(a, true) : art.artistCandidates(a.name, a.q);
     case 'artistArt.setUrl': return art.setArtistOverrideFromUrl(a.name, a.url);
     case 'artistArt.setData': return art.setArtistOverride(a.name, dataBytes(a.data));
     case 'artistArt.clear': art.clearArtistOverride(a.name); return null;
@@ -739,7 +786,8 @@ async function handleRpc(m, a) {
     case 'search.clear': S.searchHistory = []; saveSoon(); return null;
     case 'art.retry': art.retryAlbum(a.id); return null;
     case 'art.info': return { source: art.sourceOf(a.id), confirmed: S.artConfirmed.includes(a.id), dims: a.dims === true ? await art.sourceDims(a.id) : null };
-    case 'art.candidates': return art.candidates(a.id, a.q, a.part || null);
+    case 'art.candidates': return a.search != null ? searchArt(a, false) : art.candidates(a.id, a.q, a.part || null);
+    case 'art.searchCancel': if (artSearchId === a.search && artSearch) artSearch.abort(); return null;
     case 'art.setUrl':
       await art.setOverrideFromUrl(a.id, a.url);
       if (!S.artConfirmed.includes(a.id)) S.artConfirmed.push(a.id); saveSoon(); return true;
@@ -796,7 +844,7 @@ async function handleRpc(m, a) {
         if (fs.existsSync(p)) { await shell.openPath(p); break; }
       return null;
     }
-    case 'ui': S.ui[a.key] = a.value; saveSoon(); return null;
+    case 'ui': S.ui[a.key] = a.value; saveSoon(); if (a.key === 'lang') buildMenu(); return null;
   }
   throw new Error('Unknown method ' + m);
 }
@@ -926,21 +974,185 @@ function saveWindow() {
   S.window = [b.x, b.y, b.width, b.height];
 }
 
+// ───────────────────────────── interface language (menus and dialogs drawn by macOS) ─────────────────────────────
+// the page has its own translations (wwwroot/i18n.js); the language is S.ui.lang (設定 → 其他 → 語言), else the system's
+const LANGS = ['zh-Hant', 'zh-Hans', 'en', 'ja'];
+const sysLang = () => (app.getPreferredSystemLanguages && app.getPreferredSystemLanguages()[0]) || app.getLocale() || '';
+function uiLang() {
+  const l = S && S.ui && S.ui.lang;
+  if (LANGS.includes(l)) return l;
+  const c = sysLang().toLowerCase();
+  return c.startsWith('ja') ? 'ja' : c.startsWith('zh') ? (/hans|-cn|-sg/.test(c) && !/hant/.test(c) ? 'zh-Hans' : 'zh-Hant') : 'en';
+}
+const NATIVE_TEXT = {
+  "關於 MIKU": [
+    "关于 MIKU",
+    "About MIKU",
+    "MIKU について"
+  ],
+  "設定…": [
+    "设置…",
+    "Settings…",
+    "設定…"
+  ],
+  "服務": [
+    "服务",
+    "Services",
+    "サービス"
+  ],
+  "隱藏 MIKU": [
+    "隐藏 MIKU",
+    "Hide MIKU",
+    "MIKU を非表示"
+  ],
+  "隱藏其他": [
+    "隐藏其他",
+    "Hide Others",
+    "ほかを非表示"
+  ],
+  "顯示全部": [
+    "显示全部",
+    "Show All",
+    "すべてを表示"
+  ],
+  "結束 MIKU": [
+    "退出 MIKU",
+    "Quit MIKU",
+    "MIKU を終了"
+  ],
+  "編輯": [
+    "编辑",
+    "Edit",
+    "編集"
+  ],
+  "還原": [
+    "撤销",
+    "Undo",
+    "取り消す"
+  ],
+  "重做": [
+    "重做",
+    "Redo",
+    "やり直す"
+  ],
+  "剪下": [
+    "剪切",
+    "Cut",
+    "カット"
+  ],
+  "拷貝": [
+    "拷贝",
+    "Copy",
+    "コピー"
+  ],
+  "貼上": [
+    "粘贴",
+    "Paste",
+    "ペースト"
+  ],
+  "全選": [
+    "全选",
+    "Select All",
+    "すべてを選択"
+  ],
+  "控制": [
+    "控制",
+    "Controls",
+    "コントロール"
+  ],
+  "播放／暫停": [
+    "播放／暂停",
+    "Play / Pause",
+    "再生／一時停止"
+  ],
+  "下一首": [
+    "下一首",
+    "Next",
+    "次の曲"
+  ],
+  "上一首": [
+    "上一首",
+    "Previous",
+    "前の曲"
+  ],
+  "提高音量": [
+    "提高音量",
+    "Volume Up",
+    "音量を上げる"
+  ],
+  "降低音量": [
+    "降低音量",
+    "Volume Down",
+    "音量を下げる"
+  ],
+  "顯示": [
+    "显示",
+    "View",
+    "表示"
+  ],
+  "全螢幕": [
+    "全屏",
+    "Full Screen",
+    "フルスクリーン"
+  ],
+  "開發者工具": [
+    "开发者工具",
+    "Developer Tools",
+    "開発者ツール"
+  ],
+  "視窗": [
+    "窗口",
+    "Window",
+    "ウインドウ"
+  ],
+  "縮到最小": [
+    "最小化",
+    "Minimize",
+    "しまう"
+  ],
+  "縮放": [
+    "缩放",
+    "Zoom",
+    "拡大／縮小"
+  ],
+  "選擇音樂資料夾": [
+    "选择音乐文件夹",
+    "Choose a music folder",
+    "音楽フォルダーを選択"
+  ],
+  "加入": [
+    "添加",
+    "Add",
+    "追加"
+  ],
+  "選擇轉換後的檔案要放的資料夾": [
+    "选择转换后的文件要放的文件夹",
+    "Choose a folder for the converted files",
+    "変換後のファイルの保存先フォルダーを選択"
+  ],
+  "選擇": [
+    "选择",
+    "Choose",
+    "選択"
+  ]
+};
+const tr = s => { const i = { 'zh-Hans': 0, en: 1, ja: 2 }[uiLang()]; return i == null || !NATIVE_TEXT[s] ? s : NATIVE_TEXT[s][i]; };
+
 function buildMenu() {
-  const ctl = (label, accelerator, fn) => ({ label, accelerator, click: fn });
+  const ctl = (label, accelerator, fn) => ({ label: tr(label), accelerator, click: fn });
   const tmpl = [
     { label: 'MIKU', submenu: [
-      { role: 'about', label: '關於 MIKU' }, { type: 'separator' },
+      { role: 'about', label: tr('關於 MIKU') }, { type: 'separator' },
       ctl('設定…', 'Cmd+,', () => { showWin(); win.webContents.executeJavaScript("location.hash = '#/settings'").catch(() => { }); }),
-      { type: 'separator' }, { role: 'services', label: '服務' }, { type: 'separator' },
-      { role: 'hide', label: '隱藏 MIKU' }, { role: 'hideOthers', label: '隱藏其他' }, { role: 'unhide', label: '顯示全部' },
-      { type: 'separator' }, { role: 'quit', label: '結束 MIKU' },
+      { type: 'separator' }, { role: 'services', label: tr('服務') }, { type: 'separator' },
+      { role: 'hide', label: tr('隱藏 MIKU') }, { role: 'hideOthers', label: tr('隱藏其他') }, { role: 'unhide', label: tr('顯示全部') },
+      { type: 'separator' }, { role: 'quit', label: tr('結束 MIKU') },
     ] },
-    { label: '編輯', submenu: [
-      { role: 'undo', label: '還原' }, { role: 'redo', label: '重做' }, { type: 'separator' },
-      { role: 'cut', label: '剪下' }, { role: 'copy', label: '拷貝' }, { role: 'paste', label: '貼上' }, { role: 'selectAll', label: '全選' },
+    { label: tr('編輯'), submenu: [
+      { role: 'undo', label: tr('還原') }, { role: 'redo', label: tr('重做') }, { type: 'separator' },
+      { role: 'cut', label: tr('剪下') }, { role: 'copy', label: tr('拷貝') }, { role: 'paste', label: tr('貼上') }, { role: 'selectAll', label: tr('全選') },
     ] },
-    { label: '控制', submenu: [
+    { label: tr('控制'), submenu: [
       ctl('播放／暫停', undefined, () => handleRpc('toggle', {})),
       ctl('下一首', undefined, () => handleRpc('next', {})),
       ctl('上一首', undefined, () => handleRpc('prev', {})),
@@ -948,11 +1160,11 @@ function buildMenu() {
       ctl('提高音量', undefined, () => handleRpc('volume', { db: S.volumeDb + 1 })),
       ctl('降低音量', undefined, () => handleRpc('volume', { db: S.volumeDb - 1 })),
     ] },
-    { label: '顯示', submenu: [
-      { role: 'togglefullscreen', label: '全螢幕' },
+    { label: tr('顯示'), submenu: [
+      { role: 'togglefullscreen', label: tr('全螢幕') },
       ctl('開發者工具', 'Alt+Cmd+I', () => win.webContents.openDevTools({ mode: 'detach' })),
     ] },
-    { role: 'windowMenu', label: '視窗', submenu: [{ role: 'minimize', label: '縮到最小' }, { role: 'zoom', label: '縮放' }, { type: 'separator' }, ctl('MIKU', 'Cmd+1', () => showWin())] },
+    { role: 'windowMenu', label: tr('視窗'), submenu: [{ role: 'minimize', label: tr('縮到最小') }, { role: 'zoom', label: tr('縮放') }, { type: 'separator' }, ctl('MIKU', 'Cmd+1', () => showWin())] },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(tmpl));
 }
@@ -962,6 +1174,7 @@ app.on('second-instance', showWin);
 app.on('activate', showWin);
 app.on('before-quit', () => {
   quitting = true;
+  if (artSearch) artSearch.abort();
   try { player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
 });

@@ -52,7 +52,7 @@ const Vinyl = {
     if (!this.on) return;
     const rec = this.recordEl('tt-rec');
     const arm = h('div', { class: 'tt-arm' }, h('div', { class: 'tt-weight' }), h('div', { class: 'tt-rod' }), h('div', { class: 'tt-head' }));
-    const el = h('div', { class: 'tt-deck', title: '唱盤' },
+    const el = h('div', { class: 'tt-deck', title: T('唱盤') },
       h('div', { class: 'tt-platter' }), rec, h('div', { class: 'tt-sheen' }), h('div', { class: 'tt-pivot' }), arm, h('div', { class: 'tt-led' }), h('div', { class: 'tt-knob' }));
     hero.append(el);
     const d = this.deck = { el, rec, arm, hero, cover, id: al.id, spin: null, state: 'empty' };

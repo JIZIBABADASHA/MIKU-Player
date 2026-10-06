@@ -331,6 +331,49 @@ function dsfHeader(file) {
   } catch { return null; }
 }
 
+/**
+ * DFF: ffprobe does not read the "ID3 " chunk (where foobar2000 / JRiver / TagLib, and MIKU's tag editor, put the
+ * tags), so its text frames are read here. Returns { title, artist, … } with only the fields the tag has.
+ */
+function dffTags(file) {
+  try {
+    const fd = fs.openSync(file, 'r');
+    try {
+      const st = fs.fstatSync(fd);
+      const head = Buffer.alloc(16);
+      if (fs.readSync(fd, head, 0, 16, 0) !== 16 || head.toString('latin1', 0, 4) !== 'FRM8') return null;
+      const end = Math.min(st.size, 12 + Number(head.readBigInt64BE(4)));
+      const c = Buffer.alloc(12);
+      for (let pos = 16; pos + 12 <= end;) {
+        fs.readSync(fd, c, 0, 12, pos);
+        const size = Number(c.readBigInt64BE(4));
+        if (c.toString('latin1', 0, 4) === 'ID3 ' && size > 10) {
+          const buf = Buffer.alloc(Math.min(size, 64 * 1024 * 1024, st.size - pos - 12));
+          fs.readSync(fd, buf, 0, buf.length, pos + 12);
+          const tag = require('./tagwriter')._test.parseId3(buf);
+          const text = d => {
+            const enc = d[0], b = d.slice(1);
+            let s = enc === 0 ? b.toString('latin1') : enc === 3 ? b.toString('utf8')
+              : enc === 1 ? (b[0] === 0xFE && b[1] === 0xFF ? Buffer.from(b.slice(2)).swap16().toString('utf16le') : b.slice(b[0] === 0xFF && b[1] === 0xFE ? 2 : 0).toString('utf16le'))
+              : Buffer.from(b.slice(0, b.length & ~1)).swap16().toString('utf16le');
+            return s.replace(/\uFEFF/g, '').split('\0').map(x => x.trim()).filter(Boolean).join('; ');
+          };
+          const out = {}, map = { TIT2: 'title', TPE1: 'artist', TPE2: 'albumArtist', TALB: 'album', TCON: 'genre', TCOM: 'composer', TYER: 'year', TDRC: 'year', TRCK: 'track', TPOS: 'disc' };
+          for (const fr of (tag && tag.frames) || []) {
+            if (fr.id === 'APIC') { out.hasPic = true; continue; }
+            const k = map[fr.id];
+            if (k && !out[k] && fr.data && fr.data.length > 1) out[k] = text(fr.data);
+          }
+          return out;
+        }
+        if (size < 0) break;
+        pos += 12 + size + (size & 1);
+      }
+      return null;
+    } finally { fs.closeSync(fd); }
+  } catch { return null; }
+}
+
 async function readTrack(f) {
   const t = {
     path: f.path, id: hash(f.path.toLowerCase()), size: f.size, mtime: f.mtime, codec: codecFromExt(f.ext),
@@ -377,6 +420,16 @@ async function readTrack(f) {
   if (t.codec === 'DSF') {
     const d = dsfHeader(f.path);
     if (d) { t.sampleRate = d.rate; t.channels = d.channels; t.duration = d.duration || t.duration; ok = true; }
+  }
+  if (t.codec === 'DFF') {
+    const d = dffTags(f.path);
+    if (d) {
+      for (const k of ['title', 'artist', 'albumArtist', 'album', 'genre', 'composer']) if (d[k]) t[k] = d[k];
+      const y = /\d{4}/.exec(d.year || ''); if (y) t.year = +y[0];
+      if (parseInt(d.track, 10)) t.trackNo = parseInt(d.track, 10);
+      if (parseInt(d.disc, 10)) t.discNo = parseInt(d.disc, 10);
+      if (d.hasPic) t.hasPic = true;
+    }
   }
   if (isDsd(t)) { t.bits = 1; if (t.sampleRate && t.sampleRate < 1e6) t.sampleRate *= 8; }
   if (!ok) return null;

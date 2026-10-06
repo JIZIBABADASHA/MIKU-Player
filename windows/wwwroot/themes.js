@@ -2,14 +2,14 @@
 /* ═════════════════════════════ themes ═════════════════════════════ */
 const Theme = {
   list: [
-    { id: 'miku',  name: '初音',     en: 'MIKU',     desc: '明亮水色、蔥綠為主、櫻桃粉點綴，深色播放列配蔥綠滾邊。' },
-    { id: 'night', name: '初音・夜', en: 'NIGHT', desc: '帶綠的墨色夜空與星點，蔥綠像螢光棒一樣柔和發光。' },
-    { id: 'wood',  name: '木質調',   en: 'WALNUT',   desc: '胡桃木紋、黃銅旋鈕與赤陶色，像老音響一樣溫暖。' },
-    { id: 'glass', name: '玻璃質感', en: 'GLASS',    desc: '懸浮毛玻璃面板，背景隨專輯封面流動變色。' },
-    { id: 'flat',  name: '極簡平面', en: 'MINIMAL',  desc: '亮色、無陰影、直角。黑白為主，只用一種鈷藍。' },
-    { id: 'neon',  name: '霓虹賽博', en: 'NEON',     desc: '深夜網格、電光青與洋紅發光，等寬數字。' },
-    { id: 'washi', name: '和紙',     en: 'WASHI',    desc: '米白紙紋、明朝體，藍染為主色、朱印點綴。' },
-    { id: 'vinyl', name: '黑膠',     en: 'VINYL',    desc: '七〇年代音響：鼠尾草綠的房間、松木深綠側欄、焦橙與芥末黃。專輯是唱片封套，滑過會抽出黑膠；播放中的唱片會轉，暫停就停住。' },
+    { id: 'miku',  name: T('未來'),     en: 'MIKU',     desc: T('明亮水色、蔥綠為主、櫻桃粉點綴，深色播放列配蔥綠滾邊。') },
+    { id: 'night', name: T('未來・夜'), en: 'NIGHT', desc: T('帶綠的墨色夜空與星點，蔥綠像螢光棒一樣柔和發光。') },
+    { id: 'wood',  name: T('木質調'),   en: 'WALNUT',   desc: T('胡桃木紋、黃銅旋鈕與赤陶色，像老音響一樣溫暖。') },
+    { id: 'glass', name: T('玻璃質感'), en: 'GLASS',    desc: T('懸浮毛玻璃面板，背景隨專輯封面流動變色。') },
+    { id: 'flat',  name: T('極簡平面'), en: 'MINIMAL',  desc: T('亮色、無陰影、直角。黑白為主，只用一種鈷藍。') },
+    { id: 'neon',  name: T('霓虹賽博'), en: 'NEON',     desc: T('深夜網格、電光青與洋紅發光，等寬數字。') },
+    { id: 'washi', name: T('和紙'),     en: 'WASHI',    desc: T('米白紙紋、明朝體，藍染為主色、朱印點綴。') },
+    { id: 'vinyl', name: T('黑膠'),     en: 'VINYL',    desc: T('七〇年代音響：鼠尾草綠的房間、松木深綠側欄、焦橙與芥末黃。專輯是唱片封套，滑過會抽出黑膠；播放中的唱片會轉，暫停就停住。') },
   ],
   cur: null,
   key: 'miku.theme',
@@ -73,7 +73,7 @@ const Theme = {
 
   /** Settings page section. */
   section(root) {
-    const sect = h('div', { class: 'sect' }, h('h2', null, '外觀'), h('div', { class: 'hint' }, '選擇介面主題。切換後立即套用，並會記住你的選擇。'));
+    const sect = h('div', { class: 'sect' }, h('h2', null, T('外觀')), h('div', { class: 'hint' }, T('選擇介面主題。切換後立即套用，並會記住你的選擇。')));
     const grid = h('div', { class: 'theme-grid' });
     for (const t of this.list) {
       const card = h('button', { class: 'tp' + (t.id === this.cur ? ' on' : ''), 'data-id': t.id, title: t.name });

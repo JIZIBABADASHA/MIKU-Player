@@ -157,12 +157,12 @@
     const np = document.getElementById('np'); if (!np) return;
     const root = document.documentElement;
     const btn = document.createElement('button');
-    btn.id = 'bar-peek'; btn.type = 'button'; btn.title = '顯示播放列';
+    btn.id = 'bar-peek'; btn.type = 'button'; btn.title = T('顯示播放列');
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>';
     document.body.append(btn);
     btn.onclick = () => {
       const on = root.classList.toggle('bar-peek');
-      btn.title = on ? '隱藏播放列' : '顯示播放列';
+      btn.title = on ? T('隱藏播放列') : T('顯示播放列');
     };
     document.addEventListener('mousemove', e => {
       if (!np.classList.contains('on')) return;
@@ -184,7 +184,7 @@
         root.classList.add('np-closing');
         clearTimeout(init.closeT); init.closeT = setTimeout(() => root.classList.remove('np-closing'), 750);
       }
-      if (!np.classList.contains('on')) { root.classList.remove('bar-peek'); btn.classList.remove('show'); btn.title = '顯示播放列'; }
+      if (!np.classList.contains('on')) { root.classList.remove('bar-peek'); btn.classList.remove('show'); btn.title = T('顯示播放列'); }
     }).observe(np, { attributes: true, attributeFilter: ['class'] });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
@@ -223,4 +223,20 @@
     setInterval(snap, 1000);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* A drag that starts inside a dialog and ends outside it (selecting text, then the mouse slips off the box) is not a
+   click on the backdrop: the browser fires the click on the backdrop, the nearest element holding both ends, and
+   every "click outside closes" handler would close the dialog. Such clicks are swallowed here, before any handler. */
+(() => {
+  let downAt = null, dx = 0, dy = 0;
+  document.addEventListener('pointerdown', e => { downAt = e.target; dx = e.clientX; dy = e.clientY; }, true);
+  document.addEventListener('click', e => {
+    const from = downAt; downAt = null;
+    // a real drag only (moved more than a few px): a click whose press landed on a button's icon and release on its edge still counts
+    const dragged = Math.hypot(e.clientX - dx, e.clientY - dy) > 6;
+    if (dragged && from && from !== e.target && from instanceof Node && e.target instanceof Element && e.target.contains(from) && e.detail > 0) {
+      e.stopImmediatePropagation(); e.preventDefault();
+    }
+  }, true);
 })();

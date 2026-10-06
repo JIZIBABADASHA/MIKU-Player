@@ -14,8 +14,8 @@ namespace Miku.Library;
 /// <summary>
 /// Writes tags into the music files (the album page's 「編輯標籤」): album / track fields and the embedded front cover.
 /// Only the fields that were changed are written; everything else in the file is left as it was.
-/// TagLib does FLAC, MP3, M4A/ALAC, OGG/Opus, APE, WavPack, AIFF, WAV, WMA…; DSF (ID3v2 at the end of the file) is
-/// written here; DFF can't be written.
+/// TagLib does FLAC, MP3, M4A/ALAC, OGG/Opus, APE, WavPack, AIFF, WAV, WMA…; DSF (ID3v2 at the end of the file) and
+/// DFF (an "ID3 " chunk in the FRM8 form, as foobar2000 / JRiver / TagLib write it) are written here.
 /// </summary>
 public static class TagWriter
 {
@@ -25,7 +25,7 @@ public static class TagWriter
     public static bool CanWrite(string path)
     {
         string ext = Path.GetExtension(path).ToLowerInvariant();
-        return ext != ".dff" && MusicLibrary.Extensions.Contains(ext) && ext is not (".tak" or ".tta" or ".mka" or ".mp2" or ".caf");
+        return MusicLibrary.Extensions.Contains(ext) && ext is not (".tak" or ".tta" or ".mka" or ".mp2" or ".caf");
     }
 
     /// <summary>
@@ -61,6 +61,7 @@ public static class TagWriter
         var fi = new FileInfo(path);
         if (fi.IsReadOnly) fi.IsReadOnly = false;
         if (Path.GetExtension(path).Equals(".dsf", StringComparison.OrdinalIgnoreCase)) { WriteDsf(path, set, cover, removeCover); return; }
+        if (Path.GetExtension(path).Equals(".dff", StringComparison.OrdinalIgnoreCase)) { WriteDff(path, set, cover, removeCover); return; }
         using var file = TagLib.File.Create(path);
         // make sure there is a tag that holds Unicode text (an MP3 with only ID3v1 would get '?' for CJK)
         switch (file)
@@ -164,6 +165,101 @@ public static class TagWriter
         fs.Position = 12; fs.Write(num, 0, 8);
         BinaryPrimitives.WriteInt64LittleEndian(num, at);
         fs.Position = 20; fs.Write(num, 0, 8);
+    }
+
+    /// <summary>
+    /// DFF (DSDIFF): big-endian chunks inside "FRM8" (8-byte size) of form type "DSD ". The tag is an "ID3 " chunk
+    /// holding an ID3v2 tag. When the old tag chunk is the last thing in the file (as taggers leave it) the file is cut
+    /// there and the new chunk appended; when it sits before the audio, the file is rebuilt into a temporary file
+    /// without it and moved over the original. The audio data is copied byte for byte, never changed.
+    /// </summary>
+    static void WriteDff(string path, IReadOnlyDictionary<string, string> set, (byte[] Data, string Mime)? cover, bool removeCover)
+    {
+        var chunks = new List<(string Id, long Pos, long Size)>();   // Pos: the chunk header; Size: its data
+        byte[] rendered;
+        long keepEnd = 16, newSize;
+        bool inPlace;
+        using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            var head = new byte[16];
+            if (fs.Read(head, 0, 16) != 16 || Encoding.ASCII.GetString(head, 0, 4) != "FRM8" || Encoding.ASCII.GetString(head, 12, 4) != "DSD ")
+                throw new InvalidDataException("不是 DFF 檔案");
+            long end = Math.Min(fs.Length, 12 + BinaryPrimitives.ReadInt64BigEndian(head.AsSpan(4)));
+            var ch = new byte[12];
+            for (long pos = 16; pos + 12 <= end;)
+            {
+                fs.Position = pos;
+                fs.ReadExactly(ch, 0, 12);
+                string id = Encoding.ASCII.GetString(ch, 0, 4);
+                long size = BinaryPrimitives.ReadInt64BigEndian(ch.AsSpan(4));
+                if (size < 0 || pos + 12 + size > fs.Length) size = fs.Length - pos - 12;   // a truncated last chunk
+                chunks.Add((id, pos, size));
+                pos += 12 + size + (size & 1);
+            }
+            if (!chunks.Any(c => c.Id is "DSD " or "DST ")) throw new InvalidDataException("DFF 沒有音訊資料");
+
+            TagLib.Id3v2.Tag tag = null;
+            var old = chunks.FirstOrDefault(c => c.Id == "ID3 ");
+            if (old.Id != null && old.Size > 10)
+            {
+                var buf = new byte[Math.Min(old.Size, 64 * 1024 * 1024)];
+                fs.Position = old.Pos + 12;
+                int n = fs.Read(buf, 0, buf.Length);
+                if (n > 10 && buf[0] == 'I' && buf[1] == 'D' && buf[2] == '3')
+                    try { tag = new TagLib.Id3v2.Tag(new TagLib.ByteVector(buf, n)); } catch { tag = null; }
+            }
+            tag ??= new TagLib.Id3v2.Tag();
+            Apply(tag, set);
+            if (cover != null || removeCover) SetCover(tag, cover, removeCover);
+            rendered = tag.Render().Data;
+
+            foreach (var c in chunks.Where(c => c.Id != "ID3 ")) keepEnd = Math.Max(keepEnd, c.Pos + 12 + c.Size + (c.Size & 1));
+            inPlace = chunks.Where(c => c.Id == "ID3 ").All(c => c.Pos >= keepEnd);
+            newSize = (inPlace ? keepEnd : 16 + chunks.Where(c => c.Id != "ID3 ").Sum(c => 12 + c.Size + (c.Size & 1))) + 12 + rendered.Length + (rendered.Length & 1);
+        }
+
+        var tagChunk = new byte[12 + rendered.Length + (rendered.Length & 1)];
+        Encoding.ASCII.GetBytes("ID3 ").CopyTo(tagChunk, 0);
+        BinaryPrimitives.WriteInt64BigEndian(tagChunk.AsSpan(4), rendered.Length);
+        rendered.CopyTo(tagChunk, 12);
+        var frm = new byte[8];
+        BinaryPrimitives.WriteInt64BigEndian(frm, newSize - 12);
+
+        if (inPlace)
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+            fs.SetLength(keepEnd);
+            fs.Position = keepEnd;
+            fs.Write(tagChunk, 0, tagChunk.Length);
+            fs.Position = 4; fs.Write(frm, 0, 8);
+            return;
+        }
+        string tmp = Path.Combine(Path.GetDirectoryName(path)!, "." + Path.GetFileName(path) + ".miku-" + Guid.NewGuid().ToString("N")[..8]);
+        try
+        {
+            using (var src = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var dst = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write))
+            {
+                var head = new byte[16];
+                src.ReadExactly(head, 0, 16);
+                frm.CopyTo(head, 4);
+                dst.Write(head, 0, 16);
+                var buf = new byte[1 << 20];
+                foreach (var c in chunks.Where(c => c.Id != "ID3 "))
+                {
+                    src.Position = c.Pos;
+                    for (long left = 12 + c.Size + (c.Size & 1); left > 0;)
+                    {
+                        int n = src.Read(buf, 0, (int)Math.Min(buf.Length, left));
+                        if (n <= 0) { dst.Write(new byte[left], 0, (int)left); break; }   // the pad byte of a last chunk without one
+                        dst.Write(buf, 0, n); left -= n;
+                    }
+                }
+                dst.Write(tagChunk, 0, tagChunk.Length);
+            }
+            File.Move(tmp, path, true);
+        }
+        catch { try { File.Delete(tmp); } catch { } throw; }
     }
 }
 

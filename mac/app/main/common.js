@@ -186,7 +186,12 @@ async function getText(url) {
 const TicksEpoch = 621355968000000000n;
 const msToTicks = ms => Number(BigInt(Math.round(ms)) * 10000n + TicksEpoch);
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = (ms, signal) => new Promise((resolve, reject) => {
+  const finish = () => { if (signal) signal.removeEventListener('abort', abort); resolve(); };
+  const timer = setTimeout(finish, ms);
+  const abort = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); reject(new Error('cancelled')); };
+  if (signal) { if (signal.aborted) abort(); else signal.addEventListener('abort', abort, { once: true }); }
+});
 
 /** The first of several ';'-separated names that isn't a compilation placeholder (Text.FirstArtist). */
 const firstArtist = s => (s || '').split(';').map(x => x.trim()).filter(Boolean).find(n => n !== 'Various Artists' && n !== '未知演出者') || '';
@@ -213,7 +218,7 @@ class RateGate {
           if (gap > wait) wait = gap;
         }
         if (wait <= 0) { this.last = now; this.calls.push(now); return; }
-        await sleep(Math.max(20, wait));
+        await sleep(Math.max(20, wait), signal);
       }
     } finally { if (user) this.urgent--; }
   }

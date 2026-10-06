@@ -32,3 +32,59 @@
 .cvt-fmt-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
 .cvt-fmt.lossless .cvt-fmt-tag { color: var(--teal); background: rgba(var(--teal-rgb), .12); }
 .cvt-fmt.lossy .cvt-fmt-tag { color: #ff8a3d; background: rgba(255, 138, 61, .12); }
+/* 抓取 CD (cd.js): names to edit, the track list with ticks, AccurateRip results */
+.cdrip .cvt-v .inp { flex: 1 1 200px; min-width: 0; height: 32px; }
+.cdrip .cvt-v .inp.cd-year { flex: 0 0 90px; }
+.cdrip .cvt-v .inp.cd-genre { flex: 0 1 160px; }
+.cdrip .cvt-v .inp.cd-offset { flex: 0 0 110px; }
+.cdrip .cd-offset-help { line-height: 1.6; }
+.cdrip .cd-offset-error { color: var(--pink-text); }
+.cdrip .cd-offset-error:empty { display: none; }
+.cdrip .cd-head { display: flex; align-items: center; gap: 12px; margin: 14px 0 6px; font-size: 12px; color: var(--text-3); }
+.cdrip .cd-row { grid-template-columns: auto 26px minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 4px 10px; }
+.cdrip .cd-row .inp { height: 30px; min-width: 0; font-size: 13px; }
+.cdrip .cd-no { font-size: 12.5px; color: var(--text-3); text-align: right; }
+.cdrip .cvt-list.locked .inp, .cdrip .cvt-list.locked .switch { pointer-events: none; opacity: .7; }
+.cdrip .cd-row.ar-match .cvt-state { color: var(--teal); font-weight: 600; }
+.cdrip .cd-row.ar-mismatch .cvt-state { color: var(--pink-text); font-weight: 600; }
+.cdrip .cd-row .cvt-state { min-width: 120px; text-align: right; }
+/* Background CD progress takes its own space at the bottom of the sidebar. */
+.cdrip .cvt-foot [hidden], .cd-task[hidden] { display: none; }
+.cd-task { flex: none; min-width: 0; width: 100%; margin-top: 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--sidebar-bg, var(--bg-2)); }
+.cd-task-open { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.cd-task .btn { grid-column: 2; grid-row: 2; height: 28px; padding: 0 8px; }
+.cd-task-open:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; border-radius: 6px; }
+.cd-task-icon { flex: none; color: var(--teal); }
+.cd-task-icon svg { width: 22px; height: 22px; }
+.cd-task-copy { min-width: 0; }
+.cd-task-percent { display: none; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.cd-task-copy b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+.cd-task-detail { display: block; margin-top: 4px; color: var(--text-2); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: pre-line; overflow-wrap: anywhere; }
+.cd-task-bar { grid-column: 1; grid-row: 2; height: 3px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
+.cd-task-bar i { display: block; width: 0; height: 100%; background: var(--teal); transition: width .3s var(--ease); }
+.cd-task.error .cd-task-icon, .cd-task.error .cd-task-detail { color: var(--pink-text); }
+.cd-task.error .cd-task-bar i { background: var(--pink-text); }
+.cd-task.stopped .cd-task-icon { color: var(--text-3); }
+@media (max-width: 1180px) {
+  .cd-task { grid-template-columns: minmax(0, 1fr); padding: 6px; gap: 6px; }
+  .cd-task-open { justify-content: center; flex-direction: column; gap: 4px; }
+  .cd-task-copy { display: none; }
+  .cd-task-percent { display: block; }
+  .cd-task .btn { grid-column: 1; grid-row: 3; width: 100%; padding: 0; font-size: 11px; }
+}
+/* Compare the current CD metadata with the versions found by MusicBrainz. */
+.modal.cd-info { width: min(1100px, calc(100vw - 40px)); height: min(720px, calc(100vh - 40px)); }
+.cd-info .modal-body { min-height: 0; overflow: auto; padding-top: 0; }
+.cd-info-note { margin: 8px 0 16px; font-size: 13px; line-height: 1.6; }
+.cd-info-empty { padding: 32px 0; font-size: 14px; }
+.cd-info-table { width: 100%; border-spacing: 0; table-layout: fixed; font-size: 13px; }
+.cd-info-table th, .cd-info-table td { min-width: 220px; width: 220px; padding: 12px; text-align: left; vertical-align: top; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.cd-info-table th:first-child { min-width: 88px; width: 88px; position: sticky; left: 0; z-index: 1; background: var(--modal-bg); color: var(--text-3); font-weight: 500; }
+.cd-info-table thead th { position: sticky; top: 0; z-index: 2; background: var(--modal-bg); vertical-align: bottom; }
+.cd-info-table thead th:first-child { z-index: 3; }
+.cd-info-version { margin-bottom: 10px; font-size: 13px; font-weight: 600; }
+.cd-info-table .current .cd-info-version { color: var(--teal); }
+.cd-info-table td.different { background: rgba(var(--teal-rgb), .08); }
+.cd-info-song b { display: block; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.cd-info-song small { display: block; margin-top: 4px; font-size: 12px; color: var(--text-3); line-height: 1.5; }
+#view:has(.cd-info-launch) .hero .actions { flex-wrap: wrap; }

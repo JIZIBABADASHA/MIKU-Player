@@ -73,7 +73,10 @@ public sealed class Player
             if (_s.Repeat == "one") return Current;
             int n = _index + 1;
             if (n >= _queue.Count) { if (_s.Repeat != "all") return null; n = 0; }
-            return _lib.GetTrack(_queue[n]);
+            var t = _lib.GetTrack(_queue[n]);
+            // a CD track not yet all in the cache isn't opened ahead of time: it starts when it is its turn (Load waits for it)
+            if (t != null && t.Codec == "CD" && CdService.Instance?.IsReady(t) != true) return null;
+            return t;
         }
     }
 
@@ -129,6 +132,12 @@ public sealed class Player
     {
         if (t == null) return;
         NowChanged?.Invoke();
+        if (t.Codec == "CD" && CdService.Instance != null)
+        {
+            // an audio CD: the track is read into the cache first (playback starts once enough of it is there)
+            try { await CdService.Instance.Prepare(t); }
+            catch (Exception ex) { Error?.Invoke(ex.Message); NowChanged?.Invoke(); return; }
+        }
         await Engine.LoadAsync(t, pos, play);
         if (Engine.IsLoaded) { _failures = 0; if (play) EnsureAutoNext(); }
         // only skip ahead for an unreadable file; if the DAC couldn't be opened every track would fail the same way,

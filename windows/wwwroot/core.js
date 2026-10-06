@@ -11,7 +11,7 @@ const Host = (() => {
       const p = pending.get(msg.id);
       if (!p) return;
       pending.delete(msg.id);
-      msg.e ? p.reject(new Error(msg.e)) : p.resolve(msg.r);
+      msg.e ? p.reject(new Error(T.msg(msg.e))) : p.resolve(msg.r);
     } else if (msg.ev) (listeners[msg.ev] || []).forEach(f => { try { f(msg.d); } catch (e) { console.error(e); } });
   }
   if (wv) wv.addEventListener('message', e => deliver(e.data));
@@ -60,7 +60,7 @@ const fmtTime = s => {
   const hh = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = s % 60;
   return (hh ? hh + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
 };
-const fmtLong = s => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)} 小時 ${m % 60} 分鐘` : `${m} 分鐘`; };
+const fmtLong = s => { const m = Math.round(s / 60); return m >= 60 ? T`${Math.floor(m / 60)} 小時 ${m % 60} 分鐘` : T`${m} 分鐘`; };
 const khz = r => (r / 1000).toFixed(r % 1000 ? 1 : 0).replace(/\.0$/, '');
 function hashHue(s) { let x = 0; for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) | 0; return Math.abs(x) % 360; }
 function initials(s) {
@@ -329,6 +329,17 @@ const Lib = {
     $('#c-artists').textContent = this.artists.length || '';
     $('#c-tracks').textContent = shownTracks.length || '';
   },
+  /**
+   * An album's id changes with its title / folder (tags saved, files renamed or replaced, read again). Old → new is
+   * remembered, so a page or a history entry with the old id (going back, a pop-up closing onto it) opens the new one.
+   */
+  aliases: new Map(),
+  renamed(oldId, newId) {
+    if (!oldId || !newId || oldId === newId) return;
+    this.aliases.set(oldId, newId);
+    for (const [k, v] of this.aliases) if (v === oldId) this.aliases.set(k, newId);   // a chain of edits
+  },
+  resolve(id) { let n = id, i = 0; while (!this.albumById.has(n) && this.aliases.has(n) && i++ < 20) n = this.aliases.get(n); return this.albumById.has(n) ? n : null; },
   artistAlbums(name) {
     const own = this.artistMap.get(name)?.albums || [];
     const nn = norm(name);
@@ -446,10 +457,10 @@ const App = {
     this.bindKeys();
     Host.on('state', s => this.setState(s));
     Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); MikuExt.slot(q.source); });
-    Host.on('error', e => toast(e.message, { error: true }));
+    Host.on('error', e => toast(T.msg(e.message), { error: true }));
     // phone remote: show the pairing code a phone asked for, and keep favourites in sync with it
-    Host.on('remotePair', p => toast(`「${p.name}」要求用手機遙控 MIKU，配對碼：${p.code}`, { ms: 180000 }));
-    Host.on('remotePaired', p => toast(`「${p.name}」已配對，可以用手機遙控了`));
+    Host.on('remotePair', p => toast(T`「${p.name}」要求用手機遙控 MIKU，配對碼：${p.code}`, { ms: 180000 }));
+    Host.on('remotePaired', p => toast(T`「${p.name}」已配對，可以用手機遙控了`));
     Host.on('favs', f => { this.favs = new Set(f || []); this.renderFav(); });
     Host.on('scan', p => this.scan(p));
     Host.on('fullscreen', ({ on }) => { this.fullscreen = on; document.documentElement.classList.toggle('fullscreen', on); });
@@ -462,6 +473,7 @@ const App = {
     });
     const init = await Host.call('ready');
     this.settings = init.settings;
+    if (await I18N.sync(init)) return;   // the interface language changed: the page reloads
     if (typeof Theme !== 'undefined') Theme.sync();
     this.favs = new Set(init.settings.favorites || []);
     this.lastRecent = (init.settings.recent || [])[0] || null;
@@ -480,7 +492,7 @@ const App = {
     ScrollBubble.init();
     Router.start();
     requestAnimationFrame(t => this.frame(t));
-    if (!init.ffmpeg) toast('找不到 FFmpeg，請在設定確認 FFmpeg 已安裝並加入 PATH。', { error: true, ms: 9000 });
+    if (!init.ffmpeg) toast(T('找不到 FFmpeg，請在設定確認 FFmpeg 已安裝並加入 PATH。'), { error: true, ms: 9000 });
   },
 
   drawBrand() {
@@ -492,7 +504,7 @@ const App = {
     const el = $('#sidefoot');
     if (p.scanning) {
       const pct = p.found ? Math.min(100, p.done / p.found * 100) : 0;
-      el.innerHTML = `<div class="scanline"><span class="txt">掃描曲庫</span><div class="bar"><i style="width:${pct}%"></i></div><span class="num">${p.done}/${p.found || '…'}</span></div>`;
+      el.innerHTML = T`<div class="scanline"><span class="txt">掃描曲庫</span><div class="bar"><i style="width:${pct}%"></i></div><span class="num">${p.done}/${p.found || '…'}</span></div>`;
     } else el.textContent = '';
   },
 
@@ -507,7 +519,7 @@ const App = {
     const key = this.syncTrack(s);
     if (s.playing && s.meter && s.meter.resampleMeterAvailable === true && s.meter.resampleOverloads > 0 && this.overloadWarningTrack !== key) {
       this.overloadWarningTrack = key;
-      toast('重取樣輸出峰值超過 0 dBFS。請在訊號路徑查看已解碼區段的量測，並自行調整數位音量或前級增益。', { error: true, ms: 9000 });
+      toast(T('重取樣輸出峰值超過 0 dBFS。請在訊號路徑查看已解碼區段的量測，並自行調整數位音量或前級增益。'), { error: true, ms: 9000 });
     }
     // 最近聆聽: a local track counts once it actually starts playing
     if (s.playing && s.trackId && !s.live && s.trackId !== 'yt-live' && this.lastRecent !== s.trackId) {
@@ -624,10 +636,10 @@ const App = {
     const db = s.volumeDb ?? -20;
     const x = s.muted ? 0 : dbToX(db);
     if (!this.volDrag) setSlider($('#b-volslider'), x);
-    setText($('#b-db'), mode === 'fixed' ? '0 dB' : s.muted ? '靜音' : (db <= -79.5 ? '−∞' : (db === 0 ? '0' : '−' + Math.abs(db).toFixed(1)) + ' dB'));
+    setText($('#b-db'), mode === 'fixed' ? '0 dB' : s.muted ? T('靜音') : (db <= -79.5 ? '−∞' : (db === 0 ? '0' : '−' + Math.abs(db).toFixed(1)) + ' dB'));
     const mute = $('#b-mute');
     setIcon(mute, s.muted || db <= -79.5 ? 'mute' : db < -30 ? 'vollow' : 'vol');
-    const title = mode === 'fixed' ? '固定音量（Bit-perfect）' : '靜音 (M)';
+    const title = mode === 'fixed' ? T('固定音量（Bit-perfect）') : T('靜音 (M)');
     if (mute.title !== title) mute.title = title;
   },
   setVolume(db, muted) {
@@ -644,7 +656,7 @@ const App = {
     const sg = this.state.signal, el = $('#b-sig');
     const cls = 'sig' + (sg ? ' q-' + sg.quality : '') + sigShine(sg);
     if (el.className !== cls) el.className = cls;
-    if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? '已停止' : '未播放'); return; }
+    if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? T('已停止') : T('未播放')); return; }
     const src = sg.dsd ? sg.dsdLabel : `${sg.sourceBits || ''}${sg.sourceBits ? '/' : ''}${khz(sg.sourceRate)}`;
     setText($('#b-sigtxt'), `${sg.codec} ${src}${sg.dop ? ' · DoP' : ''}`);
   },
@@ -902,16 +914,16 @@ function menu(items, anchor, opts) {
 
 function trackMenu(t, anchor, list) {
   menu([
-    { label: '播放', icon: 'play', run: () => App.playTracks(list || [t], list ? list.indexOf(t) : 0) },
-    { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: [t.id], next: true }); toast('已排在下一首'); } },
-    { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: [t.id] }); toast('已加入佇列'); } },
+    { label: T('播放'), icon: 'play', run: () => App.playTracks(list || [t], list ? list.indexOf(t) : 0) },
+    { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: [t.id], next: true }); toast(T('已排在下一首')); } },
+    { label: T('加入播放佇列'), icon: 'queue', run: () => { Host.call('queue.add', { ids: [t.id] }); toast(T('已加入佇列')); } },
     '-',
-    { label: App.favs.has(t.id) ? '從最愛移除' : '加入我的最愛', icon: 'heart', run: () => App.toggleFav(t.id) },
-    { label: '前往專輯', icon: 'album', run: () => go('#/album/' + t.albumId) },
+    { label: App.favs.has(t.id) ? T('從最愛移除') : T('加入我的最愛'), icon: 'heart', run: () => App.toggleFav(t.id) },
+    { label: T('前往專輯'), icon: 'album', run: () => go('#/album/' + t.albumId) },
     ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
-    { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
-    { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
+    { label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
+    { label: T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
 }
 
@@ -920,7 +932,7 @@ function versionMenu(al, anchor) {
   const vs = al.versions || [al];
   const artists = new Set(vs.map(v => v.artist));
   menu(vs.map(v => ({
-    label: [qualityLabel(v), `${v.tracks.length} 首`, v.folder, artists.size > 1 ? v.artist : ''].filter(Boolean).join(' · '),
+    label: [qualityLabel(v), T`${v.tracks.length} 首`, v.folder, artists.size > 1 ? v.artist : ''].filter(Boolean).join(' · '),
     icon: v === al ? 'check' : 'album',
     run: () => { if (v !== al) go('#/album/' + v.id); },
   })), anchor);
@@ -929,40 +941,41 @@ function versionMenu(al, anchor) {
 /** "Go to artist" menu items: one per artist when there are several. */
 function artistItems(names) {
   names = names.filter(Boolean);
-  return names.map(n => ({ label: names.length > 1 ? `前往演出者：${n}` : '前往演出者', icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
+  return names.map(n => ({ label: names.length > 1 ? T`前往演出者：${n}` : T('前往演出者'), icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
 /** An album's menu. On its own page (onPage) the page already has 播放 / 隨機 and the artist links: left out. */
 async function albumMenu(al, anchor, onPage) {
   const cue = await Convert.cueFor(al);  // 「按 CUE 標記切開…」 only when the album's folder has a CUE sheet for its big file
   menu([
-    !onPage && { label: '播放', icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
-    !onPage && { label: '隨機播放', icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
-    { label: '下一首播放', icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast('已排在下一首'); } },
-    { label: '加入播放佇列', icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(`已加入 ${al.tracks.length} 首`); } },
+    !onPage && { label: T('播放'), icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
+    !onPage && { label: T('隨機播放'), icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
+    { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast(T('已排在下一首')); } },
+    { label: T('加入播放佇列'), icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(T`已加入 ${al.tracks.length} 首`); } },
     '-',
     ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
     // one entry: the cover view shows the picture and leads on to 更換封面 / 寫入音樂檔案
-    { label: '封面…', icon: 'image', run: () => CoverView.open(al) },
-    { label: '編輯標籤…', icon: 'list', run: () => TagEditor.open(al) },
-    { label: '轉換格式…', icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
-    cue && { label: `按 CUE 標記切開（${cue.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue }) },
-    { label: '在檔案總管中顯示', icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
+    { label: T('封面…'), icon: 'image', run: () => CoverView.open(al) },
+    { label: T('編輯標籤…'), icon: 'list', run: () => TagEditor.open(al) },
+    { label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
+    cue && { label: T`按 CUE 標記切開（${cue.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue }) },
+    { label: T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
-    { label: '重新讀取專輯資訊', icon: 'refresh', run: () => rereadAlbum(al) },
+    { label: T('重新讀取專輯資訊'), icon: 'refresh', run: () => rereadAlbum(al) },
   ], anchor);
 }
 
 /** Read the album's tags again (after editing them in another program) and show the page with the new data. */
 async function rereadAlbum(al) {
-  toast('正在重新讀取專輯資訊…');
+  toast(T('正在重新讀取專輯資訊…'));
   let r;
   try { r = await Host.call('album.reread', { id: al.id }); }
-  catch (e) { toast('重新讀取失敗：' + e.message, { error: true }); return; }
+  catch (e) { toast(T('重新讀取失敗：') + e.message, { error: true }); return; }
   await Lib.load();
   App.redrawTrack();   // the track objects were rebuilt: the now-playing bar redraws with the new ones
-  if (!r || !r.albumId) { toast('這張專輯的檔案已經不在了'); if (Router.cur.name === 'album') history.back(); return; }
-  toast(`已重新讀取 ${r.tracks} 首`);
+  if (!r || !r.albumId) { toast(T('這張專輯的檔案已經不在了')); if (Router.cur.name === 'album') history.back(); return; }
+  Lib.renamed(al.id, r.albumId);
+  toast(T`已重新讀取 ${r.tracks} 首`);
   const hash = '#/album/' + r.albumId;
   if (location.hash.startsWith('#/album/')) {
     // the id changes with the album title: replace the page instead of adding a history entry
@@ -972,22 +985,25 @@ async function rereadAlbum(al) {
 }
 
 /* ═════════════════════════════ signal path ═════════════════════════════ */
-const QLabel = { bitperfect: 'Bit-perfect', enhanced: '已處理', high: '高品質', low: '有損來源' };
-/** The badge's extra shine: DSD glows gold; bit-perfect hi-res (above 16-bit / 48 kHz) sparkles like a diamond. */
-const sigShine = sg => !sg ? '' : sg.dsd ? ' dsd' : sg.quality === 'bitperfect' && ((sg.sourceBits || 0) > 16 || (sg.sourceRate || 0) > 48000) ? ' hires' : '';
+const QLabel = { bitperfect: 'Bit-perfect', enhanced: T('已處理'), high: T('高品質'), low: T('有損來源') };
+/** The badge's extra shine: DSP on turns it into toxic slime; DSD glows gold; bit-perfect hi-res (above 16-bit / 48 kHz) sparkles like a diamond. */
+const sigShine = sg => !sg ? '' : sg.dspActive ? ' dsp' : sg.dsd ? ' dsd' : sg.quality === 'bitperfect' && ((sg.sourceBits || 0) > 16 || (sg.sourceRate || 0) > 48000) ? ' hires' : '';
 const QLead = {
-  bitperfect: '依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。',
-  enhanced: '訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。',
-  high: 'Windows 混音器會依系統格式處理音訊。改用獨佔模式可達到 Bit-perfect。',
-  low: '來源為有損壓縮格式：部分聲音資訊在壓縮時已被永久丟棄，無法還原。',
+  bitperfect: T('依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。'),
+  enhanced: T('訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。'),
+  high: T('Windows 混音器會依系統格式處理音訊。改用獨佔模式可達到 Bit-perfect。'),
+  low: T('來源為有損壓縮格式：部分聲音資訊在壓縮時已被永久丟棄，無法還原。'),
 };
 const SignalPop = {
   toggle(anchor) {
     if (Popover.el && Popover.el.classList.contains('sigpop')) return Popover.close();
-    const sg = App.state.signal;
+    // texts made by the host (output mode, format, notes …) in the interface language
+    const sg0 = App.state.signal;
+    const sg = sg0 && Object.assign({}, sg0, Object.fromEntries(['mode', 'outputFormat', 'decoder', 'quantization', 'dspSummary', 'note', 'resampler']
+      .filter(k => typeof sg0[k] === 'string').map(k => [k, T.msg(sg0[k])])));
     const box = h('div');
     if (!sg) {
-      box.append(h('h3', null, '訊號路徑'), h('div', { class: 'lead' }, '目前沒有播放中的曲目。'));
+      box.append(h('h3', null, T('訊號路徑')), h('div', { class: 'lead' }, T('目前沒有播放中的曲目。')));
     } else {
       const shine = sigShine(sg);
       box.className = 'q-' + sg.quality + shine;
@@ -998,32 +1014,32 @@ const SignalPop = {
       const custom = sg.custom && MikuExt.paths[sg.custom.ext];
       if (custom) { try { custom(box, sg, { stage, src, khz }); } catch (e) { console.error('[ext] signal path', e); } }
       else {
-      box.append(stage('來源', src, false));
-      if (sg.decoder) box.append(stage('解碼器', sg.decoder, false));
+      box.append(stage(T('來源'), src, false));
+      if (sg.decoder) box.append(stage(T('解碼器'), sg.decoder, false));
       const gain = sg.resamplerGainDb;
-      const gainText = gain == null ? '' : Math.abs(gain) < 1e-9 ? ' · 維持原音量' : ` · ${gain > 0 ? '+' : ''}${gain} dB`;
-      const bandwidthText = sg.resamplerBandwidth ? ` · 頻寬 ${Math.round(sg.resamplerBandwidth * 100)}%` : '';
-      if (sg.dsdDirect) box.append(stage('DSD', `${sg.dsdTransport === 'Dop' ? 'DoP 封裝' : sg.dsdTransport === 'Dcs' ? 'dCS 封裝' : 'DSD 原生直送'} → ${khz(sg.outputRate)} kHz`, false));
-      else if (sg.dop) box.append(stage('DSD', `DoP 封裝 → ${khz(sg.outputRate)} kHz`, false));
-      else if (sg.dsd) box.append(stage('DSD 轉 PCM', `${khz(sg.outputRate)} kHz · ${sg.resampler || 'FFmpeg / SoX'}${gainText}`, true));
-      else if (sg.resampled) box.append(stage('重新取樣', `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz · ${sg.resampler || 'FFmpeg / SoX'}${bandwidthText}${gainText}`, true));
+      const gainText = gain == null ? '' : Math.abs(gain) < 1e-9 ? T(' · 維持原音量') : ` · ${gain > 0 ? '+' : ''}${gain} dB`;
+      const bandwidthText = sg.resamplerBandwidth ? T` · 頻寬 ${Math.round(sg.resamplerBandwidth * 100)}%` : '';
+      if (sg.dsdDirect) box.append(stage('DSD', `${sg.dsdTransport === 'Dop' ? T('DoP 封裝') : sg.dsdTransport === 'Dcs' ? T('dCS 封裝') : T('DSD 原生直送')} → ${khz(sg.outputRate)} kHz`, false));
+      else if (sg.dop) box.append(stage('DSD', T`DoP 封裝 → ${khz(sg.outputRate)} kHz`, false));
+      else if (sg.dsd) box.append(stage(T('DSD 轉 PCM'), `${khz(sg.outputRate)} kHz · ${sg.resampler || 'FFmpeg / SoX'}${gainText}`, true));
+      else if (sg.resampled) box.append(stage(T('重新取樣'), `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz · ${sg.resampler || 'FFmpeg / SoX'}${bandwidthText}${gainText}`, true));
       if (sg.replayGainDb != null) box.append(stage('ReplayGain', `${sg.replayGainDb > 0 ? '+' : ''}${sg.replayGainDb.toFixed(1)} dB`, true));
       if (sg.dspActive && sg.dspSummary) box.append(stage('DSP', sg.dspSummary, true));
       const vm = sg.volumeMode;
       const db = App.state.volumeDb;
-      box.append(stage('音量', vm === 'digital' ? (Math.abs(db) < 1e-9 ? '數位音量 · 0 dB（不處理）' : `數位音量 · ${db.toFixed(1)} dB`) : vm === 'hardware' ? `DAC 硬體音量 · ${db.toFixed(1)} dB` : vm === 'none' ? '無（請使用 DAC 旋鈕）' : '固定 0 dB', vm === 'digital' && Math.abs(db) > 1e-9));
-      box.append(stage('輸出', `${sg.mode} · ${sg.device}`, false));
-      box.append(stage('格式', `${sg.outputFormat} / ${khz(sg.outputRate)} kHz`, false));
-      if (sg.mode && sg.mode.startsWith('WASAPI') && sg.eventDriven != null) box.append(stage('補充音訊方式', sg.eventDriven ? '事件驅動' : '定時喚醒', false));
-      if (sg.quantization) box.append(stage('量化', sg.quantization, false));
+      box.append(stage(T('音量'), vm === 'digital' ? (Math.abs(db) < 1e-9 ? T('數位音量 · 0 dB（不處理）') : T`數位音量 · ${db.toFixed(1)} dB`) : vm === 'hardware' ? T`DAC 硬體音量 · ${db.toFixed(1)} dB` : vm === 'none' ? T('無（請使用 DAC 旋鈕）') : T('固定 0 dB'), vm === 'digital' && Math.abs(db) > 1e-9));
+      box.append(stage(T('輸出'), `${sg.mode} · ${sg.device}`, false));
+      box.append(stage(T('格式'), `${sg.outputFormat} / ${khz(sg.outputRate)} kHz`, false));
+      if (sg.mode && sg.mode.startsWith('WASAPI') && sg.eventDriven != null) box.append(stage(T('補充音訊方式'), sg.eventDriven ? T('事件驅動') : T('定時喚醒'), false));
+      if (sg.quantization) box.append(stage(T('量化'), sg.quantization, false));
       const meter = App.state.meter;
       if (sg.resampled && meter && meter.resampleMeterAvailable === true) {
         const peak = Number(meter.resamplePeak || 0);
         const db = peak > 0 ? (20 * Math.log10(peak)).toFixed(2) + ' dBFS' : '−∞ dBFS';
-        box.append(stage('重取樣輸出峰值', db + ' · 已解碼區段，ReplayGain／DSP 前', peak > 1));
-        box.append(h('div', { class: 'note' }, '解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。'));
-        if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, `已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
-      } else if (sg.resampled) box.append(stage('重取樣峰值量測', '此播放內核未提供', false));
+        box.append(stage(T('重取樣輸出峰值'), db + T(' · 已解碼區段，ReplayGain／DSP 前'), peak > 1));
+        box.append(h('div', { class: 'note' }, T('解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。')));
+        if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, T`已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
+      } else if (sg.resampled) box.append(stage(T('重取樣峰值量測'), T('此播放內核未提供'), false));
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
       }
     }
@@ -1064,27 +1080,44 @@ $('#scrim').onclick = () => Drawer.close();
  * so the mouse back button / Alt+← closes the layer instead of navigating the page behind it.
  */
 const OverlayHistory = {
-  stack: [], ignore: 0, pending: null,
+  stack: [], ignore: 0, pending: null, waiting: [],
   push(close) {
     this.stack.push(close);
+    // A previous layer is still going back asynchronously. Add its replacement only after that popstate.
+    if (this.ignore > 0) { this.waiting.push(close); return; }
     history.pushState({ i: Router.idx, overlay: true }, '', location.hash);
   },
   closed(close) {
     const i = this.stack.lastIndexOf(close);
     if (i < 0) return;
     this.stack.splice(i, 1);
+    const queued = this.waiting.lastIndexOf(close);
+    if (queued >= 0) { this.waiting.splice(queued, 1); return; }
     this.ignore++;
     history.back();
+  },
+  restorePage() {
+    // Closing a layer must retain the displayed page, even if its album id has changed.
+    const r = Router.cur;
+    const id = r.name === 'album' ? Lib.resolve(r.arg) : null;
+    const hash = id ? '#/album/' + id : r.key;
+    if (hash && location.hash !== hash) history.replaceState({ ...history.state, i: Router.idx }, '', hash);
   },
   /** Returns true when the popstate was consumed by an overlay. */
   onPop() {
     if (this.ignore > 0) {
       this.ignore--;
-      if (!this.ignore && this.pending) { const [hash, rep] = this.pending; this.pending = null; setTimeout(() => go(hash, rep)); }
+      if (!this.ignore) {
+        this.restorePage();
+        for (const close of this.waiting.splice(0)) {
+          if (this.stack.includes(close)) history.pushState({ i: Router.idx, overlay: true }, '', location.hash);
+        }
+        if (this.pending) { const [hash, rep] = this.pending; this.pending = null; setTimeout(() => go(hash, rep)); }
+      }
       return true;
     }
     const close = this.stack.pop();
-    if (close) { close(true); return true; }
+    if (close) { this.restorePage(); close(true); return true; }
     return false;
   },
 };
@@ -1097,14 +1130,14 @@ const Queue = {
     const body = $('#queue-body');
     const { ids, index } = App.queue;
     body.textContent = '';
-    if (!ids.length) { body.append(h('div', { class: 'muted', style: { padding: '40px 12px', textAlign: 'center' } }, '佇列是空的')); return; }
+    if (!ids.length) { body.append(h('div', { class: 'muted', style: { padding: '40px 12px', textAlign: 'center' } }, T('佇列是空的'))); return; }
     const row = (id, i) => {
       const t = Lib.trackById.get(id);
       if (!t) return null;
       const r = h('div', { class: 'qrow' + (i === index ? ' cur' : '') + (i < index ? ' past' : ''), draggable: 'true', 'data-i': i },
         artBox('thumb', ...trackArt(t), 48, t.album?.title),
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't' }, t.title), h('div', { class: 'a' }, t.artist)),
-        h('button', { class: 'icon-btn x', title: '移除', html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
+        h('button', { class: 'icon-btn x', title: T('移除'), html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
       r.ondblclick = () => Host.call('queue.jump', { i });
       r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }); };
       r.ondragstart = e => { e.dataTransfer.setData('text/plain', i); r.classList.add('dragging'); };
@@ -1115,16 +1148,16 @@ const Queue = {
       return r;
     };
     if (index >= 0) {
-      body.append(h('div', { class: 'qsec' }, '正在播放'));
+      body.append(h('div', { class: 'qsec' }, T('正在播放')));
       body.append(row(ids[index], index));
     }
     const upcoming = ids.slice(index + 1);
-    body.append(h('div', { class: 'qsec' }, `接下來 · ${upcoming.length} 首`, upcoming.length ? h('button', { onclick: () => Host.call('queue.clear') }, '清除') : null));
+    body.append(h('div', { class: 'qsec' }, T`接下來 · ${upcoming.length} 首`, upcoming.length ? h('button', { onclick: () => Host.call('queue.clear') }, T('清除')) : null));
     // render a window to keep huge queues snappy
     upcoming.slice(0, 300).forEach((id, k) => body.append(row(id, index + 1 + k)));
-    if (upcoming.length > 300) body.append(h('div', { class: 'muted', style: { padding: '10px' } }, `還有 ${upcoming.length - 300} 首…`));
+    if (upcoming.length > 300) body.append(h('div', { class: 'muted', style: { padding: '10px' } }, T`還有 ${upcoming.length - 300} 首…`));
     if (index > 0) {
-      body.append(h('div', { class: 'qsec' }, '已播放'));
+      body.append(h('div', { class: 'qsec' }, T('已播放')));
       ids.slice(Math.max(0, index - 50), index).forEach((id, k) => body.append(row(id, Math.max(0, index - 50) + k)));
     }
     if (scroll) body.scrollTop = 0;
@@ -1186,13 +1219,13 @@ const SearchHist = {
     const box = $('.search');
     const r = box.getBoundingClientRect();
     const el = h('div', { class: 'pop menu search-hist', style: { left: r.left + 'px', top: r.bottom + 6 + 'px', width: r.width + 'px' } },
-      h('div', { class: 'sh-head' }, h('span', null, '最近搜尋'), h('a', { onclick: () => this.clear() }, '清除全部')));
+      h('div', { class: 'sh-head' }, h('span', null, T('最近搜尋')), h('a', { onclick: () => this.clear() }, T('清除全部'))));
     // keep focus in the search box while clicking inside the list
     el.addEventListener('mousedown', e => e.preventDefault());
     for (const q of items.slice(0, 10)) {
       el.append(h('div', { class: 'sh-row' },
         h('button', { class: 'sh-q', html: icon('clock') + `<span>${esc(q)}</span>`, onclick: () => this.run(q) }),
-        h('button', { class: 'sh-x', title: '移除', html: icon('x'), onclick: e => { e.stopPropagation(); this.remove(q); } })));
+        h('button', { class: 'sh-x', title: T('移除'), html: icon('x'), onclick: e => { e.stopPropagation(); this.remove(q); } })));
     }
     document.body.append(el);
     this.el = el;

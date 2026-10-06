@@ -24,7 +24,7 @@ const NowPlaying = {
     $('#ly-auto').onclick = async () => {
       const ly = this.ly, b = $('#ly-auto');
       if (!ly || !ly.synced || b.disabled) return;
-      b.disabled = true; b.textContent = '分析中…';
+      b.disabled = true; b.textContent = T('分析中…');
       try {
         const r = await Host.call('lyrics.autoAlign', { id: ly.id });
         if (this.ly !== ly) return;
@@ -32,10 +32,10 @@ const NowPlaying = {
           ly.offset = r.offset;
           $('#ly-off').textContent = fmtOffset(ly.offset);
           this.active = -2; this.layoutLines(true);
-          toast(`已自動對齊（${ly.offset >= 0 ? '+' : ''}${ly.offset.toFixed(1)} 秒）`);
-        } else toast((r && r.reason) || '自動對齊失敗');
-      } catch { toast('自動對齊失敗'); }
-      finally { b.disabled = false; b.textContent = '自動'; }
+          toast(T`已自動對齊（${ly.offset >= 0 ? '+' : ''}${ly.offset.toFixed(1)} 秒）`);
+        } else toast((r && T.msg(r.reason)) || T('自動對齊失敗'));
+      } catch { toast(T('自動對齊失敗')); }
+      finally { b.disabled = false; b.textContent = T('自動'); }
     };
     $('#np-cand').onclick = e => { e.stopPropagation(); this.togglePicker(); };
     document.addEventListener('click', e => { const p = $('#ly-pick'); if (!p.hidden && !p.contains(e.target)) p.hidden = true; });
@@ -79,7 +79,7 @@ const NowPlaying = {
     const hasTrans = this.ly && this.ly.lines.some(l => l.trans);
     $('#np-trans').style.display = hasTrans && this.showLyrics ? '' : 'none';
     $('#np-trans').classList.toggle('on', this.showTrans);
-    $('#np-src').textContent = this.showLyrics && this.ly && this.ly.source ? '歌詞來源：' + this.ly.source : '';
+    $('#np-src').textContent = this.showLyrics && this.ly && this.ly.source ? T('歌詞來源：') + T.msg(this.ly.source) : '';
     if (has) requestAnimationFrame(() => this.measure());
   },
 
@@ -111,14 +111,14 @@ const NowPlaying = {
   updateCandBtn(t) {
     const b = $('#np-cand');
     if (!t || t.live || !this.ly) { b.style.display = 'none'; return; }
-    if (this.cands && this.cands.length && !this.ly.lines.length) { b.textContent = `可能的歌詞 (${this.cands.length})`; b.classList.add('on'); }
-    else if (this.ly.lines.length) { b.textContent = '歌詞不對？'; b.classList.remove('on'); }
-    else { b.textContent = '找歌詞'; b.classList.remove('on'); }
+    if (this.cands && this.cands.length && !this.ly.lines.length) { b.textContent = T`可能的歌詞 (${this.cands.length})`; b.classList.add('on'); }
+    else if (this.ly.lines.length) { b.textContent = T('歌詞不對？'); b.classList.remove('on'); }
+    else { b.textContent = T('找歌詞'); b.classList.remove('on'); }
     b.style.display = '';
   },
   async loadCands(id, open) {
     const p = $('#ly-pick');
-    if (open) { p.hidden = false; p.replaceChildren(h('div', { class: 'ly-pick-msg' }, '搜尋中…')); }
+    if (open) { p.hidden = false; p.replaceChildren(h('div', { class: 'ly-pick-msg' }, T('搜尋中…'))); }
     let list = [];
     try { list = await Host.call('lyrics.candidates', { id }) || []; } catch { }
     if (App.state.trackId !== id) return;
@@ -136,24 +136,24 @@ const NowPlaying = {
     const p = $('#ly-pick'), id = App.state.trackId;
     const fmt = s => s > 0 ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}` : '?';
     const rows = (this.cands || []).map(c => {
-      const diff = c.diff === 0 ? '長度相同' : (c.diff > 0 ? '長 ' : '短 ') + Math.abs(c.diff).toFixed(1) + ' 秒';
+      const diff = c.diff === 0 ? T('長度相同') : (c.diff > 0 ? T('長 ') : T('短 ')) + Math.abs(c.diff).toFixed(1) + T(' 秒');
       const warn = Math.abs(c.diff) > 3 ? ' warn' : '';
       return h('button', { class: 'ly-cand', onclick: async () => {
         p.hidden = true;
         const r = await Host.call('lyrics.apply', { id, key: c.key }).catch(() => null);
-        if (!r) { toast('無法下載這份歌詞'); return; }
+        if (!r) { toast(T('無法下載這份歌詞')); return; }
         if (App.state.trackId !== id) return;
-        this.ly = lyricsOf(r, r.id, r.source + '（手動選擇）');
+        this.ly = lyricsOf(r, r.id, r.source + T('（手動選擇）'));
         this.active = -2; this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
-        toast('已套用，之後會固定使用這份歌詞');
+        toast(T('已套用，之後會固定使用這份歌詞'));
       } },
-        h('div', { class: 'c1' }, c.title || '?', h('span', { class: 'tag' }, c.source)),
+        h('div', { class: 'c1' }, c.title || '?', h('span', { class: 'tag' }, T.msg(c.source))),
         h('div', { class: 'c2' }, [c.artist, c.album].filter(Boolean).join(' · ')),
-        h('div', { class: 'c3' + warn }, `${fmt(c.duration)} · ${diff}` + (c.synced ? ' · 同步' : ' · 純文字')));
+        h('div', { class: 'c3' + warn }, `${fmt(c.duration)} · ${diff}` + (c.synced ? T(' · 同步') : T(' · 純文字'))));
     });
     p.replaceChildren(
-      h('div', { class: 'ly-pick-head' }, '選擇正確的歌詞'),
-      ...(rows.length ? rows : [h('div', { class: 'ly-pick-msg' }, '找不到其他候選。')]),
+      h('div', { class: 'ly-pick-head' }, T('選擇正確的歌詞')),
+      ...(rows.length ? rows : [h('div', { class: 'ly-pick-msg' }, T('找不到其他候選。'))]),
       h('div', { class: 'ly-pick-foot' },
         h('button', { class: 'btn small ghost', onclick: async () => {
           p.hidden = true;
@@ -161,8 +161,8 @@ const NowPlaying = {
           if (App.state.trackId !== id) return;
           this.ly = { id, synced: false, lines: [], offset: 0, source: '已標記為錯誤' };
           this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
-          toast('已回報，這首歌不再自動顯示錯誤的歌詞');
-        } }, '都不對，不要顯示歌詞')));
+          toast(T('已回報，這首歌不再自動顯示錯誤的歌詞'));
+        } }, T('都不對，不要顯示歌詞'))));
   },
 
   /* paints cover, background and text for the current track */
@@ -217,8 +217,8 @@ const NowPlaying = {
     this.lines = []; this.tops = []; this.active = -2;
     const ly = this.ly;
     if (!ly) return;
-    if (ly.instrumental) { box.append(h('div', { class: 'ly-empty' }, '純音樂，請欣賞')); return; }
-    if (!ly.lines.length) { box.append(h('div', { class: 'ly-empty' }, '找不到歌詞')); return; }
+    if (ly.instrumental) { box.append(h('div', { class: 'ly-empty' }, T('純音樂，請欣賞'))); return; }
+    if (!ly.lines.length) { box.append(h('div', { class: 'ly-empty' }, T('找不到歌詞'))); return; }
     if (!ly.synced) {
       box.append(h('div', { class: 'ly-plain' }, ly.lines.map(l => l.text).join('\n')));
       return;

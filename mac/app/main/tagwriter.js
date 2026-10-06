@@ -9,7 +9,8 @@
 //   M4A / MP4     iTunes ilst atoms; chunk offsets are moved when moov grows
 //   OGG / Opus    Vorbis comment header, pages rebuilt
 //   APE / WavPack APEv2 tag at the end
-// DFF, TAK, TTA, MKA, MP2, CAF and WMA can't be written.
+//   DFF           an "ID3 " chunk in the FRM8 form (as foobar2000 / JRiver / TagLib write it)
+// TAK, TTA, MKA, MP2, CAF and WMA can't be written.
 //
 // A file that is rewritten as a whole is written next to it first, checked with ffprobe (same audio stream and
 // length) and only then put in place of the original.
@@ -19,7 +20,7 @@ const crypto = require('crypto');
 
 const Fields = ['title', 'artist', 'albumArtist', 'album', 'genre', 'composer', 'year', 'track', 'trackTotal', 'disc', 'discTotal'];
 const Multi = new Set(['artist', 'albumArtist', 'genre', 'composer']);
-const Writable = new Set(['.flac', '.mp3', '.wav', '.aif', '.aiff', '.aifc', '.dsf', '.m4a', '.mp4', '.aac', '.alac', '.ogg', '.oga', '.opus', '.ape', '.wv']);
+const Writable = new Set(['.flac', '.mp3', '.wav', '.aif', '.aiff', '.aifc', '.dsf', '.dff', '.m4a', '.mp4', '.aac', '.alac', '.ogg', '.oga', '.opus', '.ape', '.wv']);
 
 const ext = p => path.extname(p).toLowerCase();
 const canWrite = p => Writable.has(ext(p));
@@ -354,6 +355,55 @@ function writeDsf(file, ch, cover, removeCover) {
     const n = Buffer.alloc(8);
     n.writeBigInt64LE(BigInt(at + tag.length)); fs.writeSync(fd, n, 0, 8, 12);
     n.writeBigInt64LE(BigInt(at)); fs.writeSync(fd, n, 0, 8, 20);
+  } finally { fs.closeSync(fd); }
+}
+
+/**
+ * DFF (DSDIFF): big-endian chunks inside "FRM8" (8-byte size), form type "DSD "; the tag is an "ID3 " chunk with an
+ * ID3v2 tag. The old tag chunk at the end is cut off and the new one appended; one before the audio means a rebuild
+ * through a temporary file. The audio data is copied byte for byte.
+ */
+function writeDff(file, ch, cover, removeCover) {
+  const fd = fs.openSync(file, 'r+');
+  let chunks, tag, keepEnd = 16, inPlace;
+  try {
+    const st = fs.fstatSync(fd);
+    const head = Buffer.alloc(16);
+    if (fs.readSync(fd, head, 0, 16, 0) !== 16 || head.toString('latin1', 0, 4) !== 'FRM8' || head.toString('latin1', 12, 16) !== 'DSD ') throw new Error('不是 DFF 檔案');
+    const end = Math.min(st.size, 12 + Number(head.readBigInt64BE(4)));
+    chunks = [];
+    const c = Buffer.alloc(12);
+    for (let pos = 16; pos + 12 <= end;) {
+      fs.readSync(fd, c, 0, 12, pos);
+      const id = c.toString('latin1', 0, 4);
+      let size = Number(c.readBigInt64BE(4));
+      if (size < 0 || pos + 12 + size > st.size) size = st.size - pos - 12;   // a truncated last chunk
+      chunks.push({ id, pos, size });
+      pos += 12 + size + (size & 1);
+    }
+    if (!chunks.some(x => x.id === 'DSD ' || x.id === 'DST ')) throw new Error('DFF 沒有音訊資料');
+    let old = null;
+    const o = chunks.find(x => x.id === 'ID3 ');
+    if (o && o.size > 10) {
+      const buf = Buffer.alloc(Math.min(o.size, 64 * 1024 * 1024));
+      fs.readSync(fd, buf, 0, buf.length, o.pos + 12);
+      try { old = parseId3(buf); } catch (e) { if (/ID3v2\.2|版本/.test(e.message)) throw e; old = null; }
+    }
+    tag = applyId3(old, ch, cover, removeCover, 0);
+    for (const x of chunks) if (x.id !== 'ID3 ') keepEnd = Math.max(keepEnd, x.pos + 12 + x.size + (x.size & 1));
+    inPlace = chunks.filter(x => x.id === 'ID3 ').every(x => x.pos >= keepEnd);
+    const tagChunk = Buffer.alloc(12 + tag.length + (tag.length & 1));
+    tagChunk.write('ID3 ', 0, 'latin1'); tagChunk.writeBigInt64BE(BigInt(tag.length), 4); tag.copy(tagChunk, 12);
+    if (inPlace) {
+      fs.ftruncateSync(fd, keepEnd);
+      fs.writeSync(fd, tagChunk, 0, tagChunk.length, keepEnd);
+      const n = Buffer.alloc(8); n.writeBigInt64BE(BigInt(keepEnd + tagChunk.length - 12)); fs.writeSync(fd, n, 0, 8, 4);
+      return;
+    }
+    const kept = chunks.filter(x => x.id !== 'ID3 ');
+    const size = 16 + kept.reduce((s, x) => s + 12 + x.size + (x.size & 1), 0) + tagChunk.length;
+    const h = Buffer.from(head); h.writeBigInt64BE(BigInt(size - 12), 4);
+    return rewrite(file, [h, ...kept.map(x => ({ file, start: x.pos, end: x.pos + 12 + x.size + (x.size & 1) })), tagChunk]);
   } finally { fs.closeSync(fd); }
 }
 
@@ -790,6 +840,7 @@ async function write(file, set, cover, removeCover) {
     case '.flac': return writeFlac(file, ch, cover, removeCover);
     case '.mp3': return writeMp3(file, ch, cover, removeCover);
     case '.dsf': return writeDsf(file, ch, cover, removeCover);
+    case '.dff': return writeDff(file, ch, cover, removeCover);
     case '.wav': case '.aif': case '.aiff': case '.aifc': return writeRiffLike(file, ch, cover, removeCover);
     case '.m4a': case '.mp4': case '.aac': case '.alac': {
       const h = readRange(file, 0, 8);

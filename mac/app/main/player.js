@@ -26,7 +26,9 @@ class Player extends EventEmitter {
     if (this.s.repeat === 'one') return this.current;
     let n = this.index + 1;
     if (n >= this.queue.length) { if (this.s.repeat !== 'all') return null; n = 0; }
-    return this.lib.getTrack(this.queue[n]);
+    const t = this.lib.getTrack(this.queue[n]);
+    // a CD track not yet copied off the disc can't be preloaded for gapless
+    return t && t.codec === 'CD' && this.cd && !this.cd.isReady(t) ? null : t;
   }
   onGapless(t) {
     if (!(this.s.repeat === 'one' && this.current && this.current.id === t.id)) {
@@ -55,6 +57,12 @@ class Player extends EventEmitter {
   async load(t, pos, play) {
     if (!t) return;
     this.changedNow();
+    if (t.codec === 'CD' && this.cd) {
+      // a track of the disc in the drive: copied into the cache first, playback starts once 20 s are there
+      try { await this.cd.prepare(t); }
+      catch (e) { this.engine.stop(); this.engine.emit('failed', `無法播放「${t.title}」：${e.message}`); this.changedNow(); return; }
+      if (this.current !== t) return;   // something else was chosen meanwhile
+    }
     await this.engine.load(t, pos, play);
     if (this.engine.isLoaded) { this.failures = 0; if (play) this.ensureAutoNext(); }
     else if (play && this.engine.track === t && ++this.failures < 3) {

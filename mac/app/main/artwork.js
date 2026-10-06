@@ -4,11 +4,48 @@ const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
 const { nativeImage } = require('electron');
-const { AppPaths, Log, hash, norm, similarity, getJson, getBytes, http, firstArtist, RateGate } = require('./common');
+const { AppPaths, Log, hash, norm, similarity, getJson, getBytes, http, firstArtist, RateGate, UA } = require('./common');
 const ff = require('./ffmpeg');
 
 const MissExt = '.miss3';
 const Sizes = [64, 128, 256, 384, 512, 768, 1024, 1600, 2400];
+
+const searchCache = new Map();
+async function searchJson(url, gate, user = false, signal) {
+  if (signal && signal.aborted) throw new Error('cancelled');
+  const cached = searchCache.get(url);
+  if (cached && cached.expires > Date.now()) return cached.json;
+  // Background discovery can wait for its quota; only interactive searches cap that wait.
+  if (gate && !user) await gate.wait(false, signal);
+  const ac = new AbortController();
+  const abort = () => ac.abort();
+  if (signal) signal.addEventListener('abort', abort, { once: true });
+  const timer = setTimeout(abort, user ? 8000 : 15000);
+  try {
+    if (gate && user) await gate.wait(true, ac.signal);
+    const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: ac.signal });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const rows = json && (json.results || json.data || json['release-groups']);
+    if (Array.isArray(rows)) {
+      searchCache.delete(url);
+      searchCache.set(url, { expires: Date.now() + (rows.length ? 300000 : 30000), json });
+      while (searchCache.size > 256) searchCache.delete(searchCache.keys().next().value);
+    }
+    return json;
+  } finally {
+    clearTimeout(timer);
+    if (signal) signal.removeEventListener('abort', abort);
+  }
+}
+
+async function collect(tasks, onResults) {
+  return (await Promise.all(tasks.map(async task => {
+    const batch = await task;
+    if (batch.length && onResults) onResults(batch);
+    return batch;
+  }))).flat();
+}
 
 class Semaphore {
   constructor(n) { this.n = n; this.q = []; }
@@ -278,21 +315,28 @@ class ArtworkService extends EventEmitter {
     return 'none';
   }
   /** Candidates for the picker; part: 'albums' | 'songs' | null (both). Every service is asked at the same time. */
-  async candidates(albumId, query, part = null) {
+  async candidates(albumId, query, part = null, onResults, signal) {
     const a = this.lib.getAlbum(albumId);
     const albums = part !== 'songs', songs = part !== 'albums';
-    const tasks = [];
+    const all = [];
+    const check = () => { if (signal && signal.aborted) throw new Error('cancelled'); };
     if (query && query.trim()) {
-      if (albums) tasks.push(this.albumCandidates('', query, 25, true));
-      if (songs) tasks.push(this.songCandidates('', query, 15, true));
+      if (albums) all.push(...await this.albumCandidates('', query, 25, true, onResults, signal));
+      check();
+      if (songs && (!albums || dedupe(all).length < 12)) all.push(...await this.songCandidates('', query, 15, true, onResults, signal));
     } else if (a) {
       const artist = searchArtist(a.artist);
       const title = a.loose ? path.basename(a.folder || '') : a.title;
-      if (albums) { tasks.push(this.albumCandidates(artist, title, 20, true)); if (artist) tasks.push(this.albumCandidates('', title, 20, true)); }
-      if (songs) for (const t of a.tracks.slice(0, 3)) tasks.push(this.songCandidates(searchArtist(t.artist), t.title, 8, true));
+      if (albums) {
+        all.push(...await this.albumCandidates(artist, title, 20, true, onResults, signal));
+        check();
+        if (artist && dedupe(all).length < 3) all.push(...await this.albumCandidates('', title, 20, true, onResults, signal));
+      }
+      check();
+      if (songs && (!albums || dedupe(all).length < 12))
+        all.push(...(await Promise.all(a.tracks.slice(0, 3).map(t => this.songCandidates(searchArtist(t.artist), t.title, 8, true, onResults, signal)))).flat());
     }
-    const lists = await Promise.all(tasks.map(p => p.catch(() => [])));
-    return dedupe(lists.flat()).slice(0, 60);
+    return dedupe(all).slice(0, 60);
   }
 
   /** Real pixel sizes of candidate pictures ("1400×1400"), read from the first bytes of each. */
@@ -355,24 +399,27 @@ class ArtworkService extends EventEmitter {
   }
 
   // ───────────── providers ─────────────
-  async albumCandidates(artist, title, limit, user = false) {
-    const lists = await Promise.all([deezerAlbums(artist, title, limit), this.itunes(artist, title, 'album', 'tw', limit, user), this.itunes(artist, title, 'album', 'jp', limit, user)]);
-    const all = lists.flat();
-    if (all.length < 3) all.push(...await this.musicBrainz(artist, title, user));
+  async albumCandidates(artist, title, limit, user = false, onResults, signal) {
+    const all = await collect([deezerAlbums(artist, title, limit, user, signal), this.itunes(artist, title, 'album', 'tw', limit, user, signal),
+      this.itunes(artist, title, 'album', 'jp', limit, user, signal)], onResults);
+    if (all.length < 3 && !(signal && signal.aborted)) {
+      const extra = await this.musicBrainz(artist, title, user, signal);
+      if (extra.length && onResults) onResults(extra);
+      all.push(...extra);
+    }
     return all;
   }
-  async songCandidates(artist, title, limit, user = false) {
+  async songCandidates(artist, title, limit, user = false, onResults, signal) {
     // a search the user waits for asks only Apple's jp store (same covers as tw; Apple allows few requests)
-    const tasks = [deezerSongs(artist, title, limit), this.itunes(artist, title, 'song', 'jp', limit, user)];
-    if (!user) tasks.push(this.itunes(artist, title, 'song', 'tw', limit, user));
-    return (await Promise.all(tasks)).flat();
+    const tasks = [deezerSongs(artist, title, limit, user, signal), this.itunes(artist, title, 'song', 'jp', limit, user, signal)];
+    if (!user) tasks.push(this.itunes(artist, title, 'song', 'tw', limit, user, signal));
+    return collect(tasks, onResults);
   }
-  async itunes(artist, title, entity, country, limit, user = false) {
+  async itunes(artist, title, entity, country, limit, user = false, signal) {
     const list = [];
     try {
-      await RateGate.Apple.wait(user);
       const term = encodeURIComponent(((artist || '') + ' ' + (title || '')).trim());
-      const j = await getJson(`https://itunes.apple.com/search?term=${term}&entity=${entity}&limit=${limit}&country=${country}`);
+      const j = await searchJson(`https://itunes.apple.com/search?term=${term}&entity=${entity}&limit=${limit}&country=${country}`, RateGate.Apple, user, signal);
       for (const e of (j && j.results) || []) {
         const art = e.artworkUrl100;
         if (!art) continue;
@@ -382,12 +429,11 @@ class ArtworkService extends EventEmitter {
     } catch { }
     return list;
   }
-  async musicBrainz(artist, title, user = false) {
+  async musicBrainz(artist, title, user = false, signal) {
     const list = [];
     try {
-      await RateGate.MusicBrainz.wait(user);
       const q = `releasegroup:"${title.replace(/"/g, '')}"` + (artist ? ` AND artist:"${artist.replace(/"/g, '')}"` : '');
-      const j = await getJson('https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=8&query=' + encodeURIComponent(q));
+      const j = await searchJson('https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=8&query=' + encodeURIComponent(q), RateGate.MusicBrainz, user, signal);
       for (const e of (j && j['release-groups']) || []) {
         const name = e['artist-credit'] && e['artist-credit'][0] ? e['artist-credit'][0].name : null;
         list.push({ url: `https://coverartarchive.org/release-group/${e.id}/front-1200`, thumb: `https://coverartarchive.org/release-group/${e.id}/front-250`, title: e.title, artist: name, source: 'MusicBrainz', size: '1200px' });
@@ -416,17 +462,23 @@ class ArtworkService extends EventEmitter {
     return 'none';
   }
   /** Deezer artist photos, then album covers found by the name. */
-  async artistCandidates(name, query) {
+  async artistCandidates(name, query, onResults, signal) {
     const q = query && query.trim() ? query.trim() : cleanArtist(name);
-    const list = [];
-    if (!q) return list;
-    const j = await getJson('https://api.deezer.com/search/artist?limit=25&q=' + encodeURIComponent(q));
-    for (const e of (j && j.data) || []) {
-      const pic = e.picture_xl;
-      if (!pic || pic.includes('/artist//')) continue;
-      list.push({ url: pic, thumb: e.picture_medium || pic, title: e.name, artist: e.nb_fan > 0 ? `${e.nb_fan.toLocaleString('en-US')} 位粉絲` : '', source: 'Deezer', size: '1000×1000' });
-    }
-    list.push(...await this.albumCandidates('', q, 20, true));
+    if (!q) return [];
+    const photos = async () => {
+      const list = [];
+      try {
+        const j = await searchJson('https://api.deezer.com/search/artist?limit=25&q=' + encodeURIComponent(q), null, true, signal);
+        for (const e of (j && j.data) || []) {
+          const pic = e.picture_xl;
+          if (!pic || pic.includes('/artist//')) continue;
+          list.push({ url: pic, thumb: e.picture_medium || pic, title: e.name, artist: e.nb_fan > 0 ? `${e.nb_fan.toLocaleString('en-US')} 位粉絲` : '', source: 'Deezer', size: '1000×1000' });
+        }
+      } catch { }
+      if (list.length && onResults) onResults(list);
+      return list;
+    };
+    const list = (await Promise.all([photos(), this.albumCandidates('', q, 20, true, onResults, signal)])).flat();
     return dedupe(list).slice(0, 60);
   }
   async setArtistOverrideFromUrl(name, url) { return this.setArtistOverride(name, await getBytes(url)); }
@@ -513,9 +565,9 @@ function bestAlbum(c, artist, title, strict) {
   }
   return best >= 0.6 ? url : null;
 }
-async function deezerAlbums(artist, title, limit) {
+async function deezerAlbums(artist, title, limit, user = false, signal) {
   const q = !artist ? title : `artist:"${artist}" album:"${title}"`;
-  const j = await getJson(`https://api.deezer.com/search/album?limit=${limit}&q=` + encodeURIComponent(q));
+  const j = await searchJson(`https://api.deezer.com/search/album?limit=${limit}&q=` + encodeURIComponent(q), null, user, signal).catch(() => null);
   const list = [];
   for (const e of (j && j.data) || []) {
     const xl = e.cover_xl;
@@ -524,9 +576,9 @@ async function deezerAlbums(artist, title, limit) {
   }
   return list;
 }
-async function deezerSongs(artist, title, limit) {
+async function deezerSongs(artist, title, limit, user = false, signal) {
   const q = !artist ? title : `artist:"${artist}" track:"${title}"`;
-  const j = await getJson(`https://api.deezer.com/search?limit=${limit}&q=` + encodeURIComponent(q));
+  const j = await searchJson(`https://api.deezer.com/search?limit=${limit}&q=` + encodeURIComponent(q), null, user, signal).catch(() => null);
   const list = [];
   for (const e of (j && j.data) || []) {
     const al = e.album; if (!al) continue;
