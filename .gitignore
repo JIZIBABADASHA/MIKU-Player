@@ -4,6 +4,7 @@ obj/
 dist/
 /MIKU/
 /MIKU-Setup/
+/Extensions/
 /artifacts/
 /.tools/
 mac/build/work/
