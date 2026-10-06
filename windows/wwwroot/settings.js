@@ -8,9 +8,9 @@ const Settings = {
     if (window.Outputs) Outputs.label();
   },
 
-  /** Settings page in tabs: 音訊 / 曲庫 / 外觀 / 其他 (#/settings/<tab>; the last one is remembered). */
+  /** Settings page in tabs: 音訊 / 曲庫 / 外觀 / 快捷鍵 / 其他 (#/settings/<tab>; the last one is remembered). */
   render(view, tab) {
-    const tabs = [['audio', T('音訊')], ['library', T('曲庫')], ['look', T('外觀')], ['other', T('其他')]];
+    const tabs = [['audio', T('音訊')], ['library', T('曲庫')], ['look', T('外觀')], ['keys', T('快捷鍵')], ['other', T('其他')]];
     if (!tabs.some(t => t[0] === tab)) tab = tabs.some(t => t[0] === uiPref('settingsTab')) ? uiPref('settingsTab') : 'audio';
     if (uiPref('settingsTab') !== tab) setUiPref('settingsTab', tab);
     view.append(pageHead(T('設定')));
@@ -235,6 +235,8 @@ const Settings = {
         })()));
       }
     }
+
+    if (tab === 'keys') Keys.renderSettings(section, field);
 
     if (tab === 'other') {
       /* ── interface language ── */

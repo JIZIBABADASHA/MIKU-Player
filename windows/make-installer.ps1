@@ -22,6 +22,30 @@ function Run($exe, [string[]]$argv) {
     return $code
 }
 function Fail($m) { Say ''; Say "失敗：$m"; Say "詳細內容在 $Log"; exit 1 }
+# extension modules: sources under ..\Extensions\<Name>\src\<Project>\<Project>.Extension.csproj (same pattern as MIKU.csproj)
+function Find-Extensions {
+    $root = Join-Path (Split-Path $Src -Parent) 'Extensions'
+    if (-not (Test-Path $root)) { return @() }
+    return @(Get-ChildItem $root -Directory | ForEach-Object { Get-ChildItem (Join-Path $_.FullName 'src') -Directory -ErrorAction SilentlyContinue } |
+        ForEach-Object { Get-ChildItem $_.FullName -Filter '*.Extension.csproj' -File -ErrorAction SilentlyContinue })
+}
+# what actually landed in dist\MIKU\ext\<id>\ (name, version of the *.Extension.dll, size)
+function Show-PackedExtensions {
+    $ext = Join-Path $Dist 'ext'
+    $dirs = @(if (Test-Path $ext) { Get-ChildItem $ext -Directory | Sort-Object Name })
+    if ($dirs.Count -eq 0) { Say '    （這次的安裝檔不含任何 extension）'; return $dirs }
+    foreach ($d in $dirs) {
+        $dll = Get-ChildItem $d.FullName -Filter '*.Extension.dll' -File | Select-Object -First 1
+        $ver = if ($dll) { $v = $dll.VersionInfo; if ($v.ProductVersion) { ($v.ProductVersion -split '\+')[0] } else { $v.FileVersion } } else { '' }
+        $size = (Get-ChildItem $d.FullName -Recurse -File | Measure-Object Length -Sum).Sum
+        $name = if ($dll) { $dll.BaseName -replace '\.Extension$', '' } else { $d.Name }
+        $line = "    ● $name（ext\$($d.Name)）"
+        if ($ver) { $line += "  v$ver" }
+        $line += "  $([math]::Round($size / 1MB, 1)) MB"
+        Say $line
+    }
+    return $dirs
+}
 function Get($url, $file) { Say "    下載 $url"; Invoke-WebRequest -Uri $url -OutFile $file -UseBasicParsing }
 
 try {
@@ -72,6 +96,11 @@ try {
 
     # ── 2. self-contained publish ────────────────────────────
     Say '[2/4] 編譯 MIKU（獨立版，使用者不需要安裝 .NET）...'
+    $found = @(Find-Extensions)
+    if ($found.Count -gt 0) {
+        Say "    找到 $($found.Count) 個 extension，會一起打包："
+        foreach ($p in $found) { Say "      - $($p.BaseName -replace '\.Extension$', '')（Extensions\$((Split-Path (Split-Path (Split-Path $p.DirectoryName -Parent) -Parent) -Leaf))）" }
+    } else { Say '    沒有找到 extension（..\Extensions 下沒有 *.Extension.csproj），只打包 MIKU 本體' }
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'; $env:DOTNET_NOLOGO = '1'
     if (Test-Path (Join-Path $Src 'dist')) { Remove-Item (Join-Path $Src 'dist') -Recurse -Force }
     $code = Run $dotnet @('publish', (Join-Path $Src 'MIKU.csproj'), '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true',
@@ -82,6 +111,9 @@ try {
     }
     Get-ChildItem $Dist -Filter *.xml | Remove-Item -Force
     Get-ChildItem $Dist -Filter *.pdb | Remove-Item -Force
+    Say '    已放進安裝檔的 extension：'
+    $packed = @(Show-PackedExtensions)
+    if ($found.Count -ne $packed.Count) { Say "    ⚠ 找到 $($found.Count) 個 extension，但只打包了 $($packed.Count) 個；請查看 installer.log" }
 
     # ── 3. ffmpeg (LGPL build) ─────────────────────────────
     Say '[3/4] 準備 ffmpeg（LGPL 版）...'
@@ -171,6 +203,8 @@ try {
     Set-Content -Path (Join-Path $Src 'installer-result.txt') -Value 'INSTALLER OK' -Encoding ASCII
     Say ''
     Say "完成！安裝檔：$($exe.FullName)（$([math]::Round($exe.Length / 1MB)) MB）"
+    Say '包含的 extension：'
+    Show-PackedExtensions | Out-Null
     Start-Process explorer.exe "/select,`"$($exe.FullName)`""
 }
 catch {

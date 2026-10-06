@@ -808,27 +808,13 @@ const App = {
   },
 
   bindKeys() {
+    // shortcuts are user-adjustable: keys.js (Settings → 快捷鍵); Esc and F12 are fixed
     document.addEventListener('keydown', e => {
+      if (Keys.recording) return;
       const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); $('#q').focus(); $('#q').select(); return; }
       if (e.key === 'F12' || (e.metaKey && e.altKey && e.key.toLowerCase() === 'i')) { Host.call('devtools'); return; }
-      if (e.key === 'F11') { e.preventDefault(); Host.call('fullscreen'); return; }
-      if (typing) return;
-      if (e.key === 'Escape') { if (CoverView.close()) return; if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); }
-      if (e.key === ' ') { e.preventDefault(); this.toggle(); }
-      else if (e.key === 'ArrowRight' && !e.altKey) { e.preventDefault(); this.seek(Math.min(this.state.dur, this.pos + (e.shiftKey ? 30 : 5))); }
-      else if (e.key === 'ArrowLeft' && !e.altKey) { e.preventDefault(); this.seek(Math.max(0, this.pos - (e.shiftKey ? 30 : 5))); }
-      else if (e.key === 'ArrowUp' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.setVolume(this.state.volumeDb + 1, false); }
-      else if (e.key === 'ArrowDown' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.setVolume(this.state.volumeDb - 1, false); }
-      else if (e.key.toLowerCase() === 'l') NowPlaying.toggle();
-      else if (e.key.toLowerCase() === 'q') Drawer.toggle('queue');
-      else if (e.key.toLowerCase() === 'd') Drawer.toggle('dsp');
-      else if (e.key.toLowerCase() === 'm') $('#b-mute').click();
-      else if (e.key.toLowerCase() === 'n' && (e.ctrlKey || e.metaKey)) Host.call('next');
-      else if (e.metaKey && e.key === '[') history.back();
-      else if (e.metaKey && e.key === ']') history.forward();
-      else if (e.altKey && e.key === 'ArrowLeft') history.back();
-      else if (e.altKey && e.key === 'ArrowRight') history.forward();
+      if (e.key === 'Escape' && !typing) { if (CoverView.close()) return; if (ArtPicker.close()) return; if (Popover.close()) return; if (Drawer.open) return Drawer.close(); if (NowPlaying.open) return NowPlaying.hide(); if (this.fullscreen) return Host.call('fullscreen', { on: false }); return; }
+      Keys.handle(e, typing);
     });
     // mouse side buttons: handled in mac-bridge.js
   },
