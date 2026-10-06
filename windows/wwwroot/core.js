@@ -449,12 +449,13 @@ const MikuExt = {
 
 const App = {
   settings: {}, state: {}, queue: { ids: [], index: -1 }, favs: new Set(),
-  posBase: 0, posAt: 0, seeking: false,
+  posBase: 0, posAt: 0, seeking: false, fullscreen: false, fullscreenHideTimer: 0, fullscreenPointerY: null,
 
   async start() {
     this.drawBrand();
     this.bindBar();
     this.bindKeys();
+    this.bindFullscreenControls();
     Host.on('state', s => this.setState(s));
     Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); MikuExt.slot(q.source); });
     Host.on('error', e => toast(T.msg(e.message), { error: true }));
@@ -463,7 +464,7 @@ const App = {
     Host.on('remotePaired', p => toast(T`「${p.name}」已配對，可以用手機遙控了`));
     Host.on('favs', f => { this.favs = new Set(f || []); this.renderFav(); });
     Host.on('scan', p => this.scan(p));
-    Host.on('fullscreen', ({ on }) => { this.fullscreen = on; document.documentElement.classList.toggle('fullscreen', on); });
+    Host.on('fullscreen', ({ on }) => this.syncFullscreen(on));
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       await Lib.load();
@@ -497,6 +498,49 @@ const App = {
 
   drawBrand() {
     $('#brand').innerHTML = Brand.svg(34);
+  },
+
+  bindFullscreenControls() {
+    // reveal: touch the top edge, or move upward inside the top band; stays while the pointer is
+    // in the zone around the button (no gap between band and button); hides after a grace delay.
+    const button = $('#fullscreen-exit');
+    const EDGE = 6, BAND = 56, ZONE = 104, GRACE = 140;
+    const clearHide = () => { clearTimeout(this.fullscreenHideTimer); this.fullscreenHideTimer = 0; };
+    const show = () => { clearHide(); button.classList.add('is-visible'); };
+    const hide = () => { clearHide(); button.classList.remove('is-visible'); };
+    const scheduleHide = (delay = GRACE) => {
+      if (this.fullscreenHideTimer) return;
+      this.fullscreenHideTimer = setTimeout(() => {
+        this.fullscreenHideTimer = 0;
+        if (this.fullscreen && !button.matches(':hover')) button.classList.remove('is-visible');
+      }, delay);
+    };
+    button.addEventListener('click', () => { hide(); Host.call('fullscreen', { on: false }); });
+    button.addEventListener('pointerenter', clearHide);
+    button.addEventListener('pointerleave', () => scheduleHide());
+    document.addEventListener('pointermove', e => {
+      const previousY = this.fullscreenPointerY;
+      const y = this.fullscreenPointerY = e.clientY;
+      if (!this.fullscreen) return;
+      const shown = button.classList.contains('is-visible');
+      if (y <= EDGE || (y <= BAND && previousY != null && y < previousY - 1)) show();
+      else if (shown && y <= ZONE) clearHide();
+      else if (shown) scheduleHide();
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => {
+      this.fullscreenPointerY = null;
+      if (this.fullscreen) scheduleHide();
+    });
+    window.addEventListener('blur', hide);
+  },
+
+  syncFullscreen(on) {
+    this.fullscreen = on;
+    document.documentElement.classList.toggle('fullscreen', on);
+    clearTimeout(this.fullscreenHideTimer);
+    this.fullscreenHideTimer = 0;
+    this.fullscreenPointerY = null;
+    $('#fullscreen-exit').classList.remove('is-visible');
   },
 
   scan(p) {
