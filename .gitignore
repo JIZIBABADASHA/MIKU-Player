@@ -9,6 +9,7 @@ dist/
 /.tools/
 mac/build/work/
 mac/build/downloads/
+mac/build/backups/
 
 # build logs / helper flags
 build.log

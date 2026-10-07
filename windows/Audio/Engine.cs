@@ -76,8 +76,10 @@ public sealed class AudioEngine : IAudioEngine
     OutputPlan _plan;
     Segment _lastAudible;
     PcmSource _preloadTriedFor;
-    bool _paused;
-    double? _pausedAt;    // position kept while paused with the device released
+    volatile bool _paused;
+    double? _pausedAt;    // audible position kept while paused, even if the output clock resets
+    bool _wasapiStopped;  // WASAPI is stopped (but still initialized) until the source is rebuilt for Resume
+    long _wasapiFrameBase; // frames submitted before the most recent WASAPI clock reset
     double? _hwRestoreDb;
     bool _reopenFailed;   // the DAC couldn't be reopened recently: prefer keeping the open output over reopening
     bool _sharedFallback; // last open fell back to shared mode because another program held the DAC
@@ -364,6 +366,7 @@ public sealed class AudioEngine : IAudioEngine
             ApplyVolume();
             Signal = BuildSignal(t, sp, plan);
             if (keptNote != null && Signal != null) Signal.Note = keptNote;
+            _wasapiStopped = false;
             _pausedAt = null;
             _paused = false;
             _out.Play();
@@ -630,27 +633,51 @@ public sealed class AudioEngine : IAudioEngine
         }
     }
 
-    /// <summary>Pause while keeping the output (and the exclusive-mode DAC) open, so Resume is instant.</summary>
+    /// <summary>Pause the stream while keeping the initialized output (and the exclusive-mode DAC) open.</summary>
     public void Pause()
     {
         var o = _out;
-        if (o == null) return;
-        try { o.Pause(); } catch { }
+        if (o == null || _paused) return;
+        var c = _chain;
+        if (c != null)
+        {
+            // The DAC may have crossed a gapless boundary since the last 40 ms monitor tick.
+            // Resume must reload the track that was actually audible when Pause was pressed.
+            var (aud, _) = c.SegmentAt(PlayedFrames());
+            FollowAudibleTrack(aud);
+        }
+        _pausedAt = Position;
         _paused = true;
+        try
+        {
+            if (o is AsioOut) o.Pause();
+            else
+            {
+                // NAudio 2.2.1's WasapiOut.Pause only stops feeding the render buffer: the audio client and
+                // its clock keep running. Some exclusive-mode drivers replay that buffer instead of silence.
+                // Stop also resets the clock and discards queued samples, but keeps the DAC initialized.
+                o.Stop();
+                _wasapiFrameBase = _chain?.FramesOut ?? 0;
+                _wasapiStopped = true;
+            }
+        }
+        catch (Exception ex) { Log.Error("Pause", ex); Failed?.Invoke(ex.Message); }
         Changed?.Invoke();
     }
 
     public void Resume()
     {
         var t = Track;
-        if (_out == null)
+        if (_out == null || _wasapiStopped)
         {
-            // nothing open yet (e.g. track restored paused at startup): open it at the saved position
+            // WASAPI Stop flushed samples the decoder already consumed. Rebuild from the audible pause
+            // position, reusing the initialized output when its plan still matches, so no music is skipped.
+            // This also handles a track restored paused at startup (no output open yet).
             if (t != null) _ = LoadAsync(t, t.IsLive ? 0 : (_pausedAt ?? 0), true);
             return;
         }
-        try { _out.Play(); } catch (Exception ex) { Failed?.Invoke(ex.Message); }
-        _paused = false;
+        try { _out.Play(); _pausedAt = null; _paused = false; }
+        catch (Exception ex) { Log.Error("Resume", ex); Failed?.Invoke(ex.Message); }
         Changed?.Invoke();
     }
 
@@ -705,6 +732,7 @@ public sealed class AudioEngine : IAudioEngine
     {
         var o = _out; var c = _chain;
         _out = null; _chain = null; _plan = null; _lastAudible = null;
+        _wasapiStopped = false; _wasapiFrameBase = 0;
         if (o != null)
         {
             o.PlaybackStopped -= OnStopped;
@@ -796,7 +824,7 @@ public sealed class AudioEngine : IAudioEngine
         if (c == null || o == null) return 0;
         try
         {
-            if (o is WasapiOut w) return w.GetPosition() / c.WaveFormat.BlockAlign;
+            if (o is IWavePosition w) return _wasapiFrameBase + w.GetPosition() / c.WaveFormat.BlockAlign;
             if (o is AsioOut a) return Math.Max(0, c.FramesOut - a.FramesPerBuffer * 2L);
         }
         catch { }
@@ -807,6 +835,7 @@ public sealed class AudioEngine : IAudioEngine
     {
         get
         {
+            if (_paused && _pausedAt.HasValue) return _pausedAt.Value;
             var c = _chain;
             if (c == null) return _pausedAt ?? _s.ResumePosition;
             long played = PlayedFrames();
@@ -832,10 +861,18 @@ public sealed class AudioEngine : IAudioEngine
     }
 
     bool _endedRaised;
+    void FollowAudibleTrack(Segment aud)
+    {
+        if (aud?.Track == null || aud.FromSeek || ReferenceEquals(aud.Track, Track)) return;
+        Track = aud.Track;
+        if (Signal != null) Signal = BuildSignal(aud.Track, null, _plan);
+        TrackStarted?.Invoke(aud.Track);
+    }
+
     void Monitor()
     {
         var c = _chain;
-        if (c == null) return;
+        if (c == null || _paused) return;
         try
         {
             long played = PlayedFrames();
@@ -850,12 +887,7 @@ public sealed class AudioEngine : IAudioEngine
                 else
                 {
                     _endedRaised = false;
-                    if (!aud.FromSeek && !ReferenceEquals(aud.Track, Track))
-                    {
-                        Track = aud.Track;
-                        if (Signal != null) Signal = BuildSignal(aud.Track, null, _plan);
-                        TrackStarted?.Invoke(aud.Track);
-                    }
+                    FollowAudibleTrack(aud);
                 }
             }
             // gapless pre-loading once the current decoder has finished reading its file
