@@ -115,6 +115,10 @@ class MusicLibrary extends EventEmitter {
     this.revision = 0;
     this.progress = { scanning: false, found: 0, done: 0, failed: 0 };
     this.scanToken = 0;
+    this.playbackActive = () => false;
+    this.savePending = null;
+    this.saveRunning = false;
+    this.saveQueue = Promise.resolve();
   }
   getTrack(id) { return id ? this.byId.get(id) || null : null; }
   getAlbum(id) { return id ? this.albums.get(id) || null : null; }
@@ -127,8 +131,27 @@ class MusicLibrary extends EventEmitter {
     this.build(cache.tracks || [], cache.folderArt || {});
   }
   save(tracks) {
-    try { Json.saveAtomic(AppPaths.Library, { version: 1, tracks, folderArt: this.folderArt }); }
-    catch (e) { Log.error('Save library', e); }
+    // A scan can publish another snapshot while the previous write is still running.
+    // Retain only the newest waiting snapshot so RAM and disk work stay bounded.
+    this.savePending = { version: 1, tracks: tracks.slice(), folderArt: { ...this.folderArt } };
+    if (!this.saveRunning) {
+      this.saveRunning = true;
+      this.saveQueue = new Promise(resolve => setImmediate(resolve)).then(() => this.flushSaves());
+    }
+    return this.saveQueue;
+  }
+  async flushSaves() {
+    try {
+      while (this.savePending) {
+        const snapshot = this.savePending;
+        this.savePending = null;
+        try {
+          const tmp = AppPaths.Library + '.tmp';
+          await fs.promises.writeFile(tmp, JSON.stringify(snapshot));
+          await fs.promises.rename(tmp, AppPaths.Library);
+        } catch (e) { Log.error('Save library', e); }
+      }
+    } finally { this.saveRunning = false; }
   }
 
   build(tracks, folderArt) {
@@ -200,24 +223,28 @@ class MusicLibrary extends EventEmitter {
       for (const t of existing.values()) if (offline.some(r => lc(t.path).startsWith(lc(r)))) result.push(t);
       p.done = result.length; this.report(p);
       let lastReport = Date.now(), lastPublish = Date.now(), idx = 0;
-      const worker = async () => {
+      const worker = async lane => {
         while (idx < todo.length && !cancelled()) {
+          // Keep tag probes from competing with playback for CPU and disk bandwidth.
+          if (lane >= 2 && this.playbackActive()) { await new Promise(r => setTimeout(r, 250)); continue; }
           const f = todo[idx++];
           const t = await readTrack(f);
+          if (cancelled()) return;
           if (t) result.push(t); else p.failed++;
           if (Date.now() - lastPublish > 15000) {
             lastPublish = Date.now();
-            this.build(result.slice(), folderArt); this.save(result.slice()); this.emit('changed');
+            const snapshot = result.slice();
+            this.build(snapshot, folderArt); this.save(snapshot); this.emit('changed');
           }
           if (Date.now() - lastReport > 250) { lastReport = Date.now(); p.done = result.length; p.current = path.basename(f.path); this.report(p); }
         }
       };
-      const n = Math.max(2, Math.min(6, Math.floor(require('os').cpus().length / 2)));
-      await Promise.all(Array.from({ length: n }, worker));
+      const n = Math.max(2, Math.min(4, Math.floor(require('os').cpus().length / 2)));
+      await Promise.all(Array.from({ length: n }, (_, lane) => worker(lane)));
       if (cancelled()) return;
       const changed = todo.length > 0 || result.length !== existing.size;
       if (changed || full || JSON.stringify(folderArt) !== JSON.stringify(this.folderArt)) {
-        this.build(result, folderArt); this.save(result); this.emit('changed');
+        this.build(result, folderArt); await this.save(result); this.emit('changed');
         // files read again that were already known: thumbnails made from their old pictures are stale
         const again = new Set(todo.filter(f => existing.has(lc(f.path))).map(f => lc(f.path)));
         if (again.size) this.emit('tracksRead', result.filter(t => again.has(lc(t.path))));
@@ -288,7 +315,7 @@ class MusicLibrary extends EventEmitter {
     const folderArt = Object.fromEntries(Object.entries(this.folderArt).filter(([d]) => !dirs.has(lc(d))));
     Object.assign(folderArt, art);
     this.build(list, folderArt);
-    this.save(list);
+    await this.save(list);
     this.emit('changed');
     this.emit('tracksRead', fresh);
     const movedLc = new Map(Object.entries(moved || {}).map(([k, v]) => [lc(k), v]));

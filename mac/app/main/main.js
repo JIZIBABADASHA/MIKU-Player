@@ -70,6 +70,7 @@ const art = new ArtworkService(lib, S);
 const lyrics = new LyricsService(S);
 const engine = new AudioEngine(S);
 const player = new Player(engine, lib, S);
+lib.playbackActive = () => engine.isPlaying;
 const fp = new FingerprintService(S);
 // audio CD in the drive (cd.js): its album and tracks are found like the library's own
 const { CdService } = require('./cd');
@@ -114,14 +115,14 @@ TagWriter.setVerifier(async (orig, tmp) => {
   if (!sb || (sa && sa.codec_name !== sb.codec_name) || Math.abs(da - db) > 0.5) throw new Error('寫入後的檔案檢查失敗，原檔沒有被更動');
 });
 
-let win = null, ready = false, scanStarted = false, autoArtStarted = false, artJob = null, remote = null, remoteTick = 0, quitting = false;
+let win = null, ready = false, uiVisible = true, scanStarted = false, autoArtStarted = false, artJob = null, remote = null, remoteTickAt = 0, quitting = false;
 
 // ───────────── YouTube Music panel ─────────────
 let yt = null, ytMeta = {}, ytActive = false, ytPlaying = false;
 const ChromeUA = () => app.userAgentFallback.replace(/\s*(Electron|MIKU|miku)\/\S+/g, '');
 function ensureYt() {
   if (yt) return yt;
-  yt = new WebContentsView({ webPreferences: { partition: 'persist:ytmusic', preload: path.join(__dirname, 'ytm-preload.js'), contextIsolation: true, sandbox: true, backgroundThrottling: false } });
+  yt = new WebContentsView({ webPreferences: { partition: 'persist:ytmusic', preload: path.join(__dirname, 'ytm-preload.js'), contextIsolation: true, sandbox: true, backgroundThrottling: true } });
   yt.setBackgroundColor('#030303');
   yt.setVisible(false);
   win.contentView.addChildView(yt);
@@ -203,10 +204,12 @@ const RemoteEvents = new Set(['state', 'queue', 'error', 'library', 'favs']);
 let lastTick = null, lastTickAt = 0;   // the last periodic state sent to the page
 function post(ev, d, tick = false) {
   let json = null;
-  if (remote && RemoteEvents.has(ev) && remote.hasClients && (!tick || ++remoteTick % 3 === 0)) {
+  if (remote && RemoteEvents.has(ev) && remote.hasClients && (!tick || Date.now() - remoteTickAt >= 600)) {
+    if (tick) remoteTickAt = Date.now();
     try { remote.broadcast(json = JSON.stringify({ ev, d })); } catch (e) { Log.error('Remote broadcast', e); }
   }
   if (!ready || !win || win.isDestroyed()) return;
+  if (tick && (!uiVisible || !win.isVisible() || win.isMinimized())) return;
   if (tick) {
     // paused / stopped: the periodic state is the same every time; don't make the page parse and redraw it 5×/s
     // (a change is posted at once by postSoon, and the same state still goes out once a second)
@@ -222,7 +225,25 @@ function postSoon(what) {
   pending.add(what);
   setTimeout(() => { pending.delete(what); if (what === 'state') post('state', state()); else if (what === 'queue') post('queue', queueDto()); }, 30);
 }
-setInterval(() => { if (ready || (remote && remote.hasClients)) post('state', state(), true); }, 200);
+let nativeVisible = null;
+function syncWindowVisibility() {
+  const visible = !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized();
+  if (visible === nativeVisible) return;
+  nativeVisible = visible;
+  uiVisible = visible;
+  post('windowVisibility', { visible });
+  if (visible && ready) post('state', state());
+}
+function stateTick() {
+  // Some macOS window configurations omit hide/show events; reuse this tick to reconcile native visibility.
+  syncWindowVisibility();
+  const visible = ready && uiVisible && win && !win.isDestroyed() && win.isVisible() && !win.isMinimized();
+  const connected = remote && remote.hasClients;
+  if (visible || connected) post('state', state(), true);
+  const active = engine.isPlaying || (liveActive() && ytPlaying);
+  setTimeout(stateTick, active && visible ? 200 : active && connected ? 600 : 1000);
+}
+setTimeout(stateTick, 200);
 
 ipcMain.on('host', async (e, raw) => {
   if (!win || e.sender !== win.webContents) return;
@@ -610,9 +631,14 @@ async function handleRpc(m, a) {
   switch (m) {
     case 'ready':
       ready = true;
+      nativeVisible = null; syncWindowVisibility();
       if (!scanStarted && S.folders.length) { scanStarted = true; lib.startScan(); }
       return init();
     case 'init': return init();
+    case 'ui.visibility':
+      uiVisible = a.visible === true && !!win && win.isVisible() && !win.isMinimized();
+      if (uiVisible) post('state', state());
+      return null;
     case 'state': return state();
     case 'queue': return queueDto();
     case 'play': await player.playList(L(a, 'ids'), N(a, 'start', -1), typeof a.shuffle === 'boolean' ? a.shuffle : S.shuffle); return null;
@@ -949,12 +975,17 @@ function restoreBounds() {
 function createWindow() {
   win = new BrowserWindow({
     ...restoreBounds(), minWidth: 980, minHeight: 640, title: 'MIKU', backgroundColor: Bg, show: false,
-    webPreferences: { preload: path.join(__dirname, 'main-preload.js'), contextIsolation: true, sandbox: true, spellcheck: false, backgroundThrottling: false },
+    webPreferences: { preload: path.join(__dirname, 'main-preload.js'), contextIsolation: true, sandbox: true, spellcheck: false, backgroundThrottling: true },
   });
   if (S.maximized) win.maximize();
   win.on('enter-full-screen', () => post('fullscreen', { on: true }));
   win.on('leave-full-screen', () => post('fullscreen', { on: false }));
+  // Electron's native swipe is the older three-finger page gesture; two-finger swipes live in mac-navigation.js.
+  win.on('swipe', (_e, direction) => {
+    if (direction === 'left' || direction === 'right') post('navigate', { offset: direction === 'left' ? -1 : 1 });
+  });
   win.once('ready-to-show', () => win.show());
+  for (const event of ['show', 'restore', 'hide', 'minimize']) win.on(event, syncWindowVisibility);
   win.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('miku://app/')) { e.preventDefault(); openExternal(url); } });
   win.webContents.on('before-input-event', (e, input) => {
@@ -1172,11 +1203,15 @@ function showWin() { if (!win) return; if (win.isMinimized()) win.restore(); win
 
 app.on('second-instance', showWin);
 app.on('activate', showWin);
-app.on('before-quit', () => {
+app.on('before-quit', e => {
+  if (quitting) return;
+  e.preventDefault();
   quitting = true;
+  lib.scanToken++; // stop background tag probes before flushing the last library snapshot
   if (artSearch) artSearch.abort();
   try { player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
+  lib.saveQueue.finally(() => app.quit());
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 

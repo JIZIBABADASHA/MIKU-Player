@@ -96,13 +96,20 @@ class RemoteServer {
   send(req, res, status, type, body, extra = {}) {
     if (!Buffer.isBuffer(body)) body = Buffer.from(body || '');
     const headers = { 'Content-Type': type, ...extra };
+    const finish = data => {
+      if (res.destroyed || res.writableEnded) return;
+      headers['Content-Length'] = data.length;
+      res.writeHead(status, headers);
+      res.end(req.method === 'HEAD' ? undefined : data);
+    };
     if (body.length > 1024 && /^text\/|json|javascript/.test(type) && /gzip/.test(req.headers['accept-encoding'] || '')) {
-      body = zlib.gzipSync(body, { level: 1 });
-      headers['Content-Encoding'] = 'gzip'; headers.Vary = 'Accept-Encoding';
+      zlib.gzip(body, { level: 1 }, (err, compressed) => {
+        if (!err) { headers['Content-Encoding'] = 'gzip'; headers.Vary = 'Accept-Encoding'; }
+        finish(err ? body : compressed);
+      });
+      return;
     }
-    headers['Content-Length'] = body.length;
-    res.writeHead(status, headers);
-    res.end(req.method === 'HEAD' ? undefined : body);
+    finish(body);
   }
   json(req, res, status, value, extra = {}) { this.send(req, res, status, 'application/json; charset=utf-8', JSON.stringify(value), { 'Cache-Control': 'no-store', ...extra }); }
 

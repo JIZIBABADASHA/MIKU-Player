@@ -2,6 +2,8 @@
 // Album / track / artist pictures: local, embedded, online (Apple Music, Deezer, MusicBrainz). Port of Artwork.cs
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const { spawn } = require('child_process');
 const { EventEmitter } = require('events');
 const { nativeImage } = require('electron');
 const { AppPaths, Log, hash, norm, similarity, getJson, getBytes, http, firstArtist, RateGate, UA } = require('./common');
@@ -67,6 +69,42 @@ function resize(src, size) {
     return src.length > 100 ? src : null;
   }
 }
+// Keep expensive image decoding off Electron's main thread. One FFmpeg process handles one thumbnail;
+// the ArtworkService gate bounds both the decoded image buffers and the child process count.
+async function resizeAsync(src, size) {
+  if (!ff.Ffmpeg.path) return resize(src, size);
+  const args = ['-hide_banner', '-loglevel', 'error', '-threads', '1', '-filter_threads', '1',
+    '-i', 'pipe:0', '-frames:v', '1', '-vf', `scale=w='min(iw,${size})':h='min(ih,${size})':force_original_aspect_ratio=decrease`,
+    '-c:v', 'mjpeg', '-threads', '1', '-q:v', size >= 1024 ? '2' : '3', '-f', 'image2pipe', 'pipe:1'];
+  try {
+    const bytes = await new Promise((resolve, reject) => {
+      const proc = spawn(ff.Ffmpeg.path, args, { stdio: ['pipe', 'pipe', 'ignore'] });
+      try { os.setPriority(proc.pid, 10); } catch { }
+      const chunks = [];
+      let total = 0;
+      const timer = setTimeout(() => proc.kill(), 20000);
+      proc.stdout.on('data', chunk => {
+        total += chunk.length;
+        if (total > 24 * 1024 * 1024) proc.kill();
+        else chunks.push(chunk);
+      });
+      proc.stdin.on('error', () => { }); // unsupported input may close the pipe early
+      proc.on('error', reject);
+      proc.on('close', code => {
+        clearTimeout(timer);
+        if (code === 0 && total <= 24 * 1024 * 1024 && total > 100) resolve(Buffer.concat(chunks, total));
+        else reject(new Error('thumbnail conversion failed'));
+      });
+      proc.stdin.end(src);
+    });
+    return bytes;
+  } catch {
+    return resize(src, size); // preserve formats the bundled FFmpeg cannot decode
+  }
+}
+async function readIfPresent(file) {
+  try { return await fs.promises.readFile(file); } catch { return null; }
+}
 function validImage(buf) {
   try { const img = nativeImage.createFromBuffer(buf); return !img.isEmpty() || /^RIFF....WEBP/s.test(buf.slice(0, 12).toString('latin1')); } catch { return false; }
 }
@@ -118,7 +156,7 @@ class ArtworkService extends EventEmitter {
   constructor(lib, settings) {
     super();
     this.lib = lib; this.s = settings;
-    this.resizeGate = new Semaphore(Math.max(2, require('os').cpus().length - 1));
+    this.resizeGate = new Semaphore(1);
     this.onlineGate = new Semaphore(2);
     this.inflight = new Map();
     this.onlineInflight = new Map();
@@ -158,24 +196,24 @@ class ArtworkService extends EventEmitter {
     const a = this.lib.getAlbum(albumId);
     if (!a) return null;
     const ov = this.overridePath(albumId);
-    if (exists(ov)) try { return fs.readFileSync(ov); } catch { }
+    { const image = await readIfPresent(ov); if (image) return image; }
     // the picture in the files first: it is what the tag editor updates, while an old cover.jpg often stays behind
     for (const t of a.tracks.filter(t => t.hasPic).slice(0, 3)) { const b = await ff.picture(t.path); if (b && b.length > 100) return b; }
-    if (a.artPath) try { return fs.readFileSync(a.artPath); } catch { }
+    if (a.artPath) { const image = await readIfPresent(a.artPath); if (image) return image; }
     const on = this.online('a_' + albumId);
-    if (exists(on)) return fs.readFileSync(on);
+    { const image = await readIfPresent(on); if (image) return image; }
     if (this.s.onlineArt) (a.loose && a.tracks.length ? this.fetchTrackOnline(a.tracks[0]) : this.fetchAlbumOnline(a)).catch(() => { });
-    if (a.loose && a.tracks.length) { const t0 = this.online('t_' + a.tracks[0].id); if (exists(t0)) return fs.readFileSync(t0); }
+    if (a.loose && a.tracks.length) { const image = await readIfPresent(this.online('t_' + a.tracks[0].id)); if (image) return image; }
     return null;
   }
   async trackSource(t) {
     const ov = this.overridePath(t.albumId);
-    if (exists(ov)) try { return fs.readFileSync(ov); } catch { }
+    { const image = await readIfPresent(ov); if (image) return image; }
     if (t.hasPic) { const b = await ff.picture(t.path); if (b) return b; }
     const a = this.lib.getAlbum(t.albumId);
-    if (a && a.artPath) try { return fs.readFileSync(a.artPath); } catch { }
+    if (a && a.artPath) { const image = await readIfPresent(a.artPath); if (image) return image; }
     const on = this.online('t_' + t.id);
-    if (exists(on)) return fs.readFileSync(on);
+    { const image = await readIfPresent(on); if (image) return image; }
     if (this.s.onlineArt) this.fetchTrackOnline(t).catch(() => { });
     return null;
   }
@@ -187,11 +225,11 @@ class ArtworkService extends EventEmitter {
     try { return await fs.promises.readFile(thumb); } catch { }
     if (!this.inflight.has(thumb)) {
       const p = (async () => {
-        const src = await source();
-        if (!src) return null;
         await this.resizeGate.acquire();
         try {
-          const bytes = resize(src, size);
+          const src = await source();
+          if (!src) return null;
+          const bytes = await resizeAsync(src, size);
           if (bytes) try { await fs.promises.writeFile(thumb, bytes); } catch { }
           return bytes;
         } finally { this.resizeGate.release(); }
@@ -446,11 +484,11 @@ class ArtworkService extends EventEmitter {
   artistOverridePath(id) { return path.join(AppPaths.Override, 'r_' + id + '.jpg'); }
   artistAsync(name, size) {
     const id = artistId(name);
-    return this.cached('r_' + id, size, () => {
+    return this.cached('r_' + id, size, async () => {
       const ov = this.artistOverridePath(id);
-      if (exists(ov)) try { return fs.readFileSync(ov); } catch { }
+      { const image = await readIfPresent(ov); if (image) return image; }
       const file = this.online('r_' + id);
-      if (exists(file)) return fs.readFileSync(file);
+      { const image = await readIfPresent(file); if (image) return image; }
       if (this.s.artistImages && this.s.onlineArt) this.fetchArtist(name, id, file).catch(() => { });
       return null;
     });

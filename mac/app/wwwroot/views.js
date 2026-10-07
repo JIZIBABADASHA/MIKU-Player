@@ -39,7 +39,7 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
     const first = Math.max(0, Math.floor(-top / rowH) - 2), last = Math.ceil((-top + viewH) / rowH) + 2;
     const from = first * cols, to = Math.min(items.length, last * cols);
     if (label) ScrollBubble.show(items[Math.min(items.length - 1, Math.max(0, Math.floor(-top / rowH) * cols))], label);
-    for (const [i, n] of nodes) if (i < from || i >= to) { n.remove(); nodes.delete(i); }
+    for (const [i, n] of nodes) if (i < from || i >= to) { ArtSharp.release(n); n.remove(); nodes.delete(i); }
     for (let i = from; i < to; i++) {
       if (nodes.has(i)) continue;
       const n = render(items[i], cw);
@@ -106,6 +106,7 @@ function colsControl(kind = 'album') {
   // the page is rebuilt on every visit: stop listening once this control has left it
   const onCols = () => { if (box.isConnected) draw(); else window.removeEventListener('gridcols', onCols); };
   window.addEventListener('gridcols', onCols);
+  box._colsCleanup = () => window.removeEventListener('gridcols', onCols);
   return box;
 }
 // Ctrl + mouse wheel over a grid changes the number per row
@@ -129,7 +130,7 @@ function vlist(container, items, rowH, render) {
     raf = 0;
     const top = wrap.getBoundingClientRect().top - content.getBoundingClientRect().top;
     const first = Math.max(0, Math.floor(-top / rowH) - 8), last = Math.min(items.length, Math.ceil((-top + content.clientHeight) / rowH) + 8);
-    for (const [i, n] of nodes) if (i < first || i >= last) { n.remove(); nodes.delete(i); }
+    for (const [i, n] of nodes) if (i < first || i >= last) { ArtSharp.release(n); n.remove(); nodes.delete(i); }
     for (let i = first; i < last; i++) {
       if (nodes.has(i)) continue;
       const n = render(items[i], i);
@@ -244,26 +245,27 @@ function setUiPref(k, v) { (App.settings.ui = App.settings.ui || {})[k] = v; Hos
 
 /* rails (home page) use the same albums-per-row setting */
 function sizeRail(r) {
-  let seen = false;
   const apply = () => {
-    // the home page is rebuilt on every visit: a rail that has left it stops listening (once it had been shown)
-    if (!r.isConnected) { if (seen) { window.removeEventListener('gridcols', apply); ro.disconnect(); } return; }
-    seen = true;
+    if (!r.isConnected) return;
     const n = gridCols('album');
     if (!n) { r.style.gridAutoColumns = ''; return; }
     const W = r.clientWidth - 72;
     if (W > 0) r.style.gridAutoColumns = Math.floor((W - 22 * (n - 1)) / n) + 'px';
   };
-  requestAnimationFrame(apply);
+  const raf = requestAnimationFrame(apply);
   window.addEventListener('gridcols', apply);
   const ro = new ResizeObserver(apply);
   ro.observe(r);
+  r._sizeRailCleanup = () => { cancelAnimationFrame(raf); window.removeEventListener('gridcols', apply); ro.disconnect(); };
 }
 
 /* Horizontal rails: ‹ › buttons in the header (the scrollbar is hidden and a mouse wheel scrolls the page),
    plus a soft fade on the edge that still has more cards. Attached to every .rail after a view renders. */
 function attachRailNav(root) {
+  const cleanups = [];
+  root.querySelectorAll('.seg').forEach(b => { if (b._colsCleanup) cleanups.push(b._colsCleanup); });
   for (const r of root.querySelectorAll('.rail')) {
+    if (r._sizeRailCleanup) cleanups.push(r._sizeRailCleanup);
     if (r.dataset.nav) continue;
     r.dataset.nav = '1';
     let head = r.previousElementSibling;
@@ -284,9 +286,12 @@ function attachRailNav(root) {
       r.classList.toggle('more-r', !atEnd && max > 4);
     };
     r.addEventListener('scroll', sync, { passive: true });
-    new ResizeObserver(sync).observe(r);
-    requestAnimationFrame(sync);
+    const ro = new ResizeObserver(sync);
+    ro.observe(r);
+    const raf = requestAnimationFrame(sync);
+    cleanups.push(() => { r.removeEventListener('scroll', sync); ro.disconnect(); cancelAnimationFrame(raf); });
   }
+  return () => cleanups.forEach(cleanup => cleanup());
 }
 
 /* YouTube Music lives in a native panel over the content area; hide it whenever something overlays it. */
@@ -297,15 +302,21 @@ const YT = {
     const visible = !!(f && f.isConnected && !NowPlaying.open && !Drawer.open && !Popover.el && !document.querySelector('.modal-scrim') && !(window.ArtPicker && ArtPicker.el) && !(window.CoverView && CoverView.el));
     if (visible) {
       const r = f.getBoundingClientRect();
-      Host.call('yt.show', { x: r.left, y: r.top, w: r.width, h: r.height, dpr: window.devicePixelRatio || 1 });
-      YT.shown = true;
-    } else if (YT.shown) { Host.call('yt.hide'); YT.shown = false; }
+      const bounds = [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), window.devicePixelRatio || 1];
+      const key = bounds.join(',');
+      if (!YT.shown || YT.bounds !== key) Host.call('yt.show', { x: bounds[0], y: bounds[1], w: bounds[2], h: bounds[3], dpr: bounds[4] });
+      YT.bounds = key; YT.shown = true;
+    } else if (YT.shown) { Host.call('yt.hide'); YT.shown = false; YT.bounds = null; }
   },
 };
 window.addEventListener('resize', () => YT.sync());
 
 /* ═════════════════════════════ views ═════════════════════════════ */
 let shuffleSeed = null;
+function randomOrder(list) {
+  for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+  return list;
+}
 const Views = {
   markPlaying(root = document) {
     const id = App.state.trackId;
@@ -319,7 +330,7 @@ const Views = {
       view.append(h('div', { class: 'empty' }, h('div', { class: 'box' }, h('h2', null, T('正在建立曲庫')), h('p', null, T('第一次掃描大型曲庫需要幾分鐘，完成後會自動顯示。')))));
       return;
     }
-    shuffleSeed = shuffleSeed || Lib.albums.map(a => [Math.random(), a]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+    if (!shuffleSeed || shuffleSeed.length !== Lib.albums.length || !Lib.albums.includes(shuffleSeed[0])) shuffleSeed = randomOrder(Lib.albums.slice());
     const rail = (title, albums, link) => {
       if (!albums.length) return;
       const [label, act] = typeof link === 'string' ? [T('顯示全部'), () => go(link)] : (link || []);
@@ -342,7 +353,7 @@ const Views = {
     if (artists.length) {
       view.append(h('div', { class: 'rail-head' }, h('h2', null, T('演出者', 'nav')), h('a', { onclick: () => go('#/artists') }, T('顯示全部'))));
       const r = h('div', { class: 'rail', style: { gridAutoColumns: '150px' } });
-      artists.map(a => [Math.random(), a]).sort((x, y) => x[0] - y[0]).slice(0, 20).forEach(([, a]) => r.append(artistCard(a, 150)));
+      randomOrder(artists.slice()).slice(0, 20).forEach(a => r.append(artistCard(a, 150)));
       view.append(r);
     }
   },

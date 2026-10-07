@@ -128,7 +128,7 @@ class AudioEngine extends EventEmitter {
       return;
     }
     this.loaded = true;
-    this.st.pos = pos || 0; this.st.playing = !!play; this.statusAt = Date.now();
+    this.st.pos = pos || 0; this.st.playing = r.playing ?? !!play; this.statusAt = Date.now();
     this.signal = this.buildSignal(t, tx);
     this.emit('changed');
   }
@@ -145,7 +145,7 @@ class AudioEngine extends EventEmitter {
   }
 
   maybePreload() {
-    if (!this.s.gapless || !this.loaded || !this.track || this.preloadedFor) return;
+    if (!this.s.gapless || !this.isPlaying || !this.track || this.preloadedFor) return;
     const next = this.peekNext && this.peekNext();
     if (!next) return;
     // formats that need FFmpeg are decoded ahead of time so the switch stays seamless

@@ -102,7 +102,7 @@ class MikuDsp extends AudioWorkletProcessor {
     this.graph = buildGraph(null, sampleRate); this.old = null; this.fade = 0;
     this.gain = 1; this.target = 1;
     this.ramp = 1 - Math.exp(-1 / (0.025 * sampleRate));
-    this.pl = 0; this.pr = 0; this.clips = 0; this.blocks = 0;
+    this.pl = 0; this.pr = 0; this.clips = 0; this.meterFrames = 0;
     this.o = { l: 0, r: 0 }; this.o2 = { l: 0, r: 0 };
     this.port.onmessage = e => {
       const m = e.data;
@@ -146,9 +146,10 @@ class MikuDsp extends AudioWorkletProcessor {
       L[i] = l; if (R !== L) R[i] = r;
     }
     this.pl = pl; this.pr = pr;
-    if (++this.blocks >= 16) { // ~45 ms
+    this.meterFrames += L.length;
+    if (this.meterFrames >= sampleRate / 10) { // 10 reports/s, including high-rate DACs
       this.port.postMessage({ l: this.pl, r: this.pr, clips: this.clips });
-      this.pl = 0; this.pr = 0; this.blocks = 0;
+      this.pl = 0; this.pr = 0; this.meterFrames = 0;
     }
     return true;
   }

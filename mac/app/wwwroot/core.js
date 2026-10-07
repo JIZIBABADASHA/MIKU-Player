@@ -146,6 +146,7 @@ function fillArt(box, kind, id, size, label, opts = {}) {
   if (!id) return;
   const img = new Image();
   img.decoding = 'async';
+  img.loading = box.classList.contains('art') ? 'lazy' : 'eager';
   img.dataset.kind = kind; img.dataset.id = id; img.dataset.size = size;
   const t0 = performance.now();
   img.onload = () => {
@@ -198,6 +199,11 @@ const ArtSharp = {
   dpr: window.devicePixelRatio || 1,
   ro: new ResizeObserver(es => { for (const e of es) ArtSharp.check(e.target, e.contentRect.width); }),
   watch(box) { box.dataset.dpr = this.dpr; this.ro.observe(box); },
+  release(root) {
+    const unwatch = box => { this.ro.unobserve(box); clearTimeout(box._sharpT); };
+    if (root.matches?.('[data-art][data-dpr]')) unwatch(root);
+    root.querySelectorAll?.('[data-art][data-dpr]').forEach(unwatch);
+  },
   check(box, w) {
     if (!box.isConnected) { this.ro.unobserve(box); return; }
     if (!w) return;
@@ -492,7 +498,7 @@ const App = {
     Outputs.refresh();
     ScrollBubble.init();
     Router.start();
-    requestAnimationFrame(t => this.frame(t));
+    this.frame();
     if (!init.ffmpeg) toast(T('找不到 FFmpeg，部分格式（DSD、APE、AIFF…）將無法播放。可用 Homebrew 安裝：brew install ffmpeg'), { error: true, ms: 9000 });
   },
 
@@ -587,8 +593,11 @@ const App = {
       rep.classList.toggle('on', s.repeat !== 'off');
       setIcon(rep, s.repeat === 'one' ? 'repeat1' : 'repeat');
     }
-    this.renderVolume();
-    this.renderSignal();
+    if (prev.volumeDb !== s.volumeDb || prev.muted !== s.muted || prev.volumeMode !== s.volumeMode) this.renderVolume();
+    const sg = s.signal;
+    const signalKey = [s.trackId, sg?.quality, sg?.dspActive, sg?.dsd, sg?.dsdLabel, sg?.sourceBits, sg?.sourceRate, sg?.codec, sg?.dop].join('|');
+    if (this.signalKey !== signalKey) { this.signalKey = signalKey; this.renderSignal(); }
+    this.frame();
   },
 
   get pos() {
@@ -706,10 +715,12 @@ const App = {
   },
 
   /* ── frame loop: progress bars & lyrics ── */
-  lastSec: -1,
+  lastSec: -1, frameRaf: 0,
   frame() {
-    // runs every frame for as long as the app is open: elements looked up once, and nothing is written while the
-    // position doesn't move (paused / stopped)
+    cancelAnimationFrame(this.frameRaf);
+    this.frameRaf = 0;
+    // Paused progress is redrawn by state/seek events; a hidden page needs no visual loop at all.
+    if (document.hidden || this.uiVisible === false) return;
     const el = this.frameEls || (this.frameEls = {
       seek: $('#b-seek'), npSeek: $('#np-seek'), pos: $('#b-pos'), dur: $('#b-dur'), npPos: $('#np-pos'), npDur: $('#np-dur'),
     });
@@ -723,7 +734,7 @@ const App = {
       el.npPos.textContent = fmtTime(pos); el.npDur.textContent = '−' + fmtTime(Math.max(0, dur - pos));
     }
     NowPlaying.tick(pos);
-    requestAnimationFrame(() => this.frame());
+    if (s.playing) this.frameRaf = requestAnimationFrame(() => this.frame());
   },
 
   /* ── commands ── */
@@ -737,6 +748,7 @@ const App = {
   seek(pos) {
     this.posBase = pos; this.posAt = performance.now();
     this.seekTarget = pos; this.seekUntil = performance.now() + 2500;
+    this.frame();
     Host.call('seek', { pos });
   },
 
@@ -1161,6 +1173,7 @@ const Queue = {
     if (Drawer.open !== 'queue') return;
     const body = $('#queue-body');
     const { ids, index } = App.queue;
+    ArtSharp.release(body);
     body.textContent = '';
     if (!ids.length) { body.append(h('div', { class: 'muted', style: { padding: '40px 12px', textAlign: 'center' } }, T('佇列是空的'))); return; }
     const row = (id, i) => {
@@ -1317,8 +1330,9 @@ const Router = {
     Motion.quiet = dir === 'none';
     if (dir !== 'none' && (!keepScroll || !same)) view.classList.add('enter-' + dir);
     const fn = Views[r.name] || Views.home;
-    r.cleanup = fn(view, r.arg) || null;
-    if (typeof attachRailNav === 'function') attachRailNav(view);
+    const cleanupView = fn(view, r.arg) || null;
+    const cleanupRails = typeof attachRailNav === 'function' ? attachRailNav(view) : null;
+    r.cleanup = () => { cleanupView && cleanupView(); cleanupRails && cleanupRails(); ArtSharp.release(view); };
     const y = keepScroll && same ? this.scrolls[r.key] : (this.scrolls[r.key] || 0);
     content.scrollTop = y || 0;
     content.dispatchEvent(new Event('scroll'));
@@ -1350,7 +1364,11 @@ window.addEventListener('resize', () => NavPill.move());
 /** Calls `f` once as soon as the user starts scrolling (wheel, touch, keys, scrollbar). Returns an unsubscribe function. */
 function onUserScroll(f) {
   const evs = ['wheel', 'touchmove', 'keydown', 'pointerdown'];
-  const h = e => { if (e.type === 'keydown' && !/^(Arrow|Page|Home|End| )/.test(e.key)) return; off(); f(); };
+  const h = e => {
+    if (e.type === 'wheel' && (e.mikuPageSwipe || (!e.deltaX && !e.deltaY))) return;
+    if (e.type === 'keydown' && !/^(Arrow|Page|Home|End| )/.test(e.key)) return;
+    off(); f();
+  };
   const off = () => evs.forEach(ev => window.removeEventListener(ev, h, true));
   evs.forEach(ev => window.addEventListener(ev, h, { capture: true, passive: true }));
   return off;

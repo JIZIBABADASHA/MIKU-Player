@@ -122,17 +122,6 @@ const Settings = {
     if (tab === 'look') {
       /* ── appearance ── */
       if (typeof Theme !== 'undefined') Theme.section(root);
-
-      /* ── scrolling ── */
-      if (window.SmoothScroll) {
-        const sc = section(T('捲動'));
-        sc.append(field(T('滾輪一次捲動行數'), T('滑鼠滾輪每轉一格捲動的距離（1 行約 40 像素）。'), (() => {
-          const r = h('input', { class: 'range', type: 'range', min: 1, max: 15, step: 1, value: SmoothScroll.lines });
-          const v = h('span', { class: 'num muted', style: { width: '58px', textAlign: 'right' } }, SmoothScroll.lines + T(' 行'));
-          r.oninput = () => { v.textContent = r.value + T(' 行'); SmoothScroll.lines = r.value; };
-          return [r, v];
-        })()));
-      }
     }
 
     if (tab === 'keys') Keys.renderSettings(section, field);

@@ -20,11 +20,29 @@ let cur = 0;
 const A = () => decks[cur], B = () => decks[1 - cur];
 let wantPlay = false;
 let nextReady = false;
+let loadSeq = 0, contextRunning = false, contextTask = Promise.resolve();
+
+// Serialize hardware state changes so a quick pause/resume cannot leave the context in the wrong state.
+function setContextRunning(on) {
+  contextRunning = on;
+  contextTask = contextTask.catch(() => { }).then(async () => {
+    if (!ctx) return;
+    if (contextRunning) {
+      if (ctx.state !== 'running') await ctx.resume();
+    } else {
+      if (ctx.state !== 'suspended') await ctx.suspend();
+      meter.l = 0; meter.r = 0;
+    }
+  });
+  return contextTask;
+}
 
 async function ensure() {
   if (ready) return ready;
   ready = (async () => {
     ctx = new AudioContext({ latencyHint: 'playback' });
+    // The engine is initialized at launch, even when no song is playing.
+    await ctx.suspend();
     await ctx.audioWorklet.addModule('dsp-worklet.js');
     dsp = new AudioWorkletNode(ctx, 'miku-dsp', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers' });
     dsp.port.onmessage = e => { meter.l = e.data.l; meter.r = e.data.r; meter.clips = e.data.clips; };
@@ -47,6 +65,9 @@ function wire(d) {
     if (d !== A() || !d.src) return;
     const code = d.el.error ? d.el.error.code : 0;
     if (d.loading) return; // reported by load()
+    wantPlay = false;
+    setContextRunning(false).catch(() => { });
+    reportStatus();
     send({ e: 'error', id: d.id, code, msg: errText(code) });
   });
   d.el.addEventListener('play', () => { if (d === A() && navigator.mediaSession) navigator.mediaSession.playbackState = 'playing'; });
@@ -56,7 +77,7 @@ const errText = c => ({ 1: '播放被中止', 2: '讀取檔案時發生錯誤', 
 
 function onEnded() {
   const n = B();
-  if (n.src && nextReady && n.el.readyState >= 2) {
+  if (wantPlay && n.src && nextReady && n.el.readyState >= 2) {
     // gapless: start the preloaded deck straight away
     const old = A();
     cur = 1 - cur;
@@ -67,6 +88,8 @@ function onEnded() {
     meta(n.meta);
   } else {
     wantPlay = false;
+    setContextRunning(false).catch(() => { });
+    reportStatus();
     send({ e: 'ended' });
   }
 }
@@ -82,33 +105,47 @@ function waitFor(el, events, timeout) {
 }
 
 async function load(m) {
+  const seq = ++loadSeq;
+  wantPlay = !!m.play;
   await ensure();
-  if (ctx.state !== 'running' && m.play) ctx.resume().catch(() => { });
+  if (seq !== loadSeq) return;
   // drop any preloaded deck: an explicit load always replaces both
   const n = B(); if (n.src) { n.el.pause(); n.el.removeAttribute('src'); n.el.load(); n.src = null; n.id = null; } nextReady = false;
   const d = A();
   d.el.pause();
   d.id = m.id; d.src = m.url; d.meta = m.meta; d.loading = true;
+  await setContextRunning(false);
+  if (seq !== loadSeq) return;
   d.gain.gain.value = m.rg ?? 1;
   d.el.src = m.url;
   d.el.load();
   const ev = await waitFor(d.el, ['loadedmetadata', 'error'], m.timeout || 120000);
-  if (d.src !== m.url) return; // superseded
+  if (seq !== loadSeq || d.src !== m.url) return; // superseded
   if (ev !== 'loadedmetadata') {
     d.loading = false;
+    wantPlay = false;
+    await setContextRunning(false);
     const code = d.el.error ? d.el.error.code : 0;
     send({ e: 'loaded', seq: m.seq, ok: false, code, msg: ev === 'timeout' ? '讀取逾時' : errText(code) });
     return;
   }
   if (m.pos > 0) { try { d.el.currentTime = m.pos; } catch { } }
   d.loading = false;
-  wantPlay = !!m.play;
-  if (m.play) {
-    try { await d.el.play(); }
-    catch (err) { send({ e: 'loaded', seq: m.seq, ok: false, code: 0, msg: String(err && err.message || err) }); return; }
+  if (wantPlay) {
+    try {
+      await setContextRunning(true);
+      if (seq !== loadSeq) return;
+      if (wantPlay) await d.el.play();
+    } catch (err) {
+      if (seq !== loadSeq) return;
+      wantPlay = false;
+      await setContextRunning(false);
+      send({ e: 'loaded', seq: m.seq, ok: false, code: 0, msg: String(err && err.message || err) }); return;
+    }
   }
   meta(m.meta);
-  send({ e: 'loaded', seq: m.seq, ok: true, duration: d.el.duration });
+  reportStatus();
+  send({ e: 'loaded', seq: m.seq, ok: true, duration: d.el.duration, playing: !d.el.paused && !d.el.ended });
 }
 
 async function preload(m) {
@@ -158,12 +195,16 @@ ipc.on(async m => {
       case 'load': await load(m); break;
       case 'preload': await preload(m); break;
       case 'clearNext': clearNext(); break;
-      case 'pause': wantPlay = false; A().el.pause(); break;
+      case 'pause': wantPlay = false; A().el.pause(); await setContextRunning(false); reportStatus(); break;
       case 'resume':
-        await ensure(); if (ctx.state !== 'running') await ctx.resume();
-        wantPlay = true; await A().el.play().catch(e => send({ e: 'error', msg: String(e.message || e) })); break;
+        wantPlay = true;
+        await ensure();
+        if (!wantPlay || !A().src) break;
+        await setContextRunning(true);
+        if (wantPlay) await A().el.play();
+        reportStatus(); break;
       case 'seek': { const d = A(); if (d.src) { try { d.el.currentTime = Math.max(0, m.pos); } catch { } } if (B().src) clearNextIfStale(); break; }
-      case 'stop': wantPlay = false; for (const d of decks) { d.el.pause(); d.el.removeAttribute('src'); d.el.load(); d.src = null; d.id = null; } nextReady = false; break;
+      case 'stop': ++loadSeq; wantPlay = false; for (const d of decks) { d.el.pause(); d.el.removeAttribute('src'); d.el.load(); d.src = null; d.id = null; } nextReady = false; await setContextRunning(false); reportStatus(); break;
       case 'gain': await ensure(); dsp.port.postMessage({ gain: m.v, instant: !!m.instant }); break;
       case 'rg': await ensure(); A().gain.gain.setTargetAtTime(m.v, ctx.currentTime, 0.02); break;
       case 'dsp': await ensure(); dsp.port.postMessage({ cfg: m.cfg }); break;
@@ -171,19 +212,27 @@ ipc.on(async m => {
       case 'devices': send({ e: 'devices', seq: m.seq, list: await devices() }); break;
       case 'init': await ensure(); send({ e: 'rate', rate: ctx.sampleRate }); break;
     }
-  } catch (e) { send({ e: 'error', msg: String(e && e.message || e) }); }
+  } catch (e) {
+    if (m.c === 'load' || m.c === 'resume') { wantPlay = false; await setContextRunning(false).catch(() => { }); reportStatus(); }
+    send({ e: 'error', msg: String(e && e.message || e) });
+  }
 });
 function clearNextIfStale() { /* seeking keeps the preloaded next track */ }
 
 navigator.mediaDevices && navigator.mediaDevices.addEventListener('devicechange', () => send({ e: 'devicechange' }));
 
-setInterval(() => {
+let statusTimer = null;
+function reportStatus() {
+  clearTimeout(statusTimer);
   const d = A();
+  const active = !!d.src && !d.el.paused && !d.el.ended;
+  if (!active) { meter.l = 0; meter.r = 0; }
   send({
     e: 'status', id: d.id, pos: d.src ? d.el.currentTime : 0, dur: d.src ? d.el.duration : 0,
-    playing: !!d.src && !d.el.paused && !d.el.ended, l: meter.l, r: meter.r, clips: meter.clips, underruns,
+    playing: active, l: meter.l, r: meter.r, clips: meter.clips, underruns,
     rate: ctx ? ctx.sampleRate : 0, out: ctx ? Math.round(((ctx.outputLatency || 0) + (ctx.baseLatency || 0)) * 1000) : 0,
   });
-  if (!(d.src && !d.el.paused)) { meter.l = 0; meter.r = 0; }
-}, 100);
+  statusTimer = setTimeout(reportStatus, active ? 100 : 1000);
+}
 send({ e: 'hello' });
+reportStatus();

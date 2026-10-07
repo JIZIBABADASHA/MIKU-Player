@@ -94,15 +94,27 @@ function transcode(t, dsdRate) {
 
 function touch(f) { try { const n = new Date(); fs.utimesSync(f, n, n); } catch { } }
 
-/** Keeps the transcode cache under ~3 GB (least recently used first). */
-function cleanup() {
+/** Keeps the transcode cache under ~3 GB without blocking the main process after a song finishes decoding. */
+let cleaning = false, cleanAgain = false;
+async function cleanup() {
+  if (cleaning) { cleanAgain = true; return; }
+  cleaning = true;
   try {
-    const files = fs.readdirSync(AppPaths.Transcode).filter(f => f.endsWith('.flac')).map(f => {
-      const p = path.join(AppPaths.Transcode, f); const s = fs.statSync(p); return { p, size: s.size, t: s.mtimeMs };
-    }).sort((a, b) => b.t - a.t);
-    let total = 0;
-    for (const f of files) { total += f.size; if (total > 3e9) try { fs.unlinkSync(f.p); } catch { } }
+    do {
+      cleanAgain = false;
+      const names = await fs.promises.readdir(AppPaths.Transcode);
+      const files = [];
+      for (const name of names) {
+        if (!name.endsWith('.flac')) continue;
+        const p = path.join(AppPaths.Transcode, name);
+        try { const s = await fs.promises.stat(p); files.push({ p, size: s.size, t: s.mtimeMs }); } catch { }
+      }
+      files.sort((a, b) => b.t - a.t);
+      let total = 0;
+      for (const f of files) { total += f.size; if (total > 3e9) try { await fs.promises.unlink(f.p); } catch { } }
+    } while (cleanAgain);
   } catch (e) { Log.error('Transcode cleanup', e); }
+  finally { cleaning = false; }
 }
 
 module.exports = { Ffmpeg, probe, picture, lyrics, transcode, transcodeTarget };
