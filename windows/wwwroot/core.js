@@ -286,6 +286,7 @@ const Lib = {
       const artists = splitNames(r[2]);
       const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: joinNames(splitNames(r[11])) };
       const al = albumById.get(t.albumId);
+      t.added = r[12] ?? al?.added ?? 0;
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
@@ -303,6 +304,8 @@ const Lib = {
     for (const al of albums) if (al.vg) (groups.get(al.vg) || groups.set(al.vg, []).get(al.vg)).push(al);
     for (const g of groups.values()) {
       g.sort((x, y) => qualityRank(y) - qualityRank(x) || y.tracks.length - x.tracks.length);
+      // A newly imported version brings the album forward even when a better version already exists.
+      g[0].added = Math.max(...g.map(al => al.added));
       for (const al of g) { al.versions = g; al.hidden = al !== g[0]; }
     }
     const shown = albums.filter(al => !al.hidden);
@@ -803,6 +806,11 @@ const App = {
     $('#topbar').addEventListener('dblclick', e => {
       if (e.target.closest('input, button, .search')) return;
       scrollTop(content);
+    });
+    // double-click the sidebar item of the page you're on (or its list, e.g. 專輯 from an album) to jump to the top
+    $('#nav').addEventListener('dblclick', e => {
+      const a = e.target.closest('a[data-r]');
+      if (a && a.classList.contains('on')) { e.preventDefault(); scrollTop(content); }
     });
     content.addEventListener('scroll', () => $('#topbar').classList.toggle('solid', content.scrollTop > 8), { passive: true });
   },
@@ -1342,6 +1350,7 @@ const NavPill = {
     this.el.style.transform = `translateY(${a.offsetTop}px)`;
     this.el.style.left = a.offsetLeft + 'px';
     this.el.style.width = a.offsetWidth + 'px';
+    this.el.style.height = a.offsetHeight + 'px';   // follows the item (text size setting)
     this.el.style.right = 'auto';
   },
 };

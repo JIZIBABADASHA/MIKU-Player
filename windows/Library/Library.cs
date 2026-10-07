@@ -65,7 +65,18 @@ public sealed class MusicLibrary
     public void Load()
     {
         var cache = Json.Load<LibraryCache>(AppPaths.Library);
+        // Older caches only recorded file modification times. Keep their historical order once,
+        // then persist it so later tag edits cannot make existing music look newly imported.
+        long migrationTime = DateTime.UtcNow.Ticks;
+        bool migrated = false;
+        foreach (var t in cache.Tracks)
+            if (t != null && t.Added <= 0)
+            {
+                t.Added = t.Mtime > 0 ? Math.Min(t.Mtime, migrationTime) : migrationTime;
+                migrated = true;
+            }
         Build(cache.Tracks, cache.FolderArt);
+        if (migrated) Save(cache.Tracks);
     }
 
     void Save(List<Track> tracks)
@@ -221,7 +232,7 @@ public sealed class MusicLibrary
             a.Artist = albumArtists;
             a.Year = a.Tracks.Select(t => t.Year).Where(y => y > 0).DefaultIfEmpty(0).Min();
             a.Genre = a.Tracks.Select(t => t.Genre).FirstOrDefault(g => !string.IsNullOrWhiteSpace(g)) ?? "";
-            a.Added = a.Tracks.Max(t => t.Mtime);
+            a.Added = a.Tracks.Max(t => t.Added);
             // A folder image only belongs to the album if the folder holds just one album.
             if (albumsPerFolder.TryGetValue(a.Folder, out int n) && n == 1 && folderArt.TryGetValue(a.Folder, out var art)) a.ArtPath = art;
             else if (folderArt.TryGetValue(Path.GetDirectoryName(a.Tracks[0].Path) ?? "", out var art2) && albumsPerFolder.GetValueOrDefault(a.Folder) == 1) a.ArtPath = art2;
@@ -255,6 +266,7 @@ public sealed class MusicLibrary
         {
             Dictionary<string, Track> existing;
             lock (_lock) existing = _byId.Values.ToDictionary(t => t.Path, StringComparer.OrdinalIgnoreCase);
+            long addedAt = DateTime.UtcNow.Ticks;
             var files = new List<FileInfo>();
             var folderArt = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var offlineRoots = new List<string>();
@@ -287,7 +299,12 @@ public sealed class MusicLibrary
             Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount / 2, 2, 6), CancellationToken = ct }, f =>
             {
                 var t = TagReader.Read(f);
-                if (t != null) result.Add(t); else Interlocked.Increment(ref p.FailedRef);
+                if (t != null)
+                {
+                    t.Added = existing.TryGetValue(f.FullName, out var old) ? old.Added : addedAt;
+                    result.Add(t);
+                }
+                else Interlocked.Increment(ref p.FailedRef);
                 int d = Interlocked.Increment(ref done);
                 // publish partial results so a huge first scan shows up progressively and survives a restart
                 if (Environment.TickCount64 - lastPublish > 15000 && Monitor.TryEnter(publishLock))
@@ -350,7 +367,17 @@ public sealed class MusicLibrary
         if (Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再試");
         Album album = GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
         List<string> paths;
-        lock (_lock) paths = album.Tracks.Select(t => t.Path).ToList();
+        Dictionary<string, Track> existing;
+        lock (_lock)
+        {
+            paths = album.Tracks.Select(t => t.Path).ToList();
+            existing = _byId.Values.ToDictionary(t => t.Path, StringComparer.OrdinalIgnoreCase);
+        }
+        // Renamed/replaced files are the same library entries, with their original import time.
+        if (moved != null)
+            foreach (var (oldPath, newPath) in moved)
+                if (existing.TryGetValue(oldPath, out var old)) existing[newPath] = old;
+        long addedAt = DateTime.UtcNow.Ticks;
         var dirs = new HashSet<string>(paths.Select(p => Path.GetDirectoryName(p) ?? ""), StringComparer.OrdinalIgnoreCase);
         var files = new List<FileInfo>();
         var art = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -362,7 +389,11 @@ public sealed class MusicLibrary
         Parallel.ForEach(files.DistinctBy(f => f.FullName, StringComparer.OrdinalIgnoreCase), new ParallelOptions { MaxDegreeOfParallelism = 4 }, f =>
         {
             var t = TagReader.Read(f);
-            if (t != null) fresh.Add(t);
+            if (t != null)
+            {
+                t.Added = existing.TryGetValue(f.FullName, out var old) ? old.Added : addedAt;
+                fresh.Add(t);
+            }
         });
         List<Track> list;
         Dictionary<string, string> folderArt;
@@ -460,7 +491,7 @@ public sealed class MusicLibrary
                 // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
                 w.WriteStartArray();
                 w.WriteStringValue(a.Id); w.WriteStringValue(a.Title); w.WriteStringValue(a.Artist);
-                w.WriteNumberValue(a.Year); w.WriteStringValue(a.Genre); w.WriteNumberValue(a.Added / TimeSpan.TicksPerSecond);
+                w.WriteNumberValue(a.Year); w.WriteStringValue(a.Genre); w.WriteNumberValue(a.Added / (double)TimeSpan.TicksPerSecond);
                 w.WriteNumberValue(a.ArtPath != null || a.Tracks.Any(t => t.HasPic) ? 1 : 0);
                 w.WriteNumberValue(a.Loose ? 1 : 0);
                 w.WriteStringValue(a.VersionGroup ?? "");
@@ -473,12 +504,13 @@ public sealed class MusicLibrary
             {
                 foreach (var t in a.Tracks)
                 {
-                    // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer]
+                    // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added]
                     w.WriteStartArray();
                     w.WriteStringValue(t.Id); w.WriteStringValue(t.Title); w.WriteStringValue(t.Artist); w.WriteStringValue(a.Id);
                     w.WriteNumberValue(t.DiscNo); w.WriteNumberValue(t.TrackNo); w.WriteNumberValue(Math.Round(t.Duration, 2));
                     w.WriteStringValue(t.Codec); w.WriteNumberValue(t.SampleRate); w.WriteNumberValue(t.Bits); w.WriteNumberValue(t.Year);
                     w.WriteStringValue(t.Composer ?? "");
+                    w.WriteNumberValue(t.Added / (double)TimeSpan.TicksPerSecond);
                     w.WriteEndArray();
                 }
             }

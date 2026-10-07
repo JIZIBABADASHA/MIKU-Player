@@ -135,6 +135,7 @@ const Lib = {
     for (const r of data.tracks) {
       const t = { id: r[0], title: r[1], artist: r[2], albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10] };
       const al = albumById.get(t.albumId);
+      t.added = r[12] ?? al?.added ?? 0;
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
@@ -168,7 +169,7 @@ const Lib = {
     const inAlbum = (x, y) => (x.disc - y.disc) || (x.no - y.no);
     if (sort === 'artist') t.sort((x, y) => collator.compare(x.artist, y.artist) || collator.compare(x.album?.title || '', y.album?.title || '') || inAlbum(x, y));
     else if (sort === 'album') t.sort((x, y) => collator.compare(x.album?.title || '', y.album?.title || '') || inAlbum(x, y));
-    else if (sort === 'added') t.sort((x, y) => ((y.album?.added || 0) - (x.album?.added || 0)) || collator.compare(x.album?.title || '', y.album?.title || '') || inAlbum(x, y));
+    else if (sort === 'added') t.sort((x, y) => ((y.added || 0) - (x.added || 0)) || collator.compare(x.album?.title || '', y.album?.title || '') || inAlbum(x, y));
     else t.sort((x, y) => collator.compare(x.title, y.title));
     return this.sorted[key] = t;
   },

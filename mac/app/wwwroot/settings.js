@@ -122,6 +122,9 @@ const Settings = {
     if (tab === 'look') {
       /* ── appearance ── */
       if (typeof Theme !== 'undefined') Theme.section(root);
+
+      /* ── text size (fontscale.js) ── */
+      if (typeof FontScale !== 'undefined') FontScale.section(section, field);
     }
 
     if (tab === 'keys') Keys.renderSettings(section, field);

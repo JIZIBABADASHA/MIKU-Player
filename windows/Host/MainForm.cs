@@ -401,10 +401,13 @@ public sealed class MainForm : Form
 
         Text = Program.AppName;
         BackColor = Bg;
-        MinimumSize = new Size(980, 640);
+        AutoScaleDimensions = new SizeF(96, 96);
+        AutoScaleMode = AutoScaleMode.Dpi;
         StartPosition = FormStartPosition.Manual;
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
-        RestoreWindow();
+        // Create the native handle on the intended monitor before reading its DeviceDpi in Load.
+        var wa = WindowScreen().WorkingArea;
+        Location = new Point(wa.X + wa.Width / 4, wa.Y + wa.Height / 4);
 
         _web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Bg };
         Controls.Add(_web);
@@ -447,7 +450,7 @@ public sealed class MainForm : Form
         _saveTimer = new System.Windows.Forms.Timer { Interval = 1500 };
         _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); SaveSettings(); };
 
-        Load += async (_, _) => await InitWebView();
+        Load += async (_, _) => { RestoreWindow(); await InitWebView(); };
         Shown += (_, _) => StartRemote();
     }
 
@@ -495,18 +498,36 @@ public sealed class MainForm : Form
         base.WndProc(ref m);
     }
 
+    bool _windowRestored;
+
+    Screen WindowScreen()
+    {
+        var screens = Screen.AllScreens;
+        int primary = Array.FindIndex(screens, s => s.Primary);
+        return screens[WindowPlacement.DisplayIndex(WindowPlacement.ReadSaved(_s.Window),
+            screens.Select(s => s.WorkingArea).ToArray(), Math.Max(0, primary))];
+    }
+
     void RestoreWindow()
     {
-        var w = _s.Window;
-        Rectangle r = w is { Length: 4 } ? new Rectangle(w[0], w[1], w[2], w[3]) : Rectangle.Empty;
-        if (r.Width > 300 && Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(r))) Bounds = r;
-        else
-        {
-            var wa = Screen.PrimaryScreen.WorkingArea;
-            int width = Math.Min(1480, wa.Width - 80), height = Math.Min(940, wa.Height - 60);
-            Bounds = new Rectangle(wa.X + (wa.Width - width) / 2, wa.Y + (wa.Height - height) / 2, width, height);
-        }
+        var wa = Screen.FromHandle(Handle).WorkingArea;
+        MinimumSize = WindowPlacement.Minimum(wa, DeviceDpi);
+        Bounds = WindowPlacement.Restore(wa, DeviceDpi, WindowPlacement.ReadSaved(_s.Window), _s.WindowDpi);
+        _windowRestored = true;
+        Log.Info($"Window: dpi={DeviceDpi}, workArea={wa}, bounds={Bounds}");
         if (_s.Maximized) WindowState = FormWindowState.Maximized;
+    }
+
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        // The old monitor's minimum must not constrain the new monitor's suggested bounds.
+        if (_windowRestored) MinimumSize = Size.Empty;
+        base.OnDpiChanged(e);
+        if (!_windowRestored) return;
+        var wa = Screen.FromHandle(Handle).WorkingArea;
+        MinimumSize = WindowPlacement.Minimum(wa, e.DeviceDpiNew);
+        if (!_fullScreen && WindowState == FormWindowState.Normal)
+            Bounds = WindowPlacement.Fit(Bounds, wa, MinimumSize);
     }
 
     // ───────────────────────────── playback core（Settings.AudioCore）─────────────────────────────
@@ -633,6 +654,7 @@ public sealed class MainForm : Form
         _s.Maximized = WindowState == FormWindowState.Maximized;
         var b = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
         _s.Window = new[] { b.X, b.Y, b.Width, b.Height };
+        _s.WindowDpi = DeviceDpi;
         SaveSettings();
         for (int i = 1; i <= 4; i++) UnregisterHotKey(Handle, i);
         try { _remote?.Dispose(); } catch { }

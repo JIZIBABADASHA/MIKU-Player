@@ -34,6 +34,7 @@ const { FingerprintService } = require('./fingerprint');
 const { resize } = require('./artwork');
 const { getBytes } = require('./common');
 const { nativeImage } = require('electron');
+const { restoreWindow } = require('./window-placement');
 
 const Bg = '#0e0f13';
 const WWW = path.join(__dirname, '..', 'wwwroot');
@@ -962,19 +963,12 @@ function registerProtocols() {
 
 // ───────────── window ─────────────
 function restoreBounds() {
-  const w = S.window;
-  if (Array.isArray(w) && w.length === 4 && w[2] > 300) {
-    const r = { x: w[0], y: w[1], width: w[2], height: w[3] };
-    if (screen.getAllDisplays().some(d => { const a = d.workArea; return r.x < a.x + a.width && r.x + r.width > a.x && r.y < a.y + a.height && r.y + r.height > a.y; })) return r;
-  }
-  const wa = screen.getPrimaryDisplay().workArea;
-  const width = Math.min(1480, wa.width - 80), height = Math.min(940, wa.height - 60);
-  return { x: wa.x + Math.round((wa.width - width) / 2), y: wa.y + Math.round((wa.height - height) / 2), width, height };
+  return restoreWindow(S.window, screen.getAllDisplays(), screen.getPrimaryDisplay());
 }
 
 function createWindow() {
   win = new BrowserWindow({
-    ...restoreBounds(), minWidth: 980, minHeight: 640, title: 'MIKU', backgroundColor: Bg, show: false,
+    ...restoreBounds(), title: 'MIKU', backgroundColor: Bg, show: false,
     webPreferences: { preload: path.join(__dirname, 'main-preload.js'), contextIsolation: true, sandbox: true, spellcheck: false, backgroundThrottling: true },
   });
   if (S.maximized) win.maximize();

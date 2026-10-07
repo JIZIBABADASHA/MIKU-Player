@@ -515,7 +515,7 @@ const Views = {
       host.append(thead());
       const list = Lib.tracks.slice();
       if (sort === 'title') list.sort((a, b) => coll.compare(a.title, b.title));
-      else if (sort === 'added') list.sort((a, b) => (b.album?.added || 0) - (a.album?.added || 0) || a.disc - b.disc || a.no - b.no);
+      else if (sort === 'added') list.sort((a, b) => (b.added || 0) - (a.added || 0) || coll.compare(a.album?.title || '', b.album?.title || '') || a.disc - b.disc || a.no - b.no);
       else list.sort((a, b) => coll.compare(a.album?.artist || '', b.album?.artist || '') || coll.compare(a.album?.title || '', b.album?.title || '') || a.disc - b.disc || a.no - b.no);
       if (dir.rev()) list.reverse();
       cleanup = vlist(host, list, 68, (t, i) => trackRow(t, i, list, { art: true }));

@@ -128,7 +128,15 @@ class MusicLibrary extends EventEmitter {
 
   load() {
     const cache = Json.load(AppPaths.Library, { tracks: [], folderArt: {} });
-    this.build(cache.tracks || [], cache.folderArt || {});
+    const tracks = cache.tracks || [], migrationTime = msToTicks(Date.now());
+    // Old caches only have modification times: freeze that historical order once.
+    let migrated = false;
+    for (const t of tracks) if (t && !(t.added > 0)) {
+      t.added = t.mtime > 0 ? Math.min(t.mtime, migrationTime) : migrationTime;
+      migrated = true;
+    }
+    this.build(tracks, cache.folderArt || {});
+    if (migrated) this.save(tracks);
   }
   save(tracks) {
     // A scan can publish another snapshot while the previous write is still running.
@@ -186,7 +194,7 @@ class MusicLibrary extends EventEmitter {
       const years = a.tracks.map(t => t.year).filter(y => y > 0);
       a.year = years.length ? Math.min(...years) : 0;
       a.genre = (a.tracks.find(t => t.genre && t.genre.trim()) || {}).genre || '';
-      a.added = Math.max(...a.tracks.map(t => t.mtime || 0));
+      a.added = Math.max(...a.tracks.map(t => t.added || 0));
       const n = perFolder.get(lc(a.folder)) || 0;
       if (n === 1 && fa.has(lc(a.folder))) a.artPath = fa.get(lc(a.folder));
       else { const d = lc(path.dirname(a.tracks[0].path)); if (n === 1 && fa.has(d)) a.artPath = fa.get(d); }
@@ -208,6 +216,7 @@ class MusicLibrary extends EventEmitter {
     const cancelled = () => token !== this.scanToken;
     try {
       const existing = new Map([...this.byId.values()].map(t => [lc(t.path), t]));
+      const addedAt = msToTicks(Date.now());
       const files = [], folderArt = {}, offline = [];
       for (const root of [...(this.s.folders || [])]) {
         if (!fs.existsSync(root)) { offline.push(root); continue; }
@@ -230,7 +239,10 @@ class MusicLibrary extends EventEmitter {
           const f = todo[idx++];
           const t = await readTrack(f);
           if (cancelled()) return;
-          if (t) result.push(t); else p.failed++;
+          if (t) {
+            t.added = existing.get(lc(f.path))?.added || addedAt;
+            result.push(t);
+          } else p.failed++;
           if (Date.now() - lastPublish > 15000) {
             lastPublish = Date.now();
             const snapshot = result.slice();
@@ -303,6 +315,12 @@ class MusicLibrary extends EventEmitter {
     const album = this.getAlbum(albumId);
     if (!album) throw new Error('找不到這張專輯');
     const paths = album.tracks.map(t => t.path);
+    const existing = new Map([...this.byId.values()].map(t => [lc(t.path), t]));
+    for (const [oldPath, newPath] of Object.entries(moved || {})) {
+      const old = existing.get(lc(oldPath));
+      if (old) existing.set(lc(newPath), old);
+    }
+    const addedAt = msToTicks(Date.now());
     const dirs = new Set(paths.map(p => lc(path.dirname(p))));
     const dirList = [...new Map(paths.map(p => [lc(path.dirname(p)), path.dirname(p)])).values()];
     const files = [], art = {};
@@ -310,7 +328,15 @@ class MusicLibrary extends EventEmitter {
     const seen = new Set(), fresh = [];
     const uniq = files.filter(f => !seen.has(lc(f.path)) && seen.add(lc(f.path)));
     let i = 0;
-    await Promise.all(Array.from({ length: 4 }, async () => { while (i < uniq.length) { const t = await readTrack(uniq[i++]); if (t) fresh.push(t); } }));
+    await Promise.all(Array.from({ length: 4 }, async () => {
+      while (i < uniq.length) {
+        const f = uniq[i++], t = await readTrack(f);
+        if (t) {
+          t.added = existing.get(lc(f.path))?.added || addedAt;
+          fresh.push(t);
+        }
+      }
+    }));
     const list = [...this.byId.values()].filter(t => !dirs.has(lc(path.dirname(t.path)))).concat(fresh);
     const folderArt = Object.fromEntries(Object.entries(this.folderArt).filter(([d]) => !dirs.has(lc(d))));
     Object.assign(folderArt, art);
@@ -336,8 +362,9 @@ class MusicLibrary extends EventEmitter {
     const albums = [], tracks = [];
     for (const a of this.albums.values()) {
       // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
-      albums.push([a.id, a.title, a.artist, a.year, a.genre, Math.floor(a.added / 1e7), (a.artPath || a.tracks.some(t => t.hasPic)) ? 1 : 0, a.loose ? 1 : 0, a.versionGroup || '', path.basename(a.folder || '')]);
-      for (const t of a.tracks) tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '']);
+      albums.push([a.id, a.title, a.artist, a.year, a.genre, a.added / 1e7, (a.artPath || a.tracks.some(t => t.hasPic)) ? 1 : 0, a.loose ? 1 : 0, a.versionGroup || '', path.basename(a.folder || '')]);
+      // Track import time is independent of the newest song in its album.
+      for (const t of a.tracks) tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '', t.added / 1e7]);
     }
     const data = Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks }));
     this.exported = { revision: this.revision, data };

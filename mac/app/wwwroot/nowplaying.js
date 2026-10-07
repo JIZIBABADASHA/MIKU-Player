@@ -46,6 +46,9 @@ const NowPlaying = {
       this.manualOffset += e.deltaY;
       this.manualUntil = performance.now() + 2600;
       this.layoutLines(true);
+      // glide back to the current line after a pause in scrolling (also when paused: tick() may not run then)
+      clearTimeout(this._back);
+      this._back = setTimeout(() => this.unscroll(), 2650);
     }, { passive: false });
     new ResizeObserver(() => { if (this.open) this.measure(); }).observe(box);
   },
@@ -214,6 +217,7 @@ const NowPlaying = {
   renderLyrics() {
     const box = $('#lyrics');
     box.textContent = '';
+    this._ro?.disconnect();
     this.lines = []; this.tops = []; this.active = -2;
     const ly = this.ly;
     if (!ly) return;
@@ -230,17 +234,35 @@ const NowPlaying = {
         l.words.forEach(w => el.append(h('span', { class: 'w' }, w.w)));
       } else el.append(l.text);
       if (l.trans && this.showTrans) el.append(h('span', { class: 'tr' }, l.trans));
-      el.onclick = () => App.seek(Math.max(0, l.t - (ly.offset || 0) + 0.01));
+      el.onclick = () => {
+        App.seek(Math.max(0, l.t - (ly.offset || 0) + 0.01));
+        // the clicked line becomes current right away and the list returns to its normal place
+        clearTimeout(this._back);
+        this.manualOffset = 0; this.manualUntil = 0;
+        this.active = i;
+        this._hold = performance.now() + 500;   // until the seek is reported back
+        this.layoutLines();
+      };
       box.append(el);
       this.lines.push(el);
     });
     $('#ly-off').textContent = fmtOffset(ly.offset);
-    requestAnimationFrame(() => this.measure());
+    // re-measure whenever the box or any line changes size (window resize, lyrics column animating in, text size
+    // setting, late web fonts, view opened while hidden): stale positions put the active line off-centre and
+    // made lines overlap, so a click could land on a different line than the one you see
+    this._ro?.disconnect();
+    this._ro = new ResizeObserver(() => {
+      cancelAnimationFrame(this._mf);
+      this._mf = requestAnimationFrame(() => this.measure());
+    });
+    this._ro.observe(box);
+    this.lines.forEach(el => this._ro.observe(el));
   },
 
   measure() {
     if (!this.lines.length) return;
     const box = $('#lyrics');
+    if (!box.clientHeight) return;   // hidden: measured again once it has a size
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
     this.tops = this.lines.map(el => { const top = y; y += el.offsetHeight + 6; return top; });
@@ -269,6 +291,13 @@ const NowPlaying = {
     });
   },
 
+  unscroll() {
+    clearTimeout(this._back);
+    if (!this.manualOffset && !this.manualUntil) return;
+    this.manualOffset = 0; this.manualUntil = 0;
+    this.layoutLines();
+  },
+
   tick(pos) {
     if (!this.open || !this.ly || !this.ly.synced || !this.lines.length) return;
     const p = pos + (this.ly.offset || 0);
@@ -277,7 +306,7 @@ const NowPlaying = {
     let lo = 0, hi = L.length - 1, idx = -1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (L[mid].t <= p + 0.15) { idx = mid; lo = mid + 1; } else hi = mid - 1; }
     if (performance.now() >= this.manualUntil && this.manualOffset) { this.manualOffset = 0; this.layoutLines(); }
-    if (idx !== this.active) { this.active = idx; this.layoutLines(); }
+    if (idx !== this.active && !(performance.now() < this._hold)) { this.active = idx; this.layoutLines(); }
     // word-by-word fill for enhanced LRC
     if (idx >= 0 && L[idx].words) {
       const line = this.lines[idx];

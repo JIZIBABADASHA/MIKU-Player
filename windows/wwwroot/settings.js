@@ -224,6 +224,9 @@ const Settings = {
       /* ── appearance ── */
       if (typeof Theme !== 'undefined') Theme.section(root);
 
+      /* ── text size (fontscale.js) ── */
+      if (typeof FontScale !== 'undefined') FontScale.section(section, field);
+
       /* ── scrolling ── */
       if (window.SmoothScroll) {
         const sc = section(T('捲動'));

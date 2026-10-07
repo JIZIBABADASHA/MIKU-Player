@@ -27,6 +27,8 @@ public sealed class Track
     public string Codec { get; set; } = "";
     public long Size { get; set; }
     public long Mtime { get; set; }
+    /// <summary>UTC ticks when this track first entered the library; preserved when its tags or path change.</summary>
+    public long Added { get; set; }
     public bool HasPic { get; set; }
     public double? RgTrack { get; set; }
     public double? RgAlbum { get; set; }
@@ -156,5 +158,6 @@ public sealed class Settings
     public int RemotePort { get; set; } = 8765;
     // Window
     public int[] Window { get; set; }
+    public int WindowDpi { get; set; } // DPI associated with the saved physical size; 0 for older settings
     public bool Maximized { get; set; }
 }

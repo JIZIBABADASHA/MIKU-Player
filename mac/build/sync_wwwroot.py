@@ -30,8 +30,8 @@ PATCHES = {
         ('<kbd>Ctrl F</kbd>', '<kbd>⌘F</kbd>'),
         ('<script src="core.js', '<script src="mac-bridge.js?v=macpower1"></script>\n<script src="mac-navigation.js?v=macswipe2"></script>\n<script src="core.js'),
         ('<script src="smooth.js?v=20261004s16"></script>\n', ''),
-        ('<script src="core.js?v=20261007k1fs1"></script>', '<script src="core.js?v=20261007k1fs1-macpower3"></script>'),
-        ('<script src="views.js?v=20261007cd7-l1w-cdnav1"></script>', '<script src="views.js?v=20261007cd7-l1w-cdnav1-macperf1"></script>'),
+        ('<script src="core.js?v=20261007k1fs1-added1"></script>', '<script src="core.js?v=20261007k1fs1-added1-macpower3"></script>'),
+        ('<script src="views.js?v=20261007cd7-l1w-cdnav1-added1"></script>', '<script src="views.js?v=20261007cd7-l1w-cdnav1-added1-macperf1"></script>'),
         ('<script src="settings.js?v=20261007k1"></script>', '<script src="settings.js?v=20261007k1-native-scroll1"></script>'),
     ],
     'core.js': [
