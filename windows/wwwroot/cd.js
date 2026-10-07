@@ -253,8 +253,9 @@ const Cd = {
       opts.textContent = '';
       // names
       opts.append(line(T('專輯'), input(st.album, v => st.album = v, T('專輯名稱')), input(st.artist, v => st.artist = v, T('專輯演出者'))));
+      const lookup = this.lookupText();
       opts.append(line('', input(st.year, v => st.year = v, T('年份'), 'cd-year'), input(st.genre, v => st.genre = v, T('類型'), 'cd-genre'),
-        h('small', { class: 'muted' }, this.lookupText() || (d.release ? T('名稱來自 MusicBrainz，可以直接修改') : ''))));
+        lookup ? h('small', { class: 'muted' }, lookup) : null));
       // format, as 轉換格式
       const group = (kind, label) => {
         const seg = h('div', { class: 'seg' });
@@ -264,13 +265,13 @@ const Cd = {
       };
       opts.append(line(T('格式'), group('lossless', T('無損')), group('lossy', T('有損'))));
       if (st.format === 'flac') opts.append(line(T('壓縮等級'), sel([0, 1, 2, 3, 4, 5, 6, 7, 8].map(n => [n, n === 5 ? T('5（預設）') : n === 8 ? T('8（最小）') : n === 0 ? T('0（最快）') : String(n)]), st.flacLevel, v => st.flacLevel = +v),
-        h('small', { class: 'muted' }, T('數字越大檔案越小、轉換越慢；音質都一樣（無損）'))));
+        h('small', { class: 'muted', title: T('數字越大檔案越小、轉換越慢；音質都一樣（無損）') }, T('越高越小，音質不變'))));
       if (st.format === 'mp3') opts.append(line(T('品質'), sel([['v0', T('VBR V0（約 245 kbps）')], ['v2', T('VBR V2（約 190 kbps）')], ['320', 'CBR 320 kbps'], ['256', 'CBR 256 kbps'], ['192', 'CBR 192 kbps']], st.mp3, v => st.mp3 = v)));
       if (st.format === 'aac') opts.append(line(T('位元率'), sel([[320, '320 kbps'], [256, '256 kbps'], [192, '192 kbps'], [128, '128 kbps']], st.aacKbps, v => st.aacKbps = +v)));
       if (st.format === 'opus') opts.append(line(T('位元率'), sel([[256, '256 kbps'], [192, '192 kbps'], [160, '160 kbps'], [128, '128 kbps'], [96, '96 kbps']], st.opusKbps, v => st.opusKbps = +v)));
       if (['flac', 'alac', 'mp3', 'aac'].includes(st.format)) {
         const sw = h('span', { class: 'switch' + (st.cover ? ' on' : ''), onclick: () => { st.cover = !st.cover; sw.classList.toggle('on', st.cover); } });
-        opts.append(line(T('封面'), sw, h('small', { class: 'muted' }, d.cover ? T('把專輯封面放進檔案') : T('這張光碟還沒有封面'))));
+        opts.append(line(T('封面'), sw, h('small', { class: 'muted' }, d.cover ? T('嵌入檔案') : T('這張光碟還沒有封面'))));
       }
       // where
       const path = h('span', { class: 'cvt-path num', title: st.dir }, st.dir || T('還沒選擇'));
@@ -278,13 +279,13 @@ const Cd = {
         const x = await Host.call('convert.pickFolder', { dir: st.dir }).catch(() => null);
         if (x) { st.dir = x; draw(); }
       } })));
-      opts.append(line('', h('small', { class: 'muted' }, T('自動建立以專輯名稱命名的子資料夾'))));
       // read offset
       const offsetMode = seg([['auto', T('自動（建議）')], ['manual', T('手動設定')]], st.offsetAuto ? 'auto' : 'manual', mode => {
         st.offsetAuto = mode === 'auto';
         if (!st.offsetAuto && st.offset == null) st.offset = d.offset ?? 0;
         draw();
       });
+      offsetMode.title = T('校正光碟機讀取音訊的位置；0 代表不額外修正。一般保留「自動（建議）」即可，只有知道光碟機的校正值時才需手動填寫。');
       let offIn, validation;
       if (!st.offsetAuto) {
         offIn = h('input', { class: 'inp cd-offset num', type: 'number', value: st.offset ?? '', step: 1,
@@ -299,12 +300,11 @@ const Cd = {
         validate();
       }
       const autoText = d.offset != null
-        ? T`使用這台光碟機已記住的校正值（${d.offset > 0 ? '+' : ''}${d.offset} 個取樣點）`
-        : T('嘗試自動找出並記住校正值，查不到時使用 0');
-      opts.append(line(T('讀取校正'), offsetMode, st.offsetAuto ? h('small', { class: 'muted' }, autoText) : offIn,
+        ? T`已記住：${d.offset > 0 ? '+' : ''}${d.offset} samples`
+        : T('自動偵測');
+      opts.append(line(T('讀取校正'), offsetMode, st.offsetAuto ? h('small', { class: 'muted', title: d.offset == null ? T('嘗試自動找出並記住校正值，查不到時使用 0') : null }, autoText) : offIn,
         st.offsetAuto ? null : h('small', { class: 'muted' }, T('取樣點（samples）')), validation));
-      opts.append(line('', h('small', { class: 'muted cd-offset-help' }, T('校正光碟機讀取音訊的位置；0 代表不額外修正。一般保留「自動（建議）」即可，只有知道光碟機的校正值時才需手動填寫。'))));
-      opts.append(line('', h('small', { class: 'muted cvt-warn' }, T('安全模式：每一段讀兩次比對，不一樣就重讀到兩次相同為止；抓完跟 AccurateRip 資料庫比對，確認跟其他人抓到的一模一樣。比一般抓取慢一倍左右。'))));
+      opts.append(line('', h('small', { class: 'muted cvt-warn', title: T('安全模式：每一段讀兩次比對，不一樣就重讀到兩次相同為止；抓完跟 AccurateRip 資料庫比對，確認跟其他人抓到的一模一樣。比一般抓取慢一倍左右。') }, T('安全讀取 · AccurateRip 驗證'))));
       updateGo();
     };
     // the tracks: tick, title, artist
