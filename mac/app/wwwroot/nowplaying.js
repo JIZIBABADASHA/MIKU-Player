@@ -277,6 +277,9 @@ const NowPlaying = {
     const anchor = this.boxH * 0.36;
     let scroll = this.tops[a] + (this.heights[a] || 0) / 2 - anchor;
     if (performance.now() < this.manualUntil) scroll += this.manualOffset;
+    // Scrolling by hand on Mac (or with smooth scrolling turned off): the lines follow the trackpad / wheel directly,
+    // without an eased transition on top of the system's own momentum. Gliding back to the current line still eases.
+    $('#lyrics').classList.toggle('ly-direct', !!manual && PageEffects.reduced('scroll'));
     this.lines.forEach((el, i) => {
       const d = i - a;
       const dist = Math.abs(d);

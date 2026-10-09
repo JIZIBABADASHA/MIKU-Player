@@ -13,7 +13,15 @@ const Outputs = {
       if (dev) name = shortDevice(dev.name);
     }
     $('#b-outname').textContent = name;
-    $('#b-out').title = T('輸出：') + name + T('（Core Audio）');
+    $('#b-out').title = T('輸出：') + name + (s.outputMode === 'coreaudio-exclusive' ? T('（Core Audio 獨佔）') : T('（Core Audio 共享）'));
+  },
+  /** A device was connected / removed or the system output changed: refresh the picker and the settings page. */
+  changed() {
+    clearTimeout(this.changedTimer);
+    this.changedTimer = setTimeout(() => {
+      this.refresh();
+      if (typeof Settings !== 'undefined' && Settings.redrawDevices) Settings.redrawDevices();
+    }, 400);
   },
   async toggle(anchor) {
     if (Popover.el && Popover.el.classList.contains('outpop')) return Popover.close();
@@ -49,3 +57,4 @@ const Outputs = {
     if (Popover.el && Popover.el.contains(box)) draw();
   },
 };
+Host.on('devicesChanged', () => Outputs.changed());

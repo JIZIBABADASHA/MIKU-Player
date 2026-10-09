@@ -322,6 +322,14 @@ const Outputs = {
     $('#b-outname').textContent = name;
     $('#b-out').title = T('輸出：') + name + T('（') + ({ exclusive: T('WASAPI 獨佔'), shared: T('WASAPI 共享'), asio: 'ASIO' }[s.outputMode] || '') + T('）');
   },
+  /** A device was connected / removed or the system output changed: refresh the picker and the settings page. */
+  changed() {
+    clearTimeout(this.changedTimer);
+    this.changedTimer = setTimeout(() => {
+      this.refresh();
+      if (typeof Settings !== 'undefined' && Settings.redrawDevices) Settings.redrawDevices();
+    }, 400);
+  },
   async toggle(anchor) {
     if (Popover.el && Popover.el.classList.contains('outpop')) return Popover.close();
     const box = h('div');
@@ -366,3 +374,4 @@ const Outputs = {
     if (Popover.el && Popover.el.contains(box)) draw();
   },
 };
+Host.on('devicesChanged', () => Outputs.changed());

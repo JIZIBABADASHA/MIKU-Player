@@ -31,6 +31,7 @@ const Vinyl = {
   /** Clicking a sleeve in a list: the record slides most of the way out first, then the album opens. */
   pullOut(card, next) {
     if (!this.on || !card || card.classList.contains('artist')) return false;
+    if (PageEffects.reduced('album')) return false;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
     if (card.classList.contains('vpull')) return true;            // already pulling: ignore the double click
     card.classList.add('vpull');
@@ -48,6 +49,7 @@ const Vinyl = {
   /* ── album page built: add the turntable and bring the record in ── */
   mount(hero, cover, al) {
     this.dropFly();
+    if (this.deck?.spin) this.deck.spin.cancel();
     this.deck = null;
     if (!this.on) return;
     const rec = this.recordEl('tt-rec');
@@ -58,20 +60,21 @@ const Vinyl = {
     const d = this.deck = { el, rec, arm, hero, cover, id: al.id, spin: null, state: 'empty' };
     const f = this.from;
     this.from = null;
-    const flying = !!(f && f.id === al.id && f.rect);
+    const flying = !PageEffects.reduced('album') && !!(f && f.id === al.id && f.rect);
     if (flying) { rec.classList.add('away'); el.classList.add('tt-empty'); }
     // wait until the router has restored the scroll position, then measure
     Promise.resolve().then(() => requestAnimationFrame(() => {
       if (this.deck !== d || !el.isConnected) return;
       if (!el.getBoundingClientRect().width) return;            // turntable hidden (narrow window)
       if (flying) this.flyIn(f.rect);
-      else { d.state = 'placed'; setTimeout(() => this.dropNeedle(d), 350); }
+      else { d.state = 'placed'; if (PageEffects.reduced('album')) this.placeImmediately(d); else setTimeout(() => this.dropNeedle(d), 350); }
     }));
   },
 
   /** The record leaves the sleeve in the list and lands on the platter. */
   flyIn(s) {
     const d = this.deck;
+    if (PageEffects.reduced('album')) { this.placeImmediately(d); return; }
     d.state = 'flying';
     const t = d.rec.getBoundingClientRect();
     const fly = this.fly = this.recordEl('vrec-fly');
@@ -95,11 +98,29 @@ const Vinyl = {
       setTimeout(() => this.dropNeedle(d), 150);
     };
   },
-  dropFly() { if (this.fly) { this.fly.remove(); this.fly = null; } },
+  dropFly() { if (this.fly) { this.fly.getAnimations().forEach(a => a.cancel()); this.fly.remove(); this.fly = null; } },
+
+  placeImmediately(d) {
+    if (this.deck !== d || !d.el.isConnected) return;
+    this.dropFly(); d.rec.classList.remove('away'); d.rec.style.visibility = '';
+    d.el.classList.remove('tt-empty'); d.arm.classList.add('cue', 'down');
+    this.spinUp(d);
+  },
+  syncMotion() {
+    const d = this.deck;
+    if (!d || !d.el.isConnected) return;
+    if (PageEffects.reduced('album') && d.state === 'returning') { d.finishLeave?.(); return; }
+    if (PageEffects.reduced('album') && ['empty', 'flying', 'placed', 'cueing'].includes(d.state)) this.placeImmediately(d);
+    if (PageEffects.reduced('vinyl')) {
+      if (d.spin) { d.spin.cancel(); d.spin = null; }
+      d.rec.style.transform = '';
+    } else if (d.state === 'playing' && !d.spin) this.spinUp(d);
+  },
 
   /** Arm swings over the record, lowers onto it, then the platter spins up. */
   dropNeedle(d) {
     if (this.deck !== d || d.state !== 'placed') return;
+    if (PageEffects.reduced('album')) { this.placeImmediately(d); return; }
     d.state = 'cueing';
     d.arm.classList.remove('quick');
     d.arm.classList.add('cue');
@@ -110,13 +131,15 @@ const Vinyl = {
     }, 950);
   },
   spinUp(d) {
+    if (d.spin) { d.spin.cancel(); d.spin = null; }
     d.state = 'playing';
     d.el.classList.add('on');
+    if (PageEffects.reduced('vinyl')) return;
     // ease-in for the first turn; its end speed (2 × 360°/3.6 s) equals the steady 360°/1.8 s → no jolt
     const up = d.rec.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: 3600, easing: 'cubic-bezier(.5,0,1,1)' });
     d.spin = up;
     up.onfinish = () => {
-      if (this.deck !== d || d.state !== 'playing') return;
+      if (this.deck !== d || d.state !== 'playing' || PageEffects.reduced('vinyl')) return;
       d.spin = d.rec.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: 1800, iterations: Infinity });
     };
   },
@@ -132,14 +155,20 @@ const Vinyl = {
     this.dropFly();
     if (this.leaving) { this.leaving = 0; return false; }           // navigating again mid-way: just go
     const d = this.deck;
+    if (PageEffects.reduced('album')) {
+      if (d?.spin) d.spin.cancel();
+      this.deck = null; this.from = null; return false;
+    }
     if (!this.on || !d || !d.el.isConnected || !['placed', 'cueing', 'playing'].includes(d.state) || !this.visible(d.el) || !this.visible(d.cover)) return false;
     const token = this.leaving = performance.now();
-    this.putBack(d, () => {
+    d.finishLeave = () => {
       if (this.leaving !== token) return;
+      d.state = 'returned'; d.finishLeave = null;
       this.leaving = 0;
       this.deck = null;
       next();
-    });
+    };
+    this.putBack(d, d.finishLeave);
     return true;
   },
 
@@ -155,7 +184,7 @@ const Vinyl = {
 
     // 2. record flies to just right of the sleeve, 3. slides in behind it
     setTimeout(() => {
-      if (!d.el.isConnected) return done();
+      if (!d.el.isConnected || this.deck !== d || d.state !== 'returning') return done();
       const hero = d.hero, cover = d.cover;
       const hr = hero.getBoundingClientRect(), rr = d.rec.getBoundingClientRect(), cr = cover.getBoundingClientRect();
       const size = cr.width * .94;
@@ -174,6 +203,7 @@ const Vinyl = {
         { transform: `translate(${bx}px, 0px) scale(1) rotate(${ang + 360}deg)` },
       ], { duration: 640, easing: 'cubic-bezier(.45,.05,.25,1)', fill: 'forwards' });
       a1.onfinish = () => {
+        if (this.deck !== d || d.state !== 'returning') return done();
         // sliding into the sleeve: its own shadow fades away (the sleeve casts the shadow now)
         const a2 = fly.animate([
           { transform: `translate(${bx}px, 0px) rotate(${ang + 360}deg)`, boxShadow: '0 0 0 1px rgba(0,0,0,.5), 0 10px 26px rgba(22,38,30,.35)' },
@@ -190,6 +220,7 @@ const Vinyl = {
   const cap = Flip.capture;
   Flip.capture = function (id, art) {
     cap.call(this, id, art);
-    Vinyl.from = Vinyl.on && art ? { id, rect: Vinyl.discRect(art.closest('.card')) } : null;
+    Vinyl.from = Vinyl.on && art && !PageEffects.reduced('album') ? { id, rect: Vinyl.discRect(art.closest('.card')) } : null;
   };
 })();
+window.addEventListener('miku-effects-change', () => Vinyl.syncMotion());

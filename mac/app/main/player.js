@@ -65,7 +65,8 @@ class Player extends EventEmitter {
     }
     await this.engine.load(t, pos, play);
     if (this.engine.isLoaded) { this.failures = 0; if (play) this.ensureAutoNext(); }
-    else if (play && this.engine.track === t && ++this.failures < 3) {
+    // only when this very load failed: a load replaced by a newer one (output switch, reopening) must not skip ahead
+    else if (play && this.engine.loadFailed && !this.engine.lastFailureWasDevice && this.engine.track === t && ++this.failures < 3) {
       // unreadable file: move on rather than stalling the queue
       let next = null;
       if (this.index + 1 < this.queue.length) { this.index++; next = this.current; }

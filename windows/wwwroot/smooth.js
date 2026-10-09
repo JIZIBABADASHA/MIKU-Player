@@ -6,10 +6,11 @@
   const LINE_PX = 40;         // one "line" of scrolling
   let lines = 3;              // lines per wheel notch (user setting)
   try { lines = Math.min(15, Math.max(1, +localStorage.getItem('miku.scrollLines') || 3)); } catch (e) {}
-  let enabled = true;
+  let enabled = !PageEffects.reduced('scroll');
   try { localStorage.removeItem('miku.smoothScroll'); } catch (e) {}
   window.SmoothScroll = { get enabled() { return enabled; }, set enabled(v) { enabled = !!v; if (!enabled) stopAll(); try { localStorage.setItem('miku.smoothScroll', enabled ? '1' : '0'); } catch (e) {} },
     get lines() { return lines; }, set lines(v) { lines = Math.min(15, Math.max(1, Math.round(+v) || 3)); try { localStorage.setItem('miku.scrollLines', lines); } catch (e) {} } };
+  addEventListener('miku-effects-change', () => { SmoothScroll.enabled = !PageEffects.reduced('scroll'); });
   const states = new WeakMap();
   const active = new Set();
   function stopAll() {

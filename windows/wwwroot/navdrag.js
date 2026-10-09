@@ -79,6 +79,7 @@
 
   /** Move the others with a FLIP slide after a DOM reorder. */
   function flip(links, before) {
+    if (PageEffects.reduced('page')) return;
     for (const el of links) {
       if (el === drag.a) continue;
       const dy = before.get(el) - el.offsetTop;

@@ -83,6 +83,13 @@ public sealed class AudioEngine : IAudioEngine
     double? _hwRestoreDb;
     bool _reopenFailed;   // the DAC couldn't be reopened recently: prefer keeping the open output over reopening
     bool _sharedFallback; // last open fell back to shared mode because another program held the DAC
+    readonly object _deviceLock = new();   // _device is released by device changes while volume code may use it
+    string _deviceId;     // ID of _device, read once when it was opened (a removed device can't be asked any more)
+    int _activeVersion;   // the load request the gate is working on (Stop and newer loads make it stale)
+    readonly DeviceWatcher _watcher;
+    int _deviceEventSeq;
+    readonly List<DateTime> _recoveries = new();
+    volatile bool _disposed;
 
     public Func<Track> PeekNext { get; set; }
     /// <summary>Asks other audio inside MIKU (the YouTube Music page) to let go of the DAC before a local track opens it.</summary>
@@ -93,6 +100,8 @@ public sealed class AudioEngine : IAudioEngine
     public event Action Changed;
     /// <summary>A track is about to be loaded (used to pause YouTube before a local track takes the DAC).</summary>
     public event Action<Track> Loading;
+    /// <summary>An output device was connected, removed, enabled / disabled, or the system output changed.</summary>
+    public event Action DevicesChanged;
 
     public SignalInfo Signal { get; private set; }
     /// <summary>The last load failed because the output device could not be opened (not because the file is bad).</summary>
@@ -107,6 +116,103 @@ public sealed class AudioEngine : IAudioEngine
         _s = settings;
         _ui = uiInvoke;
         _monitor = new Timer(_ => Monitor(), null, 40, 40);
+        try { _watcher = new DeviceWatcher(OnDeviceEvent); }
+        catch (Exception ex) { Log.Error("Device notifications", ex); }
+    }
+
+    // ───────────────────────────── device changes ─────────────────────────────
+
+    /// <summary>Windows sends bursts (state, removed, new default …): act once, after they have settled, off the COM thread.</summary>
+    void OnDeviceEvent(string what)
+    {
+        int seq = Interlocked.Increment(ref _deviceEventSeq);
+        Task.Delay(400).ContinueWith(_ =>
+        {
+            if (seq != Volatile.Read(ref _deviceEventSeq) || _disposed) return Task.CompletedTask;
+            return HandleDeviceChangeAsync(what);
+        }).Unwrap().ContinueWith(t => { if (t.IsFaulted) Log.Error("Device change", t.Exception); });
+    }
+
+    async Task HandleDeviceChangeAsync(string what)
+    {
+        DevicesChanged?.Invoke();
+        if (_plan?.Mode == "asio" || _s.OutputMode == "asio") return;
+        string openId = _deviceId;
+        if (openId == null) return;
+        string want = string.IsNullOrEmpty(_s.DeviceId) ? null : _s.DeviceId;
+        if (!Devices.IsActive(openId))
+        {
+            Log.Info($"Output device removed or disabled ({what})");
+            await DeviceLostAsync(null);
+            return;
+        }
+        // Following the system output and it moved, or the selected device is back after a fallback.
+        bool moved = want == null ? Devices.DefaultId() is { } def && def != openId : openId != want && Devices.IsActive(want);
+        if (!moved) return;
+        Log.Info($"Output device changed ({what}): moving playback");
+        if (_out == null)
+        {
+            // nothing open: forget the old device, the next Play opens the right one
+            await _gate.WaitAsync();
+            try { if (_out == null) ReleaseDevice(); } finally { _gate.Release(); }
+            Changed?.Invoke();
+            return;
+        }
+        if (AllowRecovery()) await ReconfigureAsync();
+    }
+
+    /// <summary>A few automatic reopenings in a row are fine; more means something keeps fighting over the device.</summary>
+    bool AllowRecovery()
+    {
+        lock (_recoveries)
+        {
+            var now = DateTime.UtcNow;
+            _recoveries.RemoveAll(t => now - t > TimeSpan.FromSeconds(15));
+            if (_recoveries.Count >= 3) return false;
+            _recoveries.Add(now);
+            return true;
+        }
+    }
+
+    double SafePosition() { try { return Position; } catch { return _pausedAt ?? 0; } }
+
+    /// <summary>
+    /// The output stopped by itself (device unplugged, disabled, or its format changed / taken by another program).
+    /// The track stays, paused at the place it was; if the device is still there it is opened again right away.
+    /// </summary>
+    async Task DeviceLostAsync(object output, Exception error = null)
+    {
+        var t = Track;
+        double pos = SafePosition();
+        bool wasPlaying = !_paused && _out != null;
+        string id = _deviceId, name = _caps?.Name ?? "輸出裝置";
+        await _gate.WaitAsync();
+        try
+        {
+            if (output != null && !ReferenceEquals(output, _out)) return;   // already replaced by a newer output
+            TearDown();
+            ReleaseDevice();
+            if (t != null) { Track = t; _pausedAt = t.IsLive ? 0 : Math.Max(0, pos); _paused = true; Signal = null; }
+        }
+        finally { _gate.Release(); }
+        bool stillThere = Devices.IsActive(id);
+        if (t != null && wasPlaying && stillThere && AllowRecovery())
+        {
+            Log.Info($"Output stopped but {name} is still there: reopening at {pos:0.00}s");
+            await LoadAsync(t, t.IsLive ? 0 : pos, true);
+            return;
+        }
+        if (t != null && wasPlaying)
+            Failed?.Invoke(stillThere ? "輸出中斷：" + error?.Message
+                : $"「{name}」已中斷連線，已暫停播放。重新連接或選擇其他輸出裝置後按播放即可從原位置繼續。");
+        Changed?.Invoke();
+    }
+
+    void ReleaseDevice()
+    {
+        MMDevice d;
+        lock (_deviceLock) { d = _device; _device = null; _deviceId = null; _caps = null; }
+        Devices.Release(d);
     }
 
     // ───────────────────────────── planning ─────────────────────────────
@@ -144,7 +250,7 @@ public sealed class AudioEngine : IAudioEngine
             int rate = _caps.MixRate > 0 ? _caps.MixRate : 48000;
             int ch = Math.Max(2, _caps.MixChannels);
             sp.Resample = sp.Dsd != null || rate != sp.SourceRate;
-            return (new OutputPlan("shared", _device.ID, null, rate, ch, SampleFormat.Float32, false, bufferMs), sp);
+            return (new OutputPlan("shared", _deviceId, null, rate, ch, SampleFormat.Float32, false, bufferMs), sp);
         }
 
         // exclusive
@@ -155,7 +261,7 @@ public sealed class AudioEngine : IAudioEngine
             if (f != null)
             {
                 sp.Dop = true;
-                return (new OutputPlan("exclusive", _device.ID, null, dopRate, 2, f.Value, true, bufferMs), sp);
+                return (new OutputPlan("exclusive", _deviceId, null, dopRate, 2, f.Value, true, bufferMs), sp);
             }
             sp.Note = $"DAC 目前沒有回報支援 {dopRate / 1000.0:0.#} kHz 24-bit，無法以 DoP 輸出，改為轉 PCM 播放。";
         }
@@ -169,7 +275,7 @@ public sealed class AudioEngine : IAudioEngine
             sp.Note ??= $"DAC 目前沒有回報支援 {_s.DsdPcmRate / 1000.0:0.#} kHz，DSD 改轉為 {r / 1000.0:0.#} kHz PCM。";
         if (sp.Note != null)
             Log.Info($"DSD plan: {sp.Note} (exclusive rates: {string.Join(", ", supported)}{(_caps.Partial ? ", partial probe" : "")})");
-        return (new OutputPlan("exclusive", _device.ID, null, r, 2, fmt, false, bufferMs), sp);
+        return (new OutputPlan("exclusive", _deviceId, null, r, 2, fmt, false, bufferMs), sp);
     }
 
     int DesiredRate(int src, List<int> supported)
@@ -232,17 +338,48 @@ public sealed class AudioEngine : IAudioEngine
 
     void EnsureDevice()
     {
-        string want = _s.DeviceId;
-        if (_device != null && (want == null || _device.ID == want))
+        string want = string.IsNullOrEmpty(_s.DeviceId) ? null : _s.DeviceId;
+        if (_device != null)
         {
-            // a probe taken while another app (Roon…) was playing only lists that app's rate: probe again
-            if (_caps == null || _caps.Partial) _caps = Devices.Probe(_device);
-            return;
+            if (DeviceStillRight())
+            {
+                // a probe taken while another app (Roon…) was playing only lists that app's rate: probe again
+                if (_caps == null || _caps.Partial) _caps = Devices.Probe(_device);
+                return;
+            }
+            ReleaseDevice();
         }
-        _device?.Dispose();
-        _device = Devices.Open(want);
-        _caps = Devices.Probe(_device);
+        var d = Devices.Open(want);
+        string id;
+        try { id = d.ID; } catch { Devices.Release(d); throw; }
+        lock (_deviceLock) { _device = d; _deviceId = id; }
+        _caps = Devices.Probe(d);
     }
+
+    /// <summary>
+    /// The open device is still the right one: still connected, and still the system output (when MIKU follows it) or
+    /// the selected device (or the fallback while the selected one is missing). The old code kept a device that had
+    /// been unplugged, so every later track failed to open.
+    /// </summary>
+    bool DeviceStillRight()
+    {
+        string want = string.IsNullOrEmpty(_s.DeviceId) ? null : _s.DeviceId;
+        MMDevice d; string id;
+        lock (_deviceLock) { d = _device; id = _deviceId; }
+        if (d == null) return false;
+        try
+        {
+            return d.State == DeviceState.Active
+                && (want == null ? id == Devices.DefaultId() : id == want || !Devices.IsActive(want));
+        }
+        catch { return false; }
+    }
+
+    /// <summary>The device's name without asking a device that may already be gone.</summary>
+    string DeviceName => _caps?.Name ?? "輸出裝置";
+
+    /// <summary>The selected device isn't connected, so the system output is used.</summary>
+    bool OnFallbackDevice => !string.IsNullOrEmpty(_s.DeviceId) && _deviceId != null && _deviceId != _s.DeviceId;
 
     PcmSource CreateSource(Track t, double seek, SourcePlan sp, OutputPlan op)
     {
@@ -272,18 +409,44 @@ public sealed class AudioEngine : IAudioEngine
         try
         {
             if (version != Volatile.Read(ref _loadVersion)) return; // superseded by a newer request
+            _activeVersion = version;
             await Task.Run(() => LoadCore(t, seek, play));
+        }
+        catch (OperationCanceledException)
+        {
+            Log.Info("Load superseded while opening the output");
+            TearDown();
         }
         catch (Exception ex)
         {
             Log.Error("Load " + (t.IsLive ? "YouTube" : t.Path), ex);
-            LastFailureWasDevice = ex is DeviceBusyException || IsDeviceInUse(ex) || ex.Message.Contains("無法開啟") || ex.Message.Contains("獨佔模式");
+            LastFailureWasDevice = IsDeviceError(ex) || ex.Message.Contains("無法開啟") || ex.Message.Contains("獨佔模式");
             TearDown();
+            // a device that failed (removed meanwhile, invalidated…) is opened afresh next time
+            if (LastFailureWasDevice) ReleaseDevice();
             Track = t;
             Signal = null;
+            // keep the place, so Play tries again from there
+            if (!t.IsLive) { _pausedAt = Math.Max(0, seek); _paused = true; }
             Failed?.Invoke(ex.Message);
         }
         finally { _gate.Release(); Changed?.Invoke(); }
+    }
+
+    /// <summary>Set while a newer request (or Stop) has replaced the one being opened.</summary>
+    bool Superseded => _activeVersion != Volatile.Read(ref _loadVersion);
+
+    /// <summary>The failure is about the output device (busy, removed, none at all), not the file.</summary>
+    static bool IsDeviceError(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is DeviceBusyException || e is NoOutputDeviceException) return true;
+            uint hr = unchecked((uint)e.HResult);
+            if ((hr & 0xFFFF0000) == 0x88890000) return true;   // AUDCLNT_E_*: device invalidated, in use, format…
+            if (hr == 0x80070490 || hr == 0x8007048F) return true;   // element not found / device not connected
+        }
+        return IsDeviceInUse(ex);
     }
 
     void LoadCore(Track t, double seek, bool play)
@@ -332,7 +495,7 @@ public sealed class AudioEngine : IAudioEngine
         // already failed once this session: reopening the DAC there is exactly what keeps failing, so stay on the
         // open output. Album → album changes still reopen at the native rate (bit-perfect) when nothing is in the way.
         string keptNote = null;
-        if (_out != null && _chain != null && _plan != null && plan != _plan && plan.Mode == _plan.Mode
+        if (_out != null && _chain != null && _plan != null && plan != _plan && plan.Mode == _plan.Mode && plan.DeviceId == _plan.DeviceId
             && plan.Mode != "asio" && !plan.Dop && !_plan.Dop && _device != null)
         {
             bool sourceSwitch = Track != null && Track.IsLive != t.IsLive;
@@ -366,6 +529,8 @@ public sealed class AudioEngine : IAudioEngine
             ApplyVolume();
             Signal = BuildSignal(t, sp, plan);
             if (keptNote != null && Signal != null) Signal.Note = keptNote;
+            if (OnFallbackDevice && Signal != null && plan.Mode != "asio")
+                Signal.Note = "找不到選定的輸出裝置，暫時改用系統預設輸出；裝置接回後會自動切回。" + (Signal.Note == null ? "" : " " + Signal.Note);
             _wasapiStopped = false;
             _pausedAt = null;
             _paused = false;
@@ -445,12 +610,14 @@ public sealed class AudioEngine : IAudioEngine
                 // also report "device in use" for a moment
                 if (busy && sw.ElapsedMilliseconds < budget)
                 {
+                    // Stop or another track was chosen meanwhile: give up now instead of holding the gate for seconds
+                    if (Superseded) throw new OperationCanceledException();
                     Thread.Sleep(Math.Min(100 * attempt, 400));
                     continue;
                 }
                 string asio = null;
                 if (busy) { LogSessions(_device); _reopenFailed = true; if (string.IsNullOrEmpty(holders)) { asio = AsioUsers(); Log.Info("Processes using an ASIO / TUSBAudio driver: " + (asio.Length == 0 ? "none" : asio)); } }
-                Devices.Invalidate(_device.ID);
+                Devices.Invalidate(_deviceId);
                 if (busy)
                 {
                     string who = !string.IsNullOrEmpty(holders) ? holders : !string.IsNullOrEmpty(asio) ? asio + "（ASIO）" : "Windows 尚未釋放的串流";
@@ -459,11 +626,11 @@ public sealed class AudioEngine : IAudioEngine
                         : who.StartsWith("Windows") ? "通常幾秒後就會恢復，請稍等一下再按播放；如果一直發生，請到「設定 → 音訊輸出」暫時改用共享模式，並把記錄檔傳給開發者。"
                         : "請先停止該程式的播放再試一次。";
                     throw new DeviceBusyException(who,
-                        $"「{_device.FriendlyName}」正被 {who} 使用，MIKU 無法開啟（{plan.Rate / 1000.0:0.#} kHz）。{hint}");
+                        $"「{DeviceName}」正被 {who} 使用，MIKU 無法開啟（{plan.Rate / 1000.0:0.#} kHz）。{hint}");
                 }
                 throw new InvalidOperationException(mode == AudioClientShareMode.Exclusive
-                    ? $"無法以獨佔模式開啟「{_device.FriendlyName}」（{plan.Rate / 1000.0:0.#} kHz / {Formats.Describe(plan.Format)}）。\n{ex.Message}"
-                    : $"無法開啟「{_device.FriendlyName}」：{ex.Message}");
+                    ? $"無法以獨佔模式開啟「{DeviceName}」（{plan.Rate / 1000.0:0.#} kHz / {Formats.Describe(plan.Format)}）。\n{ex.Message}"
+                    : $"無法開啟「{DeviceName}」：{ex.Message}");
             }
         }
         var actual = w.OutputWaveFormat;
@@ -622,14 +789,10 @@ public sealed class AudioEngine : IAudioEngine
         if (!ReferenceEquals(sender, _out)) return;
         if (e.Exception != null)
         {
+            // Typically AUDCLNT_E_DEVICE_INVALIDATED: unplugged, disabled, its format changed, or another program took it.
             Log.Error("Output stopped", e.Exception);
-            Task.Run(() =>
-            {
-                _gate.Wait();
-                try { TearDown(); } finally { _gate.Release(); }
-                Failed?.Invoke("輸出中斷：" + e.Exception.Message);
-                Changed?.Invoke();
-            });
+            var ex = e.Exception;
+            Task.Run(() => DeviceLostAsync(sender, ex)).ContinueWith(t => { if (t.IsFaulted) Log.Error("Output stopped", t.Exception); });
         }
     }
 
@@ -690,6 +853,7 @@ public sealed class AudioEngine : IAudioEngine
         await _gate.WaitAsync();
         try
         {
+            _activeVersion = Volatile.Read(ref _loadVersion);
             await Task.Run(() =>
             {
                 var (plan, sp) = BuildPlan(t);
@@ -706,7 +870,24 @@ public sealed class AudioEngine : IAudioEngine
 
     public void Stop()
     {
-        _gate.Wait();
+        // A load still waiting for a busy DAC gives up at its next retry.
+        Interlocked.Increment(ref _loadVersion);
+        if (!_gate.Wait(3000))
+        {
+            // Stop is called on the UI thread: don't freeze the window behind a device that is slow to open or close.
+            Log.Info("Stop: output busy, finishing in the background");
+            Track = null; Signal = null; _pausedAt = null;
+            Task.Run(async () =>
+            {
+                await _gate.WaitAsync();
+                try { TearDown(); Track = null; Signal = null; _pausedAt = null; }
+                catch (Exception ex) { Log.Error("Stop", ex); }
+                finally { _gate.Release(); }
+                Changed?.Invoke();
+            });
+            Changed?.Invoke();
+            return;
+        }
         try { TearDown(); Track = null; Signal = null; _pausedAt = null; }
         finally { _gate.Release(); }
         Changed?.Invoke();
@@ -717,7 +898,7 @@ public sealed class AudioEngine : IAudioEngine
     {
         var t = Track; double pos = Position; bool play = IsPlaying;
         await _gate.WaitAsync();
-        try { TearDown(); _device?.Dispose(); _device = null; _caps = null; }
+        try { TearDown(); ReleaseDevice(); }
         finally { _gate.Release(); }
         if (t != null) await LoadAsync(t, pos, play);
     }
@@ -763,16 +944,20 @@ public sealed class AudioEngine : IAudioEngine
         var c = _chain;
         if (c != null) c.Dsp.SetGain(c.Dop ? 1 : DigitalGain());
         bool hw = _s.VolumeMode == "hardware" || (c != null && c.Dop && _s.VolumeMode == "digital");
-        if (hw && _device != null && _plan?.Mode != "asio")
+        if (hw && _plan?.Mode != "asio")
         {
-            try
+            lock (_deviceLock)
             {
-                var v = _device.AudioEndpointVolume;
-                if (c != null && c.Dop && _hwRestoreDb == null) _hwRestoreDb = v.MasterVolumeLevel;
-                v.MasterVolumeLevel = (float)Math.Clamp(_s.VolumeDb, v.VolumeRange.MinDecibels, v.VolumeRange.MaxDecibels);
-                v.Mute = _s.Muted;
+                if (_device == null) return;
+                try
+                {
+                    var v = _device.AudioEndpointVolume;
+                    if (c != null && c.Dop && _hwRestoreDb == null) _hwRestoreDb = v.MasterVolumeLevel;
+                    v.MasterVolumeLevel = (float)Math.Clamp(_s.VolumeDb, v.VolumeRange.MinDecibels, v.VolumeRange.MaxDecibels);
+                    v.Mute = _s.Muted;
+                }
+                catch (Exception ex) { Log.Error("HW volume", ex); }
             }
-            catch (Exception ex) { Log.Error("HW volume", ex); }
         }
     }
 
@@ -780,14 +965,18 @@ public sealed class AudioEngine : IAudioEngine
 
     void LeaveDopVolume()
     {
-        if (_hwRestoreDb == null || _device == null) return;
-        try
+        if (_hwRestoreDb == null) return;
+        lock (_deviceLock)
         {
-            var v = _device.AudioEndpointVolume;
-            v.MasterVolumeLevel = (float)_hwRestoreDb.Value;
-            v.Mute = false;
+            if (_device == null) { _hwRestoreDb = null; return; }
+            try
+            {
+                var v = _device.AudioEndpointVolume;
+                v.MasterVolumeLevel = (float)_hwRestoreDb.Value;
+                v.Mute = false;
+            }
+            catch { }
         }
-        catch { }
         _hwRestoreDb = null;
     }
 
@@ -906,6 +1095,8 @@ public sealed class AudioEngine : IAudioEngine
     {
         try
         {
+            // runs outside the gate: never switch devices here (a device change reopens through the gate)
+            if (!DeviceStillRight()) return;
             var (plan, sp) = BuildPlan(next);
             if (plan != _plan || !ReferenceEquals(c, _chain)) return;
             var src = CreateSource(next, 0, sp, plan);
@@ -983,9 +1174,11 @@ public sealed class AudioEngine : IAudioEngine
 
     public void Dispose()
     {
+        _disposed = true;
+        try { _watcher?.Dispose(); } catch { }
         _monitor.Dispose();
         TearDown();
-        _device?.Dispose();
+        ReleaseDevice();
     }
 }
 

@@ -272,7 +272,7 @@ function attachRailNav(root) {
     if (!head || !head.classList.contains('rail-head')) continue;
     const prev = h('button', { class: 'round-btn rail-btn', title: T('向左'), html: icon('left') });
     const next = h('button', { class: 'round-btn rail-btn', title: T('向右'), html: icon('right') });
-    const step = dir => r.scrollBy({ left: dir * Math.max(200, r.clientWidth * 0.85), behavior: 'smooth' });
+    const step = dir => r.scrollBy({ left: dir * Math.max(200, r.clientWidth * 0.85), behavior: PageEffects.reduced('scroll') ? 'instant' : 'smooth' });
     prev.onclick = () => step(-1);
     next.onclick = () => step(1);
     const nav = h('div', { class: 'rail-nav' }, prev, next);

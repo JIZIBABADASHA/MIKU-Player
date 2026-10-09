@@ -1079,6 +1079,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
   opacity: .34; will-change: transform;
   cursor: pointer;
 }
+#lyrics.ly-direct .ly-line { transition: opacity .28s var(--ease), filter .35s var(--ease), background .2s; }
 .ly-line:hover { background: rgba(var(--np-ink), .06); opacity: .65 !important; filter: none !important; }
 .ly-line.on { opacity: 1; }
 .ly-line .tr { display: block; font: 500 .56em/1.4 var(--font); color: rgba(var(--np-ink), .78); margin-top: 4px; letter-spacing: 0; }

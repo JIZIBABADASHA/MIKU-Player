@@ -29,7 +29,7 @@ const Theme = {
   apply(id) {
     if (id === this.cur) return;
     const run = () => this.set(id);
-    if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
+    if (document.startViewTransition && !PageEffects.reduced('page') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
     else run();
     try { if (typeof App !== 'undefined' && App.settings) setUiPref('theme', id); } catch (e) { }
     document.querySelectorAll('.tp').forEach(el => el.classList.toggle('on', el.dataset.id === id));

@@ -164,12 +164,25 @@
       const on = root.classList.toggle('bar-peek');
       btn.title = on ? T('隱藏播放列') : T('顯示播放列');
     };
+    // The handle sits centred 14–40 px above the bottom. When a short window pushes the controls down to it (bar
+    // hidden), it moves beside the control row instead of covering the play button.
+    const place = () => {
+      btn.style.left = '';
+      if (root.classList.contains('bar-peek')) return;   // shown above the bar: nothing below it
+      const ctrl = np.querySelector('.np-ctrl'); if (!ctrl) return;
+      const r = ctrl.getBoundingClientRect(), top = innerHeight - 40;
+      if (!r.width || r.bottom + 6 <= top) return;
+      btn.style.left = Math.min(innerWidth - 36, r.right + 44) + 'px';
+    };
+    addEventListener('resize', () => { if (btn.classList.contains('show')) place(); });
     document.addEventListener('mousemove', e => {
       if (!np.classList.contains('on')) return;
       // show early (well above the screen edge) so reaching for it doesn't pop up the auto-hide taskbar
       const barH = (document.getElementById('bar') || {}).offsetHeight || 88;
       const zone = root.classList.contains('bar-peek') ? barH + 150 : 170;
-      btn.classList.toggle('show', innerHeight - e.clientY < zone);
+      const show = innerHeight - e.clientY < zone;
+      if (show && !btn.classList.contains('show')) place();
+      btn.classList.toggle('show', show);
     });
     document.addEventListener('mouseleave', () => btn.classList.remove('show'));
     let settleT = 0; init.wasOn = np.classList.contains('on');

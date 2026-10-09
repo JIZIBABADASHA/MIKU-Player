@@ -12,28 +12,12 @@
     removeEventListener: () => { },
   };
   document.documentElement.classList.add('mac');
-  // Only freeze repeating visual effects: one-shot reveals, dialogs and loading feedback stay intact.
-  const frozen = new Set();
+  // Repeating decorations freeze while paused or hidden (IdleFx, effects.js); the window's visibility comes from here.
   let windowVisible = true;
-  const decorations = '.sig, .sigpop, .np-bg, #theme-bg, .ly-dots, .np-mini .art, .np-cover, .eq';
-  function syncAnimations() {
-    const hidden = document.hidden || !windowVisible, paused = document.body?.classList.contains('paused');
-    const animations = new Set(document.getAnimations());
-    for (const animation of frozen) if (!animations.has(animation)) frozen.delete(animation);
-    for (const animation of animations) {
-      if (animation.effect?.getTiming().iterations !== Infinity) continue;
-      const el = animation.effect.target;
-      if (!(el instanceof Element)) continue;
-      const np = el.closest('#np');
-      const idle = hidden || (paused && el.closest(decorations)) || (np && !np.classList.contains('on'));
-      if (idle && animation.playState === 'running') { animation.pause(); frozen.add(animation); }
-      else if (!idle && frozen.delete(animation)) animation.play();
-    }
-  }
   function syncVisibility() {
     const visible = !document.hidden && windowVisible;
     host.send(JSON.stringify({ m: 'ui.visibility', a: { visible } }));
-    syncAnimations();
+    if (typeof IdleFx !== 'undefined') IdleFx.setWindowVisible(windowVisible);
     if (typeof App !== 'undefined') { App.uiVisible = visible; App.frame(); }
   }
   host.onMessage(msg => {
@@ -42,12 +26,10 @@
     syncVisibility();
   });
   document.addEventListener('visibilitychange', syncVisibility);
-  document.addEventListener('animationstart', syncAnimations);
   document.addEventListener('DOMContentLoaded', () => {
-    const observer = new MutationObserver(() => { syncAnimations(); if (typeof App !== 'undefined') App.frame(); });
+    // the progress loop runs only while playing: (re)start it when the play / pause class changes
+    const observer = new MutationObserver(() => { if (typeof App !== 'undefined') App.frame(); });
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    const np = document.getElementById('np');
-    if (np) observer.observe(np, { attributes: true, attributeFilter: ['class'] });
     syncVisibility();
   }, { once: true });
   // mouse back / forward buttons

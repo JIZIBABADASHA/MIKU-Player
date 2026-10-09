@@ -146,6 +146,7 @@ function fillArt(box, kind, id, size, label, opts = {}) {
   if (!id) return;
   const img = new Image();
   img.decoding = 'async';
+  img.loading = box.classList.contains('art') ? 'lazy' : 'eager';
   img.dataset.kind = kind; img.dataset.id = id; img.dataset.size = size;
   const t0 = performance.now();
   img.onload = () => {
@@ -198,6 +199,11 @@ const ArtSharp = {
   dpr: window.devicePixelRatio || 1,
   ro: new ResizeObserver(es => { for (const e of es) ArtSharp.check(e.target, e.contentRect.width); }),
   watch(box) { box.dataset.dpr = this.dpr; this.ro.observe(box); },
+  release(root) {
+    const unwatch = box => { this.ro.unobserve(box); clearTimeout(box._sharpT); };
+    if (root.matches?.('[data-art][data-dpr]')) unwatch(root);
+    root.querySelectorAll?.('[data-art][data-dpr]').forEach(unwatch);
+  },
   check(box, w) {
     if (!box.isConnected) { this.ro.unobserve(box); return; }
     if (!w) return;
@@ -478,6 +484,7 @@ const App = {
     const init = await Host.call('ready');
     this.settings = init.settings;
     if (await I18N.sync(init)) return;   // the interface language changed: the page reloads
+    PageEffects.sync();
     if (typeof Theme !== 'undefined') Theme.sync();
     this.favs = new Set(init.settings.favorites || []);
     this.lastRecent = (init.settings.recent || [])[0] || null;
@@ -495,7 +502,7 @@ const App = {
     Outputs.refresh();
     ScrollBubble.init();
     Router.start();
-    requestAnimationFrame(t => this.frame(t));
+    this.frame();
     if (!init.ffmpeg) toast(T('找不到 FFmpeg，請在設定確認 FFmpeg 已安裝並加入 PATH。'), { error: true, ms: 9000 });
   },
 
@@ -590,8 +597,11 @@ const App = {
       rep.classList.toggle('on', s.repeat !== 'off');
       setIcon(rep, s.repeat === 'one' ? 'repeat1' : 'repeat');
     }
-    this.renderVolume();
-    this.renderSignal();
+    if (prev.volumeDb !== s.volumeDb || prev.muted !== s.muted || prev.volumeMode !== s.volumeMode) this.renderVolume();
+    const sg = s.signal;
+    const signalKey = [s.trackId, sg?.quality, sg?.dspActive, sg?.dsd, sg?.dsdLabel, sg?.sourceBits, sg?.sourceRate, sg?.codec, sg?.dop, sg?.outputRate, sg?.outputFormat, sg?.physicalFormat, sg?.mode, sg?.device, sg?.replayGainDb, sg?.note].join('|');
+    if (this.signalKey !== signalKey) { this.signalKey = signalKey; this.renderSignal(); }
+    this.kick();
   },
 
   get pos() {
@@ -709,10 +719,14 @@ const App = {
   },
 
   /* ── frame loop: progress bars & lyrics ── */
-  lastSec: -1,
+  lastSec: -1, frameRaf: 0,
+  /** Draw now unless the playing loop is already running (it draws the next frame anyway: no second style pass). */
+  kick() { if (!(this.state.playing && this.frameRaf)) this.frame(); },
   frame() {
-    // runs every frame for as long as the app is open: elements looked up once, and nothing is written while the
-    // position doesn't move (paused / stopped)
+    cancelAnimationFrame(this.frameRaf);
+    this.frameRaf = 0;
+    // Paused progress is redrawn by state/seek events; a hidden page needs no visual loop at all.
+    if (document.hidden || this.uiVisible === false) return;
     const el = this.frameEls || (this.frameEls = {
       seek: $('#b-seek'), npSeek: $('#np-seek'), pos: $('#b-pos'), dur: $('#b-dur'), npPos: $('#np-pos'), npDur: $('#np-dur'),
     });
@@ -726,7 +740,7 @@ const App = {
       el.npPos.textContent = fmtTime(pos); el.npDur.textContent = '−' + fmtTime(Math.max(0, dur - pos));
     }
     NowPlaying.tick(pos);
-    requestAnimationFrame(() => this.frame());
+    if (s.playing) this.frameRaf = requestAnimationFrame(() => this.frame());
   },
 
   /* ── commands ── */
@@ -740,6 +754,7 @@ const App = {
   seek(pos) {
     this.posBase = pos; this.posAt = performance.now();
     this.seekTarget = pos; this.seekUntil = performance.now() + 2500;
+    this.kick();
     Host.call('seek', { pos });
   },
 
@@ -751,6 +766,17 @@ const App = {
     $('#b-repeat').onclick = () => Host.call('repeat', { mode: { off: 'all', all: 'one', one: 'off' }[this.state.repeat || 'off'] });
     $('#b-fav').onclick = () => { const t = this.track(); if (t) this.toggleFav(t.id); };
     $('#b-art').onclick = () => NowPlaying.show();
+    // a click on an empty part of the bar (not a button, link, slider or the cover) raises the now-playing page too;
+    // the press must also start there, so ending a seek/volume drag over the bar doesn't open it
+    const barCtl = 'button, a, input, .slider, .vol, .np-ext, #b-title, #b-artist';
+    let barDown = null;
+    $('#bar').addEventListener('pointerdown', e => { barDown = e.target.closest(barCtl) ? null : e.target; });
+    $('#bar').addEventListener('click', e => {
+      const fromBlank = barDown && !e.target.closest(barCtl);
+      barDown = null;
+      if (!fromBlank || e.button !== 0 || String(getSelection()).trim()) return;
+      if (!NowPlaying.open) NowPlaying.show();
+    });
     $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
     $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
     $('#b-queue').onclick = () => Drawer.toggle('queue');
@@ -833,6 +859,7 @@ function xToDb(x) { return x <= 0 ? -80 : x < 0.1 ? -60 - (0.1 - x) * 200 : (x -
 function dbToX(db) { return db <= -80 ? 0 : db < -60 ? 0.1 - (-60 - db) / 200 : 1 + db * 0.9 / 60; }
 
 function scrollTop(el) {
+  if (PageEffects.reduced('scroll')) { el.scrollTop = 0; return; }
   const from = el.scrollTop;
   if (from <= 0) return;
   const dur = Math.min(520, 220 + from / 40), t0 = performance.now();
@@ -840,7 +867,8 @@ function scrollTop(el) {
   const step = now => {
     const t = Math.min(1, (now - t0) / dur);
     el.scrollTop = from * (1 - ease(t));
-    if (t < 1) requestAnimationFrame(step);
+    if (PageEffects.reduced('scroll')) el.scrollTop = 0;
+    else if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
@@ -1169,6 +1197,7 @@ const Queue = {
     if (Drawer.open !== 'queue') return;
     const body = $('#queue-body');
     const { ids, index } = App.queue;
+    ArtSharp.release(body);
     body.textContent = '';
     if (!ids.length) { body.append(h('div', { class: 'muted', style: { padding: '40px 12px', textAlign: 'center' } }, T('佇列是空的'))); return; }
     const row = (id, i) => {
@@ -1322,22 +1351,28 @@ const Router = {
     // a cover is flying: never fade the element it lands on (a fading parent is what made it flash)
     if (Flip.from && r.name === 'album' && Flip.from.id === r.arg) dir = 'flip';
     else if (Flip.back && r.name !== 'album') dir = 'none';
-    Motion.quiet = dir === 'none';
+    if (PageEffects.reduced('page') && dir !== 'flip') dir = 'none';
+    Motion.quiet = dir === 'none' || PageEffects.reduced('page');
     if (dir !== 'none' && (!keepScroll || !same)) view.classList.add('enter-' + dir);
     const fn = Views[r.name] || Views.home;
-    r.cleanup = fn(view, r.arg) || null;
-    if (typeof attachRailNav === 'function') attachRailNav(view);
+    const cleanupView = fn(view, r.arg) || null;
+    const cleanupRails = typeof attachRailNav === 'function' ? attachRailNav(view) : null;
+    r.cleanup = () => { cleanupView && cleanupView(); cleanupRails && cleanupRails(); ArtSharp.release(view); };
     const y = keepScroll && same ? this.scrolls[r.key] : (this.scrolls[r.key] || 0);
     content.scrollTop = y || 0;
     content.dispatchEvent(new Event('scroll'));
-    requestAnimationFrame(() => { Motion.quiet = false; });
+    requestAnimationFrame(() => { Motion.quiet = PageEffects.reduced('page'); });
     if (Flip.back && r.name !== 'album') Flip.playBack();
     Views.markPlaying();
   },
 };
 
 /* ═════════════════════════════ motion helpers ═════════════════════════════ */
-const Motion = { quiet: false };
+const Motion = {
+  _quiet: false,
+  get quiet() { return this._quiet || PageEffects.reduced('page'); },
+  set quiet(value) { this._quiet = value; },
+};
 /** Sliding highlight behind the active sidebar item. */
 const NavPill = {
   el: null,
@@ -1371,6 +1406,7 @@ function onUserScroll(f) {
  *  <img> we lay the already-loaded small picture, so it is visible from the first frame and the
  *  full-size image simply appears on top of an identical picture. Nothing can flash. */
 function flipInto(el, from, src) {
+  if (PageEffects.reduced('album')) return;
   const t = el.getBoundingClientRect();
   if (!t.width || !from.width) return;
   let under = null;
@@ -1394,7 +1430,7 @@ function flipInto(el, from, src) {
   void el.offsetWidth;
   const wild = typeof Blast !== 'undefined' && Blast.on;
   requestAnimationFrame(() => {
-    let anim = null;
+    let anim = null, untrack = () => {};
     if (wild) {
       // BLAST theme: a random, different crazy trajectory every time
       el.style.transform = '';
@@ -1409,8 +1445,8 @@ function flipInto(el, from, src) {
     let finished = false;
     const end = () => {
       if (finished) return; finished = true;
-      stop();
-      Object.assign(el.style, { transition: '', transformOrigin: '', zIndex: '' });
+      stop(); untrack();
+      Object.assign(el.style, { transition: '', transform: '', transformOrigin: '', zIndex: '' });
       lifted.forEach(([p, z, pos]) => { p.style.zIndex = z; p.style.position = pos; });
       if (under) {
         // drop the stand-in only once the real picture is fully shown on top of it
@@ -1421,7 +1457,9 @@ function flipInto(el, from, src) {
         else { img.addEventListener('load', () => setTimeout(drop, 600), { once: true }); setTimeout(drop, 3000); }
       }
     };
-    const stop = onUserScroll(() => { if (anim) anim.cancel(); el.style.transition = 'none'; el.style.transform = ''; end(); });
+    const finishNow = () => { if (anim) anim.cancel(); el.style.transition = 'none'; el.style.transform = ''; end(); };
+    const stop = onUserScroll(finishNow);
+    untrack = PageEffects.track('album', finishNow);
     if (!wild) {
       el.addEventListener('transitionend', e => { if (e.target === el && e.propertyName === 'transform') end(); });
       setTimeout(end, 650);
@@ -1432,6 +1470,7 @@ function flipInto(el, from, src) {
  *  clipping, so instead of moving it in place we fly an exact clone of it (wrapped in .card so every theme
  *  rule still matches) on top of the whole page, then show the real card and drop the clone in the same frame. */
 function flyBackClone(target, b) {
+  if (PageEffects.reduced('album')) return;
   const t = target.getBoundingClientRect();
   if (!t.width) return;
   const clone = target.cloneNode(true);
@@ -1461,13 +1500,14 @@ function flyBackClone(target, b) {
   void wrap.offsetWidth;
   const wild = typeof Blast !== 'undefined' && Blast.on;
   requestAnimationFrame(() => {
+    let anim = null, untrack = () => {};
     if (wild) {
       const start = wrap.style.transform, tm = Blast.flightTiming();
       wrap.style.transform = 'none';
       const kf = Blast.flight(b.rect.left - t.left, b.rect.top - t.top, b.rect.width / t.width, b.rect.height / t.height);
       kf[0] = { transform: start };
-      const an = wrap.animate(kf, tm);
-      an.onfinish = () => end();
+      anim = wrap.animate(kf, tm);
+      anim.onfinish = () => end();
       setTimeout(() => end(), tm.duration + 200);
     } else {
       wrap.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
@@ -1476,12 +1516,13 @@ function flyBackClone(target, b) {
     let finished = false;
     const end = () => {
       if (finished) return; finished = true;
-      stop();
+      stop(); untrack(); if (anim) anim.cancel();
       target.style.visibility = '';
       if (card) card.classList.remove('flip-dest');
       requestAnimationFrame(() => clip.remove());
     };
     const stop = onUserScroll(end);
+    untrack = PageEffects.track('album', end);
     if (!wild) {
       wrap.addEventListener('transitionend', e => { if (e.target === wrap) end(); });
       setTimeout(end, 650);
@@ -1491,11 +1532,13 @@ function flyBackClone(target, b) {
 const Flip = {
   from: null,
   capture(id, artEl) {
+    if (PageEffects.reduced('album')) { this.from = null; return; }
     const img = artEl && artEl.querySelector('img.ok');
     this.from = img ? { id, rect: artEl.getBoundingClientRect(), src: img.src } : null;
   },
   back: null,
   captureBack(id, coverEl) {
+    if (PageEffects.reduced('album')) { this.back = null; return; }
     const img = coverEl && coverEl.querySelector('img.ok');
     this.back = img ? { id, rect: coverEl.getBoundingClientRect(), src: img.src } : null;
   },
@@ -1503,7 +1546,7 @@ const Flip = {
   playBack() {
     const b = this.back;
     this.back = null;
-    if (!b) return;
+    if (!b || PageEffects.reduced('album')) return;
     // the album grid is virtualised: its cards are created a frame or two after the view, so wait for ours
     let tries = 0;
     const find = () => {
@@ -1512,6 +1555,7 @@ const Flip = {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.bottom > content.top && r.top < content.bottom;
       });
+      if (PageEffects.reduced('album')) return;
       if (!target) { if (++tries < 20) requestAnimationFrame(find); return; }
       const card = target.closest('.card');
       if (card) { card.classList.remove('pop-in'); card.style.animation = 'none'; }
@@ -1522,7 +1566,7 @@ const Flip = {
   play(id, coverEl) {
     const f = this.from;
     this.from = null;
-    if (!f || f.id !== id || !coverEl) return;
+    if (!f || f.id !== id || !coverEl || PageEffects.reduced('album')) return;
     // the router resets the scroll position right after the view is built; measure only after that,
     // otherwise the start point is off by the old scroll distance (the cover came "from below")
     Promise.resolve().then(() => flipInto(coverEl, f.rect, f.src));
@@ -1531,6 +1575,7 @@ const Flip = {
 
 /** Material-style ripple on anything clickable. */
 document.addEventListener('pointerdown', e => {
+  if (PageEffects.reduced('page') || (PageEffects.reduced('signal') && e.target.closest('.sig'))) return;
   const el = e.target.closest('.btn, .icon-btn, .round-btn, .chip, .seg button, .sig, .out-btn, .playbtn, .outrow, .menu button');
   if (!el || e.button !== 0) return;
   const r = el.getBoundingClientRect();

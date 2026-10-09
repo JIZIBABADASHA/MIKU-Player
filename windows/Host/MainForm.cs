@@ -439,7 +439,16 @@ public sealed class MainForm : Form
         _art.Updated += (kind, id) => Post("art", new { kind, id });
 
         _tick = new System.Windows.Forms.Timer { Interval = 200 };
-        _tick.Tick += (_, _) => { if (_ready) Post("state", State(), tick: true); };
+        _tick.Tick += (_, _) =>
+        {
+            if (!_ready) return;
+            // Minimized and nobody on the phone remote: nothing shows the state. Paused: changes are posted at once
+            // (PostSoon), so a slower heartbeat is enough; playing keeps 5×/s for the progress / meters.
+            bool shown = WindowState != FormWindowState.Minimized, remote = _remote?.HasClients == true;
+            int interval = _engine.IsPlaying ? 200 : 1000;
+            if (_tick.Interval != interval) _tick.Interval = interval;
+            if (shown || remote) Post("state", State(), tick: true);
+        };
         _debugDir = Path.Combine(AppPaths.AppDir, "debug");
         if (Directory.Exists(_debugDir))
         {
@@ -518,6 +527,21 @@ public sealed class MainForm : Form
         if (_s.Maximized) WindowState = FormWindowState.Maximized;
     }
 
+    /// <summary>
+    /// WebView2 keeps rendering a minimized window (animations, the progress loop) unless it is told it's hidden.
+    /// Hiding the control sets CoreWebView2Controller.IsVisible = false: Chromium stops drawing and throttles the
+    /// page's timers until the window is restored. The YouTube Music view is left alone (it plays the sound).
+    /// </summary>
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (_web == null) return;
+        bool visible = WindowState != FormWindowState.Minimized;
+        if (_web.Visible == visible) return;
+        _web.Visible = visible;
+        if (visible && _ready) Post("state", State());   // catch up at once instead of on the next tick
+    }
+
     protected override void OnDpiChanged(DpiChangedEventArgs e)
     {
         // The old monitor's minimum must not constrain the new monitor's suggested bounds.
@@ -560,6 +584,8 @@ public sealed class MainForm : Form
         engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); RaiseExt(library: false); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
         engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; if (t != null && !t.IsLive && LiveActive) PauseYt(); };
         engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
+        // a DAC plugged in / removed or a new system output: the output picker and the settings page refresh
+        if (engine is AudioEngine own) own.DevicesChanged += () => { if (ReferenceEquals(engine, _engine)) Post("devicesChanged", new { }); };
     }
 
     /// <summary>
@@ -1523,8 +1549,9 @@ public sealed class MainForm : Form
                 return await Task.Run(() =>
                 {
                     Devices.Invalidate(S(a, "id"));
-                    using var d = Devices.Open(S(a, "id"));
-                    return CapsDto(Devices.Probe(d));
+                    var d = Devices.Open(S(a, "id"));
+                    try { return CapsDto(Devices.Probe(d)); }
+                    finally { Devices.Release(d); }
                 });
             case "folder.add":
             {
@@ -1947,12 +1974,14 @@ public sealed class MainForm : Form
     {
         var list = Devices.List();
         object caps = null;
+        NAudio.CoreAudioApi.MMDevice d = null;
         try
         {
-            using var d = Devices.Open(_s.DeviceId);
+            d = Devices.Open(_s.DeviceId);
             caps = CapsDto(Devices.Probe(d));
         }
         catch { }
+        finally { Devices.Release(d); }
         return new { devices = list, caps, asio = Devices.AsioDrivers() };
     }
 

@@ -47,7 +47,7 @@ process.on('unhandledRejection', e => Log.error('Task', e));
 // ───────────── settings ─────────────
 const defaults = () => ({
   folders: [], outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
-  dsdPcmRate: 176400, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
+  dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
   repeat: 'off', autoContinue: 'off', shuffle: false, queue: [], queueIndex: -1, resumePosition: 0, favorites: [], recent: [], searchHistory: [], artConfirmed: [],
@@ -57,7 +57,7 @@ const S = Object.assign(defaults(), Json.load(AppPaths.Settings, {}));
 S.dsp = Object.assign(defaults().dsp, S.dsp || {});
 if (!S.dsp.bands || !S.dsp.bands.length) S.dsp.bands = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000].map((f, i) => ({ on: true, type: i === 0 ? 'LSC' : i === 9 ? 'HSC' : 'PK', fc: f, gain: 0, q: 1 }));
 if (S.volumeMode === 'hardware') S.volumeMode = 'digital';
-S.outputMode = 'coreaudio';
+if (!['coreaudio', 'coreaudio-exclusive'].includes(S.outputMode)) S.outputMode = 'coreaudio';
 const favs = () => new Set(S.favorites);
 const setFav = (id, on) => { const f = favs(); if (on) f.add(id); else f.delete(id); S.favorites = [...f]; };
 
@@ -141,7 +141,8 @@ ipcMain.on('ytm', (e, m) => {
   if (!yt || e.sender !== yt.webContents) return;
   if (m.k === 'play') {
     ytActive = true; ytPlaying = true;
-    if (engine.isPlaying) { player.saveState(); engine.pause(); }
+    if (S.outputMode === 'coreaudio-exclusive' && engine.isLoaded) { player.saveState(); engine.stop(); }
+    else if (engine.isPlaying) { player.saveState(); engine.pause(); }
     applyYtVolume();
     postSoon('state');
   } else if (m.k === 'pause') { ytPlaying = false; postSoon('state'); }
@@ -595,33 +596,45 @@ async function mediaAsync(p, query) {
 async function devicesDto() {
   const list = await engine.listDevices();
   const cur = list.find(d => d.id === S.deviceId) || list.find(d => d.isDefault);
+  if (engine.nativeAvailable) {
+    const native = await engine.probeDevice(S.deviceId);
+    const mode = S.outputMode === 'coreaudio-exclusive' ? '獨佔' : '共享';
+    const busy = native && native.ownerName ? ` · 正被 ${native.ownerName} 獨佔` : '';
+    const caps = native ? { ...native, mixRate: native.rate, mixChannels: native.channels, hardwareVolume: false,
+      summary: `Core Audio ${mode} · 目前 ${native.rate / 1000} kHz · ${native.physicalFormat}${busy}`, formats: {} } : null;
+    return { devices: list, caps, asio: [], nativeAvailable: true };
+  }
   const rate = engine.st.rate || 48000;
   const caps = cur ? { id: cur.id, name: cur.name, mixRate: rate, mixChannels: 2, hardwareVolume: false, summary: `Core Audio · 目前 ${rate / 1000} kHz`, rates: [], formats: {} } : null;
-  return { devices: list, caps, asio: [] };
+  return { devices: list, caps, asio: [], nativeAvailable: engine.nativeAvailable };
 }
 
-const OutputKeys = new Set(['deviceId', 'bufferMs', 'dsdPcmRate', 'replayGain', 'replayGainPreamp', 'gapless']);
 const Protected = new Set(['queue', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey']);
 async function applySettings(patch) {
-  let device = false, volume = false, rg = false, rem = false;
+  let device = false, output = false, dsp = false, volume = false, rg = false, rem = false;
   for (const [k, v] of Object.entries(patch || {})) {
     if (!(k in S) || Protected.has(k)) continue;
     if (JSON.stringify(S[k]) === JSON.stringify(v)) continue;
+    if (k === 'outputMode' && !['coreaudio', 'coreaudio-exclusive'].includes(v)) continue;
     S[k] = v;
+    if (k === 'outputMode' || k === 'autoSampleRate') output = true;
+    if (k === 'dsp') { S.dsp = Object.assign(defaults().dsp, v || {}); dsp = true; }
     if (k === 'deviceId') device = true;
     if (k === 'volumeMode' || k === 'muted' || k === 'volumeDb') volume = true;
     if (k === 'replayGain' || k === 'replayGainPreamp') rg = true;
     if (k === 'remoteEnabled' || k === 'remotePort') rem = true;
     if (k === 'autoContinue' && engine.isPlaying) player.ensureAutoNext();
     if (k === 'gapless' && !v) engine.invalidateNext();
-    if (k === 'dsdPcmRate' && engine.track) engine.invalidateNext();
+    if (k === 'dsdPcmRate' && engine.track) { engine.invalidateNext(); if (S.outputMode === 'coreaudio-exclusive') output = true; }
   }
   if (S.volumeMode === 'hardware') S.volumeMode = 'digital';
   saveSoon();
   if (rem) await startRemote();
-  if (device) { await engine.setDevice(S.deviceId); postSoon('state'); }
+  if (output) await engine.reconfigure();
+  else if (device) { await engine.setDevice(S.deviceId); postSoon('state'); }
   if (volume) { engine.applyVolume(); applyYtVolume(); }
-  if (rg) engine.applyReplayGain();
+  if (rg && !output) engine.applyReplayGain();
+  if (dsp && !output) engine.applyDsp();
   return S;
 }
 
@@ -1205,7 +1218,7 @@ app.on('before-quit', e => {
   if (artSearch) artSearch.abort();
   try { player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
-  lib.saveQueue.finally(() => app.quit());
+  Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => app.quit());
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 

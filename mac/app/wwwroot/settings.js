@@ -16,7 +16,7 @@ const Settings = {
     view.append(pageHead(T('設定')));
     view.append(h('div', { class: 'set-tabs' }, ...tabs.map(([id, label]) => h('button', {
       class: id === tab ? 'on' : '',
-      onclick: () => { if (id === tab) return; history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
+      onclick: () => { if (id === tab) { scrollTop($('#content')); return; } history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
     }, label))));
     const root = h('div', { class: 'settings' });
     view.append(root);
@@ -29,7 +29,25 @@ const Settings = {
 
     if (tab === 'audio') {
       /* ── audio output (macOS) ── */
-      const out = section(T('音訊輸出'), T('MIKU 透過 Core Audio 以 32-bit 浮點輸出。DAC 的取樣率由 macOS「音訊 MIDI 設定」決定，設成與音樂相同的取樣率就不會重新取樣。'));
+      const exclusive = s.outputMode === 'coreaudio-exclusive';
+      const out = section(T('音訊輸出'), T('和 Windows 的 WASAPI 一樣分成共享與獨佔。共享模式與其他程式一起經過 macOS 混音器；獨佔模式由 MIKU 單獨使用 DAC，可達到 bit-perfect（需關閉 DSP、ReplayGain 並使用固定 0 dB，請用 DAC 旋鈕調整音量）。'));
+      out.append(field(T('輸出模式'), exclusive
+          ? T('獨佔：MIKU 單獨使用 DAC（Hog Mode），依歌曲切換取樣率，並把 DAC 設為能完整保留音樂位元深度的格式。切換輸出裝置時會從同一個位置接續播放。裝置不提供獨佔時改用共享模式，並在訊號路徑標示原因。')
+          : T('共享：其他程式的聲音可以同時播放，無法保證 bit-perfect。'),
+        select([['coreaudio', T('Core Audio 共享')], ['coreaudio-exclusive', T('Core Audio 獨佔')]], s.outputMode, async v => {
+          await this.set({ outputMode: v }); await Outputs.refresh(); Router.render(false, 'none');
+        })));
+      out.append(field(T('自動匹配取樣率'), exclusive
+          ? T('每首歌把 DAC 切換到原始取樣率；DAC 不支援時改用最接近的取樣率並重新取樣。')
+          : T('每首歌把裝置切換到原始取樣率（同一裝置上的其他程式也會跟著改變）；關閉時依裝置目前的取樣率重新取樣。'),
+        sw(s.autoSampleRate !== false, v => this.set({ autoSampleRate: v }))));
+      out.append(field('Bit-perfect', T('套用後會先停止播放，關閉 DSP、ReplayGain，設定固定 0 dB。再次播放前請先調低 DAC 音量。'),
+        h('button', { class: 'btn small ghost', onclick: async () => {
+          await Host.call('stop');
+          await this.set({ outputMode: 'coreaudio-exclusive',
+            autoSampleRate: true, volumeMode: 'fixed', muted: false, replayGain: 'off', dsp: { ...App.settings.dsp, enabled: false } });
+          await Outputs.refresh(); Router.render(false, 'none'); toast(T('已套用 Bit-perfect 設定；請用 DAC 調整音量'));
+        } }, T('套用 Bit-perfect 設定'))));
       if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, T('找不到 FFmpeg：DSD、APE、AIFF、WavPack 等格式將無法播放、曲庫也無法讀取標籤。請重新安裝 MIKU，或用 Homebrew 安裝：brew install ffmpeg')));
       const devHost = h('div');
       out.append(devHost);
@@ -46,9 +64,12 @@ const Settings = {
           h('div', { class: 'ctl' },
             select(opts, cur, async v => { await this.set({ deviceId: v }); redrawDevices(); }),
             h('button', { class: 'icon-btn', title: T('重新整理裝置清單'), html: icon('refresh'), onclick: async () => { await Host.call('probe', { id: cur }); redrawDevices(); toast(T('已重新偵測裝置')); } }))));
-        devHost.append(field(T('取樣率設定'), T('打開「音訊 MIDI 設定」可以調整 DAC 的輸出格式。'), h('button', { class: 'btn small ghost', onclick: () => Host.call('openAudioMidi') }, T('打開音訊 MIDI 設定'))));
+        if (!d.nativeAvailable) devHost.append(h('div', { class: 'warn' }, T('缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。')));
+        if (!exclusive && s.autoSampleRate === false) devHost.append(field(T('取樣率設定'), T('打開「音訊 MIDI 設定」可以調整 DAC 的輸出格式。'), h('button', { class: 'btn small ghost', onclick: () => Host.call('openAudioMidi') }, T('打開音訊 MIDI 設定'))));
         this.caps = d.caps;
       };
+      // a DAC connected or removed while this page is open (outputs.js listens for the host's devicesChanged)
+      this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
       /* DSD */
       const dsdSect = section('DSD');
@@ -120,11 +141,10 @@ const Settings = {
     }
 
     if (tab === 'look') {
-      /* ── appearance ── */
+      /* ── appearance: theme first, then text size, then the lightweight-page switches (effects.js) ── */
       if (typeof Theme !== 'undefined') Theme.section(root);
-
-      /* ── text size (fontscale.js) ── */
       if (typeof FontScale !== 'undefined') FontScale.section(section, field);
+      PageEffects.section(section, field);
     }
 
     if (tab === 'keys') Keys.renderSettings(section, field);

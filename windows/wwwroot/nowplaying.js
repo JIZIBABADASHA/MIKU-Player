@@ -240,6 +240,7 @@ const NowPlaying = {
         clearTimeout(this._back);
         this.manualOffset = 0; this.manualUntil = 0;
         this.active = i;
+        this._hold = performance.now() + 500;   // until the seek is reported back
         this.layoutLines();
       };
       box.append(el);
@@ -276,6 +277,9 @@ const NowPlaying = {
     const anchor = this.boxH * 0.36;
     let scroll = this.tops[a] + (this.heights[a] || 0) / 2 - anchor;
     if (performance.now() < this.manualUntil) scroll += this.manualOffset;
+    // Scrolling by hand on Mac (or with smooth scrolling turned off): the lines follow the trackpad / wheel directly,
+    // without an eased transition on top of the system's own momentum. Gliding back to the current line still eases.
+    $('#lyrics').classList.toggle('ly-direct', !!manual && PageEffects.reduced('scroll'));
     this.lines.forEach((el, i) => {
       const d = i - a;
       const dist = Math.abs(d);
@@ -305,7 +309,7 @@ const NowPlaying = {
     let lo = 0, hi = L.length - 1, idx = -1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (L[mid].t <= p + 0.15) { idx = mid; lo = mid + 1; } else hi = mid - 1; }
     if (performance.now() >= this.manualUntil && this.manualOffset) { this.manualOffset = 0; this.layoutLines(); }
-    if (idx !== this.active) { this.active = idx; this.layoutLines(); }
+    if (idx !== this.active && !(performance.now() < this._hold)) { this.active = idx; this.layoutLines(); }
     // word-by-word fill for enhanced LRC
     if (idx >= 0 && L[idx].words) {
       const line = this.lines[idx];

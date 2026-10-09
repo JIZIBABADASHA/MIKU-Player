@@ -234,3 +234,15 @@
 
 /* ───── 13. 專輯封面飛進專輯頁時：飛行用的替身圖要蓋在「文字預設圖」上面（真正的封面載好後再蓋過替身），不然封面還沒載完就會看到字 ───── */
 .hero .cover img.flip-under, .card .art img.flip-under { z-index: 1; opacity: 1; transition: none; }
+
+/* ───── 14. 播放頁底部留出「讓播放列浮回來」小箭頭（#bar-peek：距底 14px、高 26px）的位置 ─────
+   播放列收起時整頁會往下移（原本 28px），矮視窗的底部留白又只有 40px，控制列會落到箭頭上。
+   這裡讓「留白 − 下移」在任何視窗高度都至少 54px：留白 66px、下移 12px；矮視窗的封面相應縮小 26px。 */
+#np .np-wrap, #np.nolyrics .np-wrap, #np:not(.nolyrics) .np-wrap { padding-bottom: 66px; }
+:root:not(.bar-peek):has(#np.on) #np .np-wrap { transform: translateY(12px); }
+@media (max-height: 760px) and (orientation: landscape) {
+  .np-cover, .np-info,
+  :root[data-theme="glass"] .np-cover, :root[data-theme="glass"] .np-info {
+    width: clamp(140px, min(calc(100vh - var(--bar) - 326px), 100%), 540px);
+  }
+}

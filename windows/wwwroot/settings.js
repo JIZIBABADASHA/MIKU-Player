@@ -16,7 +16,7 @@ const Settings = {
     view.append(pageHead(T('設定')));
     view.append(h('div', { class: 'set-tabs' }, ...tabs.map(([id, label]) => h('button', {
       class: id === tab ? 'on' : '',
-      onclick: () => { if (id === tab) return; history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
+      onclick: () => { if (id === tab) { scrollTop($('#content')); return; } history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
     }, label))));
     const root = h('div', { class: 'settings' });
     view.append(root);
@@ -75,6 +75,8 @@ const Settings = {
         this.caps = d.caps;
         refreshRates(d);
       };
+      // a DAC connected or removed while this page is open (art.js listens for the host's devicesChanged)
+      this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
       out.append(field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {
         const r = h('input', { class: 'range', type: 'range', min: 40, max: 500, step: 10, value: s.bufferMs });
@@ -221,11 +223,10 @@ const Settings = {
     }
 
     if (tab === 'look') {
-      /* ── appearance ── */
+      /* ── appearance: theme first, then text size, then the lightweight-page switches (effects.js) ── */
       if (typeof Theme !== 'undefined') Theme.section(root);
-
-      /* ── text size (fontscale.js) ── */
       if (typeof FontScale !== 'undefined') FontScale.section(section, field);
+      PageEffects.section(section, field);
 
       /* ── scrolling ── */
       if (window.SmoothScroll) {

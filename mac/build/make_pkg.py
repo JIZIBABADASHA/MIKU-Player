@@ -54,6 +54,10 @@ def build_app(arch, a, version, work):
     # fpcalc (Chromaprint, universal binary) for the tag editor's 聲紋辨識
     if a.fpcalc:
         shutil.copyfile(a.fpcalc, os.path.join(bindir, 'fpcalc')); os.chmod(os.path.join(bindir, 'fpcalc'), 0o755)
+    # Native Core Audio output is independent of Electron's Node ABI.
+    native = os.path.join(a.native_dir, f'miku-audio-{arch}')
+    if not os.path.isfile(native): sys.exit(f'missing native Core Audio engine: {native}; run mac/native/build.sh on a Mac')
+    shutil.copyfile(native, os.path.join(bindir, 'miku-audio')); os.chmod(os.path.join(bindir, 'miku-audio'), 0o755)
     # icon
     shutil.copyfile(os.path.join(HERE, 'MIKU.icns'), os.path.join(res, 'MIKU.icns'))
     try: os.remove(os.path.join(res, 'electron.icns'))
@@ -79,6 +83,8 @@ def build_app(arch, a, version, work):
             sh(a.rcodesign, 'sign', os.path.join(bindir, tool), stdout=subprocess.DEVNULL)
         sh(a.rcodesign, 'sign', app, stdout=subprocess.DEVNULL)
     elif shutil.which('codesign'):
+        for tool in os.listdir(bindir):
+            sh('codesign', '--force', '--sign', '-', os.path.join(bindir, tool))
         sh('codesign', '--force', '--deep', '--sign', '-', app)
     return app
 
@@ -307,6 +313,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--electron-dir', required=True); ap.add_argument('--ffmpeg-dir', required=True)
     ap.add_argument('--out', required=True); ap.add_argument('--rcodesign'); ap.add_argument('--mkbom'); ap.add_argument('--fpcalc')
+    ap.add_argument('--native-dir', default=os.path.join(HERE, 'native'))
     ap.add_argument('--work', default=os.path.join(HERE, 'work'))
     a = ap.parse_args()
     with open(os.path.join(APP_SRC, 'package.json')) as f: version = json.load(f)['version']

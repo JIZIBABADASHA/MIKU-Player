@@ -19,6 +19,12 @@ FP="$DL/chromaprint-fpcalc-1.5.1-macos-universal.tar.gz"
 echo "d4d8faff4b5f7c558d9be053da47804f9501eaa6c2f87906a9f040f38d61c860  $FP" | shasum -a 256 -c - >/dev/null 2>&1 || echo "d4d8faff4b5f7c558d9be053da47804f9501eaa6c2f87906a9f040f38d61c860  $FP" | sha256sum -c -
 tar xzf "$FP" -C "$DL"
 EXTRA=(--fpcalc "$DL/chromaprint-fpcalc-1.5.1-macos-universal/fpcalc")
+if [ "$(uname)" = "Darwin" ]; then
+  bash ../native/build.sh
+elif [ ! -f native/miku-audio-arm64 ] || [ ! -f native/miku-audio-x64 ]; then
+  echo "原生 Core Audio 元件需要在 Mac 編譯；請先提供 build/native/miku-audio-{arm64,x64}。" >&2
+  exit 1
+fi
 if [ "$(uname)" != "Darwin" ]; then
   # Linux 需要 rcodesign（ad-hoc 簽章）與 bomutils 的 mkbom
   command -v rcodesign >/dev/null && EXTRA+=(--rcodesign "$(command -v rcodesign)")

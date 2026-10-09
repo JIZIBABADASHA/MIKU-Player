@@ -1,0 +1,108 @@
+/* Each reduction is independent; the master switch only activates saved choices. */
+.lite-settings .lite-options { border-top: 1px solid var(--line); }
+/* master switch: a full-width tinted band with an accent edge; same padding and switch as the rows below,
+   so titles and switches stay in one column */
+.lite-settings .field.lite-master {
+  background: color-mix(in srgb, var(--teal) 6%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--teal) 35%, transparent);
+  transition: background .2s, box-shadow .2s;
+}
+.lite-settings .field.lite-master:has(.switch.on) {
+  background: color-mix(in srgb, var(--teal) 11%, transparent);
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+.lite-settings .lite-master .lbl b { font-size: 15px; font-weight: 700; }
+.lite-settings .lite-options[hidden] { display: none; }
+/* options for one theme only appear while that theme is active */
+:root:not([data-theme="vinyl"]) .lite-settings .lite-theme-vinyl { display: none; }
+.lite-settings .switch:focus-visible { outline: 2px solid color-mix(in srgb, var(--teal) 55%, transparent); outline-offset: 3px; }
+
+/* Keep signal text, quality colors and the real chain; remove animated decorations. */
+:root:root.lite-signal .sig,
+:root:root.lite-signal .pop.sigpop,
+:root:root.lite-signal .sig *,
+:root:root.lite-signal .sig *::before, :root:root.lite-signal .sig *::after,
+:root:root.lite-signal .sigpop > div,
+:root:root.lite-signal .sigpop > div *,
+:root:root.lite-signal .sigpop *::before, :root:root.lite-signal .sigpop *::after {
+  animation: none !important; transition: none !important;
+}
+:root:root.lite-signal .sig::before, :root:root.lite-signal .sig::after,
+:root:root.lite-signal .sig .dot::before, :root:root.lite-signal .sig .dot::after,
+:root:root.lite-signal .pop.sigpop::before, :root:root.lite-signal .pop.sigpop::after,
+:root:root.lite-signal .sig > span::before, :root:root.lite-signal .sig > span::after,
+:root:root.lite-signal .sigpop > div::before, :root:root.lite-signal .sigpop > div::after,
+:root:root.lite-signal .sigpop h3::before, :root:root.lite-signal .sigpop h3::after,
+:root:root.lite-signal .sigpop h3 .dot::before, :root:root.lite-signal .sigpop h3 .dot::after {
+  content: none !important; animation: none !important;
+}
+:root:root.lite-signal .sig, :root:root.lite-signal .sigpop > div {
+  transform: none !important; filter: none !important; clip-path: none !important;
+}
+:root:root.lite-signal .sigpop h3, :root:root.lite-signal .sigpop h3 .dot {
+  text-shadow: none !important; filter: none !important;
+}
+:root:root.lite-signal .sig .dot, :root:root.lite-signal .sigpop h3 .dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--q) !important;
+  box-shadow: none !important; filter: none !important; clip-path: none !important;
+}
+
+:root.lite-album .hero.album .cover, :root.lite-album .flip-fly,
+:root.lite-album .tt-arm, :root.lite-album .tt-arm *,
+:root.lite-album[data-theme="vinyl"] .card::before {
+  transition: none !important;
+}
+:root.lite-album .flip-clip { display: none !important; }
+
+/* Page motion does not control the independently configured signal/background/record effects. */
+:root:root.lite-page #view.enter-fwd, :root:root.lite-page #view.enter-back,
+:root:root.lite-page #view.enter-fade, :root:root.lite-page #view.enter-flip > :not(.hero),
+:root:root.lite-page #view.enter-flip .hero > :not(.cover),
+:root:root.lite-page .stagger, :root:root.lite-page .card.pop-in,
+:root:root.lite-page .modal, :root:root.lite-page .modal-scrim,
+:root:root.lite-page .cv-scrim, :root:root.lite-page .cv-img,
+:root:root.lite-page .pop, :root:root.lite-page .msel-pop,
+:root:root.lite-page .toast, :root:root.lite-page .sk,
+:root:root.lite-page .eq i, :root:root.lite-page .np-mini .txt.swap,
+:root:root.lite-page .play-pulse, :root:root.lite-page .ly-dots {
+  animation: none !important;
+}
+:root:root.lite-page #np, :root:root.lite-page #bar, :root:root.lite-page #bar-peek,
+:root:root.lite-page #np .np-wrap, :root:root.lite-page .np-cover,
+:root:root.lite-page .drawer, :root:root.lite-page .scrim, :root:root.lite-page .toast,
+:root:root.lite-page .nav-pill, :root:root.lite-page .nav a,
+:root:root.lite-page .ly-line, :root:root.lite-page .lyrics,
+:root:root.lite-page .btn, :root:root.lite-page .icon-btn,
+:root:root.lite-page .round-btn, :root:root.lite-page .playbtn,
+:root:root.lite-page .seg button, :root:root.lite-page .switch,
+:root:root.lite-page .switch::after, :root:root.lite-page .msel,
+:root:root.lite-page .msel-panel, :root:root.lite-page .msel-chev,
+:root:root.lite-page .card .art, :root:root.lite-page .card .play,
+:root:root.lite-page .card .art img, :root:root.lite-page .hero .cover img {
+  transition: none !important;
+}
+:root:root.lite-page .ripple { display: none !important; }
+
+:root.lite-ambient #theme-bg .orb, :root.lite-ambient .np-bg .layer.b {
+  animation: none !important; transform: none !important;
+}
+:root.lite-vinyl[data-theme="vinyl"] .np-mini .art img,
+:root.lite-vinyl[data-theme="vinyl"] .np-cover img {
+  animation: none !important; transform: none !important;
+}
+:root:root.lite-blur *, :root:root.lite-blur *::before, :root:root.lite-blur *::after {
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+:root.lite-blur #theme-bg .art, :root.lite-blur #theme-bg .orb,
+:root.lite-blur .np-bg .layer { display: none !important; }
+:root.lite-blur[data-theme="glass"] #sidebar,
+:root.lite-blur[data-theme="glass"] #main,
+:root.lite-blur[data-theme="glass"] #bar,
+:root.lite-blur[data-theme="glass"] .sect,
+:root.lite-blur[data-theme="glass"] .drawer,
+:root.lite-blur[data-theme="glass"] .pop,
+:root.lite-blur[data-theme="glass"] .modal,
+:root.lite-blur[data-theme="glass"] #topbar.solid {
+  background: rgba(var(--bg-rgb), .97) !important;
+}
+:root.lite-scroll * { scroll-behavior: auto !important; }

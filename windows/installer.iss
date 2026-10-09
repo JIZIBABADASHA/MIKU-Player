@@ -1,5 +1,5 @@
 ﻿; MIKU installer (Inno Setup 6). Built by make-installer.cmd — don't run this by hand.
-#define AppVer "1.4.1"
+#define AppVer "1.4.3"
 
 [Setup]
 AppId={{6B3E2A71-4C8D-4F0A-9E57-1D2C3B4A5F60}
