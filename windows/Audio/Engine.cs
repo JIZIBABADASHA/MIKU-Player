@@ -90,6 +90,12 @@ public sealed class AudioEngine : IAudioEngine
     int _deviceEventSeq;
     readonly List<DateTime> _recoveries = new();
     volatile bool _disposed;
+    /// <summary>Devices whose exclusive mode didn't work this session (no exclusive formats, the open failed, or it stayed
+    /// silent): exclusive mode plays on them in shared mode, so switching to such a device still makes sound.</summary>
+    readonly HashSet<string> _noExclusive = new();
+    long _clockFrames = -1;           // exclusive-output clock watchdog: last position seen
+    DateTime _clockMovedAt;           // when it last moved
+    bool _clockStallHandled;
 
     public Func<Track> PeekNext { get; set; }
     /// <summary>Asks other audio inside MIKU (the YouTube Music page) to let go of the DAC before a local track opens it.</summary>
@@ -245,6 +251,13 @@ public sealed class AudioEngine : IAudioEngine
         }
 
         EnsureDevice();
+        // Exclusive mode chosen, but this device can't do it (Bluetooth, HDMI, virtual devices, "allow exclusive
+        // control" turned off…): play in shared mode instead of staying silent.
+        if (_s.OutputMode == "exclusive" && !forceShared && (NoExclusive(_deviceId) || !_caps.Rates.Any()))
+        {
+            forceShared = true;
+            sp.Note = $"「{_caps.Name}」不支援 WASAPI 獨佔模式，已自動改用共享模式播放（非 bit-perfect）。";
+        }
         if (_s.OutputMode == "shared" || forceShared)
         {
             int rate = _caps.MixRate > 0 ? _caps.MixRate : 48000;
@@ -266,7 +279,6 @@ public sealed class AudioEngine : IAudioEngine
             sp.Note = $"DAC 目前沒有回報支援 {dopRate / 1000.0:0.#} kHz 24-bit，無法以 DoP 輸出，改為轉 PCM 播放。";
         }
         var supported = _caps.Rates.ToList();
-        if (supported.Count == 0) throw new InvalidOperationException($"「{_caps.Name}」不支援 WASAPI 獨佔模式，請在設定改用共享模式。");
         int source = sp.Dsd != null ? _s.DsdPcmRate : (sp.SourceRate > 0 ? sp.SourceRate : 44100);
         int r = ChooseRate(DesiredRate(source, supported), supported);
         var fmt = _caps.BestFormat(r) ?? SampleFormat.Int16;
@@ -277,6 +289,18 @@ public sealed class AudioEngine : IAudioEngine
             Log.Info($"DSD plan: {sp.Note} (exclusive rates: {string.Join(", ", supported)}{(_caps.Partial ? ", partial probe" : "")})");
         return (new OutputPlan("exclusive", _deviceId, null, r, 2, fmt, false, bufferMs), sp);
     }
+
+    bool NoExclusive(string id) { if (id == null) return false; lock (_noExclusive) return _noExclusive.Contains(id); }
+
+    void MarkNoExclusive(string id, string why)
+    {
+        if (id == null) return;
+        lock (_noExclusive) _noExclusive.Add(id);
+        Log.Info($"Exclusive mode unusable on {DeviceName} ({why}): using shared mode on this device");
+    }
+
+    /// <summary>Output settings changed: devices that failed in exclusive mode get another try.</summary>
+    public void ForgetExclusiveFailures() { lock (_noExclusive) _noExclusive.Clear(); }
 
     int DesiredRate(int src, List<int> supported)
     {
@@ -471,6 +495,14 @@ public sealed class AudioEngine : IAudioEngine
             if (Signal != null)
                 Signal.Note = $"DAC 正被 {busy.Holders} 使用，這首暫時以共享模式播放（非 bit-perfect）。對方放開後，換下一首就會自動回到獨佔模式。";
         }
+        catch (ExclusiveOpenException ex)
+        {
+            // the device lists exclusive formats, but Windows / the driver refuses the exclusive stream:
+            // remember that for this device and play in shared mode (BuildPlan picks shared from now on)
+            MarkNoExclusive(ex.DeviceId, ex.InnerException?.Message ?? ex.Message);
+            LoadCore(t, seek, play, false);
+            _sharedFallback = false;
+        }
     }
 
     void LoadCore(Track t, double seek, bool play, bool forceShared)
@@ -534,6 +566,7 @@ public sealed class AudioEngine : IAudioEngine
             _wasapiStopped = false;
             _pausedAt = null;
             _paused = false;
+            _clockFrames = -1; _clockMovedAt = DateTime.UtcNow; _clockStallHandled = false;
             _out.Play();
         }
         finally { src?.Dispose(); }
@@ -628,6 +661,9 @@ public sealed class AudioEngine : IAudioEngine
                     throw new DeviceBusyException(who,
                         $"「{DeviceName}」正被 {who} 使用，MIKU 無法開啟（{plan.Rate / 1000.0:0.#} kHz）。{hint}");
                 }
+                if (mode == AudioClientShareMode.Exclusive && !IsDeviceGone(ex) && _deviceId != null)
+                    throw new ExclusiveOpenException(_deviceId,
+                        $"無法以獨佔模式開啟「{DeviceName}」（{plan.Rate / 1000.0:0.#} kHz / {Formats.Describe(plan.Format)}）。\n{ex.Message}", ex);
                 throw new InvalidOperationException(mode == AudioClientShareMode.Exclusive
                     ? $"無法以獨佔模式開啟「{DeviceName}」（{plan.Rate / 1000.0:0.#} kHz / {Formats.Describe(plan.Format)}）。\n{ex.Message}"
                     : $"無法開啟「{DeviceName}」：{ex.Message}");
@@ -637,6 +673,8 @@ public sealed class AudioEngine : IAudioEngine
         if (actual.SampleRate != plan.Rate || actual.Channels != plan.OutChannels)
         {
             w.Dispose();
+            if (mode == AudioClientShareMode.Exclusive && _deviceId != null)
+                throw new ExclusiveOpenException(_deviceId, "音效驅動程式更改了獨佔模式的輸出格式。");
             throw new InvalidOperationException("音效驅動程式更改了輸出格式，為避免非預期的重新取樣已停止輸出。");
         }
         w.PlaybackStopped += OnStopped;
@@ -776,6 +814,17 @@ public sealed class AudioEngine : IAudioEngine
         catch (Exception ex) { Log.Error("LogSessions", ex); }
     }
 
+    /// <summary>The device was unplugged / disabled meanwhile: shared mode wouldn't help, so this isn't an exclusive problem.</summary>
+    static bool IsDeviceGone(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            uint hr = unchecked((uint)e.HResult);
+            if (hr == 0x88890004 || hr == 0x80070490 || hr == 0x8007048F) return true;   // DEVICE_INVALIDATED / not found / not connected
+        }
+        return false;
+    }
+
     static bool IsDeviceInUse(Exception ex)
     {
         for (var e = ex; e != null; e = e.InnerException)
@@ -896,11 +945,24 @@ public sealed class AudioEngine : IAudioEngine
     /// <summary>Output settings changed: reopen the device at the current position.</summary>
     public async Task ReconfigureAsync()
     {
-        var t = Track; double pos = Position; bool play = IsPlaying;
+        // Read what is playing only once the gate is ours: a load still running (new track, device being opened)
+        // would otherwise be undone, and the position would lag behind what the old device kept playing.
+        Track t; double pos; bool play;
         await _gate.WaitAsync();
-        try { TearDown(); ReleaseDevice(); }
+        try
+        {
+            var c = _chain;
+            if (c != null && !_paused)
+            {
+                // past a gapless boundary the monitor may not have caught up yet: reopen the track that is audible
+                var (aud, _) = c.SegmentAt(PlayedFrames());
+                FollowAudibleTrack(aud);
+            }
+            t = Track; pos = SafePosition(); play = IsPlaying;
+            TearDown(); ReleaseDevice();
+        }
         finally { _gate.Release(); }
-        if (t != null) await LoadAsync(t, pos, play);
+        if (t != null) await LoadAsync(t, t.IsLive ? 0 : pos, play);
     }
 
     public void InvalidateNext()
@@ -1065,6 +1127,7 @@ public sealed class AudioEngine : IAudioEngine
         try
         {
             long played = PlayedFrames();
+            WatchExclusiveClock(played);
             var (aud, _) = c.SegmentAt(played);
             if (aud != null && !ReferenceEquals(aud, _lastAudible))
             {
@@ -1089,6 +1152,24 @@ public sealed class AudioEngine : IAudioEngine
             }
         }
         catch (Exception ex) { Log.Error("Monitor", ex); }
+    }
+
+    /// <summary>
+    /// Some drivers accept an exclusive stream and then never run it (no sound, the position stays put). If the
+    /// exclusive output's clock hasn't moved for a few seconds, this device is played in shared mode instead.
+    /// </summary>
+    void WatchExclusiveClock(long played)
+    {
+        if (_clockStallHandled || _plan?.Mode != "exclusive" || _wasapiStopped || _out is not WasapiOut) return;
+        var now = DateTime.UtcNow;
+        if (played != _clockFrames) { _clockFrames = played; _clockMovedAt = now; return; }
+        if (now - _clockMovedAt < TimeSpan.FromSeconds(2.5)) return;
+        _clockStallHandled = true;
+        string id = _deviceId;
+        if (id == null || !Devices.IsActive(id)) return;   // unplugged: the device-change path handles it
+        MarkNoExclusive(id, "output clock not running");
+        // once per opened output, and the device then opens in shared mode, so this can't loop
+        Task.Run(() => ReconfigureAsync()).ContinueWith(t => { if (t.IsFaulted) Log.Error("Shared fallback", t.Exception); });
     }
 
     void Preload(PlaybackChain c, PcmSource cur, Track next)
@@ -1186,4 +1267,11 @@ public sealed class DeviceBusyException : InvalidOperationException
 {
     public string Holders { get; }
     public DeviceBusyException(string holders, string message) : base(message) { Holders = holders; HResult = unchecked((int)0x8889000A); }
+}
+
+/// <summary>The device is there and free, but it can't be opened in exclusive mode (the load then falls back to shared).</summary>
+public sealed class ExclusiveOpenException : InvalidOperationException
+{
+    public string DeviceId { get; }
+    public ExclusiveOpenException(string deviceId, string message, Exception inner = null) : base(message, inner) { DeviceId = deviceId; }
 }

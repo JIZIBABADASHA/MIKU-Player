@@ -68,3 +68,16 @@ Object.assign(I18N_DICT["ja"], {
   "關閉平滑捲動": "スムーズスクロールを無効にする",
   "跳到頂端與列表捲動直接定位；Windows 滾輪不再使用慣性動畫。": "先頭への移動とリストのスクロールを直接行い、Windows のホイール慣性アニメーションを無効にします。"
 });
+/* Output picker: exclusive-capable devices. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "沒有支援獨佔模式的裝置": "没有支持独占模式的设备",
+  "不支援獨佔，以共享模式播放": "不支持独占，以共享模式播放"
+});
+Object.assign(I18N_DICT["en"], {
+  "沒有支援獨佔模式的裝置": "No device supports exclusive mode",
+  "不支援獨佔，以共享模式播放": "No exclusive mode, plays in shared mode"
+});
+Object.assign(I18N_DICT["ja"], {
+  "沒有支援獨佔模式的裝置": "排他モードに対応したデバイスがありません",
+  "不支援獨佔，以共享模式播放": "排他モード非対応、共有モードで再生"
+});

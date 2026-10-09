@@ -1973,6 +1973,14 @@ public sealed class MainForm : Form
     object DevicesDto()
     {
         var list = Devices.List();
+        // which devices take exclusive streams (probed once per device, then cached by Devices.Probe)
+        foreach (var x in list)
+        {
+            NAudio.CoreAudioApi.MMDevice dev = null;
+            try { dev = Devices.Open(x.Id); if (dev.ID == x.Id) x.Exclusive = Devices.Probe(dev).Rates.Any(); }
+            catch { }
+            finally { Devices.Release(dev); }
+        }
         object caps = null;
         NAudio.CoreAudioApi.MMDevice d = null;
         try
@@ -2014,7 +2022,12 @@ public sealed class MainForm : Form
         SaveSoon();
         if (remote) StartRemote();
         if (core) _ = Task.Run(async () => { try { await SwitchCoreAsync(); } catch (Exception ex) { Log.Error("Switch core", ex); Post("error", new { message = "切換播放內核失敗：" + ex.Message }); } });
-        else if (reconfigure) _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
+        else if (reconfigure)
+        {
+            // a device that failed in exclusive mode gets another try after the user changes the output settings
+            if (_engine is AudioEngine own) own.ForgetExclusiveFailures();
+            _ = Task.Run(async () => { await _engine.ReconfigureAsync(); PostSoon("state"); });
+        }
         else if (volume) _engine.ApplyVolume();
         return _s;
     }

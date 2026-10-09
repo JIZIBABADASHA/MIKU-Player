@@ -15,6 +15,8 @@ public sealed class DeviceInfo
     public string Id { get; set; }
     public string Name { get; set; }
     public bool IsDefault { get; set; }
+    /// <summary>The device takes WASAPI exclusive streams (null: not probed). The output picker lists only these under 獨佔.</summary>
+    public bool? Exclusive { get; set; }
 }
 
 public sealed class DeviceCaps

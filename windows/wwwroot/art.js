@@ -333,8 +333,8 @@ const Outputs = {
   async toggle(anchor) {
     if (Popover.el && Popover.el.classList.contains('outpop')) return Popover.close();
     const box = h('div');
-    // The tabs only choose which devices are listed: the mode changes when a device is picked, together with it
-    // (unlike the output mode setting on the settings page, which applies at once).
+    // A tab switches the output mode at once (keeping the device), like the setting on the settings page. Only the
+    // ASIO tab without any installed driver just shows that there is nothing to switch to.
     let mode = App.settings.outputMode;
     const modeName = { exclusive: T('WASAPI 獨佔'), shared: T('WASAPI 共享'), asio: 'ASIO' };
     const pick = async (patch, name) => {
@@ -344,13 +344,22 @@ const Outputs = {
       toast(T('已切換到 ') + name + T('（') + modeName[mode] + T('）'));
       this.refresh();
     };
+    const switchMode = async v => {
+      mode = v;
+      const d = this.data || { devices: [], asio: [] };
+      if (v === App.settings.outputMode || (v === 'asio' && !d.asio.length)) { draw(); return; }
+      await Settings.set({ outputMode: v });
+      this.label();
+      toast(T('已切換到 ') + modeName[v]);
+      await this.refresh();
+      if (Popover.el && Popover.el.contains(box)) draw();
+    };
     const draw = () => {
       box.textContent = '';
       const s = App.settings, d = this.data || { devices: [], asio: [] };
       const current = mode === s.outputMode;   // the tab of the mode in use: its device is marked
       box.append(h('h3', { html: icon('speaker') + T('輸出裝置') }));
-      box.append(seg([['exclusive', T('獨佔')], ['shared', T('共享')], ['asio', 'ASIO']], mode, v => { mode = v; draw(); }));
-      if (!current) box.append(h('div', { class: 'muted outhint' }, T`點裝置後切換到 ${modeName[mode]}`));
+      box.append(seg([['exclusive', T('獨佔')], ['shared', T('共享')], ['asio', 'ASIO']], mode, v => { switchMode(v); }));
       if (mode === 'asio') {
         if (!d.asio.length) box.append(h('div', { class: 'muted', style: { padding: '8px' } }, T('沒有找到 ASIO 驅動程式')));
         d.asio.forEach(n => {
@@ -360,9 +369,14 @@ const Outputs = {
         });
       } else {
         const cur = s.deviceId || (d.devices.find(x => x.isDefault) || {}).id;
-        d.devices.forEach(x => {
+        // 獨佔 lists only devices that take exclusive streams (the one in use stays, marked, if it doesn't)
+        const list = mode === 'exclusive' ? d.devices.filter(x => x.exclusive !== false || (current && x.id === cur)) : d.devices;
+        if (mode === 'exclusive' && !list.length) box.append(h('div', { class: 'muted', style: { padding: '8px' } }, T('沒有支援獨佔模式的裝置')));
+        list.forEach(x => {
           const on = current && x.id === cur;
-          const sub = on && d.caps ? (mode === 'shared' ? T`系統格式 ${khz(d.caps.mixRate)} kHz` : T.msg(d.caps.summary)) : (x.isDefault ? T('Windows 預設') : '');
+          const noExcl = mode === 'exclusive' && x.exclusive === false;
+          const sub = noExcl ? T('不支援獨佔，以共享模式播放')
+            : on && d.caps ? (mode === 'shared' ? T`系統格式 ${khz(d.caps.mixRate)} kHz` : T.msg(d.caps.summary)) : (x.isDefault ? T('Windows 預設') : '');
           box.append(h('button', { class: 'outrow' + (on ? ' on' : ''), onclick: () => pick({ deviceId: x.id }, shortDevice(x.name)) },
             h('span', { html: icon('speaker') }), h('span', { class: 'nm' }, h('b', null, shortDevice(x.name)), h('small', null, sub))));
         });

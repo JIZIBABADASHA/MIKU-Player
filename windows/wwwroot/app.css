@@ -1041,6 +1041,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .np-cover img.ok { opacity: 1; }
 #np.paused .np-cover { transform: scale(.94); }
 .np-info { margin-top: 22px; width: clamp(260px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); }
+/* positioned so the text paints above the cover's big drop shadow (it fell on the title and greyed it) */
+.np-title, .np-artist, .np-badges { position: relative; }
 .np-title { color: rgb(var(--np-ink)); font: 700 26px/1.32 var(--font-display); /* 1.2 cut off descenders (g, y, p) */ letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .np-artist { color: rgba(var(--np-ink), .66); font-size: 16px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-artist a { cursor: pointer; }
