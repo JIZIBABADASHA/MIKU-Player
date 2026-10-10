@@ -398,7 +398,6 @@ public sealed class MainForm : Form
     {
         _s = Json.Load<Settings>(AppPaths.Settings);
         if (_s.Dsp.Bands.Count == 0) _s.Dsp.Bands = DefaultBands();
-
         Text = Program.AppName;
         BackColor = Bg;
         AutoScaleDimensions = new SizeF(96, 96);
@@ -2008,7 +2007,7 @@ public sealed class MainForm : Form
         formats = c.Exclusive.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Select(Formats.Describe).ToList()),
     };
 
-    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdMode", "dsdPcmRate", "replayGain", "replayGainPreamp" };
+    static readonly HashSet<string> OutputKeys = new(StringComparer.OrdinalIgnoreCase) { "outputMode", "deviceId", "asioDriver", "bufferMs", "upsampling", "fixedRate", "dop", "dsdMode", "dsdPcmRate", "maxDsd", "replayGain", "replayGainPreamp" };
 
     object ApplySettings(JsonElement patch)
     {

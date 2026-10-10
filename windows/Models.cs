@@ -121,6 +121,14 @@ public sealed class Settings
         return m == "dop" && outputMode != "shared" ? "dop" : "pcm";
     }
     public int DsdPcmRate { get; set; } = 176400;
+    /// <summary>
+    /// The highest DSD multiple the DAC takes (64 | 128 | 256 | 512); 0 = no limit. Some drivers accept DSD rates their
+    /// DAC cannot play without reporting an error, so every core keeps DSD output at or below it (DSD files above it play
+    /// as PCM). Shared by the cores.
+    /// </summary>
+    public int MaxDsd { get; set; }
+    /// <summary>MaxDsd when it is one of the multiples, else 0 (no limit).</summary>
+    public int DsdLimit() => MaxDsd is 64 or 128 or 256 or 512 ? MaxDsd : 0;
     public bool Gapless { get; set; } = true;
     public string ReplayGain { get; set; } = "off"; // off | track | album
     public double ReplayGainPreamp { get; set; }
