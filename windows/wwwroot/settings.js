@@ -29,7 +29,7 @@ const Settings = {
     // the playback core chosen, and its capabilities (MIKU's own or a module's: Audio/AudioCores.cs)
     const cores = App.cores, core = cores.find(c => c.id === (s.audioCore || 'miku')) || cores[0];
     // settings blocks of extension modules at a place in the page (MikuExt.addSettings); a module may hide one of
-    // MIKU's own sections that its settings replace (hide('rate'): the 取樣率 card)
+    // MIKU's own sections that its settings replace (hide('rate'): the 取樣率 card; hide('buffer'): 緩衝大小)
     const hidden = new Set();
     const ext = (place, host) => {
       for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[place]) || []) {
@@ -77,17 +77,19 @@ const Settings = {
       // a DAC connected or removed while this page is open (art.js listens for the host's devicesChanged)
       this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
-      out.append(field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {
+      const bufField = field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {
         const r = h('input', { class: 'range', type: 'range', min: 40, max: 500, step: 10, value: s.bufferMs });
         const v = h('span', { class: 'num muted', style: { width: '58px', textAlign: 'right' } }, s.bufferMs + ' ms');
         r.oninput = () => v.textContent = r.value + ' ms';
         r.onchange = () => this.set({ bufferMs: +r.value });
         return [r, v];
-      })()));
+      })());
+      out.append(bufField);
       const coreSel = select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); Router.render(); });
       out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'), coreSel));
       // the chosen core's own settings (a module's), right under it
       ext('core', out);
+      if (hidden.has('buffer')) bufField.style.display = 'none';   // a core with its own buffering (hide('buffer'))
       /* 取樣率 */
       const rateSect = section(T('取樣率'));
       // 升頻: each choice with its own description, shown for the chosen one (a module's core may describe its own;
