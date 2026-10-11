@@ -481,6 +481,23 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
 .sigpop .sig-details summary { cursor: pointer; user-select: none; }
 .sigpop .sig-details > div { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; line-height: 1.5; word-break: break-word; }
+/* the shared layout (core.js SigPath): one line per stage; a stage with details, or whose line does not fit, folds, its arrow
+   after the label, and opens on a click. A pin (the decoder) stays under the summary. */
+.sigpop .stage.sp-row { grid-template-columns: 18px minmax(0, 1fr); }
+.sigpop .stage.sp-row > div { min-width: 0; }
+.sp-line { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-pin { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+.sp-pin > span:first-child { font-size: 13px; color: #8A8FA8; }
+.sp-pin-v { font-size: 13px; color: color-mix(in srgb, currentColor 85%, transparent); }
+.sp-more { display: none; margin-top: 5px; color: var(--text-3); font-size: 12px; line-height: 1.6; }
+.stage.sp-fold { cursor: pointer; }
+.stage.sp-fold .k::after { content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 0 2px 7px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); opacity: .7; transition: transform .15s; }
+.stage.sp-fold.sp-open .k::after { transform: rotate(45deg); margin-bottom: 3px; }
+.stage.sp-open .sp-line { white-space: normal; }
+.stage.sp-open .sp-more { display: block; }
+.stage.sp-fold:hover .k { color: var(--text-2); }
+.sigpop .sig-sect .sp-mark { display: inline-flex; margin-left: 2px; }
 
 #toasts { position: fixed; left: 50%; bottom: calc(var(--bar) + 18px); transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { pointer-events: auto; background: var(--toast-bg); border: 1px solid var(--line-2); padding: 11px 16px; border-radius: 12px; box-shadow: 0 16px 40px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); max-width: 560px; font-size: 13.5px; animation: toastIn .35s var(--ease-out); display: flex; gap: 10px; align-items: flex-start; white-space: pre-wrap; }
