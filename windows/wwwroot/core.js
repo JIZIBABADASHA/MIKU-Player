@@ -1086,6 +1086,49 @@ const QLead = {
   high: T('Windows 混音器會依系統格式處理音訊。改用獨佔模式可達到 Bit-perfect。'),
   low: T('來源為有損壓縮格式：部分聲音資訊在壓縮時已被永久丟棄，無法還原。'),
 };
+/** One stage of the signal path card: its dot (pink when it changes the samples), label and value. */
+const sigStage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
+
+/**
+ * The signal path card's shared layout, for a core that reports SignalInfo.Path (or a module's own path through
+ * drawPath): sections of stages in processing order, each one line; a stage with details, or whose line does not fit,
+ * folds and opens on a click. pin: lines under the summary shown all the time (the decoder). A module may put its
+ * mark after a section's title and on a pin (opts.mark); in a title the mark takes the stages' text colour.
+ */
+const SigPath = {
+  draw(box, path, opts = {}) {
+    const tx = s => typeof s === 'string' ? T.msg(s) : s;
+    for (const sect of (path && path.sections) || []) {
+      box.append(h('div', { class: 'sig-sect' }, tx(sect.title), sect.mark && opts.mark ? h('span', { class: 'sp-mark' }, opts.mark()) : null));
+      for (const r of sect.rows || []) {
+        const line = h('span', { class: 'sp-line' }, tx(r.v));
+        const pins = (r.pin || []).map(p => h('div', { class: 'sp-pin' }, h('span', null, tx(p.k)),
+          p.mark && opts.mark ? opts.mark() : h('span', { class: 'sp-pin-v' }, tx(p.v))));
+        const more = (r.more || []).length ? h('div', { class: 'sp-more' }, ...r.more.map(x => h('div', null, tx(x)))) : null;
+        const el = sigStage(tx(r.k), [line, ...pins, more].filter(Boolean), r.mod);
+        el.classList.add('sp-row');
+        const fold = () => {
+          if (!more && line.scrollWidth <= line.clientWidth + 1) return;
+          el.classList.add('sp-fold');
+          // opening a stage is not a click on the card (an upsampled track's card turns over on a click)
+          el.onclick = e => { e.stopPropagation(); el.classList.toggle('sp-open'); };
+        };
+        if (more) fold(); else requestAnimationFrame(fold);   // a long line folds once it is laid out
+        box.append(el);
+      }
+    }
+    for (const n of (path && path.notes) || []) box.append(h('div', { class: 'note' }, tx(n)));
+    // a mark in a title takes the stages' text colour, not the title's (read once the card is shown); the mark's own
+    // style applies on top of it, as it does on a pin. Its children are put back in after the colour changes: Chromium
+    // does not recompute a child's color-mix(currentColor ...) when the parent's colour changes later
+    requestAnimationFrame(() => {
+      const line = box.querySelector('.sp-line');
+      const c = line && line.isConnected ? getComputedStyle(line).color : '';
+      if (c) box.querySelectorAll('.sig-sect .sp-mark').forEach(m => { m.style.color = c; m.replaceChildren(...m.childNodes); });
+    });
+  },
+};
+
 const SignalPop = {
   toggle(anchor) {
     if (Popover.el && Popover.el.classList.contains('sigpop')) return Popover.close();
@@ -1101,11 +1144,16 @@ const SignalPop = {
       const q = sigQuality(sg);
       box.className = 'q-' + q + shine;
       box.append(h('h3', { html: `<i class="dot"></i>${QLabel[q]}${shine === ' hires' ? ' · Hi-Res' : shine === ' dsd' ? ' · DSD' : ''}` }), h('div', { class: 'lead' }, QLead[q]));
-      const stage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
+      const stage = sigStage;
       const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
       // a module's core may draw its own path (SignalInfo.Custom, MikuExt signalPath)
       const custom = sg.custom && MikuExt.paths[sg.custom.ext];
-      if (custom) { try { custom(box, sg, { stage, src, khz }); } catch (e) { console.error('[ext] signal path', e); } }
+      if (custom) { try { custom(box, sg, { stage, src, khz, drawPath: (path, o) => SigPath.draw(box, path, o) }); } catch (e) { console.error('[ext] signal path', e); } }
+      else if (sg.path) {
+        // the shared layout (the core describes its own stages), then the resampler's live peak when the core measures it
+        SigPath.draw(box, sg.path);
+        SignalPop.meterRows(box, sg);
+      }
       else {
       box.append(stage(T('來源'), src, false));
       if (sg.decoder) box.append(stage(T('解碼器'), sg.decoder, false));
@@ -1125,19 +1173,23 @@ const SignalPop = {
       box.append(stage(T('格式'), `${sg.outputFormat} / ${khz(sg.outputRate)} kHz`, false));
       if (sg.mode && sg.mode.startsWith('WASAPI') && sg.eventDriven != null) box.append(stage(T('補充音訊方式'), sg.eventDriven ? T('事件驅動') : T('定時喚醒'), false));
       if (sg.quantization) box.append(stage(T('量化'), sg.quantization, false));
-      const meter = App.state.meter;
-      if (sg.resampled && meter && meter.resampleMeterAvailable === true) {
-        const peak = Number(meter.resamplePeak || 0);
-        const db = peak > 0 ? (20 * Math.log10(peak)).toFixed(2) + ' dBFS' : '−∞ dBFS';
-        box.append(stage(T('重取樣輸出峰值'), db + T(' · 已解碼區段，ReplayGain／DSP 前'), peak > 1));
-        box.append(h('div', { class: 'note' }, T('解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。')));
-        if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, T`已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
-      } else if (sg.resampled) box.append(stage(T('重取樣峰值量測'), T('此播放內核未提供'), false));
+      if (!SignalPop.meterRows(box, sg) && sg.resampled) box.append(stage(T('重取樣峰值量測'), T('此播放內核未提供'), false));
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
       }
     }
     const pop = Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
     if (pop && SigCard.eligible(sg)) SigCard.attach(pop, sg);
+  },
+  /** The resampler's peak while the track is resampled, when the core measures it; false when it does not. */
+  meterRows(box, sg) {
+    const meter = App.state.meter;
+    if (!sg.resampled || !meter || meter.resampleMeterAvailable !== true) return false;
+    const peak = Number(meter.resamplePeak || 0);
+    const db = peak > 0 ? (20 * Math.log10(peak)).toFixed(2) + ' dBFS' : '−∞ dBFS';
+    box.append(sigStage(T('重取樣輸出峰值'), db + T(' · 已解碼區段，ReplayGain／DSP 前'), peak > 1));
+    box.append(h('div', { class: 'note' }, T('解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。')));
+    if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, T`已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
+    return true;
   },
 };
 

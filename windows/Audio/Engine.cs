@@ -50,6 +50,8 @@ public sealed class SignalInfo
     /// naming the module, drawn by that module's page script (MikuExt signalPath). Null: the standard layout.
     /// </summary>
     public object Custom { get; set; }
+    /// <summary>The card in the shared layout (SignalPath, core.js SigPath): a core that describes its own stages. Null: the standard layout.</summary>
+    public SignalPath Path { get; set; }
     public string Decoder { get; set; }
     public string Resampler { get; set; }
     public double? ResamplerBandwidth { get; set; }
@@ -1225,7 +1227,102 @@ public sealed class AudioEngine : IAudioEngine
             info.Note = "DoP 播放時無法使用數位音量，DAC 會以原始音量輸出，請用 DAC 的音量旋鈕調整。";
         if (info.Note == null && sp?.Note != null) info.Note = sp.Note;
         info.Quality = Quality(info);
+        info.Path = BuildPath(t, sp, plan, info);
         return info;
+    }
+
+    static string Khz(int r) => (r / 1000.0).ToString("0.###", CultureInfo.InvariantCulture);
+    static string Db(double d) => (d > 0 ? "+" : "") + d.ToString("0.0", CultureInfo.InvariantCulture) + " dB";
+    static string Hz(double f) => f >= 1000 ? (f / 1000).ToString("0.##", CultureInfo.InvariantCulture) + " kHz" : f.ToString("0", CultureInfo.InvariantCulture) + " Hz";
+    static string BandName(string type) => (type ?? "PK").ToUpperInvariant() switch
+    {
+        "LSC" => "低頻架", "HSC" => "高頻架", "LP" => "低通", "HP" => "高通", _ => "峰值",
+    };
+
+    /// <summary>
+    /// This core's stages for the shared card, in processing order: FFmpeg decodes (DSD too), SoX resamples (with 1 dB of
+    /// headroom), the ReplayGain gain is applied to the decoded samples, then the DSP (EQ, crossfeed, balance, invert,
+    /// digital volume) in 64-bit float, then the conversion to the device format (TPDF dither when the samples were changed).
+    /// </summary>
+    SignalPath BuildPath(Track t, SourcePlan sp, OutputPlan plan, SignalInfo info)
+    {
+        var p = new SignalPath();
+        bool isDsd = t.IsDsd, dop = plan.Dop;
+        var d = _s.Dsp;
+        int outBits = Formats.ValidBits(plan.Format);
+
+        // 來源
+        string src = info.Dsd ? $"{t.Codec} • {info.DsdLabel} • {(info.SourceRate / 1e6).ToString("0.####", CultureInfo.InvariantCulture)} MHz"
+                              : $"{t.Codec} • {(info.SourceBits > 0 ? info.SourceBits + "-bit / " : "")}{Khz(info.SourceRate)} kHz";
+        var file = p.Section("來源").Add("檔案", src, false,
+            t.Channels > 2 ? $"聲道：{t.Channels}（混成立體聲）" : null,
+            t.IsLossy ? "有損壓縮來源：壓縮時已丟棄部分聲音資訊，無法還原" : null);
+        file.Pin.Add(new SignalPin { K = "解碼", V = dop ? "MIKU（DSD 原樣讀取）" : t.IsLive ? "WebView 音訊" : "FFmpeg" });
+
+        // DSP, in processing order
+        var dsp = p.Section("DSP");
+        const string headroom = "先降 1 dB 留空間：重建後的波形可能超過 0 dBFS（取樣間峰值）";
+        if (dop) dsp.Add("DSP", "無：DSD 原樣送出（DoP 封裝）", false);
+        else
+        {
+            if (isDsd)
+                dsp.Add("DSD 轉 PCM", $"{info.DsdLabel} → PCM {Khz(plan.Rate)} kHz", true,
+                    $"FFmpeg 解碼 DSD，SoX 重新取樣到 {Khz(plan.Rate)} kHz（28-bit 精度、Chebyshev 通帶）", headroom);
+            else if (info.Resampled && !t.IsLive)
+                dsp.Add("升頻", $"{Khz(info.SourceRate)} → {Khz(plan.Rate)} kHz", true,
+                    "SoX（FFmpeg 的 soxr），28-bit 精度、Chebyshev 通帶", headroom);
+            else if (info.Resampled)
+                dsp.Add("重新取樣", $"{Khz(info.SourceRate)} → {Khz(plan.Rate)} kHz", true);
+
+            double rg = info.ReplayGainDb ?? 0, gain = DigitalGain();
+            if (Math.Abs(rg) > 1e-9)
+                dsp.Add("ReplayGain", Db(rg), true,
+                    $"{(_s.ReplayGain == "album" ? "依專輯" : "依曲目")}；只在峰值允許的範圍內提高，沒有峰值標籤時只降不升");
+            bool eq = d.Enabled && d.EqOn && d.Bands.Any(b => b.On && !Biquad.IsIdentity(b));
+            if (eq)
+            {
+                var on = d.Bands.Where(b => b.On && !Biquad.IsIdentity(b)).ToList();
+                var lines = new List<string> { "前級：" + (d.AutoPreamp ? "自動" : Db(Math.Min(0, d.PreampDb))) };
+                lines.AddRange(on.Select(b => (b.Type ?? "PK").ToUpperInvariant() is "LP" or "HP"
+                    ? $"{BandName(b.Type)} {Hz(b.Fc)} · Q {b.Q.ToString("0.##", CultureInfo.InvariantCulture)}"
+                    : $"{BandName(b.Type)} {Hz(b.Fc)} · {Db(b.Gain)} · Q {b.Q.ToString("0.##", CultureInfo.InvariantCulture)}"));
+                dsp.Add("EQ", $"{on.Count} 段" + (string.IsNullOrEmpty(d.PresetName) ? "" : " · " + d.PresetName), true, lines.ToArray());
+            }
+            if (d.Enabled && d.Crossfeed.On)
+                dsp.Add("Crossfeed", $"{Hz(d.Crossfeed.Fc)} · {d.Crossfeed.Feed.ToString("0.0", CultureInfo.InvariantCulture)} dB", true,
+                    "bs2b（Bauer）", $"截止頻率：{Hz(d.Crossfeed.Fc)}", $"交叉量：{d.Crossfeed.Feed.ToString("0.0", CultureInfo.InvariantCulture)} dB");
+            if (d.Enabled && Math.Abs(d.Balance) > 0.001)
+                dsp.Add("平衡", (d.Balance > 0 ? "偏右 " : "偏左 ") + Math.Round(Math.Abs(d.Balance) * 100) + "%", true);
+            if (d.Enabled && d.Invert) dsp.Add("反相", "左右聲道極性反轉", true);
+            if (gain != 1)
+                dsp.Add("音量", _s.Muted ? "靜音" : "數位音量 " + Db(_s.VolumeDb), true, "64-bit 浮點運算");
+
+            // the conversion to the device format: TPDF dither when the samples were changed (the DSP did not pass them through)
+            bool changed = gain != 1 || (d.Enabled && (eq || d.Crossfeed.On || Math.Abs(d.Balance) > 0.001 || d.Invert
+                                                       || (!d.AutoPreamp && Math.Abs(d.PreampDb) > 1e-9)));
+            if (plan.Format is SampleFormat.Int16 or SampleFormat.Int24 or SampleFormat.Int32Valid24 && changed)
+                dsp.Add("量化", $"TPDF 抖動 → {outBits}-bit", true, $"從 64-bit 浮點量化到裝置的 {outBits}-bit，加 TPDF 抖動");
+            else if (Formats.IsInteger(plan.Format) && !isDsd && info.SourceBits > outBits)
+                dsp.Add("量化", $"→ {outBits}-bit（不加抖動）", true, $"來源 {info.SourceBits}-bit 高於裝置的 {outBits}-bit；樣本沒有經過處理時不加抖動");
+            if (dsp.Rows.Count == 0) dsp.Add("DSP", "無：樣本原樣送出", false);
+        }
+
+        // 輸出
+        var output = p.Section("輸出");
+        if (dop || DigitalGain() == 1)
+            output.Add("音量", info.VolumeMode switch
+            {
+                "hardware" => "DAC 硬體音量 · " + _s.VolumeDb.ToString("0.0", CultureInfo.InvariantCulture) + " dB",
+                "none" => "無（請使用 DAC 旋鈕）",
+                "digital" => "數位音量 · 0 dB（不處理）",
+                _ => "固定 0 dB",
+            }, false, info.VolumeMode == "hardware" ? "音量由 DAC 調整，送出的樣本不變" : null);
+        output.Add("裝置", $"{info.Mode} · {info.Device}", false, plan.Mode == "asio" ? null : "補充音訊方式：定時喚醒");
+        output.Add("格式", dop ? $"DoP · {info.OutputFormat} / {Khz(plan.Rate)} kHz" : $"{info.OutputFormat} / {Khz(plan.Rate)} kHz", false,
+            dop ? $"{info.DsdLabel} 包在 PCM 裡送出（DoP 標記），DAC 解開後以 DSD 播放" : null);
+
+        if (!string.IsNullOrEmpty(info.Note)) p.Notes.Add(info.Note);
+        return p;
     }
 
     string Quality(SignalInfo i)
