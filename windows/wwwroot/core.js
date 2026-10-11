@@ -720,7 +720,7 @@ const App = {
   /* ── signal path badge ── */
   renderSignal() {
     const sg = this.state.signal, el = $('#b-sig');
-    const cls = 'sig' + (sg ? ' q-' + sg.quality : '') + sigShine(sg);
+    const cls = 'sig' + (sg ? ' q-' + sigQuality(sg) : '') + sigShine(sg);
     if (el.className !== cls) el.className = cls;
     if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? T('已停止') : T('未播放')); return; }
     const src = sg.dsd ? sg.dsdLabel : `${sg.sourceBits || ''}${sg.sourceBits ? '/' : ''}${khz(sg.sourceRate)}`;
@@ -1065,8 +1065,21 @@ async function rereadAlbum(al) {
 
 /* ═════════════════════════════ signal path ═════════════════════════════ */
 const QLabel = { bitperfect: 'Bit-perfect', enhanced: T('已處理'), high: T('高品質'), low: T('有損來源') };
-/** The badge's extra shine: DSP on turns it into toxic slime; DSD glows gold; bit-perfect hi-res (above 16-bit / 48 kHz) sparkles like a diamond. */
-const sigShine = sg => !sg ? '' : sg.dspActive ? ' dsp' : sg.dsd ? ' dsd' : sg.quality === 'bitperfect' && ((sg.sourceBits || 0) > 16 || (sg.sourceRate || 0) > 48000) ? ' hires' : '';
+/** The badge's quality, the same rule for every playback core: a resampled or converted path (upsampling, DSD → PCM,
+ *  PCM → DSD) is 已處理 even when a core reports it as bit-perfect. */
+const sigQuality = sg => sg.quality === 'bitperfect' && sg.resampled ? 'enhanced' : sg.quality;
+/**
+ * The badge's extra shine, the same for every playback core. Bit-perfect: DSD sent as DSD glows (DSD), hi-res (above
+ * 16-bit / 48 kHz) sparkles (Hi-Res), CD-quality WAV / FLAC keeps the plain bit-perfect ring. Resampled or converted
+ * (upsampling, DSD → PCM, PCM → DSD): the plain 已處理 badge for now. DSP on without resampling: toxic slime.
+ */
+const sigShine = sg => {
+  if (!sg || sg.resampled) return '';
+  if (sg.dspActive) return ' dsp';
+  if (sigQuality(sg) !== 'bitperfect') return '';
+  if (sg.dsd) return ' dsd';
+  return (sg.sourceBits || 0) > 16 || (sg.sourceRate || 0) > 48000 ? ' hires' : '';
+};
 const QLead = {
   bitperfect: T('依目前訊號路徑設定，預期保持原始樣本數值。此標示未逐樣本驗證 DAC 端的資料。'),
   enhanced: T('訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。'),
@@ -1085,8 +1098,9 @@ const SignalPop = {
       box.append(h('h3', null, T('訊號路徑')), h('div', { class: 'lead' }, T('目前沒有播放中的曲目。')));
     } else {
       const shine = sigShine(sg);
-      box.className = 'q-' + sg.quality + shine;
-      box.append(h('h3', { html: `<i class="dot"></i>${QLabel[sg.quality]}${shine === ' hires' ? ' · Hi-Res' : shine === ' dsd' ? ' · DSD' : ''}` }), h('div', { class: 'lead' }, QLead[sg.quality]));
+      const q = sigQuality(sg);
+      box.className = 'q-' + q + shine;
+      box.append(h('h3', { html: `<i class="dot"></i>${QLabel[q]}${shine === ' hires' ? ' · Hi-Res' : shine === ' dsd' ? ' · DSD' : ''}` }), h('div', { class: 'lead' }, QLead[q]));
       const stage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
       const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
       // a module's core may draw its own path (SignalInfo.Custom, MikuExt signalPath)
