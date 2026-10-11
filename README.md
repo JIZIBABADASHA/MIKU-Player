@@ -56,6 +56,10 @@ git clone --recurse-submodules https://github.com/JIZIBABADASHA/MIKU-Player.git
 取得後編譯 MIKU 時會一起建置 Daphne 的 C++ 引擎，需要 Visual Studio 2022（C++ 桌面開發）與 CMake 3.25 以上；
 第一次編譯會下載 FFmpeg 與 ASIO SDK。之後在設定 → 播放方案選 Daphne 即可使用。
 
+Daphne 可以在任何 x64 CPU 上執行，不需要 AVX2 或 FMA3：CPU 兩者都有時，雙倍精度（double-double）運算會使用向量化的路徑；
+沒有的話改用一般路徑，結果逐位元相同，只是比較慢（「雙倍精度摺積」約慢 2.5 倍，仍遠快於即時播放）。
+不支援 FMA3 的較舊 CPU，FMA 會由 C 執行階段以軟體計算，速度明顯下降，建議不要開啟「雙倍精度摺積」。
+
 ### 編譯 macOS 版
 
 在 Finder 雙擊 `mac/Build Mac.command`（或在終端機執行 `bash mac/build/build.sh`），會下載 Electron、FFmpeg 與 fpcalc 並產生 `mac/dist/MIKU-<版本>-mac.pkg`。
