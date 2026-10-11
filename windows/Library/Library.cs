@@ -794,6 +794,8 @@ public static class TagReader
         {
             if (!double.IsNaN(tag.ReplayGainTrackGain) && tag.ReplayGainTrackGain != 0) t.RgTrack = tag.ReplayGainTrackGain;
             if (!double.IsNaN(tag.ReplayGainAlbumGain) && tag.ReplayGainAlbumGain != 0) t.RgAlbum = tag.ReplayGainAlbumGain;
+            if (!double.IsNaN(tag.ReplayGainTrackPeak) && tag.ReplayGainTrackPeak > 0) t.RgTrackPeak = tag.ReplayGainTrackPeak;
+            if (!double.IsNaN(tag.ReplayGainAlbumPeak) && tag.ReplayGainAlbumPeak > 0) t.RgAlbumPeak = tag.ReplayGainAlbumPeak;
         }
         catch { }
     }
@@ -805,7 +807,7 @@ public static class TagReader
     static TagReader() { Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); }
 
     /// <summary>Version of the reading rules; raise it when a change should reach tracks already in the library.</summary>
-    public const int Version = 1;
+    public const int Version = 2;   // 2: ReplayGain peaks
 
     /// <summary>
     /// Tracks read with older rules whose tags may read differently now: read them again on the next scan even though
@@ -813,10 +815,13 @@ public static class TagReader
     /// characters a tagging program couldn't encode (<see cref="RestoreLost"/>); tags from the ffprobe fallback read
     /// before it was decoded as UTF-8 (UTF-8 read as Big5 gives private-use characters, "未来古代楽団" → "?芣?支誨璆賢";
     /// real tags hardly ever have them). Not for a missing album: most WAVs without one simply have no tags.
+    /// Version 2: tracks with a ReplayGain gain read before the peaks were (their peaks).
     /// </summary>
     public static bool NeedsReread(Track t)
     {
         if (t.ReadVer >= Version) return false;
+        // version 2 reads the ReplayGain peaks: tracks with a gain but no peak yet
+        if ((t.RgTrack != null && t.RgTrackPeak == null) || (t.RgAlbum != null && t.RgAlbumPeak == null)) return true;
         string all = $"{t.Title}{t.Artist}{t.AlbumArtist}{t.Album}{t.Genre}{t.Composer}";
         return all.AsSpan().IndexOfAny('\uFFFD', '?') >= 0 || all.Any(c => c >= '\uE000' && c <= '\uF8FF');
     }

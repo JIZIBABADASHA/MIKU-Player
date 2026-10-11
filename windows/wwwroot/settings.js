@@ -25,24 +25,23 @@ const Settings = {
     const field = (title, sub, ctl) => h('div', { class: 'field' }, h('div', { class: 'lbl' }, h('b', null, title), sub ? h('small', null, sub) : null), h('div', { class: 'ctl' }, ctl));
     const sw = (on, fn) => { const el = h('span', { class: 'switch' + (on ? ' on' : '') }); el.onclick = () => { const v = !el.classList.contains('on'); el.classList.toggle('on', v); fn(v); }; return el; };
     const select = (opts, val, fn) => { const el = h('select', { class: 'sel' }, ...opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l))); el.onchange = () => fn(el.value); return el; };
-    const section = (title, hint) => { const el = h('div', { class: 'sect' }, h('h2', null, title), hint ? h('div', { class: 'hint' }, hint) : null); root.append(el); return el; };
+    const section = (title, hint) => { const el = h('div', { class: 'sect' }, title ? h('h2', null, title) : null, hint ? h('div', { class: 'hint' }, hint) : null); root.append(el); return el; };
     // the playback core chosen, and its capabilities (MIKU's own or a module's: Audio/AudioCores.cs)
     const cores = App.cores, core = cores.find(c => c.id === (s.audioCore || 'miku')) || cores[0];
-    // settings blocks of extension modules at a place in the page (MikuExt.addSettings)
+    // settings blocks of extension modules at a place in the page (MikuExt.addSettings); a module may hide one of
+    // MIKU's own sections that its settings replace (hide('rate'): the 取樣率 card; hide('buffer'): 緩衝大小)
+    const hidden = new Set();
     const ext = (place, host) => {
       for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[place]) || []) {
-        try { fn(host, { section, field, sw, select, core }); } catch (e) { console.error('[ext] settings', e); }
+        try { fn(host, { section, field, sw, select, core, hide: id => hidden.add(id) }); } catch (e) { console.error('[ext] settings', e); }
       }
     };
 
     if (tab === 'audio') {
       /* ── audio output ── */
-      const out = section(T('輸出'), T('獨佔模式可繞過 Windows 混音器；是否保持原始樣本，還取決於取樣率、DSP、音量與輸出格式。實際設定可查看訊號路徑。'));
+      // output mode, device and buffer first, then the playback core and its own settings (no heading)
+      const out = section(null);
       if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, T('找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。')));
-      const coreSel = select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); Router.render(); });
-      out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'), coreSel));
-      // the chosen core's own settings (a module's), right under it
-      ext('core', out);
       const modeSeg = seg([['exclusive', T('WASAPI 獨佔')], ['shared', T('WASAPI 共享')], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
       out.append(field(T('輸出模式'), null, modeSeg));
       const devHost = h('div');
@@ -78,13 +77,19 @@ const Settings = {
       // a DAC connected or removed while this page is open (art.js listens for the host's devicesChanged)
       this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
-      out.append(field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {
+      const bufField = field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {
         const r = h('input', { class: 'range', type: 'range', min: 40, max: 500, step: 10, value: s.bufferMs });
         const v = h('span', { class: 'num muted', style: { width: '58px', textAlign: 'right' } }, s.bufferMs + ' ms');
         r.oninput = () => v.textContent = r.value + ' ms';
         r.onchange = () => this.set({ bufferMs: +r.value });
         return [r, v];
-      })()));
+      })());
+      out.append(bufField);
+      const coreSel = select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); Router.render(); });
+      out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'), coreSel));
+      // the chosen core's own settings (a module's), right under it
+      ext('core', out);
+      if (hidden.has('buffer')) bufField.style.display = 'none';   // a core with its own buffering (hide('buffer'))
       /* 取樣率 */
       const rateSect = section(T('取樣率'));
       // 升頻: each choice with its own description, shown for the chosen one (a module's core may describe its own;
@@ -145,6 +150,10 @@ const Settings = {
       };
       drawDsd();
       dsdSect.append(dsdHost);
+      // 最高 DSD: drivers may accept rates their DAC cannot play (no error reaches the player), so the cores' step-down
+      // on a refused rate cannot catch it
+      dsdSect.append(field(T('DAC 最高 DSD'), T('DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇'),
+        select([[0, T('不限制')], [64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], [64, 128, 256, 512].includes(s.maxDsd) ? s.maxDsd : 0, v => this.set({ maxDsd: +v }))));
       // DSD → PCM rate: the MIKU core's own setting; a core that picks the rate itself has no field
       if (core.dsdPcmRate !== false) dsdSect.append(field(T('DSD 轉 PCM 取樣率'), T('DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定'), select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
       ext('dsd', dsdSect);   // the chosen core's own DSD settings (a module's)
@@ -152,7 +161,8 @@ const Settings = {
       const sharedSect = section(T('升頻與 DSD'), T('共享模式由 Windows 混音器轉成系統格式輸出，升頻與 DSD 設定不會作用；要使用這些設定請改用獨佔模式或 ASIO。'));
       const applyMode = () => {
         const shared = App.settings.outputMode === 'shared';
-        rateSect.style.display = dsdSect.style.display = shared ? 'none' : '';
+        rateSect.style.display = shared || hidden.has('rate') ? 'none' : '';
+        dsdSect.style.display = shared ? 'none' : '';
         sharedSect.style.display = shared ? '' : 'none';
       };
       applyMode();

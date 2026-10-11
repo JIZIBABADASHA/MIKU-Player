@@ -32,6 +32,9 @@ public sealed class Track
     public bool HasPic { get; set; }
     public double? RgTrack { get; set; }
     public double? RgAlbum { get; set; }
+    /// <summary>ReplayGain peaks (linear, 1.0 = full scale), so a core can raise a quiet track only as far as its peak allows.</summary>
+    public double? RgTrackPeak { get; set; }
+    public double? RgAlbumPeak { get; set; }
     /// <summary>Version of the tag reading rules this was read with (<see cref="Library.TagReader.Version"/>); 0 = before versions.</summary>
     public int ReadVer { get; set; }
     [JsonIgnore] public string AlbumId { get; set; }
@@ -121,9 +124,32 @@ public sealed class Settings
         return m == "dop" && outputMode != "shared" ? "dop" : "pcm";
     }
     public int DsdPcmRate { get; set; } = 176400;
+    /// <summary>
+    /// The highest DSD multiple the DAC takes (64 | 128 | 256 | 512); 0 = no limit. Some drivers accept DSD rates their
+    /// DAC cannot play without reporting an error, so every core keeps DSD output at or below it (DSD files above it play
+    /// as PCM). Shared by the cores.
+    /// </summary>
+    public int MaxDsd { get; set; }
+    /// <summary>MaxDsd when it is one of the multiples, else 0 (no limit).</summary>
+    public int DsdLimit() => MaxDsd is 64 or 128 or 256 or 512 ? MaxDsd : 0;
     public bool Gapless { get; set; } = true;
     public string ReplayGain { get; set; } = "off"; // off | track | album
     public double ReplayGainPreamp { get; set; }
+    /// <summary>
+    /// ReplayGain for a track (dB, preamp included), or null when off or the track has no gain tag. A track is raised
+    /// only as far as its peak tag allows (the peak reaches full scale at most: foobar2000's "prevent clipping
+    /// according to peak"); without a peak tag the gain only lowers the level. Every core uses this rule.
+    /// </summary>
+    public double? ReplayGainDb(Track t)
+    {
+        if (ReplayGain == "off" || t == null) return null;
+        bool album = ReplayGain == "album";
+        double? g = album ? (t.RgAlbum ?? t.RgTrack) : (t.RgTrack ?? t.RgAlbum);
+        if (!g.HasValue) return null;
+        double? peak = album ? (t.RgAlbum.HasValue ? t.RgAlbumPeak : t.RgTrackPeak) : (t.RgTrack.HasValue ? t.RgTrackPeak : t.RgAlbumPeak);
+        double max = peak is > 0 ? -20 * Math.Log10(peak.Value) : 0;
+        return Math.Clamp(Math.Min(g.Value + ReplayGainPreamp, max), -24, 24);
+    }
     // Volume
     public string VolumeMode { get; set; } = "digital"; // digital | hardware | fixed
     public double VolumeDb { get; set; } = -20;

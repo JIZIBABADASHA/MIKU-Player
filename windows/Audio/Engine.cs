@@ -409,12 +409,10 @@ public sealed class AudioEngine : IAudioEngine
     {
         if (t.IsLive) return new LiveSource(t, op.Rate);
         if (sp.Dop) return new DopSource(t, sp.Dsd, seek);
-        double gain = 1;
-        if (_s.ReplayGain != "off")
-        {
-            double? rg = _s.ReplayGain == "album" ? (t.RgAlbum ?? t.RgTrack) : (t.RgTrack ?? t.RgAlbum);
-            if (rg.HasValue) gain = Math.Pow(10, (rg.Value + _s.ReplayGainPreamp) / 20);
-        }
+        // ReplayGain, raised only as far as the peak allows (Settings.ReplayGainDb); each track's source has its own,
+        // so gapless tracks each get theirs
+        double? rg = _s.ReplayGainDb(t);
+        double gain = rg.HasValue ? Math.Pow(10, rg.Value / 20) : 1;
         return new FfmpegSource(t, seek, op.Rate, sp.Resample, gain);
     }
 
@@ -1222,11 +1220,7 @@ public sealed class AudioEngine : IAudioEngine
             OutputFloatingPoint = plan.Format == SampleFormat.Float32,
             VolumeMode = plan.Dop && _s.VolumeMode == "digital" ? (_caps != null && _caps.HardwareVolume ? "hardware" : "none") : _s.VolumeMode,
         };
-        if (_s.ReplayGain != "off" && !plan.Dop)
-        {
-            double? rg = _s.ReplayGain == "album" ? (t.RgAlbum ?? t.RgTrack) : (t.RgTrack ?? t.RgAlbum);
-            if (rg.HasValue) info.ReplayGainDb = rg.Value + _s.ReplayGainPreamp;
-        }
+        if (!plan.Dop) info.ReplayGainDb = _s.ReplayGainDb(t);
         if (plan.Dop && _s.VolumeMode == "digital" && (_caps == null || !_caps.HardwareVolume))
             info.Note = "DoP 播放時無法使用數位音量，DAC 會以原始音量輸出，請用 DAC 的音量旋鈕調整。";
         if (info.Note == null && sp?.Note != null) info.Note = sp.Note;
