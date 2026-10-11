@@ -46,6 +46,16 @@ MIKU.Extensibility/  Windows 版的擴充模組介面
 功能模組可以放在獨立的 repo，checkout 到 `Extensions/<名稱>/`（例如當作 git submodule）。編譯時會一起建置，
 沒有的話照常編譯。寫法見 [MIKU.Extensibility/README.md](MIKU.Extensibility/README.md)。
 
+[Daphne](https://github.com/cychang-ykc/Daphne) 播放內核以 git submodule 放在 `Extensions/Daphne`，clone 時一起取得：
+
+```
+git clone --recurse-submodules https://github.com/JIZIBABADASHA/MIKU-Player.git
+```
+
+已經 clone 過的話，執行 `git submodule update --init`。一般的 clone 不會取得它，MIKU 照常編譯。
+取得後編譯 MIKU 時會一起建置 Daphne 的 C++ 引擎，需要 Visual Studio 2022（C++ 桌面開發）與 CMake 3.25 以上；
+第一次編譯會下載 FFmpeg 與 ASIO SDK。之後在設定 → 播放方案選 Daphne 即可使用。
+
 ### 編譯 macOS 版
 
 在 Finder 雙擊 `mac/Build Mac.command`（或在終端機執行 `bash mac/build/build.sh`），會下載 Electron、FFmpeg 與 fpcalc 並產生 `mac/dist/MIKU-<版本>-mac.pkg`。
