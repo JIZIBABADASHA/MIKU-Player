@@ -101,6 +101,18 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .brand { display: flex; flex: none; align-items: center; gap: 11px; padding: 4px 14px 26px; }
 .brand svg { display: block; }
 .nav { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+/* the list scrolls without a scrollbar: a 14 px bar squeezed the folded 52 px column (icons jumped sideways, the
+   highlight shrank) whenever a short window made it overflow. The edge with more items behind it fades instead
+   (classes set by NavEdges in core.js). */
+#nav { scrollbar-width: none; }
+#nav::-webkit-scrollbar { display: none; }
+#nav.fade-b { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); }
+#nav.fade-t { -webkit-mask-image: linear-gradient(180deg, transparent, #000 28px); mask-image: linear-gradient(180deg, transparent, #000 28px); }
+#nav.fade-t.fade-b { -webkit-mask-image: linear-gradient(180deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+/* keyboard focus on a sidebar link: a ring inside the item. The page-wide outline sits 4 px outside it, where the
+   list's own edges cut it off (the last item of the list lost its bottom half: a stray teal frame over the highlight). */
+#nav a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(var(--teal-rgb), .7); }
+#nav a.on:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, currentColor 60%, transparent); }
 .nav-label { flex: none; color: var(--text-3); font-size: 11.5px; letter-spacing: .08em; padding: 18px 12px 6px; }
 .nav a {
   display: flex; align-items: center; gap: 13px;
@@ -975,7 +987,139 @@ html.fullscreen #fullscreen-exit.is-visible:active {
   :root:root .sig.dsp, :root:root .sig.dsp::before, :root:root .sig.dsp::after, :root:root .sig.dsp .dot, :root:root .pop.sigpop:has(> .dsp), :root:root .pop.sigpop:has(> .dsp)::before, :root:root .pop.sigpop:has(> .dsp)::after,
   .sigpop > .dsp::before, .sigpop > .dsp::after, .sigpop > .dsp h3::after, :root:root .sig.dsp > span:not(.dot):not(.ripple)::after { animation: none !important; }
 }
+
+/* ═════════════ the upsampling card (SigCard in core.js) ═════════════
+   The front leans under the pointer (the lean itself is a script animation) with a soft glare following it; a click
+   turns it over to a black lacquer back with gold filigree. Any theme. Looping decorations stop with 輕量化「音訊鏈路特效」
+   (effects.css: .sigpop > div *) and freeze while paused (IdleFx). */
+.pop.sigpop.sig-card { cursor: pointer; }
+.sigpop .sig-glare {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 19; pointer-events: none; border-radius: inherit; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(circle 230px at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, .15), rgba(255, 255, 255, .04) 45%, transparent 72%);
 }
+.sigpop.sig-hover .sig-glare { opacity: 1; }
+/* turned over: the card itself becomes the black-gold card (over any rarity / theme dress), its face is hidden */
+:root:root .pop.sigpop.sig-flipped {
+  background: #050403 !important; border-color: transparent !important; border-radius: 16px !important; backdrop-filter: none !important; color: #f6e7c1;
+  box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(201, 154, 62, .6), 0 0 46px rgba(255, 180, 60, .26), 0 30px 70px rgba(0, 0, 0, .65) !important;
+}
+:root:root .pop.sigpop.sig-flipped::before, :root:root .pop.sigpop.sig-flipped::after { content: none !important; }
+.sigpop.sig-flipped > :not(.sig-back) { visibility: hidden; }
+.sigpop .sig-back {
+  display: none; position: absolute; inset: 0; z-index: 20; overflow: hidden; border-radius: inherit; isolation: isolate;
+  container-type: size; user-select: none; -webkit-user-select: none; color: #f6e7c1; --m: min(64cqw, 40cqh);
+}
+@supports not (width: 1cqw) { .sigpop .sig-back { --m: 210px; } }
+.sigpop.sig-flipped .sig-back { display: block; }
+.sig-back > *, .sig-back .sb-medal > * { position: absolute; pointer-events: none; }
+.sig-back .sb-defs { width: 0; height: 0; overflow: hidden; }
+/* lacquer: a warm black, a damask field of gold hairlines, a vignette */
+.sig-back .sb-bg {
+  inset: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cg fill='none' stroke='%23d4a54a' stroke-width='.6' opacity='.17'%3E%3Cpath d='M14 0Q22.5 5.5 28 14Q22.5 22.5 14 28Q5.5 22.5 0 14Q5.5 5.5 14 0Z'/%3E%3Cpath d='M14 9.5Q16.6 14 14 18.5Q11.4 14 14 9.5ZM9.5 14Q14 11.4 18.5 14Q14 16.6 9.5 14Z'/%3E%3C/g%3E%3Cg fill='%23d4a54a' opacity='.24'%3E%3Ccircle cx='14' cy='14' r='.9'/%3E%3Ccircle cx='0' cy='0' r='1'/%3E%3Ccircle cx='28' cy='0' r='1'/%3E%3Ccircle cx='0' cy='28' r='1'/%3E%3Ccircle cx='28' cy='28' r='1'/%3E%3C/g%3E%3C/svg%3E") center / 28px 28px,
+    radial-gradient(130% 90% at 50% 45%, #1d1609 0%, #0c0905 50%, #040302 100%);
+}
+.sig-back .sb-bg::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 70px rgba(0, 0, 0, .9), inset 0 0 18px rgba(0, 0, 0, .8); }
+/* a sunburst of faint gold rays out of the medallion */
+.sig-back .sb-rays {
+  inset: 0;
+  background: radial-gradient(closest-side, rgba(255, 196, 90, .18), rgba(255, 180, 70, .05) 60%, transparent) center / calc(var(--m) * 2.2) calc(var(--m) * 2.2) no-repeat,
+    repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 214, 140, .06) 0deg 1.4deg, transparent 1.4deg 6deg);
+  -webkit-mask: radial-gradient(ellipse farthest-side at 50% 50%, #000 12%, transparent 88%); mask: radial-gradient(ellipse farthest-side at 50% 50%, #000 12%, transparent 88%);
+}
+/* gold dust: two scattered layers taking turns to catch the light */
+.sig-back .sb-dust {
+  inset: 0; mix-blend-mode: screen;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cg fill='%23ffe6a3'%3E%3Ccircle cx='12' cy='18' r='.9'/%3E%3Ccircle cx='37' cy='63' r='.6'/%3E%3Ccircle cx='58' cy='9' r='.7'/%3E%3Ccircle cx='81' cy='44' r='1'/%3E%3Ccircle cx='23' cy='88' r='.7'/%3E%3Ccircle cx='66' cy='77' r='.8'/%3E%3Ccircle cx='91' cy='93' r='.5'/%3E%3Ccircle cx='47' cy='36' r='.5'/%3E%3Ccircle cx='5' cy='55' r='.6'/%3E%3Ccircle cx='74' cy='22' r='.5'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 100px 100px;
+  animation: sb-dust 2.6s ease-in-out infinite alternate;
+}
+.sig-back .sb-dust.b { background-size: 140px 140px; background-position: 37px 51px; animation-delay: -1.3s; }
+@keyframes sb-dust { from { opacity: .15; } to { opacity: .75; } }
+/* the lattice: a thin double diamond from crest to crest */
+.sig-back .sb-lattice { top: 34px; bottom: 34px; left: 17px; right: 17px; width: calc(100% - 34px); height: calc(100% - 68px); }
+/* the frame: a bevelled gold band with two points of light running round it, a row of beads, a hairline */
+.sig-back .sb-frame {
+  inset: 6px; border-radius: 11px; padding: 2.5px;
+  background: repeating-conic-gradient(from -30deg, #6a4810 0deg, #c89b40 22deg, #fff3c6 34deg, #e2b552 44deg, #8a5f17 68deg, #6a4810 90deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.sig-back .sb-frame::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: conic-gradient(from var(--rar-a), transparent 0 21%, rgba(255, 246, 215, .95) 24%, transparent 27% 71%, rgba(255, 246, 215, .95) 74%, transparent 77%);
+  animation: rar-spin 4.6s linear infinite;
+}
+.sig-back .sb-beads { inset: 10.5px; border-radius: 8px; border: 2px dotted rgba(233, 196, 106, .7); }
+.sig-back .sb-frame2 { inset: 14.5px; border-radius: 6px; border: 1px solid rgba(214, 169, 72, .6); box-shadow: inset 0 0 20px rgba(0, 0, 0, .75); }
+/* filigree, raised: a hard dark edge under it and a warm glow round it */
+.sig-back :is(.sb-corner, .sb-crest, .sb-rose) { filter: drop-shadow(0 1.2px 0 rgba(0, 0, 0, .95)) drop-shadow(0 0 4px rgba(255, 186, 80, .3)); overflow: visible; }
+.sig-back .sb-corner { width: 84px; height: 84px; }
+.sig-back .sb-corner.tl { left: 16px; top: 16px; }
+.sig-back .sb-corner.tr { right: 16px; top: 16px; transform: scaleX(-1); }
+.sig-back .sb-corner.bl { left: 16px; bottom: 16px; transform: scaleY(-1); }
+.sig-back .sb-corner.br { right: 16px; bottom: 16px; transform: scale(-1); }
+.sig-back .sb-crest { left: 50%; width: 140px; height: 36px; margin-left: -70px; }
+.sig-back .sb-crest.t { top: 4px; }
+.sig-back .sb-crest.b { bottom: 4px; transform: scaleY(-1); }
+.sig-back .sb-node {
+  top: 50%; width: 9px; height: 9px; margin-top: -4.5px; transform: rotate(45deg); border-radius: 1.5px;
+  background: linear-gradient(135deg, #fff9e0, #f2c75a 35%, #8a5d10 55%, #f6d77c 80%, #fff3c8);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), 0 0 0 4px #070604, 0 0 10px rgba(255, 190, 70, .45);
+}
+.sig-back .sb-node.l { left: 12px; }
+.sig-back .sb-node.r { right: 12px; }
+/* the medallion: a glow breathing behind it, the rosette, a bezel of ticks turning slowly round it */
+.sig-back .sb-medal { left: 50%; top: 50%; width: var(--m); height: var(--m); transform: translate(-50%, -50%); }
+.sig-back .sb-medal > svg { inset: 0; width: 100%; height: 100%; }
+.sig-back .sb-glow { inset: -30%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 200, 90, .34), rgba(255, 170, 50, .1) 55%, transparent); animation: sb-breathe 3.6s ease-in-out infinite; }
+.sig-back .sb-ring { animation: sb-turn 60s linear infinite; }
+@keyframes sb-breathe { 0%, 100% { opacity: .6; transform: scale(.95); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes sb-turn { to { transform: rotate(360deg); } }
+/* the rate, engraved under it */
+.sig-back .sb-cap { left: 0; right: 0; top: calc(50% + var(--m) / 2 + 14px); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.sig-back .sb-cap::before, .sig-back .sb-cap::after { content: ''; width: 30px; height: 1px; background: linear-gradient(90deg, transparent, #d6a948); }
+.sig-back .sb-cap::after { transform: scaleX(-1); }
+.sig-back .sb-cap b {
+  font: 700 11.5px/1.2 Georgia, "Times New Roman", serif; letter-spacing: .24em; white-space: nowrap;
+  background: linear-gradient(180deg, #fff8dc 0%, #f3d27e 45%, #c3912f 60%, #f6dc8e 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .95)) drop-shadow(0 0 6px rgba(255, 190, 70, .35));
+}
+/* light: a band sweeping over the gold now and then (colour-dodge with a neutral grey multiplies brightness: the gold
+   blazes, the lacquer barely changes, no colour shift),
+   a highlight under the pointer, glints flashing on the filigree */
+.sig-back .sb-sheen {
+  top: -10%; bottom: -10%; left: -100%; width: 300%; mix-blend-mode: color-dodge;
+  background: linear-gradient(105deg, transparent 40%, rgba(150, 150, 150, .55) 47%, rgb(165, 165, 165) 50%, rgba(150, 150, 150, .55) 53%, transparent 60%);
+  animation: sb-sheen 5s cubic-bezier(.45, .05, .35, 1) infinite;
+}
+@keyframes sb-sheen { 0% { transform: translateX(-42%); } 50%, 100% { transform: translateX(42%); } }
+.sig-back .sb-spec {
+  inset: 0; mix-blend-mode: color-dodge; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(circle 190px at var(--gx, 50%) var(--gy, 40%), rgba(140, 140, 140, .9), rgba(120, 120, 120, .35) 45%, transparent 75%);
+}
+.sigpop.sig-hover .sig-back .sb-spec { opacity: 1; }
+.sig-back .sb-gl {
+  width: 26px; height: 26px; margin: -13px 0 0 -13px; opacity: 0; mix-blend-mode: screen;
+  background:
+    radial-gradient(circle, #fff 0 1.3px, rgba(255, 244, 210, .95) 2.2px, rgba(255, 205, 100, .45) 4.5px, transparent 8px),
+    linear-gradient(90deg, transparent, rgba(255, 250, 228, .95) 50%, transparent) center / 100% 1.3px no-repeat,
+    linear-gradient(0deg, transparent, rgba(255, 250, 228, .95) 50%, transparent) center / 1.3px 100% no-repeat;
+  animation: sb-twinkle 3.6s ease-in-out infinite;
+}
+@keyframes sb-twinkle {
+  0%, 56%, 100% { opacity: 0; transform: scale(.1) rotate(0deg); }
+  68% { opacity: 1; transform: scale(var(--s, 1)) rotate(45deg); }
+  80% { opacity: 0; transform: scale(.15) rotate(90deg); }
+}
+/* landing: one bright sweep and a burst out of the medallion */
+.sig-back :is(.sb-flash, .sb-burst) { opacity: 0; }
+.sig-back .sb-flash { top: -10%; bottom: -10%; left: -100%; width: 300%; mix-blend-mode: color-dodge; background: linear-gradient(105deg, transparent 40%, rgba(170, 170, 170, .7) 47%, rgb(195, 195, 195) 50%, rgba(170, 170, 170, .7) 53%, transparent 60%); }
+.sig-back .sb-burst { left: 50%; top: 50%; width: var(--m); height: var(--m); margin: calc(var(--m) / -2) 0 0 calc(var(--m) / -2); border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(closest-side, rgba(255, 250, 230, .9), rgba(255, 210, 120, .45) 40%, transparent); }
+.sig-back.sb-land .sb-flash { animation: sb-flash .8s cubic-bezier(.2, .65, .3, 1) .04s both; }
+.sig-back.sb-land .sb-burst { animation: sb-burst .65s ease-out both; }
+@keyframes sb-flash { 0% { opacity: 1; transform: translateX(-42%); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateX(42%); } }
+@keyframes sb-burst { 0% { opacity: .95; transform: scale(.3); } 100% { opacity: 0; transform: scale(1.7); } }
+@media (prefers-reduced-motion: reduce) { .sig-back *, .sig-back *::before, .sig-back *::after { animation: none !important; } }
 
 /* ───────────── drawers ───────────── */
 .scrim { position: fixed; inset: 0; background: rgba(var(--shadow-rgb), calc(.35 * var(--sh))); z-index: 90; opacity: 0; transition: opacity .3s var(--ease); pointer-events: none; }
@@ -1510,3 +1654,109 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .kb-undo { width: 30px; height: 30px; }
 .kb-foot { display: flex; align-items: center; gap: 16px; padding: 14px 22px; border-top: 1px solid var(--line); }
 .kb-foot small { flex: 1; color: var(--text-3); font-size: 12px; }
+
+/* ───────────── sidebar: which 音樂庫 links show (NavPick in core.js) ───────────── */
+.nav-label:has(.nav-edit) { display: flex; align-items: center; }
+@media (max-width: 1180px) { .nav-label:has(.nav-edit) { display: none; } }   /* folded to icons: a right-click on a link opens the list */
+.nav-edit { margin: -4px -4px -4px auto; width: 26px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--text-3); opacity: .55; transition: opacity .15s, background .15s, color .15s; }
+.nav-edit svg.i { width: 15px; height: 15px; }
+#sidebar:hover .nav-edit { opacity: .9; }
+.nav-edit:hover, .nav-edit:focus-visible { opacity: 1; color: var(--text); background: rgba(var(--ink), .08); }
+#nav a.nav-off { display: none; }
+.pop.navpick { padding: 8px; min-width: 236px; }
+.navpick .np-h { font-size: 12px; color: var(--text-3); letter-spacing: .06em; padding: 6px 10px 8px; }
+.navpick .np-row { display: flex; align-items: center; gap: 11px; width: 100%; height: 38px; padding: 0 10px; border-radius: 8px; color: var(--text-2); font-size: 13.5px; text-align: left; }
+.navpick .np-row:hover { background: rgba(var(--ink), .07); color: var(--text); }
+.navpick .np-row > svg.i, .navpick .np-row > img { width: 18px; height: 18px; flex: none; transition: opacity .15s; }
+.navpick .np-box { width: 18px; height: 18px; flex: none; display: grid; place-items: center; border-radius: 5px; border: 1.5px solid var(--line-2); transition: background .15s, border-color .15s; }
+.navpick .np-box svg.i { width: 12px; height: 12px; stroke-width: 3.2; color: var(--on-accent); opacity: 0; transition: opacity .15s; }
+.navpick .np-row.on { color: var(--text); }
+.navpick .np-row.on .np-box { background: var(--teal); border-color: var(--teal); }
+.navpick .np-row.on .np-box svg.i { opacity: 1; }
+.navpick .np-row:not(.on) > svg.i, .navpick .np-row:not(.on) > img { opacity: .4; }
+.navpick .np-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navpick .np-foot { font-size: 11.5px; color: var(--text-3); padding: 9px 10px 4px; margin-top: 6px; border-top: 1px solid var(--line); }
+
+/* ───────────── 音樂庫 → 資料夾 (folders.js) ───────────── */
+/* 瀏覽: a file list. The path above the title (folder icon, 所有資料夾 › …), a header whose columns sort, folders with a
+   folder icon then songs as files, a line between rows; columns drop out as the window narrows. */
+.fcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 20px 30px 0; font-size: 13.5px; color: var(--text-3); }
+.fcrumbs + .page-head { padding-top: 4px; }
+.fcrumbs .ic { display: grid; place-items: center; margin-right: 4px; color: var(--text-2); }
+.fcrumbs .ic svg.i { width: 17px; height: 17px; }
+.fcrumbs a, .fcrumbs .cur { padding: 3px 6px; border-radius: 7px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fcrumbs a { color: var(--text-2); text-decoration: none; transition: background .15s, color .15s; }
+.fcrumbs a:hover { background: rgba(var(--ink), .07); color: var(--text); }
+.fcrumbs .cur { color: var(--text); font-weight: 600; }
+.fcrumbs .sep { display: grid; place-items: center; }
+.fcrumbs .sep svg.i { width: 13px; height: 13px; opacity: .55; }
+.flist { --flc: 40px minmax(0, 3fr) 72px minmax(0, 1.4fr) minmax(0, 1.4fr) 104px 120px 136px 40px; padding: 0 24px 32px; }
+.fl-head, .row.fl { display: grid; grid-template-columns: var(--flc); align-items: center; column-gap: 14px; padding: 0 10px; }
+.fl-head { position: sticky; top: 64px; z-index: 5; height: 40px; margin-bottom: 4px; border-radius: 12px; background: rgba(var(--ink), .045); box-shadow: inset 0 0 0 1px var(--line); -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3); font-size: 12.5px; color: var(--text-3); }
+.fl-head::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: rgba(var(--bg-rgb), .32); }
+.fl-h { display: flex; align-items: center; gap: 4px; height: 18px; min-width: 0; padding: 0 0 0 10px; border-left: 1px solid var(--line); color: inherit; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-align: left; transition: color .15s; }
+.fl-h.c-no { justify-content: center; padding: 0; border-left: 0; }
+.fl-h:hover { color: var(--text); }
+.fl-h.on { color: var(--teal); font-weight: 600; }
+.fl-h .arr { display: grid; place-items: center; }
+.fl-h .arr svg.i { width: 12px; height: 12px; stroke-width: 2.4; transform: rotate(180deg); }
+.fl-h .arr.desc svg.i { transform: none; }
+.fl-h.c-dur { justify-content: flex-end; padding-right: 2px; }
+.row.fl { height: 56px; border-radius: 12px; font-size: 13.5px; color: var(--text-2); }
+/* the line between rows, inset so it doesn't cut the rounded hover */
+.row.fl::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 1px; background: var(--line); pointer-events: none; }
+.row.fl:hover::after, .row.fl.sel::after { opacity: 0; }
+.row.fl:hover { background: rgba(var(--ink), .045); }
+.row.fl.sel { background: rgba(var(--ink), .075); }
+.row.fl > div { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl .c-name { display: flex; align-items: center; gap: 12px; }
+.fl .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 15px; font-weight: 600; }
+.fl-song .nm { font-weight: 500; }
+.fl .fl-ic { flex: none; width: 32px; display: grid; place-items: center; }
+.fl-dir .fl-ic svg.i { width: 30px; height: 30px; stroke-width: 1.25; color: var(--text-2); transition: color .15s; }
+.fl-dir:hover .fl-ic svg.i { color: var(--teal); }
+.fl-song .fl-ic svg.i { width: 22px; height: 22px; stroke-width: 1.4; color: var(--text-3); }
+.fl .c-dur { text-align: right; }
+.fl .c-no { position: relative; height: 100%; display: grid; place-items: center; color: var(--text-3); }
+.fl .c-no .pi, .fl .c-no .eq { display: none; }
+.fl-song:hover .c-no > span:first-child { display: none; }
+.fl-song:hover .c-no .pi { display: grid; color: var(--text); }
+.fl .c-no .pi svg.i { width: 15px; height: 15px; }
+.fl.playing .nm, .fl.playing .fl-ic svg.i { color: var(--teal); }
+.fl.playing .c-no > span:first-child, .fl.playing .c-no .pi { display: none; }
+.fl.playing .c-no .eq { display: flex; padding-bottom: 19px; }
+.fl .c-album a { color: inherit; }
+.fl .c-album a:hover { color: var(--text); text-decoration: underline; cursor: pointer; }
+.fl .c-act { display: grid; place-items: center; overflow: visible; }
+.row .fplay { width: 32px; height: 32px; opacity: 0; transition: opacity .15s, background .15s, color .15s; }
+.row .fplay svg.i { width: 15px; height: 15px; }
+.row:hover .fplay { opacity: 1; }
+.row .fplay:hover { color: var(--teal); }
+@media (max-width: 1500px) { .flist { --flc: 40px minmax(0, 3fr) 72px minmax(0, 1.4fr) 104px 120px 136px 40px; } .flist .c-album { display: none; } }
+@media (max-width: 1250px) { .flist { --flc: 40px minmax(0, 3fr) 72px minmax(0, 1.4fr) 104px 136px 40px; } .flist .c-added { display: none; } }
+@media (max-width: 1060px) { .flist { --flc: 40px minmax(0, 1fr) 72px 136px 40px; } .flist :is(.c-artist, .c-fmt) { display: none; } }
+@media (max-width: 760px) { .flist { --flc: 32px minmax(0, 1fr) 64px 36px; padding: 0 12px 24px; } .flist .c-ct { display: none; } .fcrumbs { padding: 16px 18px 0; } }
+/* 樹狀: compact rows, indented 20 px a level with a guide line under each open folder */
+.ftree { padding: 4px 24px 32px; }
+.row.trow { display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 8px 0 calc(8px + var(--d, 0) * 20px); border-radius: 8px; font-size: 14px; }
+.row.trow::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: calc(var(--d, 0) * 20px); pointer-events: none; background: repeating-linear-gradient(90deg, transparent 0 8px, var(--line-2) 8px 9px, transparent 9px 20px); }
+.row.trow .chev { width: 16px; height: 16px; flex: none; display: grid; place-items: center; color: var(--text-3); transition: transform .18s var(--ease); }
+.row.trow .chev svg.i { width: 14px; height: 14px; }
+.row.trow.open .chev { transform: rotate(90deg); }
+.row.trow .fi { flex: none; display: grid; place-items: center; }
+.row.trow .fi svg.i { width: 17px; height: 17px; }
+.row.trow.fold .fi { color: var(--teal); }
+.row.trow.trk .fi { color: var(--text-3); }
+.row.trow.trk .fi svg.i { width: 15px; height: 15px; }
+.row.trow .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.row.trow.fold .nm { font-weight: 600; }
+.row.trow.trk .nm { color: var(--text-2); }
+.row.trow .ct { flex: none; color: var(--text-3); font-size: 12.5px; }
+.row.trow .sp { flex: 1; }
+.row.trow .fq, .row.trow .dur { flex: none; color: var(--text-3); font-size: 12.5px; white-space: nowrap; }
+.row.trow .fq { margin-right: 4px; }
+.row.trow .dur { min-width: 40px; text-align: right; }
+.row.trow .fplay { width: 28px; height: 28px; flex: none; }
+.row.trow.playing .nm, .row.trow.playing .fi { color: var(--teal); }
+.row.trow.playing .nm { font-weight: 600; }
+@media (max-width: 760px) { .row.trow .fq { display: none; } }

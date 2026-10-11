@@ -283,6 +283,8 @@ const Lib = {
       data = Host.real ? await (await fetch(`${MEDIA}/library.json?r=${Date.now()}`)).json() : Mock.library();
     } catch (e) { console.error(e); data = { albums: [], tracks: [] }; }
     const albums = [], albumById = new Map(), trackById = new Map(), tracks = [];
+    // the folders the files are in (音樂庫 → 資料夾, folders.js); a library written by an older MIKU has none
+    const dirs = Array.isArray(data.folders) ? data.folders : null;
     for (const a of data.albums) {
       const artists = splitNames(a[2]);
       const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], vg: a[8] || '', folder: a[9] || '', tracks: [], dur: 0 };
@@ -293,6 +295,7 @@ const Lib = {
       const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: joinNames(splitNames(r[11])) };
       const al = albumById.get(t.albumId);
       t.added = r[12] ?? al?.added ?? 0;
+      t.dir = dirs ? dirs[r[13]] || '' : '';
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
@@ -331,7 +334,7 @@ const Lib = {
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
       // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
-      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
+      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll, hasFolders: !!dirs,
       artists: [...artistMap.values()].sort((a, b) => coll.compare(a.name, b.name)),
     });
     $('#c-albums').textContent = shown.length || '';
@@ -476,15 +479,20 @@ const App = {
     Host.on('fullscreen', ({ on }) => this.syncFullscreen(on));
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
+      const had = Lib.loaded ? Lib.allTracks.length : -1;
       await Lib.load();
       this.redrawTrack(); // the track objects were rebuilt: redraw the now-playing bar with the new ones
+      // music copied into a library folder while MIKU is open (the host's folder watcher): say so; a scan shows its own progress
+      const grew = had >= 0 ? Lib.allTracks.length - had : 0;
+      if (grew > 0 && !this.scanning) toast(T`已加入 ${grew} 首新歌曲`);
       // during a scan only refresh pages that list the library, and do it silently
-      if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks'].includes(Router.cur.name)) Router.render(true, 'none');
+      if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks', 'folders'].includes(Router.cur.name)) Router.render(true, 'none');
     });
     const init = await Host.call('ready');
     this.settings = init.settings;
     if (await I18N.sync(init)) return;   // the interface language changed: the page reloads
     PageEffects.sync();
+    NavPick.apply();
     if (typeof Theme !== 'undefined') Theme.sync();
     this.favs = new Set(init.settings.favorites || []);
     this.lastRecent = (init.settings.recent || [])[0] || null;
@@ -555,6 +563,7 @@ const App = {
 
   scan(p) {
     if (!p) return;
+    this.scanning = !!p.scanning;
     const el = $('#sidefoot');
     if (p.scanning) {
       const pct = p.found ? Math.min(100, p.done / p.found * 100) : 0;
@@ -776,6 +785,8 @@ const App = {
       barDown = null;
       if (!fromBlank || e.button !== 0 || String(getSelection()).trim()) return;
       if (!NowPlaying.open) NowPlaying.show();
+      // over Now Playing (brought back with the 「顯示播放列」 handle): the same click puts the bar away again
+      else if (window.BarPeek && BarPeek.on) BarPeek.hide();
     });
     $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
     $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
@@ -1111,7 +1122,223 @@ const SignalPop = {
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
       }
     }
-    Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
+    const pop = Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
+    if (pop && SigCard.eligible(sg)) SigCard.attach(pop, sg);
+  },
+};
+
+/* ═════════════ the upsampling card: it leans under the pointer and turns over to a black-and-gold back ═════════════
+   While the track is upsampled, the signal card reacts to the pointer like a real card: the side under the pointer
+   sinks in, a soft glare follows it, a press pushes it a little deeper. A click turns it over to a black lacquer back
+   with gold filigree, an engraved medallion and glints; another click turns it back. The art is drawn here (SVG),
+   styled in app.css (.sig-back). Reduced motion / 輕量化「頁面與操作動畫」: no lean, the card turns without animation. */
+const SigCard = {
+  eligible: sg => !!(sg && sg.resampled && !sg.dsd && sg.outputRate > sg.sourceRate),
+  calm: () => matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page'),
+  n: 0,
+  attach(pop, sg) {
+    const back = h('div', { class: 'sig-back', 'aria-hidden': 'true', html: this.art(sg) });
+    const glare = h('i', { class: 'sig-glare' });
+    pop.classList.add('sig-card');
+    pop.append(back, glare);
+    // lean: eased toward the target every frame; x / y in degrees, z in px (negative = pressed in)
+    const cur = { x: 0, y: 0, z: 0 }, aim = { x: 0, y: 0, z: 0 };
+    let lean = null, raf = 0, last = 0, over = false, pressed = false, turning = false, flipped = false, down = null, scroll = 0;
+    const tf = (o, turn = 0, lift = 0) => `perspective(1400px) translateZ(${(o.z + lift).toFixed(2)}px) rotateX(${o.x.toFixed(3)}deg) rotateY(${(o.y + turn).toFixed(3)}deg)`;
+    // the lean is a held script animation: it wins over the card's own CSS entrance animations (fill: both), and the
+    // turn's animations (newer) win over it while they run
+    const apply = () => {
+      if (!cur.x && !cur.y && !cur.z) { if (lean) { lean.cancel(); lean = null; } return; }
+      const k = [{ transform: tf(cur) }, { transform: tf(cur) }];
+      if (lean) lean.effect.setKeyframes(k);
+      else { lean = pop.animate(k, { duration: 1, fill: 'forwards' }); lean.persist && lean.persist(); }
+    };
+    const step = now => {
+      raf = 0;
+      if (turning) return;
+      const dt = last ? Math.min(64, now - last) : 16.7; last = now;
+      const k = 1 - Math.pow(0.8, dt / 16.7);
+      let moving = false;
+      for (const a of ['x', 'y', 'z']) {
+        cur[a] += (aim[a] - cur[a]) * k;
+        if (Math.abs(aim[a] - cur[a]) < 0.01) cur[a] = aim[a]; else moving = true;
+      }
+      apply();
+      if (moving) raf = requestAnimationFrame(step); else last = 0;
+    };
+    const kick = () => { if (!raf && !turning) raf = requestAnimationFrame(step); };
+    const track = e => {
+      // offset* ignore the card's own transform, so the lean doesn't feed back into the pointer position
+      const nx = Math.max(-1, Math.min(1, (e.clientX - pop.offsetLeft) / pop.offsetWidth * 2 - 1));
+      const ny = Math.max(-1, Math.min(1, (e.clientY - pop.offsetTop) / pop.offsetHeight * 2 - 1));
+      aim.y = nx * 7; aim.x = -ny * 5; aim.z = pressed ? -18 : -7;
+      pop.style.setProperty('--gx', ((nx + 1) * 50).toFixed(1) + '%');
+      pop.style.setProperty('--gy', ((ny + 1) * 50).toFixed(1) + '%');
+      kick();
+    };
+    const rest = () => { over = pressed = false; pop.classList.remove('sig-hover'); aim.x = aim.y = aim.z = 0; kick(); };
+    pop.addEventListener('pointerenter', e => { if (e.pointerType === 'touch' || this.calm()) return; over = true; pop.classList.add('sig-hover'); track(e); });
+    pop.addEventListener('pointermove', e => { if (over) track(e); });
+    pop.addEventListener('pointerleave', rest);
+    pop.addEventListener('pointerdown', e => {
+      down = e.button === 0 ? { x: e.clientX, y: e.clientY } : null;
+      if (down && over) { pressed = true; track(e); }
+    });
+    pop.addEventListener('pointerup', e => { if (pressed) { pressed = false; if (over) track(e); } });
+    pop.addEventListener('scroll', () => { glare.style.top = pop.scrollTop + 'px'; }, { passive: true });
+    pop.addEventListener('click', e => {
+      const d = down; down = null;
+      if (!d || e.button !== 0 || turning) return;
+      if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 8) return;   // a drag: selecting text, scrolling
+      if (!flipped && (e.target.closest('a, button, input, select, textarea, summary, label') || String(getSelection()).trim())) return;
+      turn();
+    });
+    const turn = async () => {
+      const to = !flipped;
+      const swap = () => {
+        if (to) { scroll = pop.scrollTop; pop.scrollTop = 0; pop.style.overflowY = 'hidden'; }
+        pop.classList.toggle('sig-flipped', to);
+        if (!to) { pop.style.overflowY = 'auto'; pop.scrollTop = scroll; }
+        glare.style.top = pop.scrollTop + 'px';
+        flipped = to;
+        if (to) this.shine(back);
+      };
+      if (this.calm() || !pop.animate) { swap(); return; }
+      turning = true; cancelAnimationFrame(raf); raf = 0; last = 0;
+      // first half: the face turns away (and darkens) as the card lifts; the other face comes round already lit
+      const away = pop.animate([
+        { transform: tf(cur), filter: 'brightness(1)' },
+        { transform: tf(cur, 90, 30), filter: 'brightness(.55)' },
+      ], { duration: 150, easing: 'cubic-bezier(.45, 0, .85, .5)', fill: 'forwards' });
+      try { await away.finished; } catch { turning = false; return; }
+      swap();
+      const back2 = pop.animate([
+        { transform: tf(cur, -90, 30), filter: `brightness(${to ? 1.45 : 1.25})` },
+        { transform: tf(cur, 6, 4), filter: 'brightness(1.08)', offset: 0.72 },
+        { transform: tf(cur), filter: 'brightness(1)' },
+      ], { duration: 290, easing: 'cubic-bezier(.2, .7, .3, 1)' });
+      away.cancel();
+      try { await back2.finished; } catch { }
+      turning = false;
+      apply(); kick();
+    };
+  },
+  /** The one-shot light that runs over the back as it lands. */
+  shine(back) { back.classList.remove('sb-land'); void back.offsetWidth; back.classList.add('sb-land'); },
+
+  /** The back: lacquer, a damask field, a gold frame with beading, filigree corners and crests, a diamond lattice,
+   *  an engraved medallion (a turning bezel round a rosette and a faceted star), the rate, glints. */
+  art(sg) {
+    const id = 'sbk' + (++this.n), f = v => +v.toFixed(2);
+    const pt = (r, a) => `${f(100 + r * Math.sin(a))} ${f(100 - r * Math.cos(a))}`;
+    const each = (n, fn, rot = 0) => Array.from({ length: n }, (_, i) => fn(rot + i * 2 * Math.PI / n, i)).join('');
+    const lens = (n, r0, r1, w, rot) => each(n, a => { const m = (r0 + r1) / 2; return `M${pt(r0, a)}Q${pt(m, a + w)} ${pt(r1, a)}Q${pt(m, a - w)} ${pt(r0, a)}Z`; }, rot);
+    // engine-turned rings: r(θ) = R + A·sin(kθ)
+    const wave = (R, A, k, ph) => { let d = ''; for (let i = 0; i <= 180; i++) { const a = i / 180 * 2 * Math.PI; d += (i ? 'L' : 'M') + pt(R + A * Math.sin(k * a + ph), a); } return d + 'Z'; };
+    const gold = '<stop offset="0" stop-color="#5a3d0c"/><stop offset=".14" stop-color="#c89b40"/><stop offset=".24" stop-color="#fff3c6"/><stop offset=".34" stop-color="#d9a944"/><stop offset=".48" stop-color="#7d5714"/><stop offset=".6" stop-color="#e6bf62"/><stop offset=".7" stop-color="#fff8dc"/><stop offset=".8" stop-color="#c4932f"/><stop offset="1" stop-color="#6a4810"/>';
+    const P8 = Math.PI / 8;
+    const star = each(8, (a, i) => {
+      const R = i % 2 ? 23 : 34;
+      return `<path d="M100 100L${pt(7.5, a - P8)}L${pt(R, a)}Z" fill="url(#${id}hi)"/><path d="M100 100L${pt(R, a)}L${pt(7.5, a + P8)}Z" fill="url(#${id}lo)"/>`;
+    });
+    const defs = `<svg class="sb-defs" width="0" height="0" aria-hidden="true"><defs>
+      <linearGradient id="${id}c" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="80" y2="80">${gold}</linearGradient>
+      <linearGradient id="${id}k" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="140" y2="36">${gold}</linearGradient>
+      <linearGradient id="${id}m" gradientUnits="userSpaceOnUse" x1="18" y1="18" x2="182" y2="182">${gold}</linearGradient>
+      <radialGradient id="${id}p" gradientUnits="userSpaceOnUse" cx="100" cy="100" r="84"><stop offset="0" stop-color="#fff3c8"/><stop offset=".45" stop-color="#f0cd73"/><stop offset=".75" stop-color="#b9862c"/><stop offset="1" stop-color="#5c3f0d"/></radialGradient>
+      <radialGradient id="${id}d" gradientUnits="userSpaceOnUse" cx="100" cy="92" r="92"><stop offset="0" stop-color="#2c210c"/><stop offset=".6" stop-color="#120d05"/><stop offset="1" stop-color="#050402"/></radialGradient>
+      <linearGradient id="${id}hi" gradientUnits="userSpaceOnUse" x1="66" y1="66" x2="134" y2="134"><stop offset="0" stop-color="#fffbe8"/><stop offset="1" stop-color="#e9c060"/></linearGradient>
+      <linearGradient id="${id}lo" gradientUnits="userSpaceOnUse" x1="66" y1="66" x2="134" y2="134"><stop offset="0" stop-color="#b07c22"/><stop offset="1" stop-color="#4e340a"/></linearGradient>
+      <radialGradient id="${id}j"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#ffeaa8"/><stop offset="1" stop-color="#a7741f"/></radialGradient>
+      <radialGradient id="${id}x"><stop offset="0" stop-color="#060504"/><stop offset=".7" stop-color="#060504" stop-opacity=".95"/><stop offset="1" stop-color="#060504" stop-opacity="0"/></radialGradient>
+      <symbol id="${id}corner" viewBox="0 0 80 80">
+        <g id="${id}half">
+          <g fill="none" stroke="url(#${id}c)" stroke-linecap="round">
+            <path stroke-width="1.6" d="M8 4.5C20 4.5 30 3 41 6.5C51 9.5 55 16.5 50 20.5C45.5 24 40.5 19.5 44 16.2C46 14.5 48.5 16 47.6 18"/>
+            <path stroke-width=".8" d="M22 4C27 .8 34 .6 38 2.6"/>
+            <path stroke-width=".8" d="M41 6.5C52 6 62 5 73.5 6.2"/>
+          </g>
+          <g fill="url(#${id}c)">
+            <circle cx="75.5" cy="6.3" r="1.4"/>
+            <path d="M15 6.5C22 11.5 30 12.5 36 10C30 8.2 22 7.4 15 6.5Z"/>
+            <path d="M50 20.5C52.5 26 51 30.5 47 33C46.8 28.5 48 24 50 20.5Z"/>
+            <path d="M21 20C25 14.5 31 13 36 14.5C31.5 17.5 26.5 19.5 21 20Z"/>
+            <circle cx="33" cy="16.5" r="1.2"/>
+          </g>
+        </g>
+        <use href="#${id}half" transform="matrix(0 1 1 0 0 0)"/>
+        <path fill="none" stroke="url(#${id}c)" stroke-width="1" d="M3 26C3 13 13 3 26 3"/>
+        <g fill="url(#${id}c)">
+          <path d="M5 5C12 7.5 15.5 11 17 17C11 15.5 7.5 12 5 5Z"/>
+          <path d="M18 18C27 21 33 27 36 36C27 33 21 27 18 18Z"/>
+          <circle cx="39.6" cy="39.6" r="2.3"/><circle cx="44.2" cy="44.2" r="1.2"/>
+        </g>
+        <path stroke="#2a1c05" stroke-width=".7" stroke-linecap="round" d="M21 21L32.5 32.5"/>
+      </symbol>
+      <symbol id="${id}crest" viewBox="0 0 140 36">
+        <ellipse cx="70" cy="13" rx="36" ry="11" fill="url(#${id}x)"/>
+        <g id="${id}wing">
+          <g fill="none" stroke="url(#${id}k)" stroke-linecap="round">
+            <path stroke-width="1.5" d="M77 13C85 7 96 6.5 103 11C108.5 14.5 106.5 21.5 101 21C96.8 20.6 96.5 15.8 100.3 15.6C102.3 15.5 103 17.4 101.8 18.4"/>
+            <path stroke-width=".8" d="M103 11C112 8.5 122 8 133.5 9"/>
+            <path stroke-width=".75" d="M87 6.2C91 3 97 2.6 101 4.2"/>
+          </g>
+          <g fill="url(#${id}k)">
+            <path d="M80 15C86 19.5 92 20.5 97 18.8C92 16.2 86 15 80 15Z"/>
+            <circle cx="135.4" cy="9.1" r="1.3"/><circle cx="82.5" cy="13.5" r="1.1"/><circle cx="113" cy="13.5" r=".9"/>
+          </g>
+        </g>
+        <use href="#${id}wing" transform="matrix(-1 0 0 1 140 0)"/>
+        <path fill="none" stroke="url(#${id}k)" stroke-width=".8" stroke-linecap="round" d="M62 4.5Q70 -1 78 4.5M70 23V27"/>
+        <path fill="#fff6d4" d="M70 4L63 13.5H70Z"/><path fill="#e4b856" d="M70 4L77 13.5H70Z"/>
+        <path fill="#9b6c1d" d="M63 13.5L70 23V13.5Z"/><path fill="#c18e32" d="M77 13.5L70 23V13.5Z"/>
+        <circle cx="70" cy="29.6" r="2.1" fill="url(#${id}j)"/>
+      </symbol>
+    </defs></svg>`;
+    const medal = `<svg class="sb-rose" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="88" fill="url(#${id}d)"/>
+      <g fill="none" stroke="#d1a24a" stroke-width=".45" opacity=".42">${[30, 37, 44, 51, 58, 65, 72].map((R, i) => `<path d="${wave(R, 1.8, 24, i * 1.1)}"/>`).join('')}</g>
+      <circle cx="100" cy="100" r="88" fill="none" stroke="url(#${id}m)" stroke-width="2.4"/>
+      <circle cx="100" cy="100" r="82.6" fill="none" stroke="#e9c46a" stroke-width="2.3" stroke-dasharray="0 6.49" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="78" fill="none" stroke="url(#${id}m)" stroke-width=".9"/>
+      <path d="${lens(16, 40, 75, .12, Math.PI / 16)}" fill="url(#${id}p)" opacity=".38"/>
+      <path d="${lens(16, 44, 79, .19, 0)}" fill="url(#${id}p)" stroke="#3a2707" stroke-width=".6"/>
+      <path d="${each(16, a => `M${pt(49, a)}L${pt(72, a)}`)}" stroke="#4a320b" stroke-width=".7" stroke-linecap="round"/>
+      <g fill="#f1cf7a">${each(16, a => { const [x, y] = pt(41, a).split(' '); return `<circle cx="${x}" cy="${y}" r="1.25"/>`; }, Math.PI / 16)}</g>
+      <path d="${lens(8, 15, 50, .34, P8)}" fill="url(#${id}m)" stroke="#3a2707" stroke-width=".6"/>
+      <path d="${each(8, a => `M${pt(20, a)}L${pt(43, a)}`, P8)}" stroke="#4a320b" stroke-width=".6" stroke-linecap="round" opacity=".8"/>
+      <circle cx="100" cy="100" r="21" fill="#0b0803" stroke="url(#${id}m)" stroke-width="1.4"/>
+      <g stroke="#2a1c05" stroke-width=".35" stroke-linejoin="round">${star}</g>
+      <circle cx="100" cy="100" r="4.3" fill="url(#${id}j)"/>
+    </svg>`;
+    const bezel = `<svg class="sb-ring" viewBox="0 0 200 200" fill="none">
+      <circle cx="100" cy="100" r="97" stroke="#c99a3e" stroke-width=".6" opacity=".8"/>
+      <circle cx="100" cy="100" r="93.6" stroke="#e9c46a" stroke-width="2.6" stroke-dasharray=".7 3.2" opacity=".85"/>
+      <circle cx="100" cy="100" r="90.4" stroke="#c99a3e" stroke-width=".5" opacity=".6"/>
+      ${each(4, (a, i) => `<path d="M100 1.8L103.2 6.6L100 11.4L96.8 6.6Z" fill="#d9a944" stroke="#fff3c6" stroke-width=".4" transform="rotate(${i * 90} 100 100)"/><circle cx="100" cy="6.6" r="1.3" fill="#e9c46a" transform="rotate(${i * 90 + 45} 100 100)"/>`)}
+    </svg>`;
+    const corner = c => `<svg class="sb-corner ${c}" viewBox="0 0 80 80"><use href="#${id}corner"/></svg>`;
+    const crest = c => `<svg class="sb-crest ${c}" viewBox="0 0 140 36"><use href="#${id}crest"/></svg>`;
+    // glints sit on the gold: [left, top, delay s, size]
+    const glints = [
+      ['58px', '58px', 0, 1], ['calc(100% - 95px)', '23px', -2.5, .7], ['35px', 'calc(100% - 65px)', -1.6, .85],
+      ['calc(100% - 58px)', 'calc(100% - 58px)', -3, 1], ['50%', '18px', -2, 1.15], ['50%', 'calc(100% - 18px)', -.9, .9],
+      ['50%', '50%', -3.3, 1.5], ['calc(50% + var(--m) * .26)', 'calc(50% - var(--m) * .3)', -1.4, .7],
+      ['calc(50% - var(--m) * .3)', 'calc(50% + var(--m) * .22)', -2.3, .6], ['16px', '50%', -.6, .8],
+      ['calc(100% - 16px)', '50%', -2.7, .8], ['30%', '7px', -1.7, .6], ['calc(100% - 7px)', '72%', -.3, .55],
+    ].map(([x, y, d, s]) => `<i class="sb-gl" style="left:${x};top:${y};animation-delay:${d}s;--s:${s}"></i>`).join('');
+    const rate = `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz`;
+    return defs + `<div class="sb-bg"></div><div class="sb-rays"></div><i class="sb-dust a"></i><i class="sb-dust b"></i>
+      <svg class="sb-lattice" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" stroke="#c99a3e">
+        <polygon points="50,0 100,50 50,100 0,50" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".5"/>
+        <polygon points="50,6 94,50 50,94 6,50" stroke-width=".6" vector-effect="non-scaling-stroke" opacity=".26"/>
+      </svg>
+      <i class="sb-frame"></i><i class="sb-beads"></i><i class="sb-frame2"></i>
+      ${corner('tl')}${corner('tr')}${corner('bl')}${corner('br')}${crest('t')}${crest('b')}
+      <i class="sb-node l"></i><i class="sb-node r"></i>
+      <div class="sb-medal"><i class="sb-glow"></i>${medal}${bezel}</div>
+      <div class="sb-cap"><b>${esc(rate)}</b></div>
+      <i class="sb-sheen"></i><i class="sb-spec"></i>${glints}<i class="sb-burst"></i><i class="sb-flash"></i>`;
   },
 };
 
@@ -1376,20 +1603,101 @@ const Motion = {
 /** Sliding highlight behind the active sidebar item. */
 const NavPill = {
   el: null,
-  move() {
+  /** instant: follow a layout change (window size, zoom, text size, the sidebar folding to icons) in place; only a
+   *  change of page slides it. Sliding there let it trail behind with its new size over the wrong item. */
+  move(instant) {
     const nav = $('#nav');
     if (!this.el) { this.el = h('div', { class: 'nav-pill' }); nav.prepend(this.el); this.el.style.transition = 'none'; requestAnimationFrame(() => this.el.style.transition = ''); }
+    NavEdges.sync();
     const a = $('#nav a.on');
-    if (!a) { this.el.style.opacity = 0; return; }
+    if (!a || !a.offsetParent) { this.el.style.opacity = 0; return; }   // none, or hidden from the sidebar (NavPick)
+    if (instant) this.el.style.transition = 'none';
     this.el.style.opacity = 1;
     this.el.style.transform = `translateY(${a.offsetTop}px)`;
     this.el.style.left = a.offsetLeft + 'px';
     this.el.style.width = a.offsetWidth + 'px';
     this.el.style.height = a.offsetHeight + 'px';   // follows the item (text size setting)
     this.el.style.right = 'auto';
+    if (instant) { void this.el.offsetWidth; this.el.style.transition = ''; }
   },
 };
-window.addEventListener('resize', () => NavPill.move());
+/** The sidebar list scrolls without a scrollbar (a 14 px bar squeezed the folded 52 px column: the icons jumped
+ *  sideways and the highlight shrank to a square whenever a short window made the list overflow). Instead the
+ *  edge with more items behind it fades out (app.css .nav.fade-t / .fade-b). */
+const NavEdges = {
+  sync() {
+    const n = $('#nav'); if (!n) return;
+    const top = n.scrollTop > 1, bottom = n.scrollTop + n.clientHeight < n.scrollHeight - 1;
+    if (n.classList.contains('fade-t') !== top) n.classList.toggle('fade-t', top);
+    if (n.classList.contains('fade-b') !== bottom) n.classList.toggle('fade-b', bottom);
+  },
+};
+window.addEventListener('resize', () => NavPill.move(true));
+$('#nav').addEventListener('scroll', () => NavEdges.sync(), { passive: true });
+// A clicked sidebar link keeps the keyboard focus. When the window comes back after a keyboard action (Alt+Tab, a
+// shortcut), Chromium re-shows that focus as a keyboard focus ring round the highlighted item. The highlight already
+// marks the page, so a mouse click (detail > 0; Enter from the keyboard is 0) lets the focus go.
+$('#nav').addEventListener('click', e => { const a = e.target.closest('a'); if (a && e.detail > 0) a.blur(); });
+
+/** Which links of the 音樂庫 section the sidebar shows: the button on the section's label (or a right-click on one of
+ *  its links, also when the sidebar is folded to icons) opens a list to tick. Kept in the ui pref navHidden (routes,
+ *  comma-separated); links that modules add later (SensMe …) can be hidden the same way. */
+const NavPick = {
+  hidden() { return new Set(String(typeof uiPref === 'function' ? uiPref('navHidden', '') : '').split(',').filter(Boolean)); },
+  /** The section's label: the one above 專輯, wherever the links were dragged to. */
+  label() { let el = $('#nav a[data-r="albums"]'); while (el && !el.classList.contains('nav-label')) el = el.previousElementSibling; return el; },
+  links() {
+    const out = [];
+    for (let el = this.label()?.nextElementSibling; el && !el.classList.contains('nav-label'); el = el.nextElementSibling)
+      if (el.tagName === 'A' && el.dataset.r) out.push(el);
+    return out;
+  },
+  apply() {
+    const label = this.label();
+    if (label && !label.querySelector('.nav-edit')) {
+      // icon only: the label's text is what navdrag.js keeps the section's order under
+      const b = h('button', { class: 'nav-edit', type: 'button', title: T('自訂顯示項目'), 'aria-label': T('自訂顯示項目'), html: icon('sliders') });
+      b.onclick = e => { e.preventDefault(); e.stopPropagation(); this.open(b); };
+      label.append(b);
+    }
+    const off = this.hidden();
+    for (const a of this.links()) if (a.classList.contains('nav-off') !== off.has(a.dataset.r)) a.classList.toggle('nav-off', off.has(a.dataset.r));
+    if (NavPill.el) NavPill.move(true);
+  },
+  open(anchor) {
+    if (Popover.el && Popover.el.classList.contains('navpick')) return Popover.close();
+    const off = this.hidden();
+    const box = h('div', null, h('div', { class: 'np-h' }, T('在側欄顯示')));
+    for (const a of this.links()) {
+      const r = a.dataset.r;
+      const pic = a.querySelector('svg, img');
+      const row = h('button', { class: 'np-row' + (off.has(r) ? '' : ' on'), type: 'button', role: 'menuitemcheckbox', 'aria-checked': String(!off.has(r)) },
+        h('span', { class: 'np-box', html: icon('check') }),
+        pic ? pic.cloneNode(true) : null,
+        h('span', { class: 'np-t' }, a.querySelector('span')?.textContent || r));
+      row.onclick = () => {
+        const s = this.hidden();
+        s.has(r) ? s.delete(r) : s.add(r);
+        setUiPref('navHidden', [...s].join(','));
+        row.classList.toggle('on', !s.has(r)); row.setAttribute('aria-checked', String(!s.has(r)));
+        this.apply();
+      };
+      box.append(row);
+    }
+    box.append(h('div', { class: 'np-foot' }, T('拖曳側欄項目可以調整順序。')));
+    Popover.show(box, anchor, { cls: 'navpick' });
+  },
+};
+$('#nav').addEventListener('contextmenu', e => {
+  const a = e.target.closest('#nav > a[data-r]');
+  if (!a || !NavPick.links().includes(a)) return;
+  e.preventDefault();
+  NavPick.open({ x: e.clientX, y: e.clientY });
+});
+// links added later by modules: hidden as chosen
+new MutationObserver(() => NavPick.apply()).observe($('#nav'), { childList: true });
+// the list's own box changes size without a window resize too (the player bar turning two-row, the brand, fonts)
+if (window.ResizeObserver) new ResizeObserver(() => { if (NavPill.el) NavPill.move(true); else NavEdges.sync(); }).observe($('#nav'));
 
 /** Calls `f` once as soon as the user starts scrolling (wheel, touch, keys, scrollbar). Returns an unsubscribe function. */
 function onUserScroll(f) {

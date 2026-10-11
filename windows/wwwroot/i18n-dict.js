@@ -81,3 +81,87 @@ Object.assign(I18N_DICT["ja"], {
   "沒有支援獨佔模式的裝置": "排他モードに対応したデバイスがありません",
   "不支援獨佔，以共享模式播放": "排他モード非対応、共有モードで再生"
 });
+
+/* 音樂庫 → 資料夾 (folders.js) and the sidebar's 自訂顯示項目 (NavPick). */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "資料夾|nav": "文件夹",
+  "瀏覽": "浏览",
+  "樹狀": "树状",
+  "{0} 個資料夾": "{0} 个文件夹",
+  "全部收合": "全部折叠",
+  "開啟": "打开",
+  "這份曲庫資料還沒有資料夾資訊，更新 MIKU 後重新開啟就會出現。": "这份曲库数据还没有文件夹信息，更新 MIKU 后重新打开就会出现。",
+  "曲庫裡還沒有歌曲。": "曲库里还没有歌曲。",
+  "這個資料夾沒有歌曲。": "这个文件夹没有歌曲。",
+  "自訂顯示項目": "自定义显示项目",
+  "在側欄顯示": "在侧栏显示",
+  "拖曳側欄項目可以調整順序。": "拖动侧栏项目可以调整顺序。"
+});
+Object.assign(I18N_DICT["en"], {
+  "資料夾|nav": "Folders",
+  "瀏覽": "Browse",
+  "樹狀": "Tree",
+  "{0} 個資料夾": "{0} folders",
+  "全部收合": "Collapse all",
+  "開啟": "Open",
+  "這份曲庫資料還沒有資料夾資訊，更新 MIKU 後重新開啟就會出現。": "This library data has no folder information yet. Update MIKU and open it again to see it.",
+  "曲庫裡還沒有歌曲。": "The library has no songs yet.",
+  "這個資料夾沒有歌曲。": "This folder has no songs.",
+  "自訂顯示項目": "Choose what to show",
+  "在側欄顯示": "Show in sidebar",
+  "拖曳側欄項目可以調整順序。": "Drag sidebar items to reorder them."
+});
+Object.assign(I18N_DICT["ja"], {
+  "資料夾|nav": "フォルダー",
+  "瀏覽": "ブラウズ",
+  "樹狀": "ツリー",
+  "{0} 個資料夾": "{0} フォルダー",
+  "全部收合": "すべて折りたたむ",
+  "開啟": "開く",
+  "這份曲庫資料還沒有資料夾資訊，更新 MIKU 後重新開啟就會出現。": "このライブラリデータにはまだフォルダー情報がありません。MIKU を更新して開き直すと表示されます。",
+  "曲庫裡還沒有歌曲。": "ライブラリにまだ曲がありません。",
+  "這個資料夾沒有歌曲。": "このフォルダーには曲がありません。",
+  "自訂顯示項目": "表示する項目を選ぶ",
+  "在側欄顯示": "サイドバーに表示",
+  "拖曳側欄項目可以調整順序。": "サイドバーの項目はドラッグで並べ替えできます。"
+});
+
+/* 資料夾 file list, the library folder watcher. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "所有資料夾": "所有文件夹",
+  "多位演出者": "多位艺人",
+  "多種格式": "多种格式",
+  "新增日期": "添加日期",
+  "內容": "内容",
+  "已加入 {0} 首新歌曲": "已添加 {0} 首新歌曲"
+});
+Object.assign(I18N_DICT["en"], {
+  "所有資料夾": "All folders",
+  "多位演出者": "Various artists",
+  "多種格式": "Mixed formats",
+  "新增日期": "Date added",
+  "內容": "Contents",
+  "已加入 {0} 首新歌曲": "Added {0} new songs"
+});
+Object.assign(I18N_DICT["ja"], {
+  "所有資料夾": "すべてのフォルダー",
+  "多位演出者": "複数のアーティスト",
+  "多種格式": "複数の形式",
+  "新增日期": "追加日",
+  "內容": "内容",
+  "已加入 {0} 首新歌曲": "新しい曲を {0} 曲追加しました"
+});
+
+/* Settings → 曲庫 → 自動偵測新歌曲 */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "自動偵測新歌曲": "自动检测新歌曲",
+  "MIKU 開著時，音樂庫資料夾有新增、修改或刪除的音樂會自動更新，不用重新掃描。平常不耗資源，只在有變動時讀取變動的資料夾。": "MIKU 打开时，音乐库文件夹中新增、修改或删除的音乐会自动更新，无需重新扫描。平时不占资源，只在有变动时读取变动的文件夹。"
+});
+Object.assign(I18N_DICT["en"], {
+  "自動偵測新歌曲": "Detect new music automatically",
+  "MIKU 開著時，音樂庫資料夾有新增、修改或刪除的音樂會自動更新，不用重新掃描。平常不耗資源，只在有變動時讀取變動的資料夾。": "While MIKU is open, music added, changed or deleted in your library folders is picked up automatically, without a rescan. It costs nothing while idle and only reads the folders that changed."
+});
+Object.assign(I18N_DICT["ja"], {
+  "自動偵測新歌曲": "新しい曲を自動で検出",
+  "MIKU 開著時，音樂庫資料夾有新增、修改或刪除的音樂會自動更新，不用重新掃描。平常不耗資源，只在有變動時讀取變動的資料夾。": "MIKU の起動中、ライブラリフォルダーで追加・変更・削除された曲を自動で反映します。再スキャンは不要です。普段はリソースを使わず、変更があったフォルダーだけを読み込みます。"
+});

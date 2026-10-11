@@ -251,6 +251,7 @@ public sealed class MusicLibrary
 
     public void StartScan(bool full = false)
     {
+        Watch();   // the library folders may have changed (added / removed in Settings)
         _scanCts?.Cancel();
         var cts = _scanCts = new CancellationTokenSource();
         Task.Run(() => Scan(full, cts.Token));
@@ -416,6 +417,185 @@ public sealed class MusicLibrary
         return (newId, newId == null ? 0 : GetAlbum(newId)?.Tracks.Count ?? 0);
     }
 
+    // ───────────────────────────── watching the folders ─────────────────────────────
+    // Music added, replaced, renamed or deleted in the library folders shows up by itself, without 重新掃描: a watcher
+    // per library folder notes which folders changed, and once nothing has changed for 3 s (a copy has finished; a long
+    // one is still read every 20 s) just those folders are read again (RefreshFolders). Too many changes at once (the
+    // watcher's buffer ran over) fall back to an ordinary scan.
+
+    static readonly HashSet<string> WatchExt = new(Extensions.Concat(new[] { ".jpg", ".jpeg", ".png", ".webp", ".cue" }), StringComparer.OrdinalIgnoreCase);
+    readonly object _watchLock = new();
+    readonly List<FileSystemWatcher> _watchers = new();
+    string _watchKey = "";
+    readonly HashSet<string> _shallow = new(StringComparer.OrdinalIgnoreCase);   // folders whose own files changed
+    readonly HashSet<string> _deep = new(StringComparer.OrdinalIgnoreCase);      // folders made, renamed or deleted
+    bool _overflow;
+    DateTime _firstDirty;
+    Timer _settle;
+    readonly SemaphoreSlim _refreshGate = new(1, 1);
+
+    /// <summary>Watch the library folders (again, when they changed).</summary>
+    public void Watch()
+    {
+        // Settings → 曲庫 → 自動偵測新歌曲 off: no watchers at all
+        var roots = !_settings.WatchFolders ? new List<string>() : _settings.Folders.Where(r => !string.IsNullOrWhiteSpace(r) && Directory.Exists(r)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        string key = string.Join("|", roots.Select(r => r.ToLowerInvariant()).OrderBy(r => r, StringComparer.Ordinal));
+        lock (_watchers)
+        {
+            if (key == _watchKey) return;
+            _watchKey = key;
+            foreach (var w in _watchers) w.Dispose();
+            _watchers.Clear();
+            foreach (var root in roots)
+            {
+                try
+                {
+                    var w = new FileSystemWatcher(root)
+                    {
+                        IncludeSubdirectories = true,
+                        InternalBufferSize = 64 * 1024,
+                        NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
+                    };
+                    w.Created += (s, e) => Touched(e.FullPath, false, false);
+                    w.Changed += (s, e) => Touched(e.FullPath, false, true);
+                    w.Deleted += (s, e) => Touched(e.FullPath, true, false);
+                    w.Renamed += (s, e) => { Touched(e.OldFullPath, true, false); Touched(e.FullPath, false, false); };
+                    w.Error += (s, e) => { lock (_watchLock) { _overflow = true; if (_firstDirty == default) _firstDirty = DateTime.UtcNow; } Arm(); };
+                    w.EnableRaisingEvents = true;
+                    _watchers.Add(w);
+                }
+                catch (Exception ex) { Log.Error("Watch " + root, ex); }
+            }
+        }
+    }
+
+    void Touched(string path, bool gone, bool changedEvent)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+        bool media = WatchExt.Contains(Path.GetExtension(path));
+        lock (_watchLock)
+        {
+            if (media) _shallow.Add(Path.GetDirectoryName(path) ?? "");
+            else if (changedEvent) return;                               // a folder's own time stamp: its files report themselves
+            else if (gone || Directory.Exists(path)) _deep.Add(path);    // a folder made, renamed or deleted (or some other file: harmless)
+            else return;
+            if (_firstDirty == default) _firstDirty = DateTime.UtcNow;
+        }
+        Arm();
+    }
+
+    void Arm()
+    {
+        lock (_watchLock)
+        {
+            _settle ??= new Timer(_ => Settle());
+            int due = DateTime.UtcNow - _firstDirty > TimeSpan.FromSeconds(20) ? 0 : 3000;
+            _settle.Change(due, Timeout.Infinite);
+        }
+    }
+
+    void Settle()
+    {
+        List<string> shallow, deep;
+        bool overflow;
+        lock (_watchLock)
+        {
+            if (Progress.Scanning) { _settle.Change(5000, Timeout.Infinite); return; }   // after the scan that is running
+            shallow = _shallow.ToList(); deep = _deep.ToList(); overflow = _overflow;
+            _shallow.Clear(); _deep.Clear(); _overflow = false; _firstDirty = default;
+        }
+        if (overflow) { StartScan(); return; }
+        if (!_refreshGate.Wait(0))
+        {
+            // the previous round is still reading: this one follows it
+            lock (_watchLock) { _shallow.UnionWith(shallow); _deep.UnionWith(deep); _firstDirty = DateTime.UtcNow; }
+            Arm();
+            return;
+        }
+        try { RefreshFolders(shallow, deep); }
+        catch (Exception ex) { Log.Error("Refresh folders", ex); }
+        finally { _refreshGate.Release(); }
+    }
+
+    static string TrimDir(string d) => d.Length > 3 ? d.TrimEnd('\\', '/') : d;
+    static bool IsUnder(string path, string root)
+    {
+        root = TrimDir(root);
+        return path.Equals(root, StringComparison.OrdinalIgnoreCase) || path.StartsWith(root.EndsWith("\\") ? root : root + "\\", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The watcher's part of a scan: read again only the folders that changed on disk. <paramref name="shallow"/>: folders
+    /// whose own files changed; <paramref name="deep"/>: folders made, renamed or deleted, with everything below them.
+    /// Unchanged files keep their entries (and import time), new ones are read, files that are gone leave the library.
+    /// False when nothing changed.
+    /// </summary>
+    public bool RefreshFolders(IEnumerable<string> shallow, IEnumerable<string> deep)
+    {
+        var roots = _settings.Folders.ToList();
+        bool inLibrary(string d) => roots.Any(r => IsUnder(d, r));
+        var deepL = deep.Select(TrimDir).Where(inLibrary).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        deepL = deepL.Where(d => !deepL.Any(o => !o.Equals(d, StringComparison.OrdinalIgnoreCase) && IsUnder(d, o))).ToList();
+        var shallowL = shallow.Select(TrimDir).Where(inLibrary).Where(d => !deepL.Any(o => IsUnder(d, o))).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (deepL.Count == 0 && shallowL.Count == 0) return false;
+
+        Dictionary<string, Track> existing;
+        Dictionary<string, string> folderArt;
+        lock (_lock)
+        {
+            existing = _byId.Values.ToDictionary(t => t.Path, StringComparer.OrdinalIgnoreCase);
+            folderArt = new Dictionary<string, string>(_folderArt, StringComparer.OrdinalIgnoreCase);
+        }
+        var files = new List<FileInfo>();
+        var art = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var progress = new ScanProgress();
+        foreach (var d in deepL)
+            if (Directory.Exists(d)) Walk(new DirectoryInfo(d), files, art, CancellationToken.None, progress);
+        foreach (var d in shallowL)
+            if (Directory.Exists(d)) ScanFolder(new DirectoryInfo(d), files, art);
+
+        var shallowSet = new HashSet<string>(shallowL, StringComparer.OrdinalIgnoreCase);
+        bool covered(string trackPath)
+        {
+            string dir = Path.GetDirectoryName(trackPath) ?? "";
+            return shallowSet.Contains(dir) || deepL.Any(d => IsUnder(dir, d));
+        }
+        var keep = existing.Values.Where(t => !covered(t.Path)).ToList();
+        int before = existing.Count - keep.Count, unchanged = 0;
+        long addedAt = DateTime.UtcNow.Ticks;
+        var fresh = new ConcurrentBag<Track>();
+        var reread = new ConcurrentBag<Track>();
+        Parallel.ForEach(files.DistinctBy(f => f.FullName, StringComparer.OrdinalIgnoreCase), new ParallelOptions { MaxDegreeOfParallelism = 4 }, f =>
+        {
+            existing.TryGetValue(f.FullName, out var old);
+            if (old != null && old.Size == f.Length && old.Mtime == f.LastWriteTimeUtc.Ticks && !TagReader.NeedsReread(old))
+            {
+                fresh.Add(old);
+                Interlocked.Increment(ref unchanged);
+                return;
+            }
+            var t = TagReader.Read(f);
+            if (t == null) return;
+            t.Added = old != null ? old.Added : addedAt;
+            fresh.Add(t);
+            if (old != null) reread.Add(t);
+        });
+        foreach (var d in deepL)
+            foreach (var key in folderArt.Keys.Where(k => IsUnder(k, d)).ToList()) folderArt.Remove(key);
+        foreach (var d in shallowL) folderArt.Remove(d);
+        foreach (var (d, a) in art) folderArt[d] = a;
+        bool sameArt;
+        lock (_lock) sameArt = folderArt.Count == _folderArt.Count && folderArt.All(kv => _folderArt.TryGetValue(kv.Key, out var v) && v == kv.Value);
+        if (fresh.Count == unchanged && before == unchanged && sameArt) return false;
+
+        var list = keep.Concat(fresh).ToList();
+        Build(list, folderArt);
+        Save(list);
+        Changed?.Invoke();
+        if (!reread.IsEmpty) TracksRead?.Invoke(reread.ToList());
+        return true;
+    }
+
     static void Walk(DirectoryInfo dir, List<FileInfo> files, Dictionary<string, string> folderArt, CancellationToken ct, ScanProgress p)
     {
         ct.ThrowIfCancellationRequested();
@@ -500,20 +680,31 @@ public sealed class MusicLibrary
             }
             w.WriteEndArray();
             w.WriteStartArray("tracks");
+            // the folders the files are in, each written once ("folders" below); a track names its folder by index
+            var folders = new List<string>();
+            var folderIx = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var a in albums)
             {
                 foreach (var t in a.Tracks)
                 {
-                    // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added]
+                    // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
                     w.WriteStartArray();
                     w.WriteStringValue(t.Id); w.WriteStringValue(t.Title); w.WriteStringValue(t.Artist); w.WriteStringValue(a.Id);
                     w.WriteNumberValue(t.DiscNo); w.WriteNumberValue(t.TrackNo); w.WriteNumberValue(Math.Round(t.Duration, 2));
                     w.WriteStringValue(t.Codec); w.WriteNumberValue(t.SampleRate); w.WriteNumberValue(t.Bits); w.WriteNumberValue(t.Year);
                     w.WriteStringValue(t.Composer ?? "");
                     w.WriteNumberValue(t.Added / (double)TimeSpan.TicksPerSecond);
+                    string dir = "";
+                    try { dir = Path.GetDirectoryName(t.Path ?? "") ?? ""; } catch (ArgumentException) { }
+                    if (!folderIx.TryGetValue(dir, out int fi)) { fi = folders.Count; folders.Add(dir); folderIx[dir] = fi; }
+                    w.WriteNumberValue(fi);
                     w.WriteEndArray();
                 }
             }
+            w.WriteEndArray();
+            // 音樂庫 → 資料夾: browse the library by the folders on disk
+            w.WriteStartArray("folders");
+            foreach (var f in folders) w.WriteStringValue(f);
             w.WriteEndArray();
             w.WriteEndObject();
         }

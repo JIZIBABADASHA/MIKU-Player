@@ -56,7 +56,7 @@
 :root[data-theme="miku"] .nav-label { color: #8aa0a3; font-weight: 600; letter-spacing: .14em; }
 :root[data-theme="miku"] .nav-pill { background: linear-gradient(100deg, #2cbcb4, #4fd0c8); border-radius: 12px; box-shadow: 0 6px 16px -4px rgba(16,154,148,.45), inset 0 1px 0 rgba(255,255,255,.35); }
 :root[data-theme="miku"] .nav-pill::before { display: none; }
-:root[data-theme="miku"] .nav a.on, :root[data-theme="miku"] .nav a.on svg.i, :root[data-theme="miku"] .nav a.on .count { color: #fff; }
+:root[data-theme="miku"] .nav a.on, :root[data-theme="miku"] .nav a.on svg.i, :root[data-theme="miku"] .nav a.on .count, :root[data-theme="miku"] .nav a.on:hover { color: #fff; }
 :root[data-theme="miku"] .nav a:hover { background: rgba(44,188,180,.08); color: #1c2b2e; }
 
 /* 內容區：右上角鋼琴捲軸（音符方塊）裝飾 */

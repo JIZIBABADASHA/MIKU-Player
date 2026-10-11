@@ -205,10 +205,52 @@ class MusicLibrary extends EventEmitter {
 
   // ───────────── scanning ─────────────
   startScan(full = false) {
+    this.watch();   // the library folders may have changed (added / removed in Settings)
     const token = ++this.scanToken;
     this.scan(full, token).catch(e => Log.error('Scan', e));
   }
   report(p) { this.progress = { ...p }; this.emit('progress', this.progress); }
+
+  /**
+   * Music added, replaced, renamed or deleted in the library folders shows up by itself, without 重新掃描 (the Mac
+   * side of MusicLibrary.Watch): fs.watch per library folder (recursive on macOS); 3 s after the last change (every
+   * 20 s during a long copy) an ordinary scan, which reads only new and changed files.
+   */
+  watch() {
+    // Settings → 曲庫 → 自動偵測新歌曲 off: no watchers
+    const roots = this.s.watchFolders === false ? [] : [...new Set((this.s.folders || []).filter(r => r && fs.existsSync(r)))];
+    const key = roots.map(lc).sort().join('|');
+    if (key === this.watchKey) return;
+    this.watchKey = key;
+    for (const w of this.watchers || []) { try { w.close(); } catch { } }
+    this.watchers = [];
+    for (const root of roots) {
+      try {
+        const w = fs.watch(root, { recursive: true }, (ev, name) => {
+          const n = String(name || ''), base = path.basename(n), ext = path.extname(base).toLowerCase();
+          if (!n || base.startsWith('.')) return;
+          const media = Extensions.has(ext) || ImageExt.has(ext) || ext === '.cue';
+          // a folder (made, renamed, deleted) or a music file / picture; not other files' writes
+          if (!media && (ev !== 'rename' || /^\.[a-z0-9]{1,5}$/i.test(ext))) return;
+          this.touched();
+        });
+        w.on('error', e => Log.error('Watch ' + root, e));
+        this.watchers.push(w);
+      } catch (e) { Log.error('Watch ' + root, e); }
+    }
+  }
+  touched() {
+    if (this.s.watchFolders === false) return;   // switched off since the watchers were made
+    const now = Date.now();
+    if (!this.dirtySince) this.dirtySince = now;
+    clearTimeout(this.settleT);
+    this.settleT = setTimeout(() => this.settle(), now - this.dirtySince > 20000 ? 0 : 3000);
+  }
+  settle() {
+    if (this.progress.scanning) { this.settleT = setTimeout(() => this.settle(), 5000); return; }
+    this.dirtySince = 0;
+    this.startScan(false);
+  }
 
   async scan(full, token) {
     const p = { scanning: true, found: 0, done: 0, failed: 0 };
@@ -360,13 +402,21 @@ class MusicLibrary extends EventEmitter {
     // the library only changes in build() (which raises the revision): the same revision is the same JSON
     if (this.exported && this.exported.revision === this.revision) return this.exported.data;
     const albums = [], tracks = [];
+    // the folders the files are in, each written once ("folders"); a track names its folder by index (音樂庫 → 資料夾)
+    const folders = [], folderIx = new Map();
     for (const a of this.albums.values()) {
       // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
       albums.push([a.id, a.title, a.artist, a.year, a.genre, a.added / 1e7, (a.artPath || a.tracks.some(t => t.hasPic)) ? 1 : 0, a.loose ? 1 : 0, a.versionGroup || '', path.basename(a.folder || '')]);
       // Track import time is independent of the newest song in its album.
-      for (const t of a.tracks) tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '', t.added / 1e7]);
+      for (const t of a.tracks) {
+        const dir = t.path ? path.dirname(t.path) : '';
+        let fi = folderIx.get(dir);
+        if (fi === undefined) { fi = folders.length; folders.push(dir); folderIx.set(dir, fi); }
+        // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
+        tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '', t.added / 1e7, fi]);
+      }
     }
-    const data = Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks }));
+    const data = Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks, folders }));
     this.exported = { revision: this.revision, data };
     return data;
   }

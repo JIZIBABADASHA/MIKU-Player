@@ -1799,6 +1799,14 @@ public sealed class MainForm : Form
             case "reveal":
             {
                 var t = _lib.GetTrack(S(a, "id"));
+                // 音樂庫 → 資料夾: open a folder of the library itself (only one holding that track)
+                string dir = S(a, "dir");
+                if (t != null && !string.IsNullOrEmpty(dir) && Directory.Exists(dir)
+                    && t.Path.StartsWith(dir.TrimEnd('\\', '/') + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                {
+                    Process.Start("explorer.exe", $"\"{dir}\"");
+                    return null;
+                }
                 if (t != null) Process.Start("explorer.exe", $"/select,\"{t.Path}\"");
                 return null;
             }
@@ -2017,6 +2025,7 @@ public sealed class MainForm : Form
             if (pi.Name == nameof(Settings.AudioCore)) core = true;
             if (pi.Name == nameof(Settings.VolumeMode)) { volume = true; reconfigure = true; }
             if (pi.Name is nameof(Settings.RemoteEnabled) or nameof(Settings.RemotePort)) remote = true;
+            if (pi.Name == nameof(Settings.WatchFolders)) _lib.Watch();   // start / stop watching the library folders
             if (pi.Name == nameof(Settings.AutoContinue) && _engine.IsPlaying) _player.EnsureAutoNext();
         }
         SaveSoon();

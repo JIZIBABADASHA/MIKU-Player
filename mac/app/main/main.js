@@ -46,7 +46,7 @@ process.on('unhandledRejection', e => Log.error('Task', e));
 
 // ───────────── settings ─────────────
 const defaults = () => ({
-  folders: [], outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
+  folders: [], watchFolders: true, outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
   dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,

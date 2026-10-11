@@ -97,6 +97,8 @@ public sealed class EqPreset
 public sealed class Settings
 {
     public List<string> Folders { get; set; } = new();
+    /// <summary>Watch the library folders and add new / changed music by itself (MusicLibrary.Watch).</summary>
+    public bool WatchFolders { get; set; } = true;
     // Output
     public string AudioCore { get; set; } = "miku";       // miku（MIKU 本身的內核）| 擴充模組提供的內核 id
     public string OutputMode { get; set; } = "exclusive"; // exclusive | shared | asio

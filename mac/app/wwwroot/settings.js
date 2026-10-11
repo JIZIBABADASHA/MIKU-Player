@@ -104,6 +104,7 @@ const Settings = {
           h('button', { class: 'btn small', html: icon('plus') + T('加入資料夾'), onclick: async () => { const f = await Host.call('folder.add'); if (f) { App.settings.folders = f; drawFolders(); } } }),
           h('button', { class: 'btn small', html: icon('refresh') + T('重新掃描'), onclick: () => { Host.call('rescan'); toast(T('開始掃描曲庫')); } }),
           h('button', { class: 'btn small ghost', onclick: () => { Host.call('rescan', { full: true }); toast(T('開始完整掃描（重新讀取所有標籤）')); } }, T('完整重掃')))));
+      lib.append(field(T('自動偵測新歌曲'), T('MIKU 開著時，音樂庫資料夾有新增、修改或刪除的音樂會自動更新，不用重新掃描。平常不耗資源，只在有變動時讀取變動的資料夾。'), sw(s.watchFolders !== false, v => this.set({ watchFolders: v }))));
 
       /* ── online ── */
       const on = section(T('線上服務'), T('只會傳送演出者、專輯與曲名，不會上傳音樂檔案。'));
