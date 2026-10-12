@@ -720,7 +720,8 @@ const App = {
   /* ── signal path badge ── */
   renderSignal() {
     const sg = this.state.signal, el = $('#b-sig');
-    const cls = 'sig' + (sg ? ' q-' + sigQuality(sg) : '') + sigShine(sg);
+    // upsampling wears the badge of its own card (app.css .sig.upsample), like Hi-Res, DSD and DSP wear theirs
+    const cls = 'sig' + (sg ? ' q-' + sigQuality(sg) : '') + sigShine(sg) + (sg && SigCard.kind(sg) === 'upsample' ? ' upsample' : '');
     if (el.className !== cls) el.className = cls;
     if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? T('已停止') : T('未播放')); return; }
     const src = sg.dsd ? sg.dsdLabel : `${sg.sourceBits || ''}${sg.sourceBits ? '/' : ''}${khz(sg.sourceRate)}`;

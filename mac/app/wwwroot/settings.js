@@ -52,11 +52,13 @@ const Settings = {
           ? T('每首歌把 DAC 切換到原始取樣率；DAC 不支援時改用最接近的取樣率並重新取樣。')
           : T('每首歌把裝置切換到原始取樣率（同一裝置上的其他程式也會跟著改變）；關閉時依裝置目前的取樣率重新取樣。'),
         sw(s.autoSampleRate !== false, v => this.set({ autoSampleRate: v }))));
-      out.append(field('Bit-perfect', T('套用後會先停止播放，關閉 DSP、ReplayGain，設定固定 0 dB。再次播放前請先調低 DAC 音量。'),
+      out.append(field('Bit-perfect', T('套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。'),
         h('button', { class: 'btn small ghost', onclick: async () => {
           await Host.call('stop');
           await this.set({ outputMode: 'coreaudio-exclusive',
             autoSampleRate: true, volumeMode: 'fixed', muted: false, replayGain: 'off', dsp: { ...App.settings.dsp, enabled: false } });
+          // a playback core from a module has processing of its own (Daphne: its upsampler): it turns that off itself
+          if (core.id !== 'miku') { try { await Host.call(`ext.${core.id}.bitPerfect`); } catch (e) { console.error('[ext] bitPerfect', e); } }
           await Outputs.refresh(); Router.render(false, 'none'); toast(T('已套用 Bit-perfect 設定；請用 DAC 調整音量'));
         } }, T('套用 Bit-perfect 設定'))));
       if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, T('找不到 FFmpeg：DSD、APE、AIFF、WavPack 等格式將無法播放、曲庫也無法讀取標籤。請重新安裝 MIKU，或用 Homebrew 安裝：brew install ffmpeg')));

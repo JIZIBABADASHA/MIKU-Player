@@ -6,7 +6,7 @@ Object.assign(I18N_DICT.en, {
   'DAC 不支援或無法取得獨佔時會停止播放，並顯示原因。': 'Stop and explain the reason if the DAC does not support exclusive access or cannot be acquired.',
   '套用 Bit-perfect 設定': 'Apply bit-perfect settings',
   '已套用 Bit-perfect 設定；請用 DAC 調整音量': 'Bit-perfect settings applied. Adjust volume on your DAC.',
-  '套用後會先停止播放，關閉 DSP、ReplayGain，設定固定 0 dB。再次播放前請先調低 DAC 音量。': 'Stops playback, disables DSP and ReplayGain, and sets fixed 0 dB. Turn down your DAC before playing again.',
+  '套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。': 'Stops playback, disables DSP, ReplayGain and the playback core\'s own upsampling, and sets fixed 0 dB. Turn down your DAC before playing again.',
   '獨佔模式使用原生 Core Audio，依歌曲切換 DAC 取樣率。Bit-perfect 需要關閉 DSP、ReplayGain 並使用固定 0 dB；請用 DAC 旋鈕調整音量。': 'Exclusive mode uses native Core Audio and switches the DAC sample rate for each track. Bit-perfect requires DSP and ReplayGain off and fixed 0 dB. Adjust volume on the DAC.',
   '缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。': 'Install a newer MIKU build with the native audio engine to use exclusive access and automatic sample-rate switching.',
   '無損音訊以 Core Audio 輸出；此路徑未確認原始樣本數值。': 'Lossless audio through Core Audio. Unchanged original sample values are not verified on this path.',
@@ -18,7 +18,7 @@ Object.assign(I18N_DICT['zh-Hans'], {
   '每首歌使用原始取樣率；DAC 不支援時停止輸出。': '每首歌使用原始采样率；DAC 不支持时停止输出。',
   'DAC 不支援或無法取得獨佔時會停止播放，並顯示原因。': 'DAC 不支持或无法取得独占时会停止播放，并显示原因。',
   '已套用 Bit-perfect 設定；請用 DAC 調整音量': '已应用 Bit-perfect 设置；请用 DAC 调整音量',
-  '套用後會先停止播放，關閉 DSP、ReplayGain，設定固定 0 dB。再次播放前請先調低 DAC 音量。': '应用后会先停止播放，关闭 DSP、ReplayGain，设置固定 0 dB。再次播放前请先调低 DAC 音量。',
+  '套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。': '应用后会先停止播放，关闭 DSP、ReplayGain 与播放方案自己的升频，设置固定 0 dB。再次播放前请先调低 DAC 音量。',
   '獨佔模式使用原生 Core Audio，依歌曲切換 DAC 取樣率。Bit-perfect 需要關閉 DSP、ReplayGain 並使用固定 0 dB；請用 DAC 旋鈕調整音量。': '独占模式使用原生 Core Audio，依歌曲切换 DAC 采样率。Bit-perfect 需要关闭 DSP、ReplayGain 并使用固定 0 dB；请用 DAC 旋钮调整音量。',
   '缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。': '缺少原生音频组件，请安装新版 MIKU 才能使用独占与自动匹配。'
 });
@@ -27,7 +27,7 @@ Object.assign(I18N_DICT.ja, {
   '自動匹配取樣率': 'サンプルレートを自動で合わせる', 'DAC 格式': 'DAC 形式', '套用 Bit-perfect 設定': 'ビットパーフェクト設定を適用',
   '每首歌使用原始取樣率；DAC 不支援時停止輸出。': '曲の元のサンプルレートで出力します。DAC が非対応の場合は停止します。',
   '已套用 Bit-perfect 設定；請用 DAC 調整音量': 'ビットパーフェクト設定を適用しました。DAC で音量を調整してください。',
-  '套用後會先停止播放，關閉 DSP、ReplayGain，設定固定 0 dB。再次播放前請先調低 DAC 音量。': '再生を停止し、DSP と ReplayGain をオフにして、固定 0 dB に設定します。再生する前に DAC の音量を下げてください。',
+  '套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。': '再生を停止し、DSP、ReplayGain、再生コア独自のアップサンプリングをオフにして、固定 0 dB に設定します。再生する前に DAC の音量を下げてください。',
   '獨佔模式使用原生 Core Audio，依歌曲切換 DAC 取樣率。Bit-perfect 需要關閉 DSP、ReplayGain 並使用固定 0 dB；請用 DAC 旋鈕調整音量。': '排他モードではネイティブ Core Audio を使い、曲に合わせて DAC のサンプルレートを切り替えます。ビットパーフェクトには DSP と ReplayGain をオフにし、固定 0 dB にする必要があります。音量は DAC で調整してください。',
   'DAC 不支援或無法取得獨佔時會停止播放，並顯示原因。': 'DAC が排他モードに対応しない場合や取得できない場合は再生を停止し、理由を表示します。',
   '缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。': '排他出力とサンプルレート自動切替を使用するには、ネイティブ音声エンジンを含む新しい MIKU をインストールしてください。'

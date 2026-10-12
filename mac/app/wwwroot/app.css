@@ -1360,7 +1360,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
    them an engraved waveform turns from coarse samples into a smooth line, a point of light running along it.
    Looping light stops with 輕量化「音訊鏈路特效」 (effects.css) and reduced motion; the plate and the engraving stay. */
 :root:root .pop.sigpop:has(> .up) {
-  border: 0; border-radius: 16px; backdrop-filter: none; overflow: hidden; isolation: isolate; color: #3d2a0c;
+  /* the plate does not scroll: a long path scrolls inside it (.up below), the frame stays round the whole card */
+  border: 0; border-radius: 16px; backdrop-filter: none; overflow: hidden !important; display: flex; flex-direction: column; padding: 0; isolation: isolate; color: #3d2a0c;
   background:
     linear-gradient(90deg, rgba(251, 240, 214, .62) 0 55%, rgba(251, 240, 214, .12)),
     repeating-conic-gradient(from 0deg at 100% 0%, rgba(110, 70, 10, .16) 0 .45deg, transparent .45deg 1.5deg),
@@ -1369,12 +1370,15 @@ html.fullscreen #fullscreen-exit.is-visible:active {
   box-shadow: 0 0 0 1px rgba(80, 50, 10, .7), 0 0 40px rgba(255, 220, 150, .25), 0 30px 70px rgba(0, 0, 0, .45);
   animation: rar-reveal .42s cubic-bezier(.2, .85, .25, 1.1) both;
 }
-.sigpop > .up { position: relative; isolation: isolate; }
-.sigpop > .up::before, .sigpop > .up::after { content: ''; position: absolute; inset: -18px -18px -14px; pointer-events: none; border-radius: 16px; }
+.sigpop > .up {
+  position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 18px 14px;
+  scrollbar-width: thin; scrollbar-color: rgba(110, 70, 10, .35) transparent;
+}
+:root:root .pop.sigpop:has(> .up)::before, :root:root .pop.sigpop:has(> .up)::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 16px; }
 /* an inner bevel: a pale line and a dark line inside the chamfer, a soft shade toward the edge */
-.sigpop > .up::before { z-index: -1; box-shadow: inset 0 0 0 6px rgba(255, 248, 225, .35), inset 0 0 0 7px rgba(110, 70, 10, .35), inset 0 0 30px rgba(120, 80, 20, .25); }
+:root:root .pop.sigpop:has(> .up)::before { z-index: -1; box-shadow: inset 0 0 0 6px rgba(255, 248, 225, .35), inset 0 0 0 7px rgba(110, 70, 10, .35), inset 0 0 30px rgba(120, 80, 20, .25); }
 /* the chamfer: polished cut facets round the edge, two points of light running round it */
-.sigpop > .up::after {
+:root:root .pop.sigpop:has(> .up)::after {
   padding: 3px; z-index: 4;
   background:
     conic-gradient(from var(--rar-a), transparent 0 18%, rgba(255, 255, 255, .95) 21%, transparent 24% 68%, rgba(255, 255, 255, .95) 71%, transparent 74%),
@@ -1426,9 +1430,48 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .sigpop > .up .up-hero::after { background-position: right 2px bottom 2px, right 2px bottom 13.5px, right 13.5px bottom 2px; animation: up-twinkle 3.4s ease-in-out -1.7s infinite; }
 @keyframes up-twinkle { 0%, 60%, 100% { opacity: 0; } 72% { opacity: 1; } 84% { opacity: 0; } }
 /* 輕量化「音訊鏈路特效」: effects.css drops the box's own ::before / ::after; keep the plate's bevel and chamfer still */
-:root:root.lite-signal .sigpop > .up::after { content: '' !important; animation: none !important; }
-:root:root.lite-signal .sigpop > .up::before { content: '' !important; }
-@media (prefers-reduced-motion: reduce) { .sigpop > .up, .sigpop > .up *, .sigpop > .up::before, .sigpop > .up::after, .sigpop > .up *::before, .sigpop > .up *::after { animation: none !important; } }
+:root:root.lite-signal .pop.sigpop:not(.sig-flipped):has(> .up)::after { content: '' !important; animation: none !important; }
+:root:root.lite-signal .pop.sigpop:not(.sig-flipped):has(> .up)::before { content: '' !important; }
+/* ── the badge while upsampling: the card's champagne gold as a small plate. A gold rim with light running round it,
+   an engraved wave drifting through under a sheen, and the card's diamond for the dot ── */
+:root:root .sig.upsample {
+  position: relative; isolation: isolate; overflow: hidden; border: 0; font-weight: 600; letter-spacing: .01em;
+  color: #4a3208; text-shadow: 0 1px 0 rgba(255, 252, 235, .7);
+  background: linear-gradient(180deg, #fff9e6 0%, #f3e2b4 52%, #dcc283 100%);
+  animation: rar-badge-in .9s cubic-bezier(.2, .9, .25, 1.2) both, up-aura 3.6s ease-in-out 1s infinite;
+}
+:root:root .sig.upsample:hover { color: #2f1f04; }
+@keyframes up-aura {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(70, 46, 8, .55), 0 0 9px rgba(255, 214, 120, .22), 0 3px 10px rgba(0, 0, 0, .32); }
+  50% { box-shadow: 0 0 0 1px rgba(70, 46, 8, .55), 0 0 20px rgba(255, 222, 135, .6), 0 3px 10px rgba(0, 0, 0, .32); }
+}
+:root:root .sig.upsample::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 2;
+  background: conic-gradient(from var(--rar-a), #6a4810, #c4932f 12%, #fffbe6 18%, #c4932f 24%, #7d5714 42%, #e6bf62 60%, #fff8dc 66%, #b98a2c 72%, #6a4810);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: rar-spin 3.6s linear infinite;
+}
+:root:root .sig.upsample::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
+  background:
+    linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .55) 47%, rgba(255, 255, 255, .95) 50%, rgba(255, 255, 255, .55) 53%, transparent 60%) -150% 0 / 250% 100% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='20' viewBox='0 0 56 20'%3E%3Cpath d='M0 10 Q14 -4 28 10 T56 10' fill='none' stroke='%237d5714' stroke-opacity='.3' stroke-width='1.1'/%3E%3C/svg%3E") 0 50% / 56px 20px repeat-x;
+  animation: up-badge-foil 3.6s linear infinite;
+}
+@keyframes up-badge-foil { 0% { background-position: -150% 0, 0 50%; } 55% { background-position: 250% 0, -30.8px 50%; } 100% { background-position: 250% 0, -56px 50%; } }
+:root:root .sig.upsample > span:not(.ripple), :root:root .sig.upsample .dot { position: relative; z-index: 3; }
+:root:root .sig.upsample > .ripple { z-index: 4; }
+:root:root .sig.upsample .dot {
+  width: 9px; height: 9px; border-radius: 1.5px; flex: none; opacity: 1; margin: 0 2px;
+  background: linear-gradient(135deg, #fffdf0 0%, #ffe9a6 38%, #c4932f 72%, #7d5714 100%);
+  animation: up-gem 3.6s ease-in-out infinite;
+}
+@keyframes up-gem {
+  0%, 100% { transform: rotate(45deg) scale(.92); box-shadow: 0 0 0 1px rgba(90, 61, 12, .55), 0 0 4px rgba(255, 205, 95, .55); }
+  50% { transform: rotate(45deg) scale(1.12); box-shadow: 0 0 0 1px rgba(90, 61, 12, .55), 0 0 10px rgba(255, 215, 110, .95), 0 0 16px rgba(255, 190, 60, .45); }
+}
+@media (prefers-reduced-motion: reduce) { :root:root .sig.upsample, :root:root .sig.upsample::before, :root:root .sig.upsample::after, :root:root .sig.upsample .dot { animation: none !important; } :root:root .sig.upsample .dot { transform: rotate(45deg); } }
+@media (prefers-reduced-motion: reduce) { .sigpop > .up, .sigpop > .up *, :root:root .pop.sigpop:has(> .up)::before, :root:root .pop.sigpop:has(> .up)::after, .sigpop > .up *::before, .sigpop > .up *::after { animation: none !important; } }
 
 /* ───────────── drawers ───────────── */
 .scrim { position: fixed; inset: 0; background: rgba(var(--shadow-rgb), calc(.35 * var(--sh))); z-index: 90; opacity: 0; transition: opacity .3s var(--ease); pointer-events: none; }
@@ -2000,34 +2043,8 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .fcrumbs .sep { display: grid; place-items: center; }
 .fcrumbs .sep svg.i { width: 13px; height: 13px; opacity: .55; }
 .fbrowse { padding-bottom: 28px; }
-.fshelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; margin: 6px 36px 26px; }
-.ftile { display: flex; align-items: center; gap: 18px; min-width: 0; padding: 14px 18px 14px 14px; border-radius: 16px; cursor: pointer;
-  background: var(--surface-2); border: 1px solid var(--line-2); transition: background .2s var(--ease), border-color .2s var(--ease), transform .25s var(--ease-out), box-shadow .25s var(--ease-out); }
-.ftile:hover { background: var(--surface-3); border-color: color-mix(in srgb, var(--teal) 45%, var(--line-2)); transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, .12); }
-.ftile:active { transform: none; }
-/* the covers: the first in front, the others behind it, each a step to the right and a little smaller */
-.ft-stack { position: relative; flex: none; width: 118px; height: 84px; }
-.ft-stack[data-n="1"], .ft-stack[data-n="0"] { width: 84px; }
-.ft-stack[data-n="2"] { width: 102px; }
-.ft-cv { position: absolute; left: calc(var(--k, 0) * 18px); top: calc(var(--k, 0) * 5px); width: calc(84px - var(--k, 0) * 10px); height: calc(84px - var(--k, 0) * 10px);
-  z-index: calc(3 - var(--k, 0)); border-radius: 9px; overflow: hidden; background: var(--surface-3); box-shadow: 0 3px 10px rgba(0, 0, 0, .22); opacity: calc(1 - var(--k, 0) * .22);
-  transition: left .3s var(--ease-out), opacity .3s var(--ease-out); }
-.ftile:hover .ft-cv { left: calc(var(--k, 0) * 22px); opacity: calc(1 - var(--k, 0) * .12); }
-.ft-cv img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .4s var(--ease); }
-.ft-cv img.ok { opacity: 1; }
 .ft-none { display: grid; place-items: center; color: var(--text-3); box-shadow: none; border: 1px dashed var(--line-2); }
 .ft-none svg.i { width: 34px; height: 34px; stroke-width: 1.25; }
-.ft-play { position: absolute; left: 22px; top: 22px; z-index: 5; width: 40px; height: 40px; border: 0; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
-  background: var(--teal); color: #fff; opacity: 0; transform: scale(.85); transition: opacity .18s var(--ease), transform .18s var(--ease), background .15s; box-shadow: 0 6px 16px rgba(0, 0, 0, .28); }
-.ft-play svg { width: 17px; height: 17px; margin-left: 2px; }
-.ftile:hover .ft-play { opacity: 1; transform: none; }
-.ft-play:hover { background: var(--teal-2); }
-.ft-txt { min-width: 0; flex: 1; }
-.ft-txt > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ft-txt .t1 { font-size: 16px; font-weight: 650; color: var(--text); line-height: 1.35; }
-.ft-txt .t2 { margin-top: 2px; font-size: 13.5px; font-weight: 500; color: var(--text-sub); min-height: 1.4em; }
-.ft-txt .t3 { margin-top: 9px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-3); }
-.ft-txt .t3 > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ft-q { flex: none; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: var(--teal-2); background: var(--teal-dim); }
 /* 條列: one table of the folder's subfolders and songs. A header of columns that sort (a soft bar, the chosen column in
    teal with its arrow); rows two lines tall like MIKU's track rows; a folder's cover carries a small folder tab. */
@@ -2078,7 +2095,7 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .row .fplay svg.i { width: 15px; height: 15px; }
 .row:hover .fplay { opacity: 1; }
 .row .fplay:hover { color: var(--teal); }
-@media (max-width: 760px) { .fshelf { grid-template-columns: 1fr; margin: 6px 14px 20px; } .fcrumbs { padding: 16px 18px 0; } }
+@media (max-width: 760px) { .fcrumbs { padding: 16px 18px 0; } }
 /* a long folder name stays on one line beside the buttons */
 .fcrumbs + .page-head h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fcrumbs + .page-head .sub { flex: none; white-space: nowrap; }

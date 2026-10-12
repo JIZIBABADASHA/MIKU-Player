@@ -37,7 +37,9 @@ class AudioEngine extends EventEmitter {
         if (old.dispose) await old.dispose();
         else { old.stop(); if (old.win && !old.win.isDestroyed()) old.win.destroy(); }
         this.create();
-        if (track) await this.backend.load(track, pos, play);
+        // the live track (YouTube Music) only plays on a core that takes it; the host routes the page again (main.js)
+        if (track && track.id === 'yt-live' && !this.backend.supportsLive) this.emit('changed');
+        else if (track) await this.backend.load(track, pos, play);
         else this.emit('changed');
       } else if (old.applyOutput) await old.applyOutput();
       else if (track) await old.load(track, pos, play);
@@ -45,6 +47,11 @@ class AudioEngine extends EventEmitter {
     });
     return this.changeTask;
   }
+  /** The core plays MIKU's live track itself (YouTube Music's audio, read from the host's liveSocket). */
+  get supportsLive() { return !!this.backend?.supportsLive; }
+  setLiveRate(rate) { this.backend?.setLiveRate?.(rate); }
+  /** Seconds from the page to the DAC while the live track plays, when the core knows. */
+  get liveLatency() { return this.backend?.liveLatency ?? null; }
   get isPlaying() { return !!this.backend?.isPlaying; }
   get isLoaded() { return !!this.backend?.isLoaded; }
   get position() { return this.backend?.position || 0; }

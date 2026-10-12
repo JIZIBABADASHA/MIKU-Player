@@ -42,6 +42,7 @@
 :root:root.lite-signal .sigpop h3, :root:root.lite-signal .sigpop h3 .dot {
   text-shadow: none !important; filter: none !important;
 }
+:root:root.lite-signal .sig.upsample .dot { animation: none !important; transform: none !important; }
 :root:root.lite-signal .sig .dot, :root:root.lite-signal .sigpop h3 .dot {
   width: 10px; height: 10px; border-radius: 50%; background: var(--q) !important;
   box-shadow: none !important; filter: none !important; clip-path: none !important;

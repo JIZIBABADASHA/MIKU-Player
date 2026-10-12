@@ -1,6 +1,7 @@
 'use strict';
 // MIKU for macOS — host process. Same UI and RPC protocol as the Windows build (MainForm.cs).
-const { app, BrowserWindow, WebContentsView, protocol, net, ipcMain, dialog, shell, Menu, nativeTheme, session, screen, powerSaveBlocker } = require('electron');
+const { app, BrowserWindow, WebContentsView, protocol, net, ipcMain, dialog, shell, Menu, nativeTheme, session, screen, powerSaveBlocker, utilityProcess, MessageChannelMain } = require('electron');
+const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
@@ -139,18 +140,81 @@ function ensureYt() {
     if (/(youtube|google|gstatic)\.com$/.test(h)) wc.loadURL(url); else openExternal(url);
     return { action: 'deny' };
   });
+  // the audio tap's worklet is loaded from a blob, which the page's own content policy refuses: while a playback core
+  // takes the page's audio, the page is loaded without that policy (what the Windows build does with setBypassCSP)
+  wc.session.webRequest.onHeadersReceived({ urls: ['https://music.youtube.com/*'] }, (d, done) => {
+    if (d.resourceType !== 'mainFrame' || !engine.supportsLive) return done({});
+    const headers = {};
+    for (const [k, v] of Object.entries(d.responseHeaders || {})) if (k.toLowerCase() !== 'content-security-policy') headers[k] = v;
+    done({ responseHeaders: headers });
+  });
   wc.loadURL('https://music.youtube.com/');
   return yt;
 }
+// A playback core that takes the live track (Daphne) plays YouTube Music itself: the page's audio is tapped
+// (ytm-preload.js) and handed to the engine, which plays it as the track below (device, exclusive mode, DSP, volume).
+// With MIKU's own core the page plays through the system output.
+const liveTrack = { id: 'yt-live', title: 'YouTube Music', artist: '', album: '', codec: 'YouTube', sampleRate: 48000, bits: 0, channels: 2, duration: 0, path: '' };
+const engineLive = () => !!engine.track && engine.track.id === 'yt-live';
+let ytTap = false, ytLoading = false;
+function updateYtTap() {
+  if (!yt) return;
+  const on = engine.supportsLive;
+  if (on !== ytTap) Log.info('YouTube Music audio: ' + (on ? 'through the playback core' : 'the page plays it'));
+  ytTap = on;
+  // tapped, the page renders to no device, paced by a timer: Chromium would slow that timer down once the panel is
+  // hidden or the window is covered (a page that is not heard counts as idle), and the music would break up
+  yt.webContents.setBackgroundThrottling(!on);
+  if (on) connectLiveRelay();
+  yt.webContents.send('ytm-tap', on);
+  applyYtVolume();
+  if (on && ytActive && ytPlaying) startLive();
+}
+/** YouTube started playing with the tap on: the engine plays the live track. */
+async function startLive() {
+  if (engineLive() && engine.isLoaded) { if (!engine.isPlaying) engine.resume(); postSoon('state'); return; }
+  if (ytLoading) return;
+  ytLoading = true;
+  try {
+    if (engine.track && !engineLive()) player.saveState();
+    await engine.load(liveTrack, 0, true);
+    if (!engine.isLoaded && engine.lastFailureWasDevice && engineLive()) {
+      // the DAC may still be closing the album's stream: once more before giving up
+      await new Promise(r => setTimeout(r, 800));
+      if (engineLive()) await engine.load(liveTrack, 0, true);
+    }
+    // never leave YouTube playing silently: when the engine could not take it, the page pauses too
+    if (!engine.isLoaded && engineLive()) pauseYt();
+  } finally { ytLoading = false; }
+  postSoon('state');
+}
+// The page's audio does not pass through this process: the panel's renderer gets a port to a process of its own
+// (live-relay.js), which hands the blocks to the core's helper on a Unix socket (host.liveSocket for a module).
+const liveSocket = path.join(os.tmpdir(), `miku-live-${process.pid}.sock`);
+let liveRelay = null;
+function connectLiveRelay() {
+  if (!yt) return;
+  if (!liveRelay) {
+    const relay = liveRelay = utilityProcess.fork(path.join(__dirname, 'live-relay.js'), [liveSocket], { serviceName: 'MIKU live audio' });
+    relay.on('exit', code => { if (liveRelay === relay) liveRelay = null; if (!quitting) { Log.info('live relay stopped: ' + code); setTimeout(() => { if (ytTap) connectLiveRelay(); }, 500); } });
+  }
+  const { port1, port2 } = new MessageChannelMain();
+  liveRelay.postMessage({ k: 'port' }, [port1]);
+  yt.webContents.postMessage('ytm-port', null, [port2]);
+}
 ipcMain.on('ytm', (e, m) => {
   if (!yt || e.sender !== yt.webContents) return;
-  if (m.k === 'play') {
+  if (m.k === 'hello') { ytTap = false; updateYtTap(); }
+  else if (m.k === 'tap') { Log.info(`YouTube capture ${m.rate} Hz, ${m.sink}, ${m.kind}` + (m.why ? ` (no worklet: ${m.why})` : '')); engine.setLiveRate(m.rate); }
+  else if (m.k === 'tap-error') { Log.info('YouTube audio tap: ' + m.message); post('error', { message: '無法把 YouTube 的聲音導入 MIKU：' + m.message }); }
+  else if (m.k === 'play' && ytTap && engine.supportsLive) { ytActive = true; ytPlaying = true; applyYtVolume(); startLive(); }
+  else if (m.k === 'play') {
     ytActive = true; ytPlaying = true;
     if (S.outputMode === 'coreaudio-exclusive' && engine.holdsDevice) { player.saveState(); engine.stop({ release: true }); engine.releaseDevice(); }
     else if (engine.isPlaying) { player.saveState(); engine.pause(); }
     applyYtVolume();
     postSoon('state');
-  } else if (m.k === 'pause') { ytPlaying = false; postSoon('state'); }
+  } else if (m.k === 'pause') { ytPlaying = false; if (engineLive() && engine.isPlaying) engine.pause(); postSoon('state'); }
   else if (m.k === 'meta') {
     const changed = m.title !== ytMeta.title || m.by !== ytMeta.by;
     ytMeta = m; ytPlaying = m.p;
@@ -163,13 +227,14 @@ const ytClick = sel => ytScript(`(document.querySelector('ytmusic-player-bar ${s
 function pauseYt() { if (yt && ytPlaying) ytScript("document.querySelectorAll('video,audio').forEach(v => v.pause())"); }
 function applyYtVolume() {
   if (!yt) return;
-  const v = S.muted ? 0 : S.volumeMode === 'digital' ? Math.pow(10, clamp(S.volumeDb, -80, 0) / 20) : 1;
+  // tapped: the engine applies the volume; the page hands over its audio at full level
+  const v = ytTap ? 1 : S.muted ? 0 : S.volumeMode === 'digital' ? Math.pow(10, clamp(S.volumeDb, -80, 0) / 20) : 1;
   ytScript(`document.querySelectorAll('video,audio').forEach(v => v.volume = ${v.toFixed(4)})`);
 }
 
 // ───────────── engine / player events ─────────────
-engine.on('changed', () => { postSoon('state'); if (!engine.isPlaying && engine.holdsDevice) considerLettingGo(4000); if (engine.isPlaying && ytActive) { ytActive = false; pauseYt(); } });
-engine.on('loading', () => { if (ytActive) { ytActive = false; pauseYt(); } });
+engine.on('changed', () => { postSoon('state'); if (!engine.isPlaying && engine.holdsDevice) considerLettingGo(4000); if (engine.isPlaying && ytActive && !engineLive()) { ytActive = false; pauseYt(); } });
+engine.on('loading', t => { if (ytActive && !(t && t.id === 'yt-live')) { ytActive = false; pauseYt(); } });
 engine.on('failed', msg => post('error', { message: msg }));
 engine.on('media', m => {
   if (liveActive()) {
@@ -246,7 +311,9 @@ function loadExtensions() {
       setSetting: (key, value) => { const o = S.ext[id] || (S.ext[id] = {}); if (value == null) delete o[key]; else o[key] = value; saveSoon(); },
       log: message => Log.info(`[${id}] ${message}`),
       // for a playback core: MIKU's own rules and services
-      isDsd, isLossy, isLive: () => false,
+      isDsd, isLossy, isLive: t => !!t && t.id === 'yt-live',
+      // a core that plays the live track reads the page's audio here (float32 stereo frames; live-relay.js)
+      liveSocket,
       replayGainDb: t => require('./web-audio').WebAudioEngine.prototype.rgDb.call({ s: S }, t),
       globalShortcut: require('electron').globalShortcut,
       openPath: p => shell.openPath(p),
@@ -313,12 +380,13 @@ function state() {
   const m = engine.meter();
   if (liveActive()) {
     const parts = (ytMeta.by || '').split('•').map(s => s.trim()).filter(Boolean);
+    const viaEngine = engineLive() && engine.isLoaded && !!engine.signal;   // the playback core plays the page's audio
     return {
-      trackId: 'yt-live', playing: ytPlaying, loaded: true, pos: ytMeta.t || 0, dur: ytMeta.d || 0, index: player.index,
+      trackId: 'yt-live', playing: ytPlaying, loaded: true, pos: Math.max(0, (ytMeta.t || 0) - (viaEngine ? engine.liveLatency || 0 : 0)), dur: ytMeta.d || 0, index: player.index,
       volumeDb: S.volumeDb, muted: S.muted, volumeMode: S.volumeMode, repeat: S.repeat, shuffle: S.shuffle,
-      signal: { codec: 'YouTube', sourceRate: 48000, sourceBits: 0, dsd: false, lossy: true, resampled: false, outputRate: engine.st.rate || 48000, outputFormat: '32-bit 浮點', outputBits: 32, mode: 'Core Audio', device: engine.deviceName(), dspActive: false, volumeMode: S.volumeMode, quality: 'low', note: 'YouTube Music 由內建瀏覽器直接播放，不經過 MIKU 的 DSP。' },
+      signal: viaEngine ? engine.signal : { codec: 'YouTube', sourceRate: 48000, sourceBits: 0, dsd: false, lossy: true, resampled: false, outputRate: engine.st.rate || 48000, outputFormat: '32-bit 浮點', outputBits: 32, mode: 'Core Audio', device: engine.deviceName(), dspActive: false, volumeMode: S.volumeMode, quality: 'low', note: 'YouTube Music 由內建瀏覽器直接播放，不經過 MIKU 的 DSP。' },
       live: { title: ytMeta.title || '', artist: parts[0] || '', album: parts[1] || '', img: ytMeta.img || '' },
-      meter: { l: 0, r: 0, clips: 0, underruns: 0 },
+      meter: viaEngine ? m : { l: 0, r: 0, clips: 0, underruns: 0 },
     };
   }
   const t = engine.track || player.current;
@@ -687,7 +755,7 @@ async function applySettings(patch) {
   if (S.volumeMode === 'hardware') S.volumeMode = 'digital';
   saveSoon();
   if (rem) await startRemote();
-  if (output) await engine.reconfigure();
+  if (output) { await engine.reconfigure(); updateYtTap(); }
   else if (device) { await engine.setDevice(S.deviceId); postSoon('state'); }
   if (volume) { engine.applyVolume(); applyYtVolume(); }
   if (rg && !output) engine.applyReplayGain();
@@ -1294,6 +1362,7 @@ app.on('before-quit', e => {
   if (artSearch) artSearch.abort();
   try { player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
+  try { liveRelay && liveRelay.kill(); } catch { }
   Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

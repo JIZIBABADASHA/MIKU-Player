@@ -44,6 +44,21 @@ const Settings = {
       if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, T('找不到 FFmpeg。請安裝 FFmpeg（例如 winget install Gyan.FFmpeg），或把 ffmpeg.exe 放在 MIKU.exe 旁邊。')));
       const modeSeg = seg([['exclusive', T('WASAPI 獨佔')], ['shared', T('WASAPI 共享')], ['asio', 'ASIO']], s.outputMode, v => { this.set({ outputMode: v }); redrawDevices(); drawDsd(); applyMode(); });
       out.append(field(T('輸出模式'), null, modeSeg));
+      // everything that changes the samples off in one step: DSP, ReplayGain, upsampling (MIKU's and a module core's own),
+      // digital volume. ASIO stays ASIO; a DAC's hardware volume does not touch the samples and stays as it is
+      out.append(field('Bit-perfect', T('套用後會先停止播放，關閉 DSP、ReplayGain 與升頻，音量設為固定 0 dB（已使用 DAC 硬體音量時維持不變）。再次播放前請先調低 DAC 音量。'),
+        h('button', { class: 'btn small ghost', onclick: async () => {
+          await Host.call('stop');
+          const cur = App.settings;
+          await this.set({ outputMode: cur.outputMode === 'asio' ? 'asio' : 'exclusive', upsampling: 'off', muted: false, replayGain: 'off',
+            volumeMode: cur.volumeMode === 'hardware' ? 'hardware' : 'fixed', dsp: { ...cur.dsp, enabled: false } });
+          if (core.id !== 'miku') {
+            // a module's core turns its own processing off (bitPerfect); Daphne without that call: its upsampler
+            try { if (await Host.call(`ext.${core.id}.bitPerfect`) == null && core.id === 'daphne') await Host.call('ext.daphne.set', { upsampler: 'off' }); }
+            catch (e) { console.error('[ext] bitPerfect', e); }
+          }
+          Router.render(); toast(T('已套用 Bit-perfect 設定；請用 DAC 調整音量'));
+        } }, T('套用 Bit-perfect 設定'))));
       const devHost = h('div');
       out.append(devHost);
       const redrawDevices = async () => {

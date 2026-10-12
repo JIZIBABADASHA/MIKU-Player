@@ -220,7 +220,7 @@ class Player extends EventEmitter {
   }
   /** Loads the current track again at `pos` (after its file was rewritten, e.g. new tags). */
   reload(pos, play) { this.engine.invalidateNext(); return this.load(this.current, pos, play); }
-  saveState() { this.persist(); if (this.engine.track) this.s.resumePosition = this.engine.position; }
+  saveState() { this.persist(); if (this.engine.track && this.engine.track.id !== 'yt-live') this.s.resumePosition = this.engine.position; }
 }
 
 module.exports = { Player };
