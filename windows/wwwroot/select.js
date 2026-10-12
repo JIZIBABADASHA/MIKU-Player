@@ -7,10 +7,19 @@
   let openMenu = null;
 
   // an option's text, with its picture first when it has one (<option data-icon="img/…">),
-  // both inside a pill when the option names one (<option data-pill="class">)
+  // both inside a pill when the option names one (<option data-pill="class">); an option a module
+  // draws (<option data-label="key">, MikuExt.labels[key]) shows the module's node instead of the
+  // text (the native option keeps its text)
+  const custom = o => {
+    const f = o.dataset.label && typeof MikuExt !== 'undefined' && MikuExt.labels[o.dataset.label];
+    if (!f) return null;
+    try { const n = f(); return n instanceof Node ? n : null; } catch (e) { console.error('[ext] label', e); return null; }
+  };
   const fill = (el, o) => {
     el.textContent = '';
     if (!o) return;
+    const own = custom(o);
+    if (own) { el.append(own); return; }
     let at = el;
     if (o.dataset.pill) { at = document.createElement('span'); at.className = o.dataset.pill; el.append(at); }
     if (o.dataset.icon) {

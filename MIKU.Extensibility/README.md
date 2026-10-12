@@ -31,6 +31,7 @@ MIKU 編譯（build）與發佈（publish）時，都會對每個模組執行 `M
   - `play(ids, shuffle, start, { at, source })`：`at` 是第一首開始的秒數；`source` 是任意 JSON 物件，表示「這個佇列是誰產生的」，會跟著佇列保存，直到改播別的東西
   - `playerSlot({ bar, nowPlaying, leaveBar })`：當目前佇列是本模組帶 `source` 播放的，播放列封面左側與全螢幕播放頁各有一個區塊，由 `bar(el, source)`、`nowPlaying(el, source)` 繪製；同時 `<html>` 會有 `data-ext-source="<id>"`，模組的樣式表可以據此改變播放列與播放頁的外觀。改播別的東西時全部還原；`leaveBar(el)`（可省略）可在播放列區塊收起前播放離場動畫，回傳 Promise，最多等 1 秒
   - `signalPath(fn)`：本模組的播放內核回報自己的訊號路徑時（`SignalInfo.Custom`，帶 `ext` 成員），由 `fn(box, signal, { stage, src, khz })` 畫出訊號路徑彈窗
+  - `coreLabel(coreId, fn)`：本模組提供的播放內核在「播放方案」選單中的顯示方式：`fn()` 回傳一個節點（例如字標），取代內核名稱顯示在選單按鈕與選項中；原生選項仍保留名稱文字（輔助技術使用）
 
 ## 播放內核
 

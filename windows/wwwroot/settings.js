@@ -101,6 +101,7 @@ const Settings = {
       })());
       out.append(bufField);
       const coreSel = select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); Router.render(); });
+      for (const opt of coreSel.options) if (MikuExt.labels['core:' + opt.value]) opt.dataset.label = 'core:' + opt.value;   // a module's own label
       out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'), coreSel));
       // the chosen core's own settings (a module's), right under it
       ext('core', out);

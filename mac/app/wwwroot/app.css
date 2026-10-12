@@ -378,8 +378,9 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 #np-ext > * { pointer-events: auto; }
 .np-mini .art { --art: 60px; width: var(--art); height: var(--art); border-radius: 8px; overflow: hidden; background: var(--surface-2); flex: none; cursor: pointer; position: relative; box-shadow: 0 4px 14px rgba(var(--shadow-rgb), calc(.35 * var(--sh))); transition: width .25s var(--ease-out), height .25s var(--ease-out), margin .25s var(--ease-out); }
 /* hover: the cover itself grows (redrawn at each size, so it stays sharp; a scale transform showed it blurred until
-   the end), the negative margin keeping its room in the bar so nothing beside it moves */
-.np-mini .art:hover { width: calc(var(--art) * 1.04); height: calc(var(--art) * 1.04); margin: calc(var(--art) * -.02); }
+   the end), the negative margin keeping its room in the bar so nothing beside it moves. --art-grow (pixelsnap.js): 2 %
+   on each side rounded to whole device pixels, the cover itself on whole device pixels, so its edges move together */
+.np-mini .art:hover { --g: var(--art-grow, calc(var(--art) * .02)); width: calc(var(--art) + 2 * var(--g)); height: calc(var(--art) + 2 * var(--g)); margin: calc(-1 * var(--g)); }
 .np-mini .art img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s; }
 .np-mini .art img.ok { opacity: 1; }
 .np-mini .txt { min-width: 0; }

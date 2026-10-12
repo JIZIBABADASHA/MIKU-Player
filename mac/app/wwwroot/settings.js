@@ -86,8 +86,9 @@ const Settings = {
       redrawDevices();
       // 播放方案: MIKU's own core (FFmpeg) or a module's; shown when there is a choice
       if (cores.length > 1) {
-        out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'),
-          select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); await Outputs.refresh(); Router.render(false, 'none'); })));
+        const coreSel = select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); await Outputs.refresh(); Router.render(false, 'none'); });
+        for (const opt of coreSel.options) if (MikuExt.labels['core:' + opt.value]) opt.dataset.label = 'core:' + opt.value;   // a module's own label
+        out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'), coreSel));
         // the chosen core's own settings (a module's), right under it
         ext('core', out);
       }

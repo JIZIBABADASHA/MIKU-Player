@@ -185,7 +185,9 @@ const NowPlaying = {
         cover.querySelectorAll('.ph').forEach(p => p.remove());
         if (old) setTimeout(() => old.remove(), 700);
       };
-      img.onerror = () => { if (!old) fillArt(cover, kind, null, 0, t.album?.title); img.remove(); };
+      // no picture for this album: its placeholder replaces whatever is shown (also the previous album's cover), unless
+      // another track has been painted meanwhile
+      img.onerror = () => { if (cover.dataset.cur === kind + id) fillArt(cover, kind, null, 0, t.album?.title); else img.remove(); };
       img.src = t.live ? bigYtImg(t.img, 1200) : artUrl(kind, id, 900);
       cover.append(img);
       // background: small image, heavy blur — cheap and smooth
