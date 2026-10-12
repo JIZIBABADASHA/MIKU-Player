@@ -369,7 +369,7 @@ const Lib = {
  * is logged and left out.
  */
 const MikuExt = {
-  defs: {}, settings: {}, slots: {}, paths: {}, slotKey: null, slotDef: null, slotSeq: 0,
+  defs: {}, settings: {}, slots: {}, paths: {}, labels: {}, slotKey: null, slotDef: null, slotSeq: 0,
   register(def) { if (def && def.id) this.defs[def.id] = def; },
 
   async load(list) {
@@ -455,6 +455,11 @@ const MikuExt = {
       addSettings: (tab, fn) => (this.settings[tab] = this.settings[tab] || []).push(fn),
       /** fn(box, signal, { stage, src, khz }): draw the signal path when this module's core reports one (SignalInfo.Custom). */
       signalPath: fn => { this.paths[id] = fn; },
+      /**
+       * fn() → a node: how the playback core `coreId` (a core this module provides) is shown in the 播放方案 menu, in
+       * place of its name (a wordmark, …). The menu keeps the name for assistive technology.
+       */
+      coreLabel: (coreId, fn) => { this.labels['core:' + coreId] = fn; },
     };
   },
 };
