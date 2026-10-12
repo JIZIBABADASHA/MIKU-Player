@@ -2,9 +2,9 @@
 /* ═════════════════════════════ 音樂庫 → 資料夾 ═════════════════════════════
  * The library by the folders on disk: library.json lists every folder once ("folders") and each track names its
  * folder (Lib: t.dir). Two ways to look at it, switched on the page (ui pref folderView):
- *   瀏覽 (browse): one folder at a time — its subfolders as cards (the covers of what they hold, fanned out) or as a
- *                  list of rows (卡片 / 條列, ui pref folderLayout), then its songs as MIKU's own track rows; the path
- *                  above leads up.
+ *   瀏覽 (browse): one folder at a time, the path above leads up. Two layouts (卡片 / 條列, ui pref folderLayout):
+ *                  卡片: its subfolders as cards (the covers of what they hold, fanned out), then its songs as track rows;
+ *                  條列: one table of its subfolders and its songs, with a header whose columns sort it.
  *   樹狀 (tree):   the whole tree, folders opened and closed in place; "(n)" = what a folder holds (like foobar2000).
  * A folder plays everything under it, in the order shown. The top level is the library folders (Settings → 音樂庫);
  * files outside them hang under their drive. */
@@ -153,11 +153,28 @@ const Folders = {
     let stop = null;
     const draw = () => {
       stop && stop(); stop = null; host.textContent = '';
-      const key = sortNow(), so = this.sorters();
+      const so = this.sorters();
+      if (layout() === 'list') {
+        // 條列: folders first, then songs, in one table; a click on a column sorts by it, again turns it round
+        const [key0, d0] = (String(uiPref('folderCol', 'name')) + ':').split(':');
+        const key = so.dirs[key0] ? key0 : 'name', desc = d0 === 'desc';
+        const fs = kids.slice().sort(so.dirs[key]), ts = songs.slice().sort(so.songs[key]);
+        if (desc) { fs.reverse(); ts.reverse(); }
+        const table = h('div', { class: 'ftable' });
+        table.append(h('div', { class: 'ft-head' }, h('div', { class: 'c-pic' }), this.cols.map(([k, label, cls]) => {
+          const b = h('button', { class: 'ft-h ' + cls + (k === key ? ' on' : ''), type: 'button' }, h('span', null, T(label)), k === key ? h('span', { class: 'arr' + (desc ? ' desc' : ''), html: icon('down') }) : null);
+          b.onclick = () => { setUiPref('folderCol', k + ((k === key ? !desc : k === 'added') ? ':desc' : '')); draw(); };   // dates: newest first
+          return b;
+        }), h('div', { class: 'c-act' })));
+        host.append(table);
+        stop = vlist(table, [...fs, ...ts], 60, (x, i) => i < fs.length ? this.tableDir(x) : this.tableSong(x, i - fs.length, ts));
+        return;
+      }
+      const key = sortNow();
       const fs = kids.slice().sort(so.dirs[key]), ts = songs.slice().sort(so.songs[key]);
       if (key === 'added') { fs.reverse(); ts.reverse(); }   // newest first
       if (dir.rev()) { fs.reverse(); ts.reverse(); }
-      if (fs.length) host.append(layout() === 'list' ? h('div', { class: 'frows' }, fs.map(n => this.dirRow(n))) : h('div', { class: 'fshelf' }, fs.map(n => this.dirCard(n))));
+      if (fs.length) host.append(h('div', { class: 'fshelf' }, fs.map(n => this.dirCard(n))));
       if (ts.length) {
         const list = h('div', { class: 'tracks' }, thead());
         host.append(list);
@@ -167,9 +184,10 @@ const Folders = {
     const dir = sortDir('folderSortDir', sortNow, () => draw());
     view.append(crumbs, pageHead(title, sub, [
       switcher,
-      seg([['cards', T('卡片')], ['list', T('條列')]], layout(), v => { setUiPref('folderLayout', v); draw(); }),
-      seg([['name', T('名稱')], ['added', T('最近加入')], ['dur', T('長度')]], sortNow(), v => { setUiPref('folderSort', v); dir.paint(); draw(); }),
-      dir.el,
+      seg([['cards', T('卡片')], ['list', T('條列')]], layout(), v => { setUiPref('folderLayout', v); Router.render(false, 'none'); }),
+      // 卡片 is sorted here; 條列 by its own column header
+      layout() === 'cards' ? seg([['name', T('名稱')], ['added', T('最近加入')], ['dur', T('長度')]], sortNow(), v => { setUiPref('folderSort', v); dir.paint(); draw(); }) : null,
+      layout() === 'cards' ? dir.el : null,
       h('button', { class: 'btn primary small', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(all(), 0, false) }),
       h('button', { class: 'btn small', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(all(), -1, true) }),
     ]));
@@ -184,9 +202,12 @@ const Folders = {
     const coll = Lib.collator, s = (a, b) => coll.compare(a || '', b || '');
     const order = (a, b) => (a.disc || 0) - (b.disc || 0) || (a.no || 0) - (b.no || 0) || s(a.title, b.title);
     const g = n => this.agg(n), byName = (a, b) => s(a.name, b.name);
+    const q = t => t.album?.q || fmtQuality(t.codec, t.rate, t.bits);
     return {
-      dirs: { name: byName, dur: (a, b) => g(a).dur - g(b).dur || byName(a, b), added: (a, b) => g(a).added - g(b).added || byName(a, b) },
-      songs: { name: order, dur: (a, b) => a.dur - b.dur || order(a, b), added: (a, b) => (a.added || 0) - (b.added || 0) || order(a, b) },
+      dirs: { name: byName, dur: (a, b) => g(a).dur - g(b).dur || byName(a, b), added: (a, b) => g(a).added - g(b).added || byName(a, b),
+        album: (a, b) => s(g(a).album || g(a).artist, g(b).album || g(b).artist) || byName(a, b), fmt: (a, b) => s(g(a).fmt, g(b).fmt) || byName(a, b) },
+      songs: { name: order, dur: (a, b) => a.dur - b.dur || order(a, b), added: (a, b) => (a.added || 0) - (b.added || 0) || order(a, b),
+        album: (a, b) => s(a.album?.title, b.album?.title) || order(a, b), fmt: (a, b) => s(q(a), q(b)) || order(a, b) },
     };
   },
   /** What a folder holds, for its card: total length, newest file, its artist / album / format when they are one, and
@@ -234,20 +255,51 @@ const Folders = {
     return c;
   },
 
-  /** A folder as a row (條列): one cover, its name and whose music it is, how much it holds, its format, play. */
-  dirRow(n) {
+  /* ── 條列: the table ──
+     Columns that sort (名稱 專輯 格式 新增日期 長度). A row is two lines tall like MIKU's track rows: a folder shows a
+     cover with a folder tab on it, its name, and under it what it holds; a song its track number (play on hover, the
+     bars while it plays), its title and artist. The format is the tag MIKU uses everywhere. */
+  cols: [['name', '名稱', 'c-name'], ['album', '專輯', 'c-album'], ['fmt', '格式', 'c-fmt'], ['added', '新增日期', 'c-added'], ['dur', '長度', 'c-dur']],
+  date(sec) {
+    if (!sec) return '';
+    const d = new Date((sec - 62135596800) * 1000);   // seconds from 0001-01-01 (.NET ticks / 10⁷)
+    if (isNaN(d)) return '';
+    this.df = this.df || new Intl.DateTimeFormat(document.documentElement.lang || undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return this.df.format(d);
+  },
+  tableDir(n) {
     const a = this.agg(n);
-    const cover = a.covers.length ? artBox('fr-cv', ...albumArt(a.covers[0]), 48, a.covers[0].title) : h('div', { class: 'fr-cv ft-none', html: icon('folder') });
-    const who = a.albums > 1 ? [a.artist, T`${a.albums} 張專輯`].filter(Boolean).join(' · ') : a.artist;
-    const r = h('div', { class: 'row frow', title: n.path },
-      cover,
-      h('div', { class: 'tt' }, h('div', null, this.short(n)), h('div', { class: 'a' }, who || ' ')),
-      h('div', { class: 'fr-ct num' }, [n.kids.length ? T`${n.kids.length} 個資料夾` : '', T`${n.count} 首`].filter(Boolean).join(' · ')),
-      h('div', { class: 'fr-q' }, a.fmt ? h('span', { class: 'ft-q' }, a.fmt) : null),
-      h('div', { class: 'd num' }, fmtTime(a.dur)),
-      this.playBtn(() => App.playTracks(this.collect(n), 0, false)));
+    const pic = h('div', { class: 'c-pic' }, a.covers.length ? artBox('ft-thumb', ...albumArt(a.covers[0]), 44, a.covers[0].title) : h('div', { class: 'ft-thumb ft-none', html: icon('folder') }),
+      h('span', { class: 'ft-tab', html: icon('folder') }));
+    const holds = [n.kids.length ? T`${n.kids.length} 個資料夾` : '', T`${n.count} 首`].filter(Boolean).join(' · ');
+    const r = h('div', { class: 'row frow fr-dir', title: n.path },
+      pic,
+      h('div', { class: 'c-name tt' }, h('div', null, this.short(n)), h('div', { class: 'a' }, holds)),
+      h('div', { class: 'c-album' }, a.albums > 1 ? [a.artist, T`${a.albums} 張專輯`].filter(Boolean).join(' · ') : [a.artist, a.albums === 1 && a.album !== this.short(n) ? a.album : ''].filter(Boolean).join(' · ')),
+      h('div', { class: 'c-fmt' }, a.fmt ? h('span', { class: 'ft-q' }, a.fmt) : null),
+      h('div', { class: 'c-added num' }, this.date(a.added)),
+      h('div', { class: 'c-dur num' }, fmtTime(a.dur)),
+      h('div', { class: 'c-act' }, this.playBtn(() => App.playTracks(this.collect(n), 0, false))));
     r.onclick = () => go(this.href(n));
     r.oncontextmenu = e => { e.preventDefault(); this.menu(n, { x: e.clientX, y: e.clientY }); };
+    return r;
+  },
+  tableSong(t, i, list) {
+    const at = () => list[i] === t ? i : list.indexOf(t);
+    const play = () => App.playTracks(list, at());
+    const pic = h('div', { class: 'c-pic num' }, h('span', null, t.no || i + 1), h('div', { class: 'pi', html: icon('play', true) }), h('div', { class: 'eq', html: '<i></i><i></i><i></i>' }));
+    pic.onclick = e => { e.stopPropagation(); play(); };
+    const r = h('div', { class: 'row frow fr-song', 'data-id': t.id },
+      pic,
+      h('div', { class: 'c-name tt' }, h('div', { title: t.title }, t.title), h('div', { class: 'a' }, t.artist || '')),
+      h('div', { class: 'c-album' }, t.album ? h('a', { onclick: e => { e.stopPropagation(); go('#/album/' + t.albumId); } }, t.album.title) : ''),
+      h('div', { class: 'c-fmt' }, h('span', { class: 'ft-q plain' }, fmtQuality(t.codec, t.rate, t.bits))),
+      h('div', { class: 'c-added num' }, this.date(t.added)),
+      h('div', { class: 'c-dur num' }, fmtTime(t.dur)),
+      h('div', { class: 'c-act' }, this.playBtn(play)));
+    r.onclick = () => { $$('.row.sel').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); };
+    r.ondblclick = play;
+    r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }, list); };
     return r;
   },
 
