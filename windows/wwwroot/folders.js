@@ -2,7 +2,8 @@
 /* ═════════════════════════════ 音樂庫 → 資料夾 ═════════════════════════════
  * The library by the folders on disk: library.json lists every folder once ("folders") and each track names its
  * folder (Lib: t.dir). Two ways to look at it, switched on the page (ui pref folderView):
- *   瀏覽 (browse): one folder at a time, as a file list — its subfolders, then its songs; columns that sort; the path above leads up.
+ *   瀏覽 (browse): one folder at a time — its subfolders as cards (the covers of what they hold, fanned out), then its
+ *                  songs as MIKU's own track rows; the path above leads up.
  *   樹狀 (tree):   the whole tree, folders opened and closed in place; "(n)" = what a folder holds (like foobar2000).
  * A folder plays everything under it, in the order shown. The top level is the library folders (Settings → 音樂庫);
  * files outside them hang under their drive. */
@@ -122,12 +123,10 @@ const Folders = {
     return () => inner && inner();
   },
 
-  /* ── 瀏覽: one folder, as a file list ──
-     The path above the title (所有資料夾 › MUSIC › …), then a table: a header whose columns sort the list (a second
-     click turns it round; ui pref folderSort), the subfolders first with a folder icon, then the folder's songs as
-     files, a line between rows. */
-  cols: [['no', '#', 'c-no'], ['name', '名稱', 'c-name'], ['dur', '長度', 'c-dur'], ['artist', '演出者', 'c-artist'],
-    ['album', '專輯', 'c-album'], ['fmt', '格式', 'c-fmt'], ['added', '新增日期', 'c-added'], ['count', '內容', 'c-ct']],
+  /* ── 瀏覽: one folder ──
+     The path above the title (所有資料夾 › MUSIC › …), then the subfolders as cards (the covers of the albums inside,
+     fanned out; name, whose music it is, how much), then the folder's own songs as track rows like everywhere else in
+     MIKU. Sorted by the buttons in the page head (ui prefs folderSort, folderSortDir). */
   drawBrowse(view, tree, node, switcher) {
     const at = node || (tree.roots.length === 1 ? tree.roots[0] : null);
     const kids = at ? at.kids : tree.roots;
@@ -145,51 +144,48 @@ const Folders = {
     });
     const title = at ? (at.parent ? at.name : this.baseName(at.path)) : T('所有資料夾');
     const sub = [kids.length ? T`${kids.length} 個資料夾` : '', T`${count} 首`].filter(Boolean).join(' · ');
+    const sortNow = () => { const k = String(uiPref('folderSort', 'name')).split(':')[0]; return ['name', 'added', 'dur'].includes(k) ? k : 'name'; };
+    const host = h('div', { class: 'fbrowse' });
+    let stop = null;
+    const draw = () => {
+      stop && stop(); stop = null; host.textContent = '';
+      const key = sortNow(), so = this.sorters();
+      const fs = kids.slice().sort(so.dirs[key]), ts = songs.slice().sort(so.songs[key]);
+      if (key === 'added') { fs.reverse(); ts.reverse(); }   // newest first
+      if (dir.rev()) { fs.reverse(); ts.reverse(); }
+      if (fs.length) host.append(h('div', { class: 'fshelf' }, fs.map(n => this.dirCard(n))));
+      if (ts.length) {
+        const list = h('div', { class: 'tracks' }, thead());
+        host.append(list);
+        stop = vlist(list, ts, 68, (t, i) => trackRow(t, i, ts, { art: true }));
+      }
+    };
+    const dir = sortDir('folderSortDir', sortNow, () => draw());
     view.append(crumbs, pageHead(title, sub, [
       switcher,
+      seg([['name', T('名稱')], ['added', T('最近加入')], ['dur', T('長度')]], sortNow(), v => { setUiPref('folderSort', v); dir.paint(); draw(); }),
+      dir.el,
       h('button', { class: 'btn primary small', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(all(), 0, false) }),
       h('button', { class: 'btn small', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(all(), -1, true) }),
     ]));
-    const host = h('div', { class: 'flist' });
     view.append(host);
     if (!kids.length && !songs.length) { host.append(h('div', { class: 'empty', style: { minHeight: '30vh' } }, h('div', { class: 'box' }, h('p', null, T('這個資料夾沒有歌曲。'))))); return null; }
-    let stop = null;
-    const draw = () => {
-      stop && stop(); host.textContent = '';
-      const [key, dir] = (String(uiPref('folderSort', 'name')) + ':').split(':');
-      const desc = dir === 'desc', so = this.sorters();
-      const fs = kids.slice().sort(so.dirs[key] || so.dirs.name), ts = songs.slice().sort(so.songs[key] || so.songs.name);
-      if (desc) { fs.reverse(); ts.reverse(); }
-      const head = h('div', { class: 'fl-head' }, this.cols.map(([k, label, cls]) => {
-        const b = h('button', { class: 'fl-h ' + cls + (k === key ? ' on' : ''), type: 'button' }, h('span', null, label === '#' ? '#' : T(label)),
-          k === key ? h('span', { class: 'arr' + (desc ? ' desc' : ''), html: icon('down') }) : null);
-        // the same column again turns it round; a new one starts A→Z (dates: newest first)
-        b.onclick = () => { const d = k === key ? !desc : k === 'added'; setUiPref('folderSort', k + (d ? ':desc' : '')); draw(); };
-        return b;
-      }), h('div', { class: 'c-act' }));
-      host.append(head);
-      stop = vlist(host, [...fs, ...ts], 56, (x, i) => i < fs.length ? this.dirLine(x) : this.songLine(x, i - fs.length, ts));
-    };
     draw();
     return () => stop && stop();
   },
-  /** Sorting: folders first and songs after, each by the column chosen. 名稱 keeps the songs in track order (their
-   *  files are normally numbered that way); ties fall back to it too. */
+  /** Sorting: the cards and the songs, each by what was chosen. 名稱 keeps the songs in track order (their files are
+   *  normally numbered that way); ties fall back to it too. */
   sorters() {
     const coll = Lib.collator, s = (a, b) => coll.compare(a || '', b || '');
     const order = (a, b) => (a.disc || 0) - (b.disc || 0) || (a.no || 0) - (b.no || 0) || s(a.title, b.title);
     const g = n => this.agg(n), byName = (a, b) => s(a.name, b.name);
-    const q = t => t.album?.q || fmtQuality(t.codec, t.rate, t.bits);
     return {
-      dirs: { no: byName, name: byName, dur: (a, b) => g(a).dur - g(b).dur || byName(a, b), artist: (a, b) => s(g(a).artist, g(b).artist) || byName(a, b),
-        album: (a, b) => s(g(a).album, g(b).album) || byName(a, b), fmt: (a, b) => s(g(a).fmt, g(b).fmt) || byName(a, b),
-        added: (a, b) => g(a).added - g(b).added || byName(a, b), count: (a, b) => a.count - b.count || byName(a, b) },
-      songs: { no: order, name: order, dur: (a, b) => a.dur - b.dur || order(a, b), artist: (a, b) => s(a.artist, b.artist) || order(a, b),
-        album: (a, b) => s(a.album?.title, b.album?.title) || order(a, b), fmt: (a, b) => s(q(a), q(b)) || order(a, b),
-        added: (a, b) => (a.added || 0) - (b.added || 0) || order(a, b), count: order },
+      dirs: { name: byName, dur: (a, b) => g(a).dur - g(b).dur || byName(a, b), added: (a, b) => g(a).added - g(b).added || byName(a, b) },
+      songs: { name: order, dur: (a, b) => a.dur - b.dur || order(a, b), added: (a, b) => (a.added || 0) - (b.added || 0) || order(a, b) },
     };
   },
-  /** What a folder holds, for its row: total length, newest file, and its artist / album / format when they are one. */
+  /** What a folder holds, for its card: total length, newest file, its artist / album / format when they are one, and
+   *  up to three of its albums for the covers. */
   agg(n) {
     if (n.agg) return n.agg;
     let dur = 0, added = 0;
@@ -210,52 +206,27 @@ const Folders = {
       artist: one(artists) ?? (artists.size ? T('多位演出者') : ''),
       album: one(albums)?.title ?? (albums.size ? T`${albums.size} 張專輯` : ''),
       fmt: one(fmts) ?? (fmts.size ? T('多種格式') : ''),
+      albums: albums.size, covers: [...albums].slice(0, 3),
     };
   },
-  date(s) {
-    if (!s) return '';
-    const d = new Date((s - 62135596800) * 1000);   // seconds from 0001-01-01 (.NET ticks / 10⁷)
-    if (isNaN(d)) return '';
-    this.df = this.df || new Intl.DateTimeFormat(document.documentElement.lang || undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    return this.df.format(d);
-  },
-  /** A music file: a page with a turned corner and a note. */
-  FILE: '<svg class="i" viewBox="0 0 24 24"><path d="M6.5 3.5h7.5l4 4V19.5a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z"/><path d="M14 3.5v4h4"/><path d="M11.2 16.4v-5l3.3-.9"/><circle cx="9.9" cy="16.5" r="1.3"/></svg>',
-  dirLine(n) {
+  /** A folder as a card: the covers of up to three albums inside, fanned out (a folder mark when it has none), its
+   *  name, whose music it is (or how many albums), and how much it holds. */
+  dirCard(n) {
     const a = this.agg(n);
-    const r = h('div', { class: 'row fl fl-dir', title: n.path },
-      h('div', { class: 'c-no' }),
-      h('div', { class: 'c-name' }, h('span', { class: 'fl-ic', html: icon('folder') }), h('span', { class: 'nm' }, this.label(n))),
-      h('div', { class: 'c-dur num' }, fmtTime(a.dur)),
-      h('div', { class: 'c-artist' }, a.artist),
-      h('div', { class: 'c-album' }, a.album),
-      h('div', { class: 'c-fmt' }, a.fmt),
-      h('div', { class: 'c-added num' }, this.date(a.added)),
-      h('div', { class: 'c-ct num' }, [n.kids.length ? T`${n.kids.length} 個資料夾` : '', T`${n.count} 首`].filter(Boolean).join(' · ')),
-      h('div', { class: 'c-act' }, this.playBtn(() => App.playTracks(this.collect(n), 0, false))));
-    r.onclick = () => go(this.href(n));
-    r.oncontextmenu = e => { e.preventDefault(); this.menu(n, { x: e.clientX, y: e.clientY }); };
-    return r;
-  },
-  songLine(t, i, list) {
-    const at = () => list[i] === t ? i : list.indexOf(t);
-    const play = () => App.playTracks(list, at());
-    const no = h('div', { class: 'c-no num' }, h('span', null, t.no || ''), h('span', { class: 'pi', html: icon('play', true) }), h('div', { class: 'eq', html: '<i></i><i></i><i></i>' }));
-    no.onclick = e => { e.stopPropagation(); play(); };
-    const r = h('div', { class: 'row fl fl-song', 'data-id': t.id },
-      no,
-      h('div', { class: 'c-name' }, h('span', { class: 'fl-ic', html: this.FILE }), h('span', { class: 'nm', title: t.title }, t.title)),
-      h('div', { class: 'c-dur num' }, fmtTime(t.dur)),
-      h('div', { class: 'c-artist' }, t.artist || ''),
-      h('div', { class: 'c-album' }, t.album ? h('a', { onclick: e => { e.stopPropagation(); go('#/album/' + t.albumId); } }, t.album.title) : ''),
-      h('div', { class: 'c-fmt' }, fmtQuality(t.codec, t.rate, t.bits)),
-      h('div', { class: 'c-added num' }, this.date(t.added)),
-      h('div', { class: 'c-ct' }),
-      h('div', { class: 'c-act' }, this.playBtn(play)));
-    r.onclick = () => { $$('.row.sel').forEach(x => x.classList.remove('sel')); r.classList.add('sel'); };
-    r.ondblclick = play;
-    r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }, list); };
-    return r;
+    const stack = h('div', { class: 'ft-stack', 'data-n': a.covers.length });
+    if (a.covers.length) a.covers.forEach((al, i) => { const b = artBox('ft-cv', ...albumArt(al), 96, al.title); b.style.setProperty('--k', i); stack.append(b); });
+    else stack.append(h('div', { class: 'ft-cv ft-none', html: icon('folder') }));
+    stack.append(h('button', { class: 'ft-play', title: T('播放'), html: icon('play', true), onclick: e => { e.stopPropagation(); App.playTracks(this.collect(n), 0, false); } }));
+    const who = a.albums > 1 ? [a.artist, T`${a.albums} 張專輯`].filter(Boolean).join(' · ') : a.artist;
+    const c = h('div', { class: 'ftile', title: n.path },
+      stack,
+      h('div', { class: 'ft-txt' },
+        h('div', { class: 't1' }, this.label(n)),
+        h('div', { class: 't2' }, who || ' '),
+        h('div', { class: 't3 num' }, h('span', null, [n.kids.length ? T`${n.kids.length} 個資料夾` : '', T`${n.count} 首`, fmtTime(a.dur)].filter(Boolean).join(' · ')), a.fmt ? h('span', { class: 'ft-q' }, a.fmt) : null)));
+    c.onclick = () => go(this.href(n));
+    c.oncontextmenu = e => { e.preventDefault(); this.menu(n, { x: e.clientX, y: e.clientY }); };
+    return c;
   },
 
   /* ── 樹狀: the whole tree ── */
