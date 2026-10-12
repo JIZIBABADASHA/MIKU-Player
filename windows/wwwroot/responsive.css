@@ -3,6 +3,19 @@
    載入順序：app.css → themes.css → responsive.css（最後，才能蓋過主題）
    ═══════════════════════════════════════════════════════════════ */
 
+/* ───── 0. 播放列：視窗變窄時右側工具先收窄（裝置名稱、音量條、dB 數字），不壓到進度條 ───── */
+@media (max-width: 1420px) {
+  #bar .out-btn { max-width: 130px; }
+  #bar .vol { width: 150px; }
+}
+@media (max-width: 1280px) {
+  #bar { grid-template-columns: minmax(160px, 1fr) minmax(260px, 620px) minmax(max-content, 1fr); gap: 16px; }
+  #bar .out-btn { max-width: 104px; }
+  #bar .vol { width: 112px; margin-left: 2px; }
+  #bar .vol .db { display: none; }
+  #bar .tool-sep { display: none; }
+}
+
 /* ───── 1. 播放列：寬度不夠時改成兩列（進度條在上、按鈕在下），不再互相擠壓 ───── */
 @media (max-width: 1080px) {
   :root { --bar: 104px; }

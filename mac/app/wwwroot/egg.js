@@ -6,6 +6,104 @@
    window. They stay there until the logo's place is clicked again, when they rise, whirl and lock back together with a
    flash. Nothing is saved: a broken logo is whole again the next time MIKU starts. With 輕量化「頁面與操作動畫」 (or
    reduced motion) the logo only changes between broken and whole. */
+/* The press has a voice, made here (Web Audio, no files): a rumble that grows as the plate rises, the logo groaning and
+   ticking as it cracks, a boom with breaking glass when it bursts, and a rising shimmer when it is put back together.
+   Through the system's own output, at a fixed level; silent while MIKU is muted. */
+const EggSound = {
+  ctx: null, out: null, live: [],
+  start() {
+    if (typeof App !== 'undefined' && App.settings && App.settings.muted) return false;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!this.ctx) {
+        this.ctx = new AC(); this.out = this.ctx.createGain(); this.out.gain.value = .5;
+        // a limiter in front of the speakers: the boom is loud, never clipped
+        const lim = this.end = this.ctx.createDynamicsCompressor();
+        lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 16; lim.attack.value = .002; lim.release.value = .25;
+        const trim = this.ctx.createGain(); trim.gain.value = .8;
+        this.out.connect(lim); lim.connect(trim); trim.connect(this.ctx.destination); this.end = trim;
+      }
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      return true;
+    } catch (e) { return false; }
+  },
+  noise(seconds) {
+    const c = this.ctx, b = c.createBuffer(1, Math.ceil(c.sampleRate * seconds), c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const n = c.createBufferSource(); n.buffer = b; return n;
+  },
+  env(peak, at, attack, decay) {
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(peak, at + attack); g.gain.exponentialRampToValueAtTime(0.0001, at + attack + decay);
+    g.connect(this.out); return g;
+  },
+  /** The plate coming: a low drone and a bed of rumble, swelling for `rise` seconds, then harder for `press`. */
+  approach(rise, press) {
+    if (!this.start()) return;
+    const c = this.ctx, t = c.currentTime, end = t + rise + press;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.16, t + rise); g.gain.exponentialRampToValueAtTime(.42, end); g.connect(this.out);
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(70, t); lp.frequency.linearRampToValueAtTime(150, t + rise); lp.frequency.linearRampToValueAtTime(420, end); lp.connect(g);
+    const n = this.noise(rise + press + .3); n.connect(lp); n.start(t); n.stop(end + .2);
+    const sub = c.createOscillator(); sub.type = 'sine'; sub.frequency.setValueAtTime(34, t); sub.frequency.linearRampToValueAtTime(46, t + rise); sub.frequency.linearRampToValueAtTime(58, end); sub.connect(g); sub.start(t); sub.stop(end + .2);
+    // the logo under load: a groan that climbs, shaking faster and faster
+    const groan = c.createOscillator(), gg = c.createGain(), gl = c.createBiquadFilter(), trem = c.createOscillator(), tg = c.createGain();
+    groan.type = 'sawtooth'; groan.frequency.setValueAtTime(52, t + rise); groan.frequency.exponentialRampToValueAtTime(118, end);
+    gl.type = 'bandpass'; gl.frequency.setValueAtTime(260, t + rise); gl.frequency.exponentialRampToValueAtTime(900, end); gl.Q.value = 3;
+    gg.gain.setValueAtTime(0.0001, t + rise); gg.gain.exponentialRampToValueAtTime(.2, end);
+    trem.frequency.setValueAtTime(7, t + rise); trem.frequency.linearRampToValueAtTime(26, end); tg.gain.value = .12; trem.connect(tg); tg.connect(gg.gain);
+    groan.connect(gl); gl.connect(gg); gg.connect(this.out);
+    groan.start(t + rise); trem.start(t + rise); groan.stop(end + .05); trem.stop(end + .05);
+    this.live = [g, gg];
+  },
+  /** A crack: a dry tick. */
+  crack(strength = 1) {
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime, n = this.noise(.08), hp = c.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 1800 + Math.random() * 2600;
+    n.connect(hp); hp.connect(this.env(.22 * strength, t, .002, .05 + Math.random() * .05)); n.start(t); n.stop(t + .12);
+  },
+  /** It gives way: the drone is cut, then a boom that drops through the floor, a blast of noise, and glass. */
+  boom() {
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    for (const g of this.live) { try { g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0.0001, t, .03); } catch (e) { } }
+    this.live = [];
+    const shape = c.createWaveShaper(), curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = Math.tanh(x * 3.2); }
+    shape.curve = curve; shape.connect(this.env(1, t, .004, 1.9));
+    for (const [f0, f1, type, lvl] of [[150, 26, 'sine', 1], [96, 20, 'triangle', .6]]) {
+      const o = c.createOscillator(), og = c.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + .9); og.gain.value = lvl;
+      o.connect(og); og.connect(shape); o.start(t); o.stop(t + 2.1);
+    }
+    const blast = this.noise(1.4), lp = c.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(5200, t); lp.frequency.exponentialRampToValueAtTime(120, t + 1.1);
+    blast.connect(lp); lp.connect(this.env(.8, t, .003, 1.2)); blast.start(t); blast.stop(t + 1.5);
+    // the pieces: glass, for as long as they are in the air
+    const glass = this.noise(1.6), hp = c.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 4200;
+    glass.connect(hp); hp.connect(this.env(.3, t + .02, .01, 1.3)); glass.start(t); glass.stop(t + 1.6);
+    for (let i = 0; i < 16; i++) {
+      const at = t + .04 + Math.random() * 1.5, o = c.createOscillator();
+      o.type = 'sine'; o.frequency.value = 2400 + Math.random() * 5200;
+      o.connect(this.env(.07 + Math.random() * .07, at, .002, .12 + Math.random() * .2)); o.start(at); o.stop(at + .4);
+    }
+  },
+  /** Put back together: a swell that rises into a bright chord. */
+  restore(seconds) {
+    if (!this.start()) return;
+    const c = this.ctx, t = c.currentTime, n = this.noise(seconds + .2), bp = c.createBiquadFilter(), g = c.createGain();
+    bp.type = 'bandpass'; bp.Q.value = 1.4; bp.frequency.setValueAtTime(240, t); bp.frequency.exponentialRampToValueAtTime(6400, t + seconds);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(.34, t + seconds * .92); g.gain.exponentialRampToValueAtTime(0.0001, t + seconds + .08); g.connect(this.out);
+    n.connect(bp); bp.connect(g); n.start(t); n.stop(t + seconds + .2);
+    [523.25, 783.99, 1046.5, 1567.98].forEach((f, i) => {
+      const o = c.createOscillator(); o.type = i % 2 ? 'triangle' : 'sine'; o.frequency.value = f;
+      o.connect(this.env(.16, t + seconds + i * .035, .006, 1.1)); o.start(t + seconds); o.stop(t + seconds + 1.4);
+    });
+  },
+};
+
 const LogoEgg = {
   broken: false, busy: false, shards: null,
   calm: () => matchMedia('(prefers-reduced-motion: reduce)').matches || (typeof PageEffects !== 'undefined' && PageEffects.reduced('page')),
@@ -88,7 +186,7 @@ const LogoEgg = {
         s.style.clipPath = `polygon(${tri.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',')})`;
         s.style.transformOrigin = `${cx.toFixed(1)}px ${cy.toFixed(1)}px`;
         s.append(logo.cloneNode(true));
-        s._x = cx / w; s._y = cy / hgt;
+        s._x = cx / w; s._y = cy / hgt; s._cx = cx; s._cy = cy;
         // strained: a crack's width out of place
         s._crack = `translate(${((Math.random() - .5) * 5).toFixed(1)}px, ${((Math.random() - .5) * 4).toFixed(1)}px) rotate(${((Math.random() - .5) * 7).toFixed(1)}deg)`;
         // where it lands: thrown out across the floor (some far), turned any way up
@@ -103,8 +201,9 @@ const LogoEgg = {
     document.body.append(box);
     return box;
   },
-  /** Thrown up and out, down under its own weight, one bounce on the floor. */
-  fall(s) {
+  /** Thrown up and out, down under its own weight, one bounce on the floor. `from`: where the piece is when it lets go
+   *  (pressed flat), so nothing jumps back into shape first. */
+  fall(s, from) {
     const frames = [];
     for (let k = 0; k <= 9; k++) {
       const t = k / 9, land = .82, u = Math.min(1, t / land);
@@ -113,6 +212,11 @@ const LogoEgg = {
       frames.push({ offset: t, transform: `translate(${(s._dx * Math.min(1, t * 1.08)).toFixed(1)}px, ${y.toFixed(1)}px) rotate(${(s._rot * Math.min(1, t * 1.1)).toFixed(0)}deg) scale(${(1 + (s._scale - 1) * t).toFixed(2)})` });
     }
     frames[frames.length - 1].transform = s._rest;
+    if (from) {
+      // flat when it lets go, and still flat as it shoots out sideways: it opens up only once it is well clear
+      frames[0].transform = `translate(${from.x.toFixed(1)}px, ${from.y.toFixed(1)}px) scale(${from.sx}, ${from.sy.toFixed(3)})`;
+      frames.splice(1, 0, { offset: .05, transform: `translate(${(from.x + s._dx * .1 + (s._x - .5) * 70).toFixed(1)}px, ${(from.y - 4).toFixed(1)}px) rotate(${(s._rot * .03).toFixed(0)}deg) scale(1, ${(from.sy * 2.2).toFixed(3)})` });
+    }
     return frames;
   },
   async crush(brand) {
@@ -134,6 +238,7 @@ const LogoEgg = {
     document.body.append(plate);
     const reach = innerHeight - r.bottom - 3, gap = 7, squeeze = Math.max(4, r.bottom - gap - Math.max(0, r.top - 14));
     let rumble = shake(1, 170);
+    EggSound.approach(5.2, 2.6);
     // 1. it rises, at one slow pace; the logo starts to tremble as it comes near
     const rise = plate.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${-reach}px)` }], { duration: 5200, easing: 'linear', fill: 'forwards' });
     await wait(5200 - 1100);
@@ -144,21 +249,27 @@ const LogoEgg = {
     tremble.cancel(); rumble.cancel(); rumble = shake(2.2, 110);
     const pressMs = 2600;
     plate.animate([{ transform: `translateY(${-reach}px)` }, { transform: `translateY(${-reach - squeeze}px)` }], { duration: pressMs, easing: 'cubic-bezier(.3,.5,.7,1)', fill: 'forwards' });
-    box.animate([{ transform: 'translateY(0) scale(1,1)' }, { transform: `translateY(${-Math.min(r.top - 6, squeeze * .35)}px) scale(1.16, ${(gap / r.height).toFixed(3)})` }],
+    const lift = -Math.min(r.top - 6, squeeze * .35), sx = 1.16, sy = gap / r.height;
+    box.animate([{ transform: 'translateY(0) scale(1,1)' }, { transform: `translateY(${lift}px) scale(${sx}, ${sy.toFixed(3)})` }],
       { duration: pressMs, easing: 'cubic-bezier(.3,.5,.7,1)', fill: 'forwards' });
+    for (let k = 0; k < 22; k++) setTimeout(() => EggSound.crack(.5 + k / 22), pressMs * (.12 + .86 * Math.pow(Math.random(), .7)));
     pieces.forEach(s => s.animate([{ transform: 'none' }, { transform: s._crack }], { duration: 200, delay: (1 - s._y) * pressMs * .55 + Math.random() * 500, easing: 'ease-out', fill: 'both' }));
     for (let k = 1; k <= 4; k++) setTimeout(() => this.spark(r.left + Math.random() * r.width, r.bottom - k * r.height / 5, 5 + k * 2, ['#ffffff', '#39c5bb', '#e5307e'], 50 + k * 16), pressMs * k / 5);
     await wait(pressMs);
     // 3. it gives way: the pieces shoot out of the gap, the plate draws back, and they come down all over the floor
     rumble.cancel();
+    EggSound.boom();
     box.classList.add('egg-out');
+    // each piece lets go from where the press held it: the box's squeeze becomes the piece's own first position, so the
+    // logo does not spring back into shape for a frame before it flies apart
+    const pressed = s => ({ x: (s._cx - r.width / 2) * (sx - 1), y: s._cy * (sy - 1) + lift, sx, sy });
+    pieces.forEach(s => { const q = pressed(s); s.getAnimations().forEach(a => a.cancel()); s.style.transform = `translate(${q.x.toFixed(1)}px, ${q.y.toFixed(1)}px) scale(${q.sx}, ${q.sy.toFixed(3)})`; });
     box.getAnimations().forEach(a => a.cancel());
     this.spark(lx, r.top + gap, 52, ['#39c5bb', '#e5307e', '#ffffff', '#1c1c20'], 250);
     app.animate([0, 16, -12, 9, -6, 3, 0].map(y => ({ transform: `translate(${y * .4}px, ${y}px)` })), { duration: 680, easing: 'ease-out' });
     const back = plate.animate([{ transform: `translateY(${-reach - squeeze}px)` }, { transform: `translateY(${-reach - squeeze}px)`, offset: .12 }, { transform: 'translateY(0)' }], { duration: 1900, easing: 'cubic-bezier(.6,0,.9,.5)', fill: 'forwards' });
     const falls = pieces.map(s => {
-      s.getAnimations().forEach(a => a.cancel());
-      return s.animate(this.fall(s), { duration: 1250 + Math.random() * 750, delay: Math.random() * 160, easing: 'linear', fill: 'both' }).finished;
+      return s.animate(this.fall(s, pressed(s)), { duration: 1250 + Math.random() * 750, delay: Math.random() * 90, easing: 'linear', fill: 'both' }).finished;
     });
     try { await Promise.all([...falls, back.finished]); } catch { }
     pieces.forEach(s => { s.style.transform = s._rest; });
@@ -174,6 +285,7 @@ const LogoEgg = {
     const r = logo.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     const pieces = [...box.children];
     box.classList.add('egg-out');
+    EggSound.restore(1.25 + pieces.length * .006);
     // up off the floor in a whirl, then every piece home at once
     const all = pieces.map((s, i) => {
       const a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90;
