@@ -64,7 +64,7 @@ const NowPlaying = {
     YT.sync();
     this.applyLayout();
     this.paint();
-    requestAnimationFrame(() => this.measure());
+    requestAnimationFrame(() => { this.measure(); App.frame(); });   // the page's own progress bar and lyrics, now
   },
   hide(fromPop) {
     if (!this.open) return;
@@ -322,6 +322,19 @@ const NowPlaying = {
         if (spans[k]._p !== v) { spans[k]._p = v; spans[k].style.setProperty('--p', v); }
       }
     }
+  },
+
+  /** Seconds until tick() has something to draw; 0 = every frame (the word-by-word fill of the line being sung). */
+  nextTick(pos) {
+    if (!this.open || !this.ly || !this.ly.synced || !this.lines.length) return Infinity;
+    const L = this.ly.lines, p = pos + (this.ly.offset || 0), now = performance.now();
+    if (this.active < -1) return 0.02;   // lyrics just drawn: no line marked yet
+    if (this.active >= 0 && L[this.active] && L[this.active].words) return 0;
+    const next = L[this.active + 1];
+    let wait = next ? Math.max(0.02, next.t - 0.15 - p) : Infinity;
+    // a manual scroll or a hold that ends by itself
+    for (const until of [this.manualOffset ? this.manualUntil : 0, this._hold || 0]) if (until > now) wait = Math.min(wait, (until - now) / 1000 + 0.01);
+    return wait;
   },
 
   nudge(d) {

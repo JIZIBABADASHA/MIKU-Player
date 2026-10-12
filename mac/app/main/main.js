@@ -1213,7 +1213,7 @@ function buildMenu() {
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(tmpl));
 }
-function showWin() { if (!win) return; if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
+function showWin() { if (!win || win.isDestroyed()) return; if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
 
 app.on('second-instance', showWin);
 app.on('activate', showWin);

@@ -176,11 +176,23 @@ async function main() {
   await until(() => engine.proc && engine.proc.pid !== oldPid && sent('load').length === loads + 1 && engine.isLoaded, 'helper restart');
   l = sent('load').at(-1); assert(Math.abs(l.pos - 31) < 0.5); assert.equal(l.play, true);
 
+  // 11b. The output never started in a helper that had not played yet (a monitor that is asleep): the new helper is
+  // not sent to the same device again; the listener is told which output does not respond.
+  engine.restarts = []; engine.played = false; engine.restartReason = 'the output start hung';
+  const deadPid = engine.proc.pid; loads = sent('load').length; const dead = [];
+  const onFailed = msg => dead.push(msg); engine.on('failed', onFailed);
+  engine.send({ c: 'crash' });
+  await until(() => engine.proc && engine.proc.pid !== deadPid && dead.length, 'dead output reported'); await delay(150);
+  engine.off('failed', onFailed);
+  assert.equal(sent('load').length, loads, 'a dead output is not retried by itself');
+  assert(/沒有回應/.test(dead[0]), dead[0]);
+  await engine.load(track, 30, true);
+
   // 12. Nothing loaded: an output change is only remembered by the helper.
   engine.stop(); const configs = sent('config').length;
   settings.deviceId = 'dac-3'; await engine.setDevice(); await delay(50);
   assert.equal(sent('config').length, configs + 1); assert(!engine.isLoaded);
   await engine.dispose();
-  console.log('Native audio event checks passed: bit-perfect rules, output switch without reload, failed switch, seek in place, unplug pause/resume, helper output moves, switch during load, stray end, real failure, preload retry, gapless, helper restart');
+  console.log('Native audio event checks passed: bit-perfect rules, output switch without reload, failed switch, seek in place, unplug pause/resume, helper output moves, switch during load, stray end, real failure, preload retry, gapless, helper restart, dead output');
 }
 main().then(() => fs.rmSync(root, { recursive: true, force: true }), e => { console.error(e); process.exitCode = 1; });

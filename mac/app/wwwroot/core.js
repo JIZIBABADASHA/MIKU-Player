@@ -728,12 +728,12 @@ const App = {
   },
 
   /* ── frame loop: progress bars & lyrics ── */
-  lastSec: -1, frameRaf: 0,
-  /** Draw now unless the playing loop is already running (it draws the next frame anyway: no second style pass). */
+  lastSec: -1, frameRaf: 0, frameTimer: 0,
+  /** Draw now unless the per-frame loop is already running (it draws the next frame anyway: no second style pass). */
   kick() { if (!(this.state.playing && this.frameRaf)) this.frame(); },
   frame() {
-    cancelAnimationFrame(this.frameRaf);
-    this.frameRaf = 0;
+    cancelAnimationFrame(this.frameRaf); clearTimeout(this.frameTimer);
+    this.frameRaf = this.frameTimer = 0;
     // Paused progress is redrawn by state/seek events; a hidden page needs no visual loop at all.
     if (document.hidden || this.uiVisible === false) return;
     const el = this.frameEls || (this.frameEls = {
@@ -749,7 +749,16 @@ const App = {
       el.npPos.textContent = fmtTime(pos); el.npDur.textContent = '−' + fmtTime(Math.max(0, dur - pos));
     }
     NowPlaying.tick(pos);
-    if (s.playing) this.frameRaf = requestAnimationFrame(() => this.frame());
+    if (!s.playing) return;
+    // The next draw comes when something on screen changes: the progress bar by half a pixel, the time by a second,
+    // the lyrics by a line. Only word-by-word lyrics are drawn every frame. (A draw per frame kept the page, the
+    // compositor and the GPU process awake 60–120 times a second for changes nobody can see.)
+    let wait = NowPlaying.nextTick(pos);
+    if (wait <= 0) { this.frameRaf = requestAnimationFrame(() => this.frame()); return; }
+    const bar = NowPlaying.open ? el.npSeek : el.seek, w = bar.offsetWidth;
+    if (dur > 0 && w > 0) wait = Math.min(wait, dur / (w * 2));
+    wait = Math.min(wait, sec + 1 - pos + .005);
+    this.frameTimer = setTimeout(() => this.frame(), Math.max(33, Math.min(500, wait * 1000)));
   },
 
   /* ── commands ── */

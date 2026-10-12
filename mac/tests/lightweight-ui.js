@@ -90,9 +90,11 @@ async function renderer(platform, win) {
   check(await flip(), platform + ': signal card turns over with the option off');
   await js('PageEffects.set("lite_card", true)');
   check(!(await flip()), platform + ': a turned card can still be turned back');
-  await js('Popover.close(); go("#/settings/look"); document.querySelector("[data-effect=lite_signal]").click(); App.renderSignal(); document.body.classList.remove("paused")');
+  await js('Popover.close(); go("#/settings/look"); document.querySelector("[data-effect=lite_signal]").click();');
+  // the host's periodic state (once a second while nothing plays) replaces the test's signal and puts body.paused back:
+  // set both in the same task as the check
   await delay(100);
-  check(await js('!PageEffects.reduced("signal") && PageEffects.reduced("page") && document.querySelector("#b-sig").getAnimations({subtree:true}).some(a => a.effect.getTiming().iterations === Infinity)'), platform + ': signal option independent of page option');
+  check(await js(`(App.state.signal = ${JSON.stringify({ outputRate: 96000, outputFormat: '32-bit PCM', mode: 'Test output', volumeMode: 'fixed', ...variants[1] })}, App.renderSignal(), document.body.classList.remove("paused"), true) && !PageEffects.reduced("signal") && PageEffects.reduced("page") && document.querySelector("#b-sig").getAnimations({subtree:true}).some(a => a.effect.getTiming().iterations === Infinity)`), platform + ': signal option independent of page option');
   await js('document.querySelector("[data-effect=lightweight]").click()');
   check(await js('!PageEffects.enabled && !PageEffects.kinds.some(k => !(k === "scroll" && PageEffects.nativeScroll) && document.documentElement.classList.contains("lite-"+k)) && App.settings.ui.lite_signal === "0"'), platform + ': master off restores effects and keeps choices');
   await js('document.querySelector("[data-effect=lightweight]").click(); document.querySelector("[data-effect=lite_signal]").click();');

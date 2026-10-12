@@ -79,6 +79,11 @@ class NativeAudioEngine extends WebAudioEngine {
   /** The helper owns nothing MIKU can't rebuild: start a new one and continue where playback was. */
   onHelperExit(e) {
     const track = this.track, wasLoaded = this.loaded || this.loading, playing = this.wantedPlay, pos = this.wantedPos;
+    // The device never started in a helper that had not played anything yet (a monitor or DAC that is asleep or switched
+    // off): a new helper would hang on it for another 10 s. After a helper that did play (the hang that follows a hog
+    // change) a new process starts the device normally.
+    const deadDevice = /start hung/.test(this.restartReason || '') && !this.played && (this.hardware.deviceName || this.deviceName());
+    this.restartReason = null; this.played = false;
     this.loading = false;
     ++this.loadEpoch; ++this.preloadEpoch; ++this.seekEpoch; this.preloadedFor = null; this.preloading = false;
     this.loaded = false; this.st.playing = false; this.signal = null; this.hardware = {};
@@ -94,7 +99,8 @@ class NativeAudioEngine extends WebAudioEngine {
       if (this.closed) return;
       this.start();
       // the first restart in a minute resumes by itself; after that, wait for the user
-      if (track && wasLoaded && playing && this.restarts.length === 1) this.load(track, pos, true);
+      if (track && wasLoaded && deadDevice) this.emit('failed', `輸出裝置「${deadDevice}」沒有回應，可能已關閉或進入休眠。請選擇其他輸出裝置，或喚醒裝置後按播放`);
+      else if (track && wasLoaded && playing && this.restarts.length === 1) this.load(track, pos, true);
       else if (track && wasLoaded) this.emit('failed', '原生音訊核心已重新啟動；按播放即可從原位置繼續');
     }, 300);
   }
@@ -143,7 +149,7 @@ class NativeAudioEngine extends WebAudioEngine {
       case 'preloadFailed': this.preloadedFor = null; Log.info('Native preload: ' + m.msg); return;
       case 'restoreWarning': Log.info('Core Audio restore: ' + m.msg); return;
       // the helper can no longer run IO in its process and exits; a new one continues at the same place
-      case 'restarting': Log.info('Core Audio helper restarting: ' + m.reason); return;
+      case 'restarting': this.restartReason = m.reason; Log.info('Core Audio helper restarting: ' + m.reason); return;
       case 'media': this.emit('media', m); return;
     }
   }
@@ -160,6 +166,7 @@ class NativeAudioEngine extends WebAudioEngine {
     if (this.seeking || this.loading) delete status.pos;
     if (this.loading) delete status.playing;
     Object.assign(this.st, status); this.hardware = status; this.statusAt = Date.now();
+    if (status.playing) this.played = true;
     if (this.track && this.loaded) this.signal = this.buildSignal(this.track);
     if (before !== JSON.stringify(this.signal) || playing !== this.st.playing) this.emit('changed');
     this.maybePreload();
