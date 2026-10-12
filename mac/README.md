@@ -93,19 +93,11 @@ Windows 版 MIKU（C# + WebView2 + NAudio）移植到 macOS 的版本。介面�
 
 DAC 不支援歌曲的取樣率時改用最接近的取樣率並標示重新取樣（不標示 Bit-perfect）；DAC 被其他程序獨佔時停止並顯示該程式名稱。停止、播放 YouTube 或退出時釋放獨佔；一般暫停時 DAC 以靜音繼續運作 30 秒（按播放立即接續），之後停止輸出但仍保留獨佔；播完最後一首 5 秒後停止輸出。釋放時還原該次取得裝置前的取樣率與 DAC 格式。
 
-### 測試
-
-- `node mac/tests/native-audio-events.js`：用假的原生元件驗證 App 端（切換輸出不重新載入、拔除暫停／繼續、跟隨系統輸出、失敗回報、元件重啟）。不需要 DAC。
-- `node mac/tests/native-audio.js`：原生元件自我測試、逐位元組解碼比對、訊號標示、DSP 與既有實作一致。
-- `node mac/tests/native-audio.js --hardware`：接上 USB DAC（或設定 `MIKU_TEST_DAC=<名稱的一部分>`），只播放靜音，驗證各取樣率的獨佔設定（並確認音訊確實在走）、播放中換取樣率、拖曳進度、暫停／繼續（含剛換完取樣率時）、播放中切換裝置、跟隨系統輸出不來回切換、共享模式，以及每個裝置都還原。
-
 ## 輕量化頁面
 
 在「設定 → 外觀」開啟「啟用輕量化頁面」，再依需要調整八個項目：音訊鏈路特效、資訊卡翻轉、專輯飛行、頁面與操作動畫、動態背景、黑膠持續旋轉、背景模糊與玻璃效果，以及平滑捲動。細項開啟表示減少對應效果。Windows 與 Mac 使用相同設定；Mac 保留原生滾輪捲動，Windows 可停用滾輪慣性動畫。
 
 預設關閉。變更立即生效，並儲存在 UI 偏好；關閉主開關會恢復原有效果，同時保留細項選擇。Hi-Res、DSD、有損、DSP 與實際訊號路徑仍可查看；不會修改輸出模式、取樣率、DSP、音量或 Bit-perfect 設定。
-
-`electron mac/tests/lightweight-ui.js` 使用隔離的 Mac 主程式與 Windows 介面預覽，驗證效果開關、持續動畫停止、專輯飛行清理、面板開關、主題顯示及偏好重載。Windows 的原生程式與安裝包仍需在 Windows 建置及測試。
 
 ## 資料夾結構
 
@@ -154,15 +146,3 @@ cd mac/build && bash build.sh
 產生的安裝檔在 `dist/`。開發時也可以直接執行：下載 Electron 後 `electron app`。
 
 Linux 打包時需先提供由 Mac 編譯的 `build/native/miku-audio-arm64` 和 `miku-audio-x64`；`make_pkg.py --native-dir` 可指定它們的位置。
-
-驗證方式見上面「Mac Bit-perfect → 測試」。`electron mac/tests/native-audio-ui.js` 使用隔離設定驗證真實 UI、換歌與 YouTube 切換（設定 `MIKU_TEST_DAC` 指定 DAC）。執行 GUI 測試應使用未打包的官方 Electron，而不是已包含 MIKU 的 app。
-
-## 音訊測試
-
-- `node mac/tests/native-audio-events.js`：不需要 DAC。以模擬的原生元件驗證 App 端：切換輸出／模式不重新載入歌曲、切換失敗的提示、
-  拖曳進度在原生元件內完成、拔除裝置後暫停在原位置並可繼續、原生元件自行移動輸出時同步狀態、載入中切換、預先載入不重複探測、
-  無縫接續，以及原生元件異常結束後自動重啟。
-- `node mac/tests/native-audio.js [--hardware]`：原生自我測試（含浮點路徑逐值驗證）、解碼與 DSP 一致性；加上 `--hardware` 用實際的 USB DAC
-  （`MIKU_TEST_DAC=<名稱>` 可指定）播放靜音，實測各取樣率的獨佔、換歌、拖曳、播放中切換裝置、跟隨系統輸出、不支援取樣率的退回、
-  共享模式與每個裝置的還原。
-- `electron mac/tests/native-audio-ui.js`：整個 App 的 Bit-perfect 設定、無縫播放、暫停／拖曳、增益與 DSP 標示、YouTube 釋放 DAC 與共享模式。

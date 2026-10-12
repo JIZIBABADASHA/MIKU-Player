@@ -12,6 +12,15 @@ mac/build/downloads/
 mac/build/native/
 mac/build/backups/
 
+# local development checks and cleanup backups
+/.local-dev/
+/tests/
+/mac/tests/
+/build-review.ps1
+/mac/Test Native Audio.command
+/windows/watch-build.cmd
+/windows/wwwroot/mock.js
+
 # build logs / helper flags
 build.log
 build-result.txt
