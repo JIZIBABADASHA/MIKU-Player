@@ -679,6 +679,12 @@ const N = (a, n, d = 0) => typeof a[n] === 'number' ? a[n] : d;
 async function handleRpc(m, a) {
   if (m.startsWith('ext.')) return m === 'ext.list' ? exts.list() : exts.rpc(m, a);
   switch (m) {
+    // A short sound from the page (the logo's secret) while the DAC is held in exclusive mode: nothing else in the
+    // system can sound on it then, so the engine mixes it into its own output. 48 kHz mono 16-bit, base64.
+    case 'overlay.can': return engine.overlayReady();
+    case 'overlay.play':
+      if (typeof a.pcm !== 'string' || a.pcm.length > 8e6 || !(a.rate > 0)) return false;
+      return engine.playOverlay({ rate: a.rate, pcm: a.pcm });
     case 'ready':
       ready = true;
       nativeVisible = null; syncWindowVisibility();

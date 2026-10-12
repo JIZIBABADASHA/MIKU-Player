@@ -1514,6 +1514,22 @@ public sealed class MainForm : Form
             }
 
             case "stop": _engine.Stop(); return null;
+            // A short sound from the page (the logo's secret) while MIKU holds the DAC (WASAPI exclusive / ASIO), where
+            // nothing else in the system can sound on it: MIKU's own core mixes it into its output (Audio/Chain.cs).
+            // 48 kHz mono 16-bit, base64. A module's core has no such input: the page plays it the ordinary way.
+            case "overlay.can":
+                return _s.OutputMode != "shared" && _engine is AudioEngine && _engine.IsPlaying && _engine.Signal != null && !_engine.Signal.Dop;
+            case "overlay.play":
+            {
+                string pcm = S(a, "pcm");
+                if (string.IsNullOrEmpty(pcm) || pcm.Length > 8_000_000 || !(_engine is AudioEngine)) return false;
+                byte[] raw = Convert.FromBase64String(pcm);
+                var data = new float[raw.Length / 2];
+                for (int i = 0; i < data.Length; i++) data[i] = BitConverter.ToInt16(raw, 2 * i) / 32768f;
+                if (data.Length < 2) return false;
+                Miku.Audio.PlaybackChain.Overlay = new Miku.Audio.OverlaySound(data, D(a, "rate", 48000));
+                return true;
+            }
             case "volume":
                 _s.VolumeDb = Math.Clamp(D(a, "db", _s.VolumeDb), -80, 0);
                 if (a.TryGetProperty("muted", out var mu)) _s.Muted = mu.ValueKind == JsonValueKind.True;

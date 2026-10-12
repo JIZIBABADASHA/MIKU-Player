@@ -14,6 +14,34 @@ public sealed class Segment
 }
 
 /// <summary>
+/// A short sound of the app's own (the logo's secret, wwwroot/egg.js), mixed into what the chain sends the device: in
+/// exclusive mode and on ASIO nothing else in the system can sound on the DAC. Mono, at its own rate.
+/// </summary>
+public sealed class OverlaySound
+{
+    readonly float[] _data;
+    readonly double _rate;
+    double _pos;
+
+    public OverlaySound(float[] data, double rate) { _data = data; _rate = rate > 0 ? rate : 48000; }
+
+    public bool Done => _pos >= _data.Length - 1;
+
+    /// <summary>Adds the sound to interleaved stereo frames at the chain's rate (linear interpolation; the sum kept in range).</summary>
+    public void Mix(double[] work, int frames, int rate)
+    {
+        double step = _rate / rate, last = _data.Length - 1;
+        for (int i = 0; i < frames && _pos < last; i++, _pos += step)
+        {
+            int k = (int)_pos;
+            double v = _data[k] + (_data[k + 1] - _data[k]) * (_pos - k);
+            work[2 * i] = Math.Clamp(work[2 * i] + v, -1.0, 1.0);
+            work[2 * i + 1] = Math.Clamp(work[2 * i + 1] + v, -1.0, 1.0);
+        }
+    }
+}
+
+/// <summary>
 /// The provider handed to the output device. Pulls stereo doubles from the current source,
 /// switches to the pre-loaded next source sample-accurately (gapless), runs DSP and converts
 /// to the exact output sample format.
@@ -36,6 +64,8 @@ public sealed class PlaybackChain : IWaveProvider
     public long QuantizationClips;
     public long Underruns;
     public volatile bool Ended;
+    /// <summary>The sound being mixed in, if any (set by the host's overlay.play; it outlives a chain that is rebuilt).</summary>
+    public static volatile OverlaySound Overlay;
 
     public PlaybackChain(int rate, int outChannels, SampleFormat format, bool dop, DspConfig dsp, double gain, bool asio = false)
     {
@@ -135,7 +165,12 @@ public sealed class PlaybackChain : IWaveProvider
             else Array.Clear(work, filled * 2, (frames - filled) * 2);
         }
         Dsp.Process(work, frames);
-        bool dither = !Dsp.Bypassed && (Format == SampleFormat.Int16 || Format == SampleFormat.Int24 || Format == SampleFormat.Int32Valid24);
+        // the app's own sound on top (never into DSD: a DoP stream's words must stay as they are)
+        var overlay = Overlay;
+        bool mixed = overlay != null && !Dop && !overlay.Done;
+        if (mixed) overlay.Mix(work, frames, Rate);
+        else if (overlay != null && overlay.Done) Overlay = null;
+        bool dither = (!Dsp.Bypassed || mixed) && (Format == SampleFormat.Int16 || Format == SampleFormat.Int24 || Format == SampleFormat.Int32Valid24);
         Convert(work, frames, buffer, offset, dither);
         Interlocked.Add(ref _framesOut, frames);
         if (finished != null)

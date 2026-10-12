@@ -558,6 +558,23 @@ class Engine {
     bool ended = false;
     // Pause keeps the device running and silent (instant resume, no relock); after 30 s it is really stopped.
     std::atomic<bool> softPaused{false}; Clock::time_point softPausedAt{};
+    // A short sound of the app's own (the logo's secret), mixed into the output while the device runs: in exclusive mode
+    // nothing else in the system can sound on the DAC. Mono, at its own rate; read by the IO callback, replaced by the
+    // "overlay" command (an old one is freed a few seconds later, when no callback can still be reading it).
+    struct Overlay { std::vector<float> data; double rate = 48000; std::atomic<double> pos{0}; };
+    std::atomic<Overlay *> overlay{nullptr};
+    std::vector<std::pair<Overlay *, Clock::time_point>> oldOverlays;
+    void playOverlay(NSDictionary *m) {
+        NSData *raw = [[NSData alloc] initWithBase64EncodedString:(text(m[@"pcm"]) ?: @"") options:NSDataBase64DecodingIgnoreUnknownCharacters];
+        if (raw.length < 4) return;
+        auto *o = new Overlay; o->rate = positive(num(m[@"rate"], 48000), 48000);
+        const int16_t *p = static_cast<const int16_t *>(raw.bytes);
+        o->data.resize(raw.length / 2);
+        for (size_t i = 0; i < o->data.size(); ++i) o->data[i] = float(p[i]) / 32768.0f;
+        if (Overlay *old = overlay.exchange(o)) oldOverlays.push_back({old, Clock::now()});
+        for (auto it = oldOverlays.begin(); it != oldOverlays.end();)
+            if (since(it->second) > 2) { delete it->first; it = oldOverlays.erase(it); } else ++it;
+    }
     // When each device last changed rate (MIKU's own changes and restores): a start during the relock waits it out.
     std::map<AudioDeviceID, Clock::time_point> rateChangedAt;
     std::atomic<uint64_t> renderStarts{0}, renderEnds{0};
@@ -640,29 +657,50 @@ class Engine {
     }
     OSStatus render(AudioBufferList *out) {
         for (UInt32 b = 0; b < out->mNumberBuffers; ++b) if (out->mBuffers[b].mData) memset(out->mBuffers[b].mData, 0, out->mBuffers[b].mDataByteSize);
-        if (!ioReady.load(std::memory_order_acquire) || softPaused.load(std::memory_order_relaxed)) return noErr;
+        // the app's own sound (see overlay): mixed in while there is some of it left, also while the music is paused
+        Overlay *ov = overlay.load(std::memory_order_acquire);
+        double ovPos = ov ? ov->pos.load(std::memory_order_relaxed) : 0;
+        const double ovStep = ov && rate > 0 ? ov->rate / rate : 1, ovLast = ov ? double(ov->data.size()) - 1 : 0;
+        if (ov && ovPos >= ovLast) ov = nullptr;
+        auto ovNext = [&]() -> double {
+            if (!ov || ovPos >= ovLast) return 0;
+            const size_t k = size_t(ovPos); const double f = ovPos - double(k), v = ov->data[k] + (ov->data[k + 1] - ov->data[k]) * f;
+            ovPos += ovStep; return v;
+        };
+        const bool idle = !ioReady.load(std::memory_order_acquire) || softPaused.load(std::memory_order_relaxed);
+        if (idle && !ov) return noErr;
         // The buffer list must be the one the layout was read for; otherwise stay silent until tick() reads it again.
         if (out->mNumberBuffers != bufferChannels.size()) { shapeChanged.store(true); return noErr; }
         for (UInt32 b = 0; b < out->mNumberBuffers; ++b)
             if (out->mBuffers[b].mData && out->mBuffers[b].mNumberChannels != bufferChannels[b]) { shapeChanged.store(true); return noErr; }
         const size_t frames = std::min(framesIn(out, left), framesIn(out, right));
         Deck *d = current.load(std::memory_order_acquire);
-        if (!frames || !d) return noErr;
-        Graph *g = graph.load(std::memory_order_acquire);
+        if (!frames) return noErr;
         uint8_t *ld = static_cast<uint8_t *>(out->mBuffers[left.buffer].mData) + left.offset;
         uint8_t *rd = static_cast<uint8_t *>(out->mBuffers[right.buffer].mData) + right.offset;
+        if (idle || !d) {   // no music going out: the overlay alone
+            for (size_t i = 0; ov && i < frames; ++i) {
+                const int32_t v = int32_t(std::clamp(ovNext() * 2147483648.0, -2147483648.0, 2147483647.0));
+                pack(ld + i * left.stride, v, left.format, left.bytes);
+                if (!mono) pack(rd + i * right.stride, v, right.format, right.bytes);
+            }
+            if (ov) ov->pos.store(ovPos, std::memory_order_relaxed);
+            return noErr;
+        }
+        Graph *g = graph.load(std::memory_order_acquire);
         if (instantGain.exchange(false)) gain = std::min(target.load(), g->limit);
         const double goal = std::min(target.load(), g->limit);
         double pl = 0, pr = 0; bool missed = false;
         int32_t chunk[512];
         auto write = [&](size_t at, size_t n, double rg) {
-            const bool exact = !g->active && rg == 1 && gain == 1 && goal == 1;
+            const bool exact = !ov && !g->active && rg == 1 && gain == 1 && goal == 1;
             for (size_t i = 0; i < n; ++i) {
                 int32_t l = chunk[2 * i], r = chunk[2 * i + 1];
                 if (!exact) {
                     if (gain != goal) { gain += (goal - gain) * ramp; if (std::abs(gain - goal) < 1e-7) gain = goal; }
                     double dl = double(l) / 2147483648.0 * rg, dr = double(r) / 2147483648.0 * rg;
                     g->run(dl, dr); dl *= gain; dr *= gain;
+                    if (ov) { const double v = ovNext(); dl = std::clamp(dl + v, -1.0, 0.9999999); dr = std::clamp(dr + v, -1.0, 0.9999999); }
                     if (!std::isfinite(dl)) dl = 0;
                     if (!std::isfinite(dr)) dr = 0;
                     if (dl >= 1 || dl < -1) clips.fetch_add(1, std::memory_order_relaxed);
@@ -690,6 +728,7 @@ class Engine {
             if (took) { current.store(n, std::memory_order_release); d = n; continue; }
             drained.store(true); break;
         }
+        if (ov) ov->pos.store(ovPos, std::memory_order_relaxed);
         gainUnity.store(gain == 1 && goal == 1);
         if (missed) underruns.fetch_add(1, std::memory_order_relaxed);
         if (pl > peakL.load(std::memory_order_relaxed)) peakL.store(pl);
@@ -1406,6 +1445,7 @@ public:
     bool holdsHog() const { return ownsHog; }
     void command(NSDictionary *m) {
         NSString *cmd = text(m[@"c"]) ?: @""; NSNumber *seq = [m[@"seq"] isKindOfClass:[NSNumber class]] ? m[@"seq"] : @0;
+        if (is(cmd, @"overlay")) { playOverlay(m); return; }
         const bool quiet = is(cmd, @"devices") || is(cmd, @"probe") || is(cmd, @"gain") || is(cmd, @"dsp");
         auto t0 = Clock::now();
         Busy busy(literal(cmd));

@@ -304,6 +304,9 @@ class NativeAudioEngine extends WebAudioEngine {
     this.refreshSignal(); this.emit('changed'); this.emit('devicechange');
   }
   setDevice() { return this.applyOutput(); }
+  /** The helper holds the device and runs it (playing, or paused for less than 30 s): it can mix a sound in. */
+  overlayReady() { return !!this.proc && this.loaded && this.hardware.exclusive === true && this.hardware.open !== false; }
+  playOverlay(cue) { this.send({ c: 'overlay', rate: cue.rate, pcm: cue.pcm }); }
   async maybePreload() {
     if (!this.s.gapless || !this.isPlaying || !this.track || this.preloadedFor || this.preloading || this.seeking) return;
     const next = this.peekNext && this.peekNext(), dur = this.st.dur || this.track.duration || 0;
