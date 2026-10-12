@@ -30,5 +30,19 @@ if [ "$(uname)" != "Darwin" ]; then
   command -v rcodesign >/dev/null && EXTRA+=(--rcodesign "$(command -v rcodesign)")
   command -v mkbom >/dev/null && EXTRA+=(--mkbom "$(command -v mkbom)")
 fi
+# Extension modules for the Mac (Extensions/<name>/pack.py): Daphne Mac, the Daphne playback core, when its sources
+# are there (git submodule update --init). Without them MIKU is built as before.
+DM=../../Extensions/DaphneMac
+rm -rf ext
+if [ -f "$DM/pack.py" ] && { [ -f ../../Extensions/Daphne/core/src/player.cpp ] || [ -f ../../Extensions/Daphne/Daphne/core/src/player.cpp ] || [ -n "${DAPHNE_SRC:-}" ]; }; then
+  if [ "$(uname)" = "Darwin" ]; then bash "$DM/build.sh"; fi
+  if [ -f "$DM/build/daphne-mac-arm64" ] && [ -f "$DM/build/daphne-mac-x86_64" ]; then
+    python3 "$DM/pack.py" --out ext/arm64 --arch arm64
+    python3 "$DM/pack.py" --out ext/x64 --arch x64
+    EXTRA+=(--ext-dir ext)
+  else
+    echo "Daphne Mac 的元件需要在 Mac 編譯（Extensions/DaphneMac/build.sh）；這次打包不含 Daphne。" >&2
+  fi
+fi
 python3 make_pkg.py --electron-dir "$DL" --ffmpeg-dir "$DL" --out ../dist "${EXTRA[@]}"
 echo "完成：$(ls ../dist/*.pkg)"

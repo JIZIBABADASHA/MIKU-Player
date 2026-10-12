@@ -5,12 +5,23 @@ const { NativeAudioEngine, helperPath } = require('./native-audio');
 
 // Keep Player and the UI attached to one stable facade when the output backend changes.
 // Both output modes (shared and exclusive) use the native Core Audio helper; the browser engine is only the
-// fallback for a build without the helper.
+// fallback for a build without the helper. An extension module may provide another playback core (設定 → 播放方案,
+// extensions.js): coreFor(id) returns it, and the facade uses its engine while that core is chosen.
 class AudioEngine extends EventEmitter {
-  constructor(settings) { super(); this.s = settings; this.backend = null; this.peekNext = null; this.changeTask = Promise.resolve(); }
+  constructor(settings) { super(); this.s = settings; this.backend = null; this.peekNext = null; this.changeTask = Promise.resolve(); this.coreFor = null; this.coreId = 'miku'; }
   get nativeAvailable() { return !!helperPath(); }
+  /** The core chosen in the settings when its module is there, else MIKU's own. */
+  get wantedCore() { const id = this.s.audioCore || 'miku'; return id !== 'miku' && this.coreFor && this.coreFor(id) ? id : 'miku'; }
   create() {
-    const backend = this.backend = this.nativeAvailable ? new NativeAudioEngine(this.s) : new WebAudioEngine(this.s);
+    const core = this.wantedCore !== 'miku' ? this.coreFor(this.wantedCore) : null;
+    let backend = null;
+    if (core) {
+      try { backend = core.createEngine(this.s); }
+      catch (e) { require('./common').Log.error('Playback core ' + core.id, e); }
+    }
+    this.coreId = backend ? core.id : 'miku';
+    if (!backend) backend = this.nativeAvailable ? new NativeAudioEngine(this.s) : new WebAudioEngine(this.s);
+    this.backend = backend;
     backend.peekNext = () => this.peekNext && this.peekNext();
     for (const event of ['changed', 'loading', 'failed', 'media', 'devicechange', 'trackStarted', 'ended'])
       backend.on(event, (...args) => { if (this.backend === backend) this.emit(event, ...args); });
@@ -21,7 +32,7 @@ class AudioEngine extends EventEmitter {
   reconfigure() {
     this.changeTask = this.changeTask.catch(() => { }).then(async () => {
       const old = this.backend, track = old.track, pos = old.position, play = old.isPlaying;
-      if ((old instanceof NativeAudioEngine) !== this.nativeAvailable) {
+      if (this.coreId !== this.wantedCore || (this.coreId === 'miku' && (old instanceof NativeAudioEngine) !== this.nativeAvailable)) {
         this.backend = null;
         if (old.dispose) await old.dispose();
         else { old.stop(); if (old.win && !old.win.isDestroyed()) old.win.destroy(); }

@@ -58,6 +58,14 @@ def build_app(arch, a, version, work):
     native = os.path.join(a.native_dir, f'miku-audio-{arch}')
     if not os.path.isfile(native): sys.exit(f'missing native Core Audio engine: {native}; run mac/native/build.sh on a Mac')
     shutil.copyfile(native, os.path.join(bindir, 'miku-audio')); os.chmod(os.path.join(bindir, 'miku-audio'), 0o755)
+    # extension modules packed for this architecture (--ext-dir/<arch>/<id>/: extension.js, web/, bin/), e.g. Daphne Mac
+    ext_bins = []
+    ext_src = os.path.join(a.ext_dir, arch) if a.ext_dir else None
+    if ext_src and os.path.isdir(ext_src):
+        shutil.copytree(ext_src, os.path.join(res, 'ext'), ignore=shutil.ignore_patterns('.DS_Store'))
+        for root, _dirs, files in os.walk(os.path.join(res, 'ext')):
+            if os.path.basename(root) == 'bin': ext_bins += [os.path.join(root, f) for f in files]
+        print('extension modules:', ', '.join(sorted(os.listdir(os.path.join(res, 'ext')))))
     # icon
     shutil.copyfile(os.path.join(HERE, 'MIKU.icns'), os.path.join(res, 'MIKU.icns'))
     try: os.remove(os.path.join(res, 'electron.icns'))
@@ -79,12 +87,12 @@ def build_app(arch, a, version, work):
     with open(ip, 'wb') as f: plistlib.dump(pl, f)
     # ad-hoc signature (Apple Silicon refuses to run unsigned code; editing the bundle broke Electron's own seal)
     if a.rcodesign:
-        for tool in os.listdir(bindir):
-            sh(a.rcodesign, 'sign', os.path.join(bindir, tool), stdout=subprocess.DEVNULL)
+        for tool in [os.path.join(bindir, t) for t in os.listdir(bindir)] + ext_bins:
+            sh(a.rcodesign, 'sign', tool, stdout=subprocess.DEVNULL)
         sh(a.rcodesign, 'sign', app, stdout=subprocess.DEVNULL)
     elif shutil.which('codesign'):
-        for tool in os.listdir(bindir):
-            sh('codesign', '--force', '--sign', '-', os.path.join(bindir, tool))
+        for tool in [os.path.join(bindir, t) for t in os.listdir(bindir)] + ext_bins:
+            sh('codesign', '--force', '--sign', '-', tool)
         sh('codesign', '--force', '--deep', '--sign', '-', app)
     return app
 
@@ -315,6 +323,7 @@ def main():
     ap.add_argument('--out', required=True); ap.add_argument('--rcodesign'); ap.add_argument('--mkbom'); ap.add_argument('--fpcalc')
     ap.add_argument('--native-dir', default=os.path.join(HERE, 'native'))
     ap.add_argument('--work', default=os.path.join(HERE, 'work'))
+    ap.add_argument('--ext-dir', help='extension modules packed per architecture: <dir>/<arm64|x64>/<id>/')
     a = ap.parse_args()
     with open(os.path.join(APP_SRC, 'package.json')) as f: version = json.load(f)['version']
     os.makedirs(a.work, exist_ok=True); os.makedirs(a.out, exist_ok=True)

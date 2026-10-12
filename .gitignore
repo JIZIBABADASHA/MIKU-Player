@@ -11,6 +11,7 @@ mac/build/work/
 mac/build/downloads/
 mac/build/native/
 mac/build/backups/
+mac/build/ext/
 
 # local development checks and cleanup backups
 /.local-dev/

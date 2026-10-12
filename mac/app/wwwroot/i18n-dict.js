@@ -280,3 +280,38 @@ Object.assign(I18N_DICT["ja"], {
   "找不到可用的輸出裝置；請連接 DAC 或在系統設定選擇輸出裝置": "使用できる出力デバイスがありません。DAC を接続するか、システム設定で出力を選んでください。",
   "輸出裝置正被 {0} 獨佔；請先停止該程式的播放": "出力デバイスは {0} が排他使用中です。先にそちらの再生を停止してください。"
 });
+
+// Playback cores from extension modules (設定 → 播放方案) and their DSD options.
+Object.assign(I18N_DICT["en"], {
+  "播放方案": "Playback core",
+  "切換時會從目前位置繼續播放。": "Playback continues from the current position when you switch.",
+  "DSD 播放方式": "DSD playback",
+  "轉成 PCM 播放，可以使用數位音量與 DSP": "Convert to PCM, so digital volume and DSP can be used",
+  "把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP，只在獨佔模式有效": "Send DSD inside 24-bit PCM. The DAC must support DoP; exclusive mode only",
+  "共享模式經過 macOS 混音器，DSD 會轉成 PCM 播放；要用 DoP 請改用獨佔模式": "Shared mode goes through the macOS mixer, so DSD is converted to PCM. Use exclusive mode for DoP",
+  "DAC 最高 DSD": "Highest DSD rate of the DAC",
+  "不限制": "No limit",
+  "DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇": "DSD is never sent above this rate: DSD files above it play as PCM, and conversion to DSD stays within it. What a driver reports is not always reliable; choose what your DAC really supports"
+});
+Object.assign(I18N_DICT["zh-Hans"], {
+  "播放方案": "播放方案",
+  "切換時會從目前位置繼續播放。": "切换时会从当前位置继续播放。",
+  "DSD 播放方式": "DSD 播放方式",
+  "轉成 PCM 播放，可以使用數位音量與 DSP": "转成 PCM 播放，可以使用数字音量与 DSP",
+  "把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP，只在獨佔模式有效": "把 DSD 包在 24-bit PCM 里送出，DAC 需支持 DoP，只在独占模式有效",
+  "共享模式經過 macOS 混音器，DSD 會轉成 PCM 播放；要用 DoP 請改用獨佔模式": "共享模式经过 macOS 混音器，DSD 会转成 PCM 播放；要用 DoP 请改用独占模式",
+  "DAC 最高 DSD": "DAC 最高 DSD",
+  "不限制": "不限制",
+  "DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇": "DSD 不会以高于此倍率送出：超过的 DSD 文件会转成 PCM 播放，转成 DSD 时也不会超过。驱动程序声称的上限不一定可靠，请依 DAC 实际支持的格式选择"
+});
+Object.assign(I18N_DICT["ja"], {
+  "播放方案": "再生コア",
+  "切換時會從目前位置繼續播放。": "切り替えても現在の位置から再生を続けます。",
+  "DSD 播放方式": "DSD の再生方法",
+  "轉成 PCM 播放，可以使用數位音量與 DSP": "PCM に変換して再生します。デジタル音量と DSP が使えます",
+  "把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP，只在獨佔模式有效": "DSD を 24-bit PCM に包んで送ります。DAC が DoP に対応している必要があり、排他モードでのみ有効です",
+  "共享模式經過 macOS 混音器，DSD 會轉成 PCM 播放；要用 DoP 請改用獨佔模式": "共有モードは macOS のミキサーを通るため、DSD は PCM に変換されます。DoP を使うには排他モードにしてください",
+  "DAC 最高 DSD": "DAC の最大 DSD",
+  "不限制": "制限なし",
+  "DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇": "これより高い倍率の DSD は送りません。超える DSD ファイルは PCM で再生し、DSD への変換もこの範囲に収めます。ドライバーの申告は当てにならないことがあるため、DAC が実際に対応する形式を選んでください"
+});

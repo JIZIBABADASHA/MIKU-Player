@@ -119,6 +119,15 @@ build/
   MIKU.icns    App 圖示
 ```
 
+## 擴充模組與播放方案
+
+Mac 版可以載入擴充模組（`app/main/extensions.js`，對應 Windows 的 `MIKU.Extensibility`）：模組是一個含 `extension.js` 的資料夾，
+放在 `MIKU.app/Contents/Resources/ext/<id>/`（從原始碼執行時是 `Extensions/<名稱>/miku/`）。模組可以提供頁面元件（`web/manifest.json`）
+與播放內核；有模組提供內核時，設定 → 音訊會出現「播放方案」。模組載入失敗只會寫進 log，不影響 MIKU。
+
+目前的模組是 Daphne Mac（`Extensions/DaphneMac`）：Daphne 播放內核的 macOS 版，支援 Core Audio 獨佔 / 共享、升頻、PCM → DSD、DoP。
+`build/build.sh` 在它和 Daphne 的原始碼都存在時會自動編譯並打包進安裝檔。
+
 ## 同步 Windows 版的介面
 
 Windows 版介面有修改時，執行 `python3 mac/build/sync_wwwroot.py`。`settings.js` 和 `mac-bridge.js` 是 Mac 版自己的檔案，不會被覆蓋。

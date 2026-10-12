@@ -46,7 +46,7 @@ process.on('unhandledRejection', e => Log.error('Task', e));
 
 // ───────────── settings ─────────────
 const defaults = () => ({
-  folders: [], watchFolders: true, outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
+  folders: [], watchFolders: true, audioCore: 'miku', dsdMode: 'pcm', maxDsd: 0, ext: {}, outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
   dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
@@ -58,6 +58,7 @@ S.dsp = Object.assign(defaults().dsp, S.dsp || {});
 if (!S.dsp.bands || !S.dsp.bands.length) S.dsp.bands = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000].map((f, i) => ({ on: true, type: i === 0 ? 'LSC' : i === 9 ? 'HSC' : 'PK', fc: f, gain: 0, q: 1 }));
 if (S.volumeMode === 'hardware') S.volumeMode = 'digital';
 if (!['coreaudio', 'coreaudio-exclusive'].includes(S.outputMode)) S.outputMode = 'coreaudio';
+if (!S.ext || typeof S.ext !== 'object' || Array.isArray(S.ext)) S.ext = {};
 const favs = () => new Set(S.favorites);
 const setFav = (id, on) => { const f = favs(); if (on) f.add(id); else f.delete(id); S.favorites = [...f]; };
 
@@ -70,6 +71,10 @@ const lib = new MusicLibrary(S);
 const art = new ArtworkService(lib, S);
 const lyrics = new LyricsService(S);
 const engine = new AudioEngine(S);
+// extension modules (extensions.js): a module may provide a playback core (設定 → 播放方案)
+const { ExtensionManager } = require('./extensions');
+const exts = new ExtensionManager();
+engine.coreFor = id => exts.core(id);
 const player = new Player(engine, lib, S);
 lib.playbackActive = () => engine.isPlaying;
 const fp = new FingerprintService(S);
@@ -201,6 +206,33 @@ setInterval(() => {
   else if (!want && psb != null) { powerSaveBlocker.stop(psb); psb = null; }
 }, 2000);
 
+// ───────────── extension modules ─────────────
+/** What one module gets from MIKU (the Mac side of IExtensionHost). */
+function loadExtensions() {
+  const { isDsd, isLossy } = require('./library');
+  exts.loadAll((id, dir) => {
+    const dataDir = path.join(AppPaths.Root, 'ext', id);
+    try { fs.mkdirSync(dataDir, { recursive: true }); } catch { }
+    return {
+      dataDir, extensionDir: dir,
+      get ffmpegPath() { return ff.Ffmpeg.available ? ff.Ffmpeg.path : null; },
+      get tracks() { return lib.allTracks; },
+      get isPlaying() { return engine.isPlaying; },
+      play: (ids, shuffle, start = -1) => player.playList(ids, start, !!shuffle),
+      post: (ev, data) => post(`ext.${id}.${ev}`, data),
+      getSetting: key => (S.ext[id] || {})[key] ?? null,
+      setSetting: (key, value) => { const o = S.ext[id] || (S.ext[id] = {}); if (value == null) delete o[key]; else o[key] = value; saveSoon(); },
+      log: message => Log.info(`[${id}] ${message}`),
+      // for a playback core: MIKU's own rules and services
+      isDsd, isLossy, isLive: () => false,
+      replayGainDb: t => require('./web-audio').WebAudioEngine.prototype.rgDb.call({ s: S }, t),
+      globalShortcut: require('electron').globalShortcut,
+      openPath: p => shell.openPath(p),
+    };
+  });
+  if (S.audioCore && S.audioCore !== 'miku' && !exts.core(S.audioCore)) Log.info(`Playback core "${S.audioCore}" is not available: using MIKU's own`);
+}
+
 // ───────────── messaging ─────────────
 const RemoteEvents = new Set(['state', 'queue', 'error', 'library', 'favs']);
 let lastTick = null, lastTickAt = 0;   // the last periodic state sent to the page
@@ -276,7 +308,9 @@ function state() {
   };
 }
 const queueDto = () => ({ ids: player.queue.slice(), index: player.index, shuffle: S.shuffle, repeat: S.repeat });
-const init = () => ({ settings: S, version: app.getVersion(), ffmpeg: ff.Ffmpeg.available, asio: [], scan: lib.progress, state: state(), queue: queueDto(), platform: 'mac', sysLang: sysLang() });
+const coresDto = () => [{ id: 'miku', name: 'FFmpeg', dsdPcmRate: true }, ...exts.cores().map(c => ({ ...(c.info || {}), id: c.id, name: c.name }))];
+const init = () => ({ settings: S, version: app.getVersion(), ffmpeg: ff.Ffmpeg.available, cores: coresDto(), asio: [], scan: lib.progress, state: state(), queue: queueDto(),
+  platform: 'mac', sysLang: sysLang(), extensions: exts.list() });
 
 function lyricsDto(t, r) {
   return { id: t.id, source: r.source, synced: r.synced, instrumental: !!r.instrumental, lines: r.lines.map(l => ({ ...l, trans: cleanTranslation(l.trans) })), offset: S.lyricOffsets[t.id] || 0 };
@@ -609,7 +643,7 @@ async function devicesDto() {
   return { devices: list, caps, asio: [], nativeAvailable: engine.nativeAvailable };
 }
 
-const Protected = new Set(['queue', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey']);
+const Protected = new Set(['queue', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
 async function applySettings(patch) {
   let device = false, output = false, dsp = false, volume = false, rg = false, rem = false;
   for (const [k, v] of Object.entries(patch || {})) {
@@ -617,7 +651,8 @@ async function applySettings(patch) {
     if (JSON.stringify(S[k]) === JSON.stringify(v)) continue;
     if (k === 'outputMode' && !['coreaudio', 'coreaudio-exclusive'].includes(v)) continue;
     S[k] = v;
-    if (k === 'outputMode' || k === 'autoSampleRate') output = true;
+    if (k === 'audioCore' && v !== 'miku' && !exts.core(v)) { S[k] = 'miku'; }
+    if (k === 'outputMode' || k === 'autoSampleRate' || k === 'audioCore' || k === 'dsdMode' || k === 'maxDsd') output = true;
     if (k === 'dsp') { S.dsp = Object.assign(defaults().dsp, v || {}); dsp = true; }
     if (k === 'deviceId') device = true;
     if (k === 'volumeMode' || k === 'muted' || k === 'volumeDb') volume = true;
@@ -642,6 +677,7 @@ const L = (a, n) => Array.isArray(a[n]) ? a[n].filter(x => typeof x === 'string'
 const N = (a, n, d = 0) => typeof a[n] === 'number' ? a[n] : d;
 
 async function handleRpc(m, a) {
+  if (m.startsWith('ext.')) return m === 'ext.list' ? exts.list() : exts.rpc(m, a);
   switch (m) {
     case 'ready':
       ready = true;
@@ -954,6 +990,11 @@ function registerProtocols() {
   protocol.handle('miku', async req => {
     const u = new URL(req.url);
     const base = u.hostname === 'engine' ? ENGINE : WWW;
+    // an extension module's page files (extensions.js)
+    if (u.hostname === 'app' && u.pathname.startsWith('/ext/')) {
+      const ext = exts.webFile(decodeURIComponent(u.pathname));
+      return ext ? net.fetch(pathToFileURL(ext).toString()) : new Response('not found', { status: 404 });
+    }
     const file = path.normalize(path.join(base, decodeURIComponent(u.pathname)));
     if (!file.startsWith(base)) return new Response('forbidden', { status: 403 });
     return net.fetch(pathToFileURL(file).toString());
@@ -1225,7 +1266,7 @@ app.on('before-quit', e => {
   if (artSearch) artSearch.abort();
   try { player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
-  Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => app.quit());
+  Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
@@ -1239,6 +1280,7 @@ app.whenReady().then(async () => {
   registerProtocols();
   buildMenu();
   lib.load();
+  loadExtensions();
   createWindow();
   engine.start();
   startRemote().catch(e => Log.error('Remote', e));

@@ -25,7 +25,17 @@ const Settings = {
     const field = (title, sub, ctl) => h('div', { class: 'field' }, h('div', { class: 'lbl' }, h('b', null, title), sub ? h('small', null, sub) : null), h('div', { class: 'ctl' }, ctl));
     const sw = (on, fn) => { const el = h('span', { class: 'switch' + (on ? ' on' : '') }); el.onclick = () => { const v = !el.classList.contains('on'); el.classList.toggle('on', v); fn(v); }; return el; };
     const select = (opts, val, fn) => { const el = h('select', { class: 'sel' }, ...opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l))); el.onchange = () => fn(el.value); return el; };
-    const section = (title, hint) => { const el = h('div', { class: 'sect' }, h('h2', null, title), hint ? h('div', { class: 'hint' }, hint) : null); root.append(el); return el; };
+    const section = (title, hint) => { const el = h('div', { class: 'sect' }, title ? h('h2', null, title) : null, hint ? h('div', { class: 'hint' }, hint) : null); root.append(el); return el; };
+    // the playback core chosen, and its capabilities (MIKU's own or a module's: main/extensions.js)
+    const cores = App.cores || [{ id: 'miku', name: 'FFmpeg' }], core = cores.find(c => c.id === (s.audioCore || 'miku')) || cores[0];
+    // settings blocks of extension modules at a place in the page (MikuExt.addSettings); a module may hide one of
+    // MIKU's own fields that its settings replace
+    const hidden = new Set();
+    const ext = (place, host) => {
+      for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[place]) || []) {
+        try { fn(host, { section, field, sw, select, core, hide: id => hidden.add(id) }); } catch (e) { console.error('[ext] settings', e); }
+      }
+    };
 
     if (tab === 'audio') {
       /* ── audio output (macOS) ── */
@@ -37,7 +47,8 @@ const Settings = {
         select([['coreaudio', T('Core Audio 共享')], ['coreaudio-exclusive', T('Core Audio 獨佔')]], s.outputMode, async v => {
           await this.set({ outputMode: v }); await Outputs.refresh(); Router.render(false, 'none');
         })));
-      out.append(field(T('自動匹配取樣率'), exclusive
+      // a core that always plays at the track's (or its upsampler's) rate has no such switch
+      if (core.autoSampleRate !== false) out.append(field(T('自動匹配取樣率'), exclusive
           ? T('每首歌把 DAC 切換到原始取樣率；DAC 不支援時改用最接近的取樣率並重新取樣。')
           : T('每首歌把裝置切換到原始取樣率（同一裝置上的其他程式也會跟著改變）；關閉時依裝置目前的取樣率重新取樣。'),
         sw(s.autoSampleRate !== false, v => this.set({ autoSampleRate: v }))));
@@ -71,9 +82,29 @@ const Settings = {
       // a DAC connected or removed while this page is open (outputs.js listens for the host's devicesChanged)
       this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
+      // 播放方案: MIKU's own core (FFmpeg) or a module's; shown when there is a choice
+      if (cores.length > 1) {
+        out.append(field(T('播放方案'), T('切換時會從目前位置繼續播放。'),
+          select(cores.map(c => [c.id, c.name]), core.id, async v => { await this.set({ audioCore: v }); await Outputs.refresh(); Router.render(false, 'none'); })));
+        // the chosen core's own settings (a module's), right under it
+        ext('core', out);
+      }
       /* DSD */
       const dsdSect = section('DSD');
-      dsdSect.append(field(T('DSD 轉 PCM 取樣率'), T('DSF / DFF 會用 FFmpeg 轉成這個取樣率的 PCM 後播放（Mac 版不支援 DoP 直送）。'), select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+      // DSD 播放方式 / DAC 最高 DSD: for a core that can send DSD as DSD (DoP; the Mac has no native DSD)
+      if (core.dsdModes) {
+        const pcm = T('轉成 PCM 播放，可以使用數位音量與 DSP');
+        const opts = exclusive ? [['dop', 'DoP', T('把 DSD 包在 24-bit PCM 裡送出，DAC 需支援 DoP，只在獨佔模式有效')], ['pcm', 'PCM', pcm]]
+          : [['pcm', 'PCM', T('共享模式經過 macOS 混音器，DSD 會轉成 PCM 播放；要用 DoP 請改用獨佔模式')]];
+        const value = exclusive && s.dsdMode === 'dop' ? 'dop' : 'pcm';
+        dsdSect.append(field(T('DSD 播放方式'), (opts.find(o => o[0] === value) || opts[0])[2],
+          select(opts.map(o => [o[0], o[1]]), value, async v => { await this.set({ dsdMode: v }); Router.render(false, 'none'); })));
+        if (core.maxDsd) dsdSect.append(field(T('DAC 最高 DSD'), T('DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇'),
+          select([[0, T('不限制')], [64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], [64, 128, 256, 512].includes(s.maxDsd) ? s.maxDsd : 0, v => this.set({ maxDsd: +v }))));
+      }
+      if (core.dsdPcmRate !== false) dsdSect.append(field(T('DSD 轉 PCM 取樣率'), T('DSF / DFF 會用 FFmpeg 轉成這個取樣率的 PCM 後播放（Mac 版不支援 DoP 直送）。'), select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+      ext('dsd', dsdSect);   // the chosen core's own DSD settings (a module's)
+      if (!dsdSect.querySelector('.field')) dsdSect.style.display = 'none';
       /* 音量 */
       const vol = section(T('音量'));
       vol.append(field(T('音量控制方式'), T('數位音量在 64-bit 運算中處理；固定音量保持 0 dB，請用 DAC 或系統音量調整。'),
@@ -201,12 +232,10 @@ const Settings = {
       /* ── about ── */
       const ab = section(T('關於'));
       ab.append(field('MIKU', T`macOS 版 ${App.version || '1.0'} · FFmpeg ${App.ffmpeg ? T('已就緒') : T('未找到')}`, h('button', { class: 'btn small ghost', onclick: () => Host.call('devtools') }, T('開發者工具'))));
+      ext('about', ab);   // modules' rows (a playback core's version …)
       ab.append(field(T('快捷鍵'), T('空白鍵 播放/暫停 · ←/→ 快轉 5 秒 · ⌘↑/↓ 音量 · L 歌詞 · Q 佇列 · D DSP · M 靜音 · ⌘F 搜尋 · ⌘[ / ⌘] 上一頁 / 下一頁 · ⌃⌘F 全螢幕'), null));
     }
 
-    // blocks added by extension modules (MikuExt.addSettings)
-    for (const fn of (typeof MikuExt !== 'undefined' && MikuExt.settings[tab]) || []) {
-      try { fn(root, { section, field, sw, select }); } catch (e) { console.error('[ext] settings', e); }
-    }
+    ext(tab, root);   // blocks added by extension modules at the end of the tab (MikuExt.addSettings)
   },
 };
