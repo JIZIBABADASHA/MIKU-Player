@@ -1,7 +1,7 @@
 'use strict';
 /* Shared Windows / Mac appearance preferences. Audio settings are independent. */
 const PageEffects = {
-  kinds: ['signal', 'album', 'page', 'ambient', 'vinyl', 'blur', 'scroll'],
+  kinds: ['signal', 'card', 'album', 'page', 'ambient', 'vinyl', 'blur', 'scroll'],
   prefs: {}, active: new Map(), cacheKey: 'miku.pageEffects',
   get enabled() { return this.prefs.lightweight === '1'; },
   /** Mac app: scrolling is left to macOS (trackpad momentum, its own wheel behaviour), so nothing is ever eased on top. */
@@ -69,6 +69,7 @@ const PageEffects = {
     box.append(masterRow);
     const rows = [
       ['signal', '關閉音訊鏈路特效', '保留 Hi-Res、DSD、有損與 DSP 資訊，關閉右下角標示及訊號路徑的循環動畫。'],
+      ['card', '關閉資訊卡翻轉', '在訊號路徑資訊卡的空白處按兩下時，不再翻到卡片背面。'],
       ['album', '關閉專輯飛行效果', '專輯封面直接切換位置，黑膠取出與放回不再飛行。'],
       ['page', '關閉頁面與操作動畫', '直接切換頁面、主題、面板與歌詞位置，關閉按鈕漣漪和進場動畫。'],
       ['ambient', '關閉動態背景', '停止玻璃主題光球與播放頁背景的持續移動。'],

@@ -62,7 +62,7 @@ async function renderer(platform, win) {
   await js('document.querySelector("[data-effect=lightweight]").focus(); document.activeElement.dispatchEvent(new KeyboardEvent("keydown", {key:" ", code:"Space", bubbles:true, cancelable:true}));');
   check(await js('!effectCalls.some(c => c.method === "toggle")'), platform + ': switch keyboard input does not toggle playback');
   await js('document.querySelector("[data-effect=lightweight]").click()');
-  check(await js('PageEffects.kinds.every(k => PageEffects.reduced(k)) && !document.querySelector(".lite-options").hidden && document.querySelectorAll(".lite-options [role=switch]").length === 7'), platform + ': master exposes seven active reductions');
+  check(await js('PageEffects.kinds.every(k => PageEffects.reduced(k)) && !document.querySelector(".lite-options").hidden && document.querySelectorAll(".lite-options [role=switch]").length === (PageEffects.nativeScroll ? 7 : 8)'), platform + ': master exposes every active reduction');
   check(await js('getComputedStyle(document.querySelector(".sect")).backdropFilter === "none" && getComputedStyle(document.querySelector("#theme-bg .orb")).display === "none"'), platform + ': glass blur removed');
   const variants = [
     { quality: 'bitperfect', sourceBits: 16, sourceRate: 44100, codec: 'FLAC' },
@@ -81,11 +81,20 @@ async function renderer(platform, win) {
     if (!signal.stages || signal.badge.length || signal.popup.length) console.error(platform, variant.codec, signal);
     check(signal.stages && signal.badge.length === 0 && signal.popup.length === 0, platform + ': static signal information ' + variant.codec + '/' + variant.quality);
   }
+  // 資訊卡翻轉: a double-click on a blank part of the card turns it over only while the option is off
+  const flip = () => js(`(() => { const pop = document.querySelector('.sigpop'), r = pop.getBoundingClientRect();
+    pop.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, button: 0, clientX: r.left + 2, clientY: r.top + 2 }));
+    return pop.classList.contains('sig-flipped'); })()`);
+  check(await js('PageEffects.reduced("card")') && !(await flip()), platform + ': signal card stays on its front');
+  await js('PageEffects.set("lite_card", false)');
+  check(await flip(), platform + ': signal card turns over with the option off');
+  await js('PageEffects.set("lite_card", true)');
+  check(!(await flip()), platform + ': a turned card can still be turned back');
   await js('Popover.close(); go("#/settings/look"); document.querySelector("[data-effect=lite_signal]").click(); App.renderSignal(); document.body.classList.remove("paused")');
   await delay(100);
   check(await js('!PageEffects.reduced("signal") && PageEffects.reduced("page") && document.querySelector("#b-sig").getAnimations({subtree:true}).some(a => a.effect.getTiming().iterations === Infinity)'), platform + ': signal option independent of page option');
   await js('document.querySelector("[data-effect=lightweight]").click()');
-  check(await js('!PageEffects.enabled && !PageEffects.kinds.some(k => document.documentElement.classList.contains("lite-"+k)) && App.settings.ui.lite_signal === "0"'), platform + ': master off restores effects and keeps choices');
+  check(await js('!PageEffects.enabled && !PageEffects.kinds.some(k => !(k === "scroll" && PageEffects.nativeScroll) && document.documentElement.classList.contains("lite-"+k)) && App.settings.ui.lite_signal === "0"'), platform + ': master off restores effects and keeps choices');
   await js('document.querySelector("[data-effect=lightweight]").click(); document.querySelector("[data-effect=lite_signal]").click();');
 
   await js('Drawer.show("queue")');

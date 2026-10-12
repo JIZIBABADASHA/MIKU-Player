@@ -1216,7 +1216,8 @@ const SignalPop = {
      shared    高品質         plum lacquer, rose gold, a watch dial and a compass rose
      lossy     有損來源        lossy, the cheap card: flat dull stock, the 8×8 blocks of the compression, a disc in coarse pixels
    The art is drawn here (SVG), its colours and textures come from app.css (.sigpop[data-back]). Reduced motion /
-   輕量化「頁面與操作動畫」: the card turns without animation. */
+   輕量化「頁面與操作動畫」: the card turns without animation. 輕量化「資訊卡翻轉」: the card does not turn over at all
+   (a card already on its back can still be turned to the front). */
 const SigCard = {
   eligible: sg => !!sg,
   calm: () => matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page'),
@@ -1259,7 +1260,7 @@ const SigCard = {
       }
       return false;
     };
-    const blank = e => flipped || (!e.target.closest('a, button, input, select, textarea, summary, label, .sp-fold') && !onText(e.clientX, e.clientY));
+    const blank = e => flipped || (!PageEffects.reduced('card') && !e.target.closest('a, button, input, select, textarea, summary, label, .sp-fold') && !onText(e.clientX, e.clientY));
     // the second press of a double-click would select a word next to the blank spot: not on the card's blank parts
     pop.addEventListener('mousedown', e => { if (e.detail > 1 && e.button === 0 && blank(e)) e.preventDefault(); });
     pop.addEventListener('dblclick', e => {
