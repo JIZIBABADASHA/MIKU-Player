@@ -102,12 +102,17 @@ const EggSound = {
   async render(kind, p) {
     const rate = 48000, length = Math.ceil(rate * (kind === 'crush' ? p.rise + p.press + 2.3 : p.seconds + 1.5));
     const c = new OfflineAudioContext(1, length, rate);
-    this[kind](c, this.chain(c), 0, p);
+    this[kind](c, this.chain(c), 0, p);   // (rendered ahead: silence() replaces it in the engine)
     const d = (await c.startRendering()).getChannelData(0), pcm = new Int16Array(d.length);
     for (let i = 0; i < d.length; i++) pcm[i] = Math.max(-32768, Math.min(32767, Math.round(d[i] * 32767)));
     const bytes = new Uint8Array(pcm.buffer); let bin = '';
     for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
     return { rate, pcm: btoa(bin) };
+  },
+  /** Everything that is sounding stops now (the now-playing page opened over it). */
+  silence() {
+    try { if (this.ctx) { this.ctx.close(); this.ctx = null; this.out = null; } } catch (e) { }
+    if (this.viaEngine) { this.viaEngine = false; try { Host.call('overlay.play', { rate: 48000, pcm: btoa('\0\0\0\0\0\0\0\0') }).catch(() => {}); } catch (e) { } }
   },
   /**
    * Gets a cue ready; the caller starts it the moment the animation starts: `(await EggSound.prepare(…))()`.
@@ -118,7 +123,7 @@ const EggSound = {
     try {
       if (await this.engineTakesIt()) {
         const cue = await this.render(kind, p);
-        return () => { Host.call('overlay.play', cue).catch(() => {}); };
+        return () => { this.viaEngine = true; Host.call('overlay.play', cue).catch(() => {}); };
       }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!this.ctx) { this.ctx = new AC(); this.out = this.chain(this.ctx); }
@@ -175,6 +180,21 @@ const LogoEgg = {
     };
     window.addEventListener('miku-effects-change', sync);
     sync();
+    // The now-playing page takes the whole window and the player bar (the floor the pieces lie on) goes away: the pieces
+    // would be left hanging over the page. The logo is put back, quietly, as the page opens.
+    const np = document.getElementById('np');
+    const mend = () => {
+      if (!this.broken || !np || !np.classList.contains('on')) return;
+      // also in the middle of it: the plate, the pieces, the shaking and the sound all go at once, nothing is left
+      // over the page
+      document.querySelectorAll('.egg-wall, .egg-shards, .egg-spark, .egg-ring').forEach(n => n.remove());
+      const app = document.getElementById('app') || document.body;
+      app.getAnimations().forEach(a => { try { a.cancel(); } catch (e) { } });
+      EggSound.silence();
+      this.shards = null; this.broken = false; this.halted = true; brand.classList.remove('egg-broken');
+    };
+    if (np) new MutationObserver(mend).observe(np, { attributes: true, attributeFilter: ['class'] });
+    this.mend = mend;
     brand.addEventListener('click', () => {
       if (this.busy || off()) return;
       // the sidebar drew the logo again (another theme, a resize): it is whole
@@ -253,7 +273,7 @@ const LogoEgg = {
   },
   async crush(brand) {
     const logo = brand.querySelector('svg.wm'); if (!logo) return;
-    this.broken = true;
+    this.broken = true; this.halted = false;
     const box = this.shards = this.shatter(logo);
     const pieces = [...box.children];
     brand.classList.add('egg-broken');
@@ -273,13 +293,17 @@ const LogoEgg = {
     const pressMs = 2600;
     const cracks = Array.from({ length: 22 }, () => 5.2 + pressMs / 1000 * (.12 + .86 * Math.pow(Math.random(), .7))).sort((a, b) => a - b);
     const sound = await EggSound.prepare('crush', { rise: 5.2, press: pressMs / 1000, cracks });
+    const gone = () => { if (!this.halted) return false; this.busy = false; return true; };
+    if (gone()) return;
     let rumble = shake(1, 170);
     sound();
     // 1. it rises, at one slow pace; the logo starts to tremble as it comes near
     const rise = plate.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${-reach}px)` }], { duration: 5200, easing: 'linear', fill: 'forwards' });
     await wait(5200 - 1100);
+    if (gone()) return;
     const tremble = box.animate([[0, 0], [1.2, -.8], [-1.2, .8], [.8, 1.2], [-.8, -1.2], [0, 0]].map(([x, y]) => ({ transform: `translate(${x}px, ${y}px)` })), { duration: 90, iterations: Infinity });
     try { await rise.finished; } catch { }
+    if (gone()) return;
     // 2. contact, and it does not stop: slower now, against the logo's resistance, squeezing it flat against the top of
     //    the window; the pieces crack from the bottom up, chips fly, everything shakes harder
     tremble.cancel(); rumble.cancel(); rumble = shake(2.2, 110);
@@ -290,6 +314,7 @@ const LogoEgg = {
     pieces.forEach(s => s.animate([{ transform: 'none' }, { transform: s._crack }], { duration: 200, delay: (1 - s._y) * pressMs * .55 + Math.random() * 500, easing: 'ease-out', fill: 'both' }));
     for (let k = 1; k <= 4; k++) setTimeout(() => this.spark(r.left + Math.random() * r.width, r.bottom - k * r.height / 5, 5 + k * 2, ['#ffffff', '#39c5bb', '#e5307e'], 50 + k * 16), pressMs * k / 5);
     await wait(pressMs);
+    if (gone()) return;
     // 3. it gives way: the pieces shoot out of the gap, the plate draws back, and they come down all over the floor
     rumble.cancel();
     box.classList.add('egg-out');
@@ -305,13 +330,15 @@ const LogoEgg = {
       return s.animate(this.fall(s, pressed(s)), { duration: 1250 + Math.random() * 750, delay: Math.random() * 90, easing: 'linear', fill: 'both' }).finished;
     });
     try { await Promise.all([...falls, back.finished]); } catch { }
+    if (gone()) return;
     pieces.forEach(s => { s.style.transform = s._rest; });
     plate.remove();
     this.busy = false;
+    this.mend && this.mend();   // (the now-playing page may have been opened meanwhile)
   },
   async revive(brand) {
     const box = this.shards, logo = brand.querySelector('svg.wm');
-    this.broken = false;
+    this.broken = false; this.halted = false;
     const done = () => { box && box.remove(); this.shards = null; brand.classList.remove('egg-broken'); };
     if (!box || !logo || this.calm() || !logo.animate) { done(); return; }
     this.busy = true;
@@ -330,6 +357,7 @@ const LogoEgg = {
       ], { duration: 1250, delay: i * 6, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'both' }).finished;
     });
     try { await Promise.all(all); } catch { }
+    if (this.halted) { this.busy = false; return; }
     done();
     const ring = document.createElement('i');
     ring.className = 'egg-ring'; ring.style.cssText = `left:${cx}px;top:${cy}px`;
