@@ -269,7 +269,7 @@ class MusicLibrary extends EventEmitter {
       const result = [], todo = [];
       for (const f of files) {
         const old = existing.get(lc(f.path));
-        if (!full && old && old.size === f.size && old.mtime === f.mtime) result.push(old); else todo.push(f);
+        if (!full && old && old.size === f.size && old.mtime === f.mtime && !needsReread(old)) result.push(old); else todo.push(f);
       }
       for (const t of existing.values()) if (offline.some(r => lc(t.path).startsWith(lc(r)))) result.push(t);
       p.done = result.length; this.report(p);
@@ -478,11 +478,17 @@ function dffTags(file) {
   } catch { return null; }
 }
 
+/** Version of the tag reading rules; raise it when a change should reach tracks already in the library. 2: ReplayGain peaks. */
+const TAG_VERSION = 2;
+/** Tracks read with older rules, read again on the next scan, once: version 2 reads the peaks of tracks that have a gain. */
+const needsReread = t => !((t.readVer || 0) >= TAG_VERSION) &&
+  ((t.rgTrack != null && t.rgTrackPeak == null) || (t.rgAlbum != null && t.rgAlbumPeak == null));
+
 async function readTrack(f) {
   const t = {
     path: f.path, id: hash(f.path.toLowerCase()), size: f.size, mtime: f.mtime, codec: codecFromExt(f.ext),
     title: '', artist: '', albumArtist: '', album: '', genre: '', composer: '', year: 0, trackNo: 0, discNo: 0,
-    duration: 0, sampleRate: 0, bits: 0, channels: 2, bitrate: 0, hasPic: false,
+    duration: 0, sampleRate: 0, bits: 0, channels: 2, bitrate: 0, hasPic: false, readVer: TAG_VERSION,
   };
   let ok = false;
   try {
@@ -507,6 +513,9 @@ async function readTrack(f) {
     const rgt = rg(g('replaygain_track_gain')), rga = rg(g('replaygain_album_gain'));
     if (rgt) t.rgTrack = rgt;
     if (rga) t.rgAlbum = rga;
+    const rgtp = rg(g('replaygain_track_peak')), rgap = rg(g('replaygain_album_peak'));
+    if (rgtp > 0) t.rgTrackPeak = rgtp;
+    if (rgap > 0) t.rgAlbumPeak = rgap;
     t.duration = parseFloat(fmt.duration) || 0;
     t.hasPic = streams.some(s => s.codec_type === 'video' && s.disposition && s.disposition.attached_pic);
     if (a) {

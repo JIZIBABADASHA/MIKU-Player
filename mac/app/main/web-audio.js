@@ -97,12 +97,21 @@ class WebAudioEngine extends EventEmitter {
 
   needsTranscode(t) { return isDsd(t) || !NativeExt.has(ext(t.path)) || this.nativeFailed.has(t.id); }
   url(t, transcode) { return `miku-media://media/play/${encodeURIComponent(t.id)}${transcode ? '?tx=1' : ''}`; }
-  rgGain(t) {
-    if (this.s.replayGain === 'off') return 1;
-    const rg = this.s.replayGain === 'album' ? (t.rgAlbum ?? t.rgTrack) : (t.rgTrack ?? t.rgAlbum);
-    if (rg == null) return 1;
-    return Math.pow(10, (rg + (this.s.replayGainPreamp || 0)) / 20);
+  /**
+   * ReplayGain for a track (dB, preamp included), or null when off or the track has no gain tag. A track is raised only
+   * as far as its peak tag allows (the peak reaches full scale at most); without a peak tag the gain only lowers the
+   * level. The same rule as Windows (Settings.ReplayGainDb).
+   */
+  rgDb(t) {
+    if (this.s.replayGain === 'off' || !t) return null;
+    const album = this.s.replayGain === 'album';
+    const g = album ? (t.rgAlbum ?? t.rgTrack) : (t.rgTrack ?? t.rgAlbum);
+    if (g == null) return null;
+    const peak = album ? (t.rgAlbum != null ? t.rgAlbumPeak : t.rgTrackPeak) : (t.rgTrack != null ? t.rgTrackPeak : t.rgAlbumPeak);
+    const max = peak > 0 ? -20 * Math.log10(peak) : 0;
+    return Math.max(-24, Math.min(24, Math.min(g + (this.s.replayGainPreamp || 0), max)));
   }
+  rgGain(t) { const db = this.rgDb(t); return db == null ? 1 : Math.pow(10, db / 20); }
   metaOf(t) { return { title: t.title, artist: t.artist, album: t.album }; }
 
   async load(t, pos, play) {
@@ -213,10 +222,7 @@ class WebAudioEngine extends EventEmitter {
       dspActive: !!this.s.dsp.enabled, dspSummary: this.dspSummary(), volumeMode: this.s.volumeMode === 'hardware' ? 'digital' : this.s.volumeMode,
       replayGainDb: null, note: null,
     };
-    if (this.s.replayGain !== 'off') {
-      const rg = this.s.replayGain === 'album' ? (t.rgAlbum ?? t.rgTrack) : (t.rgTrack ?? t.rgAlbum);
-      if (rg != null) info.replayGainDb = rg + (this.s.replayGainPreamp || 0);
-    }
+    info.replayGainDb = this.rgDb(t);
     if (!dsd && decodedRate && decodedRate !== outRate)
       info.note = `輸出裝置目前是 ${(outRate / 1000).toFixed(1).replace(/\.0$/, '')} kHz，與音樂的 ${(decodedRate / 1000).toFixed(1).replace(/\.0$/, '')} kHz 不同，會重新取樣。可在「音訊 MIDI 設定」把 DAC 的格式改成相同取樣率。`;
     else if (transcoded && !dsd) info.note = '這個格式由 FFmpeg 無損解碼後播放。';

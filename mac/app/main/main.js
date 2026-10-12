@@ -851,7 +851,14 @@ async function handleRpc(m, a) {
       const { albumId, hasPic, mtime, ...rest } = t;
       return rest;
     }
-    case 'reveal': { const t = lib.getTrack(a.id); if (t) shell.showItemInFolder(t.path); return null; }
+    case 'reveal': {
+      const t = lib.getTrack(a.id);
+      // 音樂庫 → 資料夾: open a folder of the library itself (only one holding that track)
+      const dir = typeof a.dir === 'string' ? a.dir.replace(/\/+$/, '') : '';
+      if (t && dir && t.path.toLowerCase().startsWith(dir.toLowerCase() + path.sep) && fs.existsSync(dir)) { shell.openPath(dir); return null; }
+      if (t) shell.showItemInFolder(t.path);
+      return null;
+    }
     case 'autoeq.search': return AutoEq.search(a.q);
     case 'autoeq.get': return AutoEq.fetch(a.path, a.name);
     case 'yt.show': {

@@ -86,7 +86,7 @@ const Folders = {
       { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: list().map(t => t.id), next: true }); toast(T('已排在下一首')); } },
       { label: T('加入播放佇列'), icon: 'queue', run: () => { const l = list(); Host.call('queue.add', { ids: l.map(t => t.id) }); toast(T`已加入 ${l.length} 首`); } },
       '-',
-      // Windows opens the folder itself (MainForm "reveal" with dir); the Mac shows its first song in Finder
+      // opens the folder itself ("reveal" with dir)
       first && { label: window.mikuHost ? T('在 Finder 中顯示') : T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: first.id, dir: n.path }) },
     ], anchor);
   },

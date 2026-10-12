@@ -160,10 +160,18 @@
     btn.id = 'bar-peek'; btn.type = 'button'; btn.title = T('顯示播放列');
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg>';
     document.body.append(btn);
-    btn.onclick = () => {
-      const on = root.classList.toggle('bar-peek');
+    let placeT = 0;
+    const setPeek = on => {
+      root.classList.toggle('bar-peek', on);
       btn.title = on ? T('隱藏播放列') : T('顯示播放列');
+      // bar sinking again: measure the controls once the page has slid back down
+      clearTimeout(placeT);
+      if (!on) placeT = setTimeout(place, 650);
+      update();   // the pointer may be right there (a click on the bar): the handle follows at once
     };
+    btn.onclick = () => setPeek(!root.classList.contains('bar-peek'));
+    // core.js bindBar: a click on an empty part of the player bar while it floats over Now Playing sinks it again
+    window.BarPeek = { get on() { return root.classList.contains('bar-peek'); }, hide: () => setPeek(false) };
     // The handle sits centred 14–40 px above the bottom. When a short window pushes the controls down to it (bar
     // hidden), it moves beside the control row instead of covering the play button.
     const place = () => {
@@ -175,22 +183,29 @@
       btn.style.left = Math.min(innerWidth - 36, r.right + 44) + 'px';
     };
     addEventListener('resize', () => { if (btn.classList.contains('show')) place(); });
-    document.addEventListener('mousemove', e => {
-      if (!np.classList.contains('on')) return;
+    // Only once the page has finished opening (np-settled: the bar has sunk). While it is still sliding up, the
+    // controls are measured mid-flight (far below the window), so the handle was moved aside over the still-visible
+    // bar and kept that wrong spot; the pointer is usually already down there, having just clicked the bar.
+    let lastY = -1;
+    const update = () => {
       // show early (well above the screen edge) so reaching for it doesn't pop up the auto-hide taskbar
       const barH = (document.getElementById('bar') || {}).offsetHeight || 88;
       const zone = root.classList.contains('bar-peek') ? barH + 150 : 170;
-      const show = innerHeight - e.clientY < zone;
+      const show = np.classList.contains('on') && root.classList.contains('np-settled') && lastY >= 0 && innerHeight - lastY < zone;
       if (show && !btn.classList.contains('show')) place();
       btn.classList.toggle('show', show);
+    };
+    document.addEventListener('mousemove', e => {
+      if (!np.classList.contains('on')) return;
+      lastY = e.clientY; update();
     });
-    document.addEventListener('mouseleave', () => btn.classList.remove('show'));
+    document.addEventListener('mouseleave', () => { lastY = -1; btn.classList.remove('show'); });
     let settleT = 0; init.wasOn = np.classList.contains('on');
     new MutationObserver(() => {
       const isOn = np.classList.contains('on');
       if (isOn === init.wasOn) return; init.wasOn = isOn;
       clearTimeout(settleT);
-      if (isOn) settleT = setTimeout(() => root.classList.add('np-settled'), 1400);
+      if (isOn) settleT = setTimeout(() => { root.classList.add('np-settled'); update(); }, 1400);
       else {
         root.classList.remove('np-settled');
         // closing: keep the bar on top while it rises first, then the page slides down behind it

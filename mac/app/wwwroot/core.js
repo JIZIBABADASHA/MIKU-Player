@@ -283,6 +283,8 @@ const Lib = {
       data = Host.real ? await (await fetch(`${MEDIA}/library.json?r=${Date.now()}`)).json() : Mock.library();
     } catch (e) { console.error(e); data = { albums: [], tracks: [] }; }
     const albums = [], albumById = new Map(), trackById = new Map(), tracks = [];
+    // the folders the files are in (音樂庫 → 資料夾, folders.js); a library written by an older MIKU has none
+    const dirs = Array.isArray(data.folders) ? data.folders : null;
     for (const a of data.albums) {
       const artists = splitNames(a[2]);
       const al = { id: a[0], title: a[1], artist: joinNames(artists), artists, year: a[3], genre: joinNames(splitNames(a[4])), added: a[5], hasArt: !!a[6], loose: !!a[7], vg: a[8] || '', folder: a[9] || '', tracks: [], dur: 0 };
@@ -293,6 +295,7 @@ const Lib = {
       const t = { id: r[0], title: r[1], artist: joinNames(artists), artists, albumId: r[3], disc: r[4], no: r[5], dur: r[6], codec: r[7], rate: r[8], bits: r[9], year: r[10], composer: joinNames(splitNames(r[11])) };
       const al = albumById.get(t.albumId);
       t.added = r[12] ?? al?.added ?? 0;
+      t.dir = dirs ? dirs[r[13]] || '' : '';
       t.album = al;
       if (al) { al.tracks.push(t); al.dur += t.dur; }
       tracks.push(t); trackById.set(t.id, t);
@@ -331,7 +334,7 @@ const Lib = {
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
       // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
-      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll,
+      albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll, hasFolders: !!dirs,
       artists: [...artistMap.values()].sort((a, b) => coll.compare(a.name, b.name)),
     });
     $('#c-albums').textContent = shown.length || '';
@@ -476,15 +479,20 @@ const App = {
     Host.on('fullscreen', ({ on }) => this.syncFullscreen(on));
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
+      const had = Lib.loaded ? Lib.allTracks.length : -1;
       await Lib.load();
       this.redrawTrack(); // the track objects were rebuilt: redraw the now-playing bar with the new ones
+      // music copied into a library folder while MIKU is open (the host's folder watcher): say so; a scan shows its own progress
+      const grew = had >= 0 ? Lib.allTracks.length - had : 0;
+      if (grew > 0 && !this.scanning) toast(T`已加入 ${grew} 首新歌曲`);
       // during a scan only refresh pages that list the library, and do it silently
-      if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks'].includes(Router.cur.name)) Router.render(true, 'none');
+      if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks', 'folders'].includes(Router.cur.name)) Router.render(true, 'none');
     });
     const init = await Host.call('ready');
     this.settings = init.settings;
     if (await I18N.sync(init)) return;   // the interface language changed: the page reloads
     PageEffects.sync();
+    NavPick.apply();
     if (typeof Theme !== 'undefined') Theme.sync();
     this.favs = new Set(init.settings.favorites || []);
     this.lastRecent = (init.settings.recent || [])[0] || null;
@@ -555,6 +563,7 @@ const App = {
 
   scan(p) {
     if (!p) return;
+    this.scanning = !!p.scanning;
     const el = $('#sidefoot');
     if (p.scanning) {
       const pct = p.found ? Math.min(100, p.done / p.found * 100) : 0;
@@ -776,6 +785,8 @@ const App = {
       barDown = null;
       if (!fromBlank || e.button !== 0 || String(getSelection()).trim()) return;
       if (!NowPlaying.open) NowPlaying.show();
+      // over Now Playing (brought back with the 「顯示播放列」 handle): the same click puts the bar away again
+      else if (window.BarPeek && BarPeek.on) BarPeek.hide();
     });
     $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
     $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
@@ -1055,16 +1066,18 @@ async function rereadAlbum(al) {
 /* ═════════════════════════════ signal path ═════════════════════════════ */
 const QLabel = { bitperfect: 'Bit-perfect', enhanced: T('已處理'), high: T('無損'), low: T('有損來源') };
 /** The badge's quality, the same rule for every playback core: a resampled or converted path (upsampling, DSD → PCM,
- *  PCM → DSD) is 已處理 even when a core reports it as bit-perfect. */
-const sigQuality = sg => sg.quality === 'bitperfect' && sg.resampled ? 'enhanced' : sg.quality;
+ *  PCM → DSD) is 已處理 even when a core reports it as bit-perfect. DSP on wins over everything: the card is DSP's
+ *  alone (已處理, its slime, its backs), never mixed with the lossy warning or the upsampling face. */
+const sigQuality = sg => sg.dspActive ? 'enhanced' : sg.quality === 'bitperfect' && sg.resampled ? 'enhanced' : sg.quality;
 /**
  * The badge's extra shine, the same for every playback core. Bit-perfect: DSD sent as DSD glows (DSD), hi-res (above
  * 16-bit / 48 kHz) sparkles (Hi-Res), CD-quality WAV / FLAC keeps the plain bit-perfect ring. Resampled or converted
- * (upsampling, DSD → PCM, PCM → DSD): the plain 已處理 badge for now. DSP on without resampling: toxic slime.
+ * (upsampling, DSD → PCM, PCM → DSD): the plain 已處理 badge for now. DSP on, whatever else is going on: toxic slime.
  */
 const sigShine = sg => {
-  if (!sg || sg.resampled) return '';
+  if (!sg) return '';
   if (sg.dspActive) return ' dsp';
+  if (sg.resampled) return '';
   if (sigQuality(sg) !== 'bitperfect') return '';
   if (sg.dsd) return ' dsd';
   return (sg.sourceBits || 0) > 16 || (sg.sourceRate || 0) > 48000 ? ' hires' : '';
@@ -1099,7 +1112,7 @@ const SigPath = {
         const fold = () => {
           if (!more && line.scrollWidth <= line.clientWidth + 1) return;
           el.classList.add('sp-fold');
-          // opening a stage is not a click on the card (an upsampled track's card turns over on a click)
+          // a folding stage is a control: opening it must not turn the signal card over
           el.onclick = e => { e.stopPropagation(); el.classList.toggle('sp-open'); };
         };
         if (more) fold(); else requestAnimationFrame(fold);   // a long line folds once it is laid out
@@ -1131,10 +1144,18 @@ const SignalPop = {
     } else {
       const shine = sigShine(sg);
       const q = sigQuality(sg);
-      box.className = 'q-' + q + shine;
-      box.append(h('h3', { html: `<i class="dot"></i>${QLabel[q]}${shine === ' hires' ? ' · Hi-Res' : shine === ' dsd' ? ' · DSD' : ''}` }), h('div', { class: 'lead' }, QLead[q]));
+      // upsampling wears its own face (app.css .up): the rate in big numerals and an engraved waveform under the title
+      const up = SigCard.kind(sg) === 'upsample';
+      box.className = 'q-' + q + shine + (up ? ' up' : '');
+      box.append(h('h3', { html: `<i class="dot"></i>${QLabel[q]}${up ? ' · ' + T('升頻') : shine === ' hires' ? ' · Hi-Res' : shine === ' dsd' ? ' · DSD' : ''}` }));
+      if (up) {
+        const x = sg.outputRate / sg.sourceRate;
+        box.append(h('div', { class: 'up-hero', html: `<span class="up-from">${esc(khz(sg.sourceRate))}</span><i class="up-arrow"></i><b class="up-to">${esc(sg.outputRate >= 1e6 ? (sg.outputRate / 1e6).toFixed(4).replace(/\.?0+$/, '') : khz(sg.outputRate))}</b><span class="up-unit">${sg.outputRate >= 1e6 ? 'MHz' : 'kHz'}</span><span class="up-x">×${+x.toFixed(2)}</span>` }), h('i', { class: 'up-wave', 'aria-hidden': 'true' }));
+      }
+      box.append(h('div', { class: 'lead' }, QLead[q]));
       const stage = sigStage;
-      const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
+      // a lossy source has no bit depth of its own (the decoder's word length is not the file's): codec and rate only
+      const src = sg.dsd ? `${sg.codec} · ${sg.dsdLabel} · ${(sg.sourceRate / 1e6).toFixed(4).replace(/0+$/, '')} MHz` : `${sg.codec} · ${sg.sourceBits && !SigCard.lossy(sg) ? sg.sourceBits + '-bit / ' : ''}${khz(sg.sourceRate)} kHz`;
       // a module's core may draw its own path (SignalInfo.Custom, MikuExt signalPath)
       const custom = sg.custom && MikuExt.paths[sg.custom.ext];
       if (custom) { try { custom(box, sg, { stage, src, khz, drawPath: (path, o) => SigPath.draw(box, path, o) }); } catch (e) { console.error('[ext] signal path', e); } }
@@ -1167,7 +1188,8 @@ const SignalPop = {
       if (sg.note) box.append(h('div', { class: 'note' }, sg.note));
       }
     }
-    Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
+    const pop = Popover.show(box, anchor, { cls: 'sigpop', above: true, align: 'right' });
+    if (pop && SigCard.eligible(sg)) SigCard.attach(pop, sg);
   },
   /** The resampler's peak while the track is resampled, when the core measures it; false when it does not. */
   meterRows(box, sg) {
@@ -1179,6 +1201,472 @@ const SignalPop = {
     box.append(h('div', { class: 'note' }, T('解碼會預讀音訊；此數值是目前曲目已解碼區段的累積峰值，不是 DAC 即時量測。')));
     if (meter.resampleOverloads > 0) box.append(h('div', { class: 'note' }, T`已有 ${meter.resampleOverloads.toLocaleString()} 個聲道樣本超過 0 dBFS；請自行調整數位音量或前級增益。`));
     return true;
+  },
+};
+
+/* ═════════════ the signal card: every kind of signal has its own card back ═════════════
+   Double-click a blank part of the signal card (not on its text, not on a control) and it turns over to a back made
+   for that kind of signal; double-click anywhere on the back to turn it again. The card does not follow the pointer.
+     upsample  升頻          black lacquer, gold filigree, a rosette and a faceted star (the original back)
+     hires     Hi-Res        ivory pearl, champagne gold, a laurel wreath round the bit depth
+     dsd       DSD           midnight indigo, platinum, a 1-bit pulse-density ring round an opal
+     cd        Bit-perfect   CD-quality lossless, the everyday card: matte slate card stock, a thin border, a disc in line
+     enhanced  已處理         graphite, polished copper, an engine-turned gear round a faceted hexagon
+     dsp       DSP           the 2004 school slide: MS Paint shapes with googly eyes on magenta, rainbow WordArt
+     shared    高品質         plum lacquer, rose gold, a watch dial and a compass rose
+     lossy     有損來源        lossy, the cheap card: flat dull stock, the 8×8 blocks of the compression, a disc in coarse pixels
+   The art is drawn here (SVG), its colours and textures come from app.css (.sigpop[data-back]). Reduced motion /
+   輕量化「頁面與操作動畫」: the card turns without animation. */
+const SigCard = {
+  eligible: sg => !!sg,
+  calm: () => matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page'),
+  n: 0,
+  lossy: sg => !!sg.lossy || sg.quality === 'low' || /^(mp[123]|aac|he-?aac|ogg|vorbis|opus|wma|ac-?3|e-?ac-?3|dts|mpc|musepack|speex|amr)\b/i.test(String(sg.codec || '').trim()),
+  /** Which back: the same split as the badge (quality + shine), with upsampling kept apart from other processing. */
+  kind(sg) {
+    // DSP on comes first, whatever the source or the path (lossy, upsampled …): DSP's backs only, nothing mixed in
+    if (sg.dspActive) return 'dsp';
+    // a lossy source is lossy whatever else is done to it (upsampling): it never gets a fancy card
+    if (this.lossy(sg)) return 'lossy';
+    if (sg.resampled) return !sg.dsd && sg.outputRate > sg.sourceRate ? 'upsample' : 'enhanced';
+    const shine = sigShine(sg).trim(), q = sigQuality(sg);
+    if (shine === 'dsp') return 'dsp';
+    if (q === 'bitperfect') return shine === 'dsd' ? 'dsd' : shine === 'hires' ? 'hires' : 'cd';
+    return q === 'high' ? 'shared' : q === 'low' ? 'lossy' : 'enhanced';
+  },
+  attach(pop, sg) {
+    const kind = this.kind(sg);
+    const back = h('div', { class: 'sig-back', 'aria-hidden': 'true', html: this.art(sg, kind) });
+    pop.classList.add('sig-card');
+    // the card sits on whole pixels and on its own layer all the time (app.css .sig-card): when a turn ends nothing is
+    // redrawn, so its text and art don't twitch by a fraction of a pixel as the 3D turn hands back to the flat page
+    for (const k of ['left', 'top', 'bottom']) if (pop.style[k]) pop.style[k] = Math.round(parseFloat(pop.style[k])) + 'px';
+    pop.dataset.back = kind;
+    pop.append(back);
+    if (kind === 'dsp') pop.dataset.ugly = back.querySelector('.sb-u').dataset.u;
+    let turning = false, flipped = false, scroll = 0;
+    const tf = (turn = 0, lift = 0) => `perspective(1400px) translateZ(${lift}px) rotateY(${turn}deg)`;
+    // blank: not on a control and not on a glyph of text (the empty part of a line, the gaps between rows, the padding)
+    const onText = (x, y) => {
+      const r = document.caretRangeFromPoint && document.caretRangeFromPoint(x, y);
+      const n = r && r.startContainer;
+      if (!n || n.nodeType !== 3 || !pop.contains(n)) return false;
+      const g = document.createRange();
+      for (const o of [r.startOffset - 1, r.startOffset]) {
+        if (o < 0 || o >= n.length) continue;
+        g.setStart(n, o); g.setEnd(n, o + 1);
+        for (const b of g.getClientRects()) if (x >= b.left - 2 && x <= b.right + 2 && y >= b.top - 1 && y <= b.bottom + 1) return true;
+      }
+      return false;
+    };
+    const blank = e => flipped || (!e.target.closest('a, button, input, select, textarea, summary, label, .sp-fold') && !onText(e.clientX, e.clientY));
+    // the second press of a double-click would select a word next to the blank spot: not on the card's blank parts
+    pop.addEventListener('mousedown', e => { if (e.detail > 1 && e.button === 0 && blank(e)) e.preventDefault(); });
+    pop.addEventListener('dblclick', e => {
+      if (e.button !== 0 || turning || !blank(e)) return;
+      e.preventDefault();
+      const s = getSelection(); if (s && !String(s).trim()) s.removeAllRanges();
+      turn();
+    });
+    const turn = async () => {
+      const to = !flipped;
+      const swap = () => {
+        if (to) { scroll = pop.scrollTop; pop.scrollTop = 0; pop.style.overflowY = 'hidden'; }
+        // DSP: a different ugly back every time it is turned over
+        if (to && kind === 'dsp') { back.innerHTML = this.art(sg, kind); pop.dataset.ugly = back.querySelector('.sb-u').dataset.u; }
+        pop.classList.toggle('sig-flipped', to);
+        if (!to) { pop.style.overflowY = 'auto'; pop.scrollTop = scroll; }
+        flipped = to;
+        if (to) this.shine(back);
+      };
+      if (this.calm() || !pop.animate) { swap(); return; }
+      turning = true;
+      // first half: the face turns away (and darkens) as the card lifts; the other face comes round already lit
+      const away = pop.animate([
+        { transform: tf(), filter: 'brightness(1)' },
+        { transform: tf(90, 30), filter: 'brightness(.55)' },
+      ], { duration: 150, easing: 'cubic-bezier(.45, 0, .85, .5)', fill: 'forwards' });
+      try { await away.finished; } catch { turning = false; return; }
+      swap();
+      // the other face comes round and stops square: no overshoot, so nothing on it sways as it lands
+      // it reaches exactly flat a little before the end and holds there, so the last frames already look like the card
+      // at rest (an easing tail would leave it a hair off flat, slightly soft, then sharp the moment the turn ends)
+      const back2 = pop.animate([
+        { transform: tf(-90, 30), filter: `brightness(${to ? 1.3 : 1.2})`, easing: 'cubic-bezier(.15, .6, .25, 1)' },
+        { transform: 'none', filter: 'none', offset: .8 },
+        { transform: 'none', filter: 'none' },
+      ], { duration: 300 });
+      away.cancel();
+      try { await back2.finished; } catch { }
+      turning = false;
+    };
+  },
+  /** The one-shot light that runs over the back as it lands. */
+  shine(back) { back.classList.remove('sb-land'); void back.offsetWidth; back.classList.add('sb-land'); },
+
+  /** Each back's metal and stones. metal: the 9 stops of the metal gradient (dark → bright → dark …, polished);
+   *  A / B / L: the metal's mid, light and lightest tone, D: the dark engraving line, K: the medallion's well,
+   *  disc: the medallion field (centre → edge), gem: a stone (light, mid, deep), hi / lo: lit and shaded facets. */
+  pal: {
+    upsample: { metal: ['#5a3d0c', '#c89b40', '#fff3c6', '#d9a944', '#7d5714', '#e6bf62', '#fff8dc', '#c4932f', '#6a4810'], A: '#c99a3e', B: '#e9c46a', L: '#fff3c6', D: '#3a2707', K: '#0b0803', disc: ['#2c210c', '#120d05', '#050402'], gem: ['#fff', '#ffeaa8', '#a7741f'], hi: ['#fffbe8', '#e9c060'], lo: ['#b07c22', '#4e340a'], petal: ['#fff3c8', '#f0cd73', '#b9862c', '#5c3f0d'] },
+    hires: { metal: ['#6b4a1a', '#c9a35a', '#fff6dc', '#e2bf74', '#8c6526', '#efd28e', '#fffaea', '#c99d4c', '#74521c'], A: '#b8914a', B: '#d8b46a', L: '#fff6dc', D: '#5a3d12', K: '#fbf4e6', disc: ['#fffdf7', '#f6ecd8', '#e3d0a8'], gem: ['#fff', '#ffe9b0', '#b8862b'], hi: ['#fffdf0', '#efd08a'], lo: ['#c19443', '#6e4c16'], petal: ['#fff8e2', '#f2d892', '#c9a052', '#7a5820'] },
+    dsd: { metal: ['#3d3f58', '#a9adc8', '#ffffff', '#d6d9ef', '#6f7394', '#e4e2f7', '#ffffff', '#b3b2d6', '#4a4a6a'], A: '#a7abd0', B: '#d4d6f2', L: '#ffffff', D: '#1c1d3c', K: '#07071c', disc: ['#262666', '#11113a', '#05051a'], gem: ['#fff', '#e6dcff', '#6d62c9'], hi: ['#ffffff', '#cfd2f0'], lo: ['#8a8db4', '#2e3052'], petal: ['#ffffff', '#dfe0f6', '#9fa3cc', '#3d3f62'] },
+    cd: { metal: ['#3a4452', '#a8b4c4', '#ffffff', '#cfd8e4', '#66727f', '#dfe6ee', '#ffffff', '#a9b6c6', '#46505e'], A: '#9fb0c6', B: '#d2dcea', L: '#ffffff', D: '#0d1c33', K: '#040b18', disc: ['#173a6c', '#0b1d3b', '#040a17'], gem: ['#eaf4ff', '#4f93e6', '#0b2a6b'], hi: ['#e9f3ff', '#5c9ef0'], lo: ['#2257b8', '#071d4c'], petal: ['#ffffff', '#dbe4ef', '#98a8bc', '#3c4756'] },
+    enhanced: { metal: ['#4a1f0e', '#b8653a', '#ffe0c8', '#d98a5a', '#7a3518', '#e8a57c', '#fff0e2', '#c06f42', '#5a2810'], A: '#c27a50', B: '#e8a57c', L: '#ffe8d6', D: '#2a1007', K: '#0a0909', disc: ['#2e2c2b', '#161515', '#070707'], gem: ['#fff', '#ffc9a6', '#a14a22'], hi: ['#fff1e4', '#e39a6c'], lo: ['#a8552c', '#4a1d0b'], petal: ['#ffeadb', '#efb08a', '#b8653a', '#5a2810'] },
+    dsp: { metal: ['#3f300f', '#a8893f', '#f6ecc4', '#c8aa5a', '#6b5420', '#d8c27a', '#fbf3d6', '#a88a3e', '#4a3912'], A: '#b39a52', B: '#d8c27a', L: '#fbf3d6', D: '#1c1a08', K: '#03100c', disc: ['#11453a', '#08241d', '#03100c'], gem: ['#e9fff4', '#33c48a', '#0a4a33'], hi: ['#e9fff2', '#56d39e'], lo: ['#1f8a5e', '#06331f'], petal: ['#fbf3d6', '#e0cc8a', '#a8893f', '#4a3912'] },
+    shared: { metal: ['#5a2a26', '#c48478', '#fff0ea', '#e0a698', '#8a4a42', '#efc0b2', '#fff6f2', '#c98a7e', '#643230'], A: '#c98f84', B: '#e9b6a8', L: '#fff0ea', D: '#2c1013', K: '#0c0509', disc: ['#3c1f31', '#1c0e18', '#0a050a'], gem: ['#fff', '#f6b6c4', '#8a3a4c'], hi: ['#fff4f0', '#eab0a2'], lo: ['#b0685c', '#521f1c'], petal: ['#fff3ee', '#ecbcae', '#c48478', '#5a2a26'] },
+    lossy: { metal: ['#2e2a2e', '#9c959c', '#f8f4f6', '#c9c2c8', '#5e575e', '#dad4da', '#ffffff', '#a59ea6', '#3a353a'], A: '#a8a0a8', B: '#d6d0d6', L: '#ffffff', D: '#1a0a0e', K: '#0e0306', disc: ['#4c1020', '#24070e', '#0d0205'], gem: ['#ffe6ea', '#e0244a', '#4e0412'], hi: ['#ff9aae', '#d8203f'], lo: ['#8e0c26', '#3a020c'], petal: ['#ffffff', '#ddd6dc', '#9c959c', '#3a353a'] },
+  },
+  /** The engraved words over and under the medallion. */
+  words(sg, kind) {
+    const bits = sg.sourceBits ? sg.sourceBits + '-bit · ' : '';
+    const mhz = r => (r / 1e6).toFixed(4).replace(/\.?0+$/, '');
+    // the source as it is: codec, bit depth (only when the file has one), rate
+    const src = [String(sg.codec || '').toUpperCase(), sg.sourceBits ? sg.sourceBits + '-bit' : '', khz(sg.sourceRate) + ' kHz'].filter(Boolean).join(' · ');
+    switch (kind) {
+      case 'upsample': return ['UPSAMPLED', sg.outputRate >= 1e6 ? `${khz(sg.sourceRate)} kHz → ${mhz(sg.outputRate)} MHz` : `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz`];
+      case 'hires': return ['HIGH-RESOLUTION', src];
+      case 'dsd': return ['DIRECT STREAM DIGITAL', `${sg.dsdLabel || 'DSD'} · ${mhz(sg.sourceRate)} MHz`];
+      case 'cd': return ['LOSSLESS', src];
+      case 'dsp': return ['', src];
+      case 'shared': return ['SYSTEM MIXER', sg.outputRate && sg.outputRate !== sg.sourceRate ? `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz` : src];
+      case 'lossy': return ['LOSSY', `${String(sg.codec || '').toUpperCase()} · ${khz(sg.sourceRate)} kHz`.replace(/^ · /, '')];
+      default: return ['PROCESSED', sg.dsd ? `DSD → ${khz(sg.outputRate)} kHz` : sg.outputRate && sg.outputRate !== sg.sourceRate ? `${khz(sg.sourceRate)} → ${khz(sg.outputRate)} kHz` : src];
+    }
+  },
+
+  /** The back: lacquer and its pattern, a metal frame with beading, filigree corners and crests, a diamond lattice,
+   *  a medallion drawn for the kind (inside a turning bezel), the engraved words, glints. */
+  /** DSP's backs: seven ways to look terrible, a different one every time the card is turned over. */
+  uglyLast: -1,
+  ugly(sg, cap) {
+    const n = 7;
+    let u = Math.floor(Math.random() * n);
+    if (u === this.uglyLast) u = (u + 1 + Math.floor(Math.random() * (n - 1))) % n;
+    this.uglyLast = u;
+    const items = String(sg.dspSummary || 'EQ').split(/\s*·\s*/).filter(Boolean).slice(0, 3);
+    const eye = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><ellipse rx="7" ry="9" fill="#fff" stroke="#1a1aff" stroke-width="1.2"/><ellipse cx="2" cy="2" rx="3.6" ry="4.4" fill="#111"/><ellipse rx="7" ry="9" transform="translate(13 -2)" fill="#fff" stroke="#1a1aff" stroke-width="1.2"/><ellipse cx="15" cy="1" rx="3.6" ry="4.4" fill="#111"/></g>`;
+    const angry = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})"><circle r="30" fill="#ffd21f" stroke="#c98a00" stroke-width="2"/><path d="M-20 -14L-4 -6M20 -14L4 -6" stroke="#5a2a00" stroke-width="5" stroke-linecap="round"/><ellipse cx="-10" cy="0" rx="4" ry="5" fill="#3a1a00"/><ellipse cx="10" cy="0" rx="4" ry="5" fill="#3a1a00"/><rect x="-15" y="10" width="30" height="11" rx="4" fill="#fff" stroke="#5a2a00" stroke-width="2"/><path d="M-15 15.5H15M-7 10V21M0 10V21M7 10V21" stroke="#5a2a00" stroke-width="1.2"/></g>`;
+    const goofy = (x, y, s = 1) => `<g transform="translate(${x} ${y}) scale(${s}) rotate(-14)"><circle r="30" fill="#ffd21f" stroke="#c98a00" stroke-width="2"/><ellipse cx="-11" cy="-6" rx="8" ry="10" fill="#fff" stroke="#333"/><ellipse cx="11" cy="-8" rx="6" ry="7" fill="#fff" stroke="#333"/><circle cx="-8" cy="-3" r="3.5"/><circle cx="13" cy="-9" r="2.6"/><path d="M-14 13Q2 26 16 10" fill="#7a1010" stroke="#333" stroke-width="1.5"/><path d="M-6 19Q2 25 8 18" fill="#ff6b8a"/></g>`;
+    const c = `<div class="sb-cap"><b>${esc(cap)}</b></div>`;
+    const v = [
+      // 0 · MS Paint on magenta
+      () => `<svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">
+        <path d="M362 330L333 345L357 367L326 370L337 400L310 390L307 422L291 396L275 422L273 390L246 400L257 370L226 367L250 345L222 330L250 315L226 293L257 290L246 260L273 270L275 238L291 264L307 238L310 270L337 260L326 290L357 293L333 315Z" fill="#00ff22" stroke="#3030ff" stroke-width="1.5"/>${eye(270, 318, 1.1)}<path d="M262 350Q292 372 318 334" fill="none" stroke="#ff1010" stroke-width="5" stroke-linecap="round"/>
+        <path d="M158 395C158 360 128 335 110 345C90 335 60 360 64 395C56 430 92 450 110 444C132 452 166 428 158 395Z" fill="#ffff00" stroke="#3030ff" stroke-width="1.5"/>${eye(118, 385, .9)}<path d="M110 372Q128 362 146 372" fill="none" stroke="#9900cc" stroke-width="3"/>
+        <path d="M-20 300C40 250 120 210 210 150L160 205L240 140L180 214L250 170C170 250 80 320 20 350C-10 365 -30 330 -20 300Z" fill="#ff0000" stroke="#3030ff" stroke-width="1.5"/>${eye(-2, 318, .9)}
+        <path d="M58 8L48 90L20 70L46 100L30 170L58 112L84 168L66 102L104 92L64 86Z" fill="#0000ff" stroke="#ff00ff"/>${eye(48, 46, .7)}
+        <path d="M218 52c-12 0-20-14-8-22c-2-14 16-20 24-10c8-12 30-8 30 6c14-2 20 16 8 22c6 12-10 22-20 14c-8 10-28 8-30-2c-14 2-18-10-4-8z" fill="#fff"/>${eye(226, 36, .6)}<ellipse cx="252" cy="44" rx="5" ry="3" fill="#e00"/>
+        <ellipse cx="204" cy="250" rx="15" ry="24" fill="#000" stroke="#3030ff" transform="rotate(14 204 250)"/>${angry(300, 92)}
+      </svg><div class="sb-wordart"><span>DSP</span><span>ON!!!</span></div>${c}`,
+      // 1 · the table of contents (titled 狗屎): a sunset, chrome WordArt, a staircase of green bullets
+      () => `<div class="u-title">狗 屎</div><svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">${angry(196, 150, 1.05)}
+        <rect x="26" y="150" width="120" height="170" fill="#4a4a5a"/><path d="M40 320C40 250 60 200 86 196C112 200 132 250 132 320Z" fill="#2a2a34"/><circle cx="86" cy="182" r="26" fill="#c08a64"/><path d="M60 175Q86 150 112 175" fill="#222"/>
+        <rect x="170" y="200" width="70" height="120" fill="#3a5a8a"/><path d="M178 320L186 230L206 214L226 236L234 320Z" fill="#334"/></svg>
+        <ul class="u-steps">${[...items, '影響與評價', '作者QA'].map(t => `<li>${esc(t)}</li>`).join('')}</ul>${c}`,
+      // 2 · the red biography slide: yellow WordArt, every line on its own highlighter box
+      () => `<i class="u-rays"></i><div class="u-title u-bling">★訊號介紹★</div>${[[8, 14, 0, 22], [86, 8, .4, 18], [16, 74, .8, 14], [78, 70, .25, 26], [50, -6, .6, 16], [96, 46, 1, 12]].map(([x, y, d, s]) => `<i class="u-spark" style="left:${x}%;top:${y + 20}px;animation-delay:-${d}s;font-size:${s}px">✦</i>`).join('')}<ul class="u-boxes"><li>格式：${esc(sg.codec || '?')}</li><li>取樣率：${esc(khz(sg.sourceRate))} kHz</li>${sg.sourceBits && !this.lossy(sg) ? `<li>位元深度：${sg.sourceBits}-bit</li>` : ''}${items.map(t => `<li>處理：${esc(t)}</li>`).join('')}<li>DSP究極無敵宇宙霹靂強</li></ul>
+        <svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">${goofy(300, 70, 1.1)}<g transform="translate(36 340)"><rect width="76" height="96" fill="#fff" stroke="#999"/><circle cx="38" cy="34" r="18" fill="#f2d2b0" stroke="#555"/><path d="M14 92Q38 50 62 92" fill="#e67a20"/><path d="M20 28Q38 4 56 28" fill="none" stroke="#555" stroke-width="3"/></g><g transform="translate(250 330)">${[0, 1, 2, 3, 4].map(i => `<path d="M${i * 18} 80Q${i * 18 + 6} ${40 - i * 6} ${i * 18 + 12} 80" fill="none" stroke="#333" stroke-width="${3 + i * .6}" stroke-linecap="round"/><circle cx="${i * 18 + 6}" cy="${34 - i * 6}" r="${4 + i}" fill="#333"/>`).join('')}</g></svg>${c}`,
+      // 3 · the chemistry title slide: a letter-by-letter rainbow title on mint, clip art
+      () => `<div class="u-rainbow">${(i => 'DSP: The Study of Sound'.split(' ').map(w => `<b>${[...w].map(ch => `<span style="color:${['#ff2a2a', '#ff9a00', '#e6d000', '#22c422', '#00b4ff', '#3a3aff', '#c400ff'][i++ % 7]}">${esc(ch)}</span>`).join('')}</b>`).join(' '))(0)}</div>
+        <svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">
+          <g transform="translate(34 120)" fill="none" stroke="#111" stroke-width="2"><path d="M20 30L40 18L62 30V54L40 66L20 54Z"/><path d="M62 30L84 18L106 30M62 54L84 66V90M40 66V90"/><circle cx="12" cy="66" r="7" fill="#999" stroke="none"/></g>
+          <g transform="translate(220 100)"><rect width="110" height="110" fill="#123"/>${[['#3af', 20], ['#f3a', 48], ['#ff3', 76]].map(([col, x]) => `<path d="M${x} 30V60L${x - 16} 100H${x + 16}L${x} 60V30Z" fill="${col}" stroke="#fff" stroke-width="1.5" opacity=".9"/>`).join('')}</g>
+          <g transform="translate(120 260)"><path d="M60 0L72 40L112 30L84 60L120 90L76 86L72 130L52 94L14 116L32 76L0 50L42 46Z" fill="#ff7a00"/><path d="M60 26L66 50L90 46L74 64L94 82L68 80L64 104L52 84L30 96L42 72L22 58L48 56Z" fill="#ffe14a"/></g>
+          <g transform="translate(0 222) rotate(-4 180 20)"><path d="${[0, 1, 2, 3, 4].map(i => `M6 ${i * 7}H354`).join('')}" stroke="#222" stroke-width="1.2"/>
+            <text x="4" y="34" font-size="50" font-family="'Segoe UI Symbol', 'Noto Music', serif" fill="#c400ff" stroke="#000" stroke-width=".6">𝄞</text>
+            ${[[70, 21, '#ff2a2a'], [104, 10, '#ff9a00'], [138, 24, '#22c422'], [172, 3, '#00b4ff'], [206, 17, '#3a3aff'], [240, 7, '#ff2a2a'], [274, 28, '#e6b800'], [308, 14, '#c400ff']].map(([x, y, col], i) => `<ellipse cx="${x}" cy="${y}" rx="6.5" ry="4.6" transform="rotate(-22 ${x} ${y})" fill="${col}" stroke="#000"/><path d="M${x + 5.8} ${y - 1}V${y - 26}${i % 2 ? `q6 6 10 12` : ''}" stroke="#000" stroke-width="1.6" fill="none"/>`).join('')}</g>
+          ${[['♪', 238, 92, '#ff2a2a', 26, -18], ['♫', 284, 70, '#22c422', 30, 12], ['♪', 318, 96, '#3a3aff', 22, 24], ['♫', 34, 112, '#ff9a00', 28, -10], ['♪', 300, 300, '#c400ff', 34, 16], ['♫', 76, 420, '#00b4ff', 30, -20], ['♬', 250, 430, '#ff2a2a', 30, 8]].map(([g, x, y, col, s, r]) => `<text x="${x}" y="${y}" font-size="${s}" fill="${col}" stroke="#000" stroke-width=".8" transform="rotate(${r} ${x} ${y})" font-family="'Segoe UI Symbol', Arial, sans-serif">${g}</text>`).join('')}
+          <g transform="translate(28 300)"><rect width="64" height="92" rx="4" fill="#7a4a1e" stroke="#000" stroke-width="2"/><circle cx="32" cy="26" r="13" fill="#222" stroke="#999" stroke-width="2"/><circle cx="32" cy="26" r="4" fill="#666"/><circle cx="32" cy="64" r="20" fill="#222" stroke="#999" stroke-width="2"/><circle cx="32" cy="64" r="7" fill="#666"/>
+            <path d="M74 44Q84 64 74 84M84 36Q100 64 84 92M94 28Q116 64 94 100" fill="none" stroke="#ff00ff" stroke-width="3" stroke-linecap="round"/></g></svg>${c}`,
+      // 4 · GeoCities: stars, a marquee, a blinking NEW!, under construction, a hit counter
+      () => `<div class="u-marquee"><span>★ Welcome to my DSP page!!! ★ 最佳瀏覽解析度 800×600 ★ 請簽我的留言板 ★</span></div>
+        <div class="u-new">NEW!</div><div class="u-tape">UNDER CONSTRUCTION</div>
+        <div class="u-counter">你是第 <b>000${Math.floor(Math.random() * 9000 + 1000)}</b> 位訪客</div>${c}`,
+      // 5 · Windows 95, an error dialog and its copies all the way down
+      () => `${[0, 1, 2, 3].map(i => `<div class="u-win" style="left:${18 + i * 16}px;top:${40 + i * 30}px"><div class="u-bar"><span>dsp.exe</span><i>×</i></div><div class="u-body"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#e00" stroke="#600"/><path d="M10 10L22 22M22 10L10 22" stroke="#fff" stroke-width="3.5"/></svg><p>DSP 已停止運作。<br>你的耳朵將被關閉。</p></div><div class="u-btns"><u>確定</u><u>取消</u></div></div>`).join('')}
+        <div class="u-task"><u>開始</u><span>${esc(cap)}</span></div>`,
+      // 6 · the sludge
+      () => `<svg class="sb-drip" viewBox="0 0 360 120" preserveAspectRatio="none"><path d="M0 0H360V22C352 22 350 34 344 34S338 18 330 18C318 18 322 64 312 64S304 24 296 24C286 24 290 40 280 40S270 20 262 20C250 20 256 92 244 92S234 26 224 26C214 26 218 46 208 46S198 18 188 18C176 18 182 58 170 58S160 24 150 24C140 24 144 36 134 36S124 20 114 20C102 20 108 78 96 78S86 28 76 28C66 28 70 42 60 42S50 18 40 18C28 18 34 54 22 54S12 22 0 22Z"/></svg>
+        ${[[22, 66, 14], [71, 74, 9], [80, 38, 6], [12, 40, 7], [58, 86, 18]].map(([x, y, r]) => `<i class="sb-bub" style="left:${x}%;top:${y}%;--r:${r}px"></i>`).join('')}
+        <div class="u-eq"><svg viewBox="0 0 90 70" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 61.5Q30 59 52 62.3T88 60.4" stroke-width="2.2"/><path d="${[9, 16, 23, 14, 6, 11, 19, 8].map((h2, i) => { const x = 8 + i * 10 + (i % 3) - 1; return `M${x} ${60 + (i % 2) * 1.5}L${x + (i % 2 ? 1.5 : -1)} ${60 - h2 * 1.6}`; }).join('')}" stroke-width="5.5" opacity=".85"/><path d="M4 34C14 22 19 44 30 26S47 12 55 33S72 49 86 18" stroke-width="2.4" stroke-dasharray="7 2 1 3"/></svg></div>
+        <div class="u-sludge-t">DSP ON</div>${c}`,
+    ];
+    return `<div class="sb-u" data-u="${u}">${v[u]()}</div>`;
+  },
+  /** The plain backs. CD-quality lossless, the everyday card: card stock, a thin printed border, a disc drawn in one
+   *  line. Lossy, the cheap card: no border at all, the compression's 8×8 blocks showing, the disc in coarse pixels.
+   *  DSP, the 2004 slide: magenta MS Paint shapes with googly eyes, an angry face, rainbow WordArt, a highlighter box. */
+  plain(sg, kind) {
+    const [motto, cap] = this.words(sg, kind);
+    let mark, extra = '';
+    if (kind === 'dsp') return `<div class="sb-bg"></div>${this.ugly(sg, cap)}`;
+    if (kind === 'lossy') {
+      let px = '';
+      for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) {
+        const d = Math.hypot(x - 5.5, y - 5.5);
+        if ((d > 3 && d < 5.9) || d < .9) px += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+      }
+      mark = `<svg class="sb-pdisc" viewBox="0 0 12 12" shape-rendering="crispEdges" fill="currentColor">${px}</svg>`;
+    } else {
+      mark = `<svg class="sb-pdisc" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+      <circle cx="50" cy="50" r="44" stroke-width="1.6"/>
+      <path d="M50 18A32 32 0 0 1 82 50M50 26A24 24 0 0 1 74 50" stroke-width=".9" opacity=".55" stroke-linecap="round"/>
+      <circle cx="50" cy="50" r="13" stroke-width="1.2"/><circle cx="50" cy="50" r="4" stroke-width="1.2"/>
+    </svg>`;
+    }
+    return `<div class="sb-bg"></div>${extra}${kind === 'cd' ? '<i class="sb-pframe"></i>' : ''}${mark ? `<div class="sb-pmark">${mark}</div>` : ''}
+      ${motto ? `<div class="sb-motto"><span>${esc(motto)}</span></div>` : ''}<div class="sb-cap"><b>${esc(cap)}</b></div>`;
+  },
+  art(sg, kind) {
+    if (kind === 'cd' || kind === 'lossy' || kind === 'dsp') return this.plain(sg, kind);
+    const P = this.pal[kind] || this.pal.enhanced;
+    const id = 'sbk' + (++this.n), f = v => +v.toFixed(2);
+    const pt = (r, a) => `${f(100 + r * Math.sin(a))} ${f(100 - r * Math.cos(a))}`;
+    const xy = (r, a) => [100 + r * Math.sin(a), 100 - r * Math.cos(a)];
+    const each = (n, fn, rot = 0) => Array.from({ length: n }, (_, i) => fn(rot + i * 2 * Math.PI / n, i)).join('');
+    const lens = (n, r0, r1, w, rot) => each(n, a => { const m = (r0 + r1) / 2; return `M${pt(r0, a)}Q${pt(m, a + w)} ${pt(r1, a)}Q${pt(m, a - w)} ${pt(r0, a)}Z`; }, rot);
+    // a leaf between two points, bulging w to each side
+    const leaf = ([x0, y0], [x1, y1], w) => {
+      const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * w, ny = dx / l * w;
+      return `M${f(x0)} ${f(y0)}Q${f(mx + nx)} ${f(my + ny)} ${f(x1)} ${f(y1)}Q${f(mx - nx)} ${f(my - ny)} ${f(x0)} ${f(y0)}Z`;
+    };
+    // engine-turned rings: r(θ) = R + A·sin(kθ)
+    const wave = (R, A, k, ph) => { let d = ''; for (let i = 0; i <= 180; i++) { const a = i / 180 * 2 * Math.PI; d += (i ? 'L' : 'M') + pt(R + A * Math.sin(k * a + ph), a); } return d + 'Z'; };
+    const offs = [0, .14, .24, .34, .48, .6, .7, .8, 1];
+    const metal = P.metal.map((c, i) => `<stop offset="${offs[i]}" stop-color="${c}"/>`).join('');
+    const grad3 = (g, id2, extra = '') => `<radialGradient id="${id2}" ${extra}><stop offset="0" stop-color="${g[0]}"/><stop offset=".45" stop-color="${g[1]}"/><stop offset="1" stop-color="${g[2]}"/></radialGradient>`;
+    const P8 = Math.PI / 8;
+    // a faceted star of n points, alternating long and short, lit on one side of each point
+    const star = (n, R1, R2, r0) => each(n, (a, i) => {
+      const R = i % 2 ? R2 : R1, h2 = Math.PI / n;
+      return `<path d="M100 100L${pt(r0, a - h2)}L${pt(R, a)}Z" fill="url(#${id}hi)"/><path d="M100 100L${pt(R, a)}L${pt(r0, a + h2)}Z" fill="url(#${id}lo)"/>`;
+    });
+    const defs = `<svg class="sb-defs" width="0" height="0" aria-hidden="true"><defs>
+      <linearGradient id="${id}c" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="80" y2="80">${metal}</linearGradient>
+      <linearGradient id="${id}k" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="140" y2="36">${metal}</linearGradient>
+      <linearGradient id="${id}m" gradientUnits="userSpaceOnUse" x1="18" y1="18" x2="182" y2="182">${metal}</linearGradient>
+      <radialGradient id="${id}p" gradientUnits="userSpaceOnUse" cx="100" cy="100" r="84"><stop offset="0" stop-color="${P.petal[0]}"/><stop offset=".45" stop-color="${P.petal[1]}"/><stop offset=".75" stop-color="${P.petal[2]}"/><stop offset="1" stop-color="${P.petal[3]}"/></radialGradient>
+      <radialGradient id="${id}d" gradientUnits="userSpaceOnUse" cx="100" cy="92" r="92"><stop offset="0" stop-color="${P.disc[0]}"/><stop offset=".6" stop-color="${P.disc[1]}"/><stop offset="1" stop-color="${P.disc[2]}"/></radialGradient>
+      <linearGradient id="${id}hi" gradientUnits="userSpaceOnUse" x1="66" y1="66" x2="134" y2="134"><stop offset="0" stop-color="${P.hi[0]}"/><stop offset="1" stop-color="${P.hi[1]}"/></linearGradient>
+      <linearGradient id="${id}lo" gradientUnits="userSpaceOnUse" x1="66" y1="66" x2="134" y2="134"><stop offset="0" stop-color="${P.lo[0]}"/><stop offset="1" stop-color="${P.lo[1]}"/></linearGradient>
+      ${grad3(P.gem, id + 'j')}
+      ${grad3(P.gem, id + 'g', 'cx=".38" cy=".32" r=".75"')}
+      <radialGradient id="${id}x"><stop offset="0" stop-color="${P.K}"/><stop offset=".7" stop-color="${P.K}" stop-opacity=".95"/><stop offset="1" stop-color="${P.K}" stop-opacity="0"/></radialGradient>
+      <symbol id="${id}corner" viewBox="0 0 80 80">
+        <g id="${id}half">
+          <g fill="none" stroke="url(#${id}c)" stroke-linecap="round">
+            <path stroke-width="1.6" d="M8 4.5C20 4.5 30 3 41 6.5C51 9.5 55 16.5 50 20.5C45.5 24 40.5 19.5 44 16.2C46 14.5 48.5 16 47.6 18"/>
+            <path stroke-width=".8" d="M22 4C27 .8 34 .6 38 2.6"/>
+            <path stroke-width=".8" d="M41 6.5C52 6 62 5 73.5 6.2"/>
+          </g>
+          <g fill="url(#${id}c)">
+            <circle cx="75.5" cy="6.3" r="1.4"/>
+            <path d="M15 6.5C22 11.5 30 12.5 36 10C30 8.2 22 7.4 15 6.5Z"/>
+            <path d="M50 20.5C52.5 26 51 30.5 47 33C46.8 28.5 48 24 50 20.5Z"/>
+            <path d="M21 20C25 14.5 31 13 36 14.5C31.5 17.5 26.5 19.5 21 20Z"/>
+            <circle cx="33" cy="16.5" r="1.2"/>
+          </g>
+        </g>
+        <use href="#${id}half" transform="matrix(0 1 1 0 0 0)"/>
+        <path fill="none" stroke="url(#${id}c)" stroke-width="1" d="M3 26C3 13 13 3 26 3"/>
+        <g fill="url(#${id}c)">
+          <path d="M5 5C12 7.5 15.5 11 17 17C11 15.5 7.5 12 5 5Z"/>
+          <path d="M18 18C27 21 33 27 36 36C27 33 21 27 18 18Z"/>
+          <circle cx="39.6" cy="39.6" r="2.3"/><circle cx="44.2" cy="44.2" r="1.2"/>
+        </g>
+        <path stroke="${P.D}" stroke-width=".7" stroke-linecap="round" d="M21 21L32.5 32.5"/>
+      </symbol>
+      <symbol id="${id}crest" viewBox="0 0 140 36">
+        <ellipse cx="70" cy="13" rx="36" ry="11" fill="url(#${id}x)"/>
+        <g id="${id}wing">
+          <g fill="none" stroke="url(#${id}k)" stroke-linecap="round">
+            <path stroke-width="1.5" d="M77 13C85 7 96 6.5 103 11C108.5 14.5 106.5 21.5 101 21C96.8 20.6 96.5 15.8 100.3 15.6C102.3 15.5 103 17.4 101.8 18.4"/>
+            <path stroke-width=".8" d="M103 11C112 8.5 122 8 133.5 9"/>
+            <path stroke-width=".75" d="M87 6.2C91 3 97 2.6 101 4.2"/>
+          </g>
+          <g fill="url(#${id}k)">
+            <path d="M80 15C86 19.5 92 20.5 97 18.8C92 16.2 86 15 80 15Z"/>
+            <circle cx="135.4" cy="9.1" r="1.3"/><circle cx="82.5" cy="13.5" r="1.1"/><circle cx="113" cy="13.5" r=".9"/>
+          </g>
+        </g>
+        <use href="#${id}wing" transform="matrix(-1 0 0 1 140 0)"/>
+        <path fill="none" stroke="url(#${id}k)" stroke-width=".8" stroke-linecap="round" d="M62 4.5Q70 -1 78 4.5M70 23V27"/>
+        <path fill="${P.hi[0]}" d="M70 4L63 13.5H70Z"/><path fill="${P.hi[1]}" d="M70 4L77 13.5H70Z"/>
+        <path fill="${P.lo[1]}" d="M63 13.5L70 23V13.5Z"/><path fill="${P.lo[0]}" d="M77 13.5L70 23V13.5Z"/>
+        <circle cx="70" cy="29.6" r="2.1" fill="url(#${id}j)"/>
+      </symbol>
+    </defs></svg>`;
+    const serif = 'font-family="Georgia, \'Times New Roman\', serif"';
+    const motif = {
+      // the original: a sixteen-petal rosette, an eight-petal flower, a faceted star
+      upsample: () => `
+        <path d="${lens(16, 40, 75, .12, Math.PI / 16)}" fill="url(#${id}p)" opacity=".38"/>
+        <path d="${lens(16, 44, 79, .19, 0)}" fill="url(#${id}p)" stroke="${P.D}" stroke-width=".6"/>
+        <path d="${each(16, a => `M${pt(49, a)}L${pt(72, a)}`)}" stroke="${P.D}" stroke-width=".7" stroke-linecap="round" opacity=".9"/>
+        <g fill="${P.B}">${each(16, a => { const [x, y] = xy(41, a); return `<circle cx="${f(x)}" cy="${f(y)}" r="1.25"/>`; }, Math.PI / 16)}</g>
+        <path d="${lens(8, 15, 50, .34, P8)}" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".6"/>
+        <path d="${each(8, a => `M${pt(20, a)}L${pt(43, a)}`, P8)}" stroke="${P.D}" stroke-width=".6" stroke-linecap="round" opacity=".8"/>
+        <circle cx="100" cy="100" r="21" fill="${P.K}" stroke="url(#${id}m)" stroke-width="1.4"/>
+        <g stroke="${P.D}" stroke-width=".35" stroke-linejoin="round">${star(8, 34, 23, 7.5)}</g>
+        <circle cx="100" cy="100" r="4.3" fill="url(#${id}j)"/>`,
+      // a laurel wreath tied at the foot, round a pearl cartouche with the bit depth
+      hires: () => {
+        // one branch from the foot up one side: a stem, pairs of leaves along it pointing to the tip, a berry at the end
+        const branch = s => {
+          const R = 62, a0 = Math.PI - .34, a1 = .3, n = 9;
+          let leaves = '';
+          for (let i = 0; i < n; i++) {
+            const a = s * (a0 - (a0 - a1) * (i + .5) / n), len = 15 - i * .55, tilt = s * .26;
+            const base = xy(R, a);
+            leaves += `<path d="${leaf(base, xy(R + len, a - tilt), 4.6)}" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".45"/>`;
+            leaves += `<path d="${leaf(base, xy(R - len * .9, a - tilt * 1.1), 4.2)}" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".45"/>`;
+          }
+          const tip = xy(R, s * (a1 - .06));
+          return `<path d="M${pt(R, s * a0)}A${R} ${R} 0 0 ${s > 0 ? 0 : 1} ${pt(R, s * a1)}" fill="none" stroke="url(#${id}m)" stroke-width="2.2" stroke-linecap="round"/>${leaves}<circle cx="${f(tip[0])}" cy="${f(tip[1])}" r="2.6" fill="url(#${id}j)" stroke="${P.D}" stroke-width=".4"/>`;
+        };
+        const bits = sg.sourceBits || 24;
+        return `
+        <g fill="none" stroke="${P.A}" stroke-width=".4" opacity=".5">${[78, 82].map((R, i) => `<path d="${wave(R, 1.2, 36, i * 1.6)}"/>`).join('')}</g>
+        ${branch(1)}${branch(-1)}
+        <path d="M100 161.5C94 156 86 157 88 162.5C90 167 96 164 100 161.5ZM100 161.5C106 156 114 157 112 162.5C110 167 104 164 100 161.5ZM100 161.5L94 172M100 161.5L106 172" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".5" stroke-linejoin="round"/>
+        <circle cx="100" cy="161.5" r="3" fill="url(#${id}j)" stroke="${P.D}" stroke-width=".4"/>
+        <circle cx="100" cy="100" r="40" fill="${P.K}" stroke="url(#${id}m)" stroke-width="2.2"/>
+        <circle cx="100" cy="100" r="35.5" fill="none" stroke="${P.A}" stroke-width="1.6" stroke-dasharray="0 4.65" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="31.5" fill="none" stroke="url(#${id}m)" stroke-width=".6"/>
+        <text x="100" y="84.5" text-anchor="middle" ${serif} font-size="6.4" letter-spacing="2.2" fill="${P.D}">HI · RES</text>
+        <text x="100" y="113" text-anchor="middle" ${serif} font-size="32" font-weight="700" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".5">${bits}</text>
+        <text x="100" y="124.5" text-anchor="middle" ${serif} font-size="6.4" letter-spacing="3" fill="${P.D}">BIT</text>`;
+      },
+      // a 1-bit pulse-density ring (a first-order sigma-delta of a slow sine), an opal ring, the stream's name
+      dsd: () => {
+        let acc = 0, ticks = '';
+        for (let i = 0; i < 128; i++) {
+          const a = i / 128 * 2 * Math.PI, x = .82 * Math.sin(3 * a);
+          const y = acc + x >= 0 ? 1 : -1; acc += x - y;
+          ticks += y > 0 ? `M${pt(53, a)}L${pt(76, a)}` : `M${pt(73, a)}L${pt(76, a)}`;
+        }
+        const label = String(sg.dsdLabel || 'DSD').replace(/^DSD/i, '') || '';
+        return `
+        <path d="${ticks}" stroke="url(#${id}m)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="79" fill="none" stroke="url(#${id}m)" stroke-width=".7"/>
+        <circle cx="100" cy="100" r="49" fill="none" stroke="url(#${id}m)" stroke-width="1.2"/>
+        <circle cx="100" cy="100" r="44" fill="url(#${id}d)" stroke="${P.A}" stroke-width=".5" opacity=".9"/>
+        <circle cx="100" cy="100" r="25" fill="${P.K}" stroke="url(#${id}m)" stroke-width="1.6"/>
+        <text x="100" y="${label ? 101 : 106}" text-anchor="middle" ${serif} font-size="14" font-weight="700" letter-spacing="1.2" fill="url(#${id}m)">DSD</text>
+        ${label ? `<text x="100" y="113" text-anchor="middle" ${serif} font-size="7.5" letter-spacing="1.5" fill="${P.B}">${esc(label)}</text>` : ''}`;
+      },
+      // a pressed disc: grooves, a clamping ring, a sapphire star in the hub
+      cd: () => `
+        <g fill="none" stroke="${P.B}">${Array.from({ length: 16 }, (_, i) => `<circle cx="100" cy="100" r="${f(32 + i * 2.85)}" stroke-width="${i % 4 ? .3 : .55}" opacity="${i % 4 ? .32 : .6}"/>`).join('')}</g>
+        <circle cx="100" cy="100" r="78.5" fill="none" stroke="url(#${id}m)" stroke-width="1.4"/>
+        <circle cx="100" cy="100" r="30" fill="${P.K}" stroke="url(#${id}m)" stroke-width="2.2"/>
+        <circle cx="100" cy="100" r="25.5" fill="none" stroke="${P.A}" stroke-width="1.4" stroke-dasharray="0 4" stroke-linecap="round"/>
+        <g stroke="${P.D}" stroke-width=".35" stroke-linejoin="round">${star(8, 22, 14, 5)}</g>
+        <circle cx="100" cy="100" r="3.6" fill="url(#${id}j)"/>`,
+      // an engine-turned gear, a faceted hexagon
+      enhanced: () => {
+        let g = '';
+        for (let i = 0; i < 24; i++) {
+          const a = i / 24 * 2 * Math.PI, w = Math.PI / 24;
+          g += `${i ? 'L' : 'M'}${pt(68, a - w)}L${pt(77, a - w * .55)}L${pt(77, a + w * .55)}L${pt(68, a + w)}`;
+        }
+        const hex = each(6, (a, i) => `<path d="M100 100L${pt(24, a)}L${pt(24, a + Math.PI / 3)}Z" fill="url(#${id}${i % 2 ? 'lo' : 'hi'})"/>`);
+        return `
+        <path d="${g}Z" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".6"/>
+        <circle cx="100" cy="100" r="65" fill="url(#${id}d)" stroke="${P.D}" stroke-width=".8"/>
+        <g fill="none" stroke="${P.B}" stroke-width=".45" opacity=".5">${[30, 36, 42, 48, 54, 60].map((R, i) => `<path d="${wave(R, 1.6, 18, i * .9)}"/>`).join('')}</g>
+        <path d="${each(6, a => `M${pt(28, a)}L${pt(63, a)}`, Math.PI / 6)}" stroke="url(#${id}m)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="27" fill="${P.K}" stroke="url(#${id}m)" stroke-width="1.5"/>
+        <g stroke="${P.D}" stroke-width=".35" stroke-linejoin="round">${hex}</g>
+        <circle cx="100" cy="100" r="5" fill="url(#${id}j)"/>`;
+      },
+      // a radial EQ: bars following a gentle curve, an eight-petal flower, an emerald cabochon
+      dsp: () => {
+        const eq = a => { const t = a / (2 * Math.PI); return .5 + .35 * Math.sin(t * 4 * Math.PI + .6) * Math.cos(t * 2 * Math.PI) + .15 * Math.sin(t * 10 * Math.PI); };
+        const bars = each(40, a => `M${pt(47, a)}L${pt(51 + 25 * eq(a), a)}`);
+        return `
+        <path d="${bars}" stroke="url(#${id}m)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="79" fill="none" stroke="url(#${id}m)" stroke-width=".7"/>
+        <circle cx="100" cy="100" r="44" fill="none" stroke="url(#${id}m)" stroke-width="1.4"/>
+        <path d="${lens(8, 14, 41, .3, P8)}" fill="url(#${id}m)" stroke="${P.D}" stroke-width=".6"/>
+        <circle cx="100" cy="100" r="17" fill="${P.K}" stroke="url(#${id}m)" stroke-width="1.6"/>
+        <circle cx="100" cy="100" r="13.5" fill="url(#${id}g)" stroke="${P.D}" stroke-width=".5"/>
+        <ellipse cx="96" cy="94.5" rx="5" ry="3" fill="#fff" opacity=".55" transform="rotate(-30 96 94.5)"/>`;
+      },
+      // a watch dial and a compass rose
+      shared: () => {
+        const ticks = each(60, (a, i) => `M${pt(i % 5 ? 73 : 69, a)}L${pt(77, a)}`);
+        const rose = (n, R, r0, rot) => each(n, a => `<path d="M100 100L${pt(r0, a - Math.PI / n)}L${pt(R, a)}Z" fill="url(#${id}hi)"/><path d="M100 100L${pt(R, a)}L${pt(r0, a + Math.PI / n)}Z" fill="url(#${id}lo)"/>`, rot);
+        return `
+        <path d="${ticks}" stroke="url(#${id}m)" stroke-width="1.2" stroke-linecap="round"/>
+        <g fill="${P.B}">${each(12, a => { const [x, y] = xy(63.5, a); return `<circle cx="${f(x)}" cy="${f(y)}" r="1.5"/>`; })}</g>
+        <circle cx="100" cy="100" r="58" fill="none" stroke="url(#${id}m)" stroke-width=".9"/>
+        <circle cx="100" cy="100" r="40" fill="none" stroke="${P.A}" stroke-width=".5" opacity=".7"/>
+        <g stroke="${P.D}" stroke-width=".35" stroke-linejoin="round">${rose(4, 40, 8, Math.PI / 4)}${rose(4, 55, 9, 0)}</g>
+        <circle cx="100" cy="100" r="10" fill="${P.K}" stroke="url(#${id}m)" stroke-width="1.4"/>
+        <circle cx="100" cy="100" r="6.5" fill="url(#${id}g)"/>`;
+      },
+      // a brilliant-cut ruby in a ring of petals
+      lossy: () => {
+        const th = i => i * Math.PI / 4 + P8, ph = i => th(i) + P8;
+        const T = i => xy(21, th(i)), V = i => xy(44, th(i)), W = i => xy(44, ph(i)), S = i => xy(33, ph(i));
+        const tri = (a, b, c, fill) => `<path d="M${f(a[0])} ${f(a[1])}L${f(b[0])} ${f(b[1])}L${f(c[0])} ${f(c[1])}Z" fill="${fill}"/>`;
+        let gem = '';
+        for (let i = 0; i < 8; i++) {
+          gem += tri(T(i), T(i + 1), S(i), `url(#${id}${i % 2 ? 'lo' : 'hi'})`);
+          gem += tri(T(i + 1), S(i), W(i), `url(#${id}${i % 2 ? 'hi' : 'lo'})`) + tri(T(i), S(i), W(i), `url(#${id}${i % 2 ? 'hi' : 'lo'})`);
+          gem += tri(T(i), V(i), W(i - 1 < 0 ? 7 : i - 1), `url(#${id}${i % 2 ? 'lo' : 'hi'})`) + tri(T(i), V(i), W(i), `url(#${id}${i % 2 ? 'hi' : 'lo'})`);
+        }
+        const table = Array.from({ length: 8 }, (_, i) => T(i).map(f).join(' ')).join('L');
+        return `
+        <path d="${lens(12, 50, 78, .2, 0)}" fill="url(#${id}p)" stroke="${P.D}" stroke-width=".6"/>
+        <path d="${each(12, a => `M${pt(54, a)}L${pt(73, a)}`)}" stroke="${P.D}" stroke-width=".6" stroke-linecap="round"/>
+        <g fill="${P.B}">${each(12, a => { const [x, y] = xy(52, a); return `<circle cx="${f(x)}" cy="${f(y)}" r="1.2"/>`; }, Math.PI / 12)}</g>
+        <circle cx="100" cy="100" r="47.5" fill="${P.K}" stroke="url(#${id}m)" stroke-width="2"/>
+        <g stroke="${P.D}" stroke-width=".4" stroke-linejoin="round">${gem}</g>
+        <path d="M${table}Z" fill="url(#${id}g)" stroke="#ffd0da" stroke-width=".5" stroke-opacity=".6"/>
+        <path d="M${table}Z" fill="#fff" opacity=".12"/>
+        <circle cx="100" cy="100" r="44" fill="none" stroke="url(#${id}m)" stroke-width="1"/>`;
+      },
+    };
+    const medal = `<svg class="sb-rose" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="88" fill="url(#${id}d)"/>
+      <g fill="none" stroke="${P.A}" stroke-width=".45" opacity=".42">${[30, 37, 44, 51, 58, 65, 72].map((R, i) => `<path d="${wave(R, 1.8, 24, i * 1.1)}"/>`).join('')}</g>
+      <circle cx="100" cy="100" r="88" fill="none" stroke="url(#${id}m)" stroke-width="2.4"/>
+      <circle cx="100" cy="100" r="82.6" fill="none" stroke="${P.B}" stroke-width="2.3" stroke-dasharray="0 6.49" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="78" fill="none" stroke="url(#${id}m)" stroke-width=".9"/>
+      ${(motif[kind] || motif.enhanced)()}
+    </svg>`;
+    const bezel = `<svg class="sb-ring" viewBox="0 0 200 200" fill="none">
+      <circle cx="100" cy="100" r="97" stroke="${P.A}" stroke-width=".6" opacity=".8"/>
+      <circle cx="100" cy="100" r="93.6" stroke="${P.B}" stroke-width="2.6" stroke-dasharray=".7 3.2" opacity=".85"/>
+      <circle cx="100" cy="100" r="90.4" stroke="${P.A}" stroke-width=".5" opacity=".6"/>
+      ${each(4, (a, i) => `<path d="M100 1.8L103.2 6.6L100 11.4L96.8 6.6Z" fill="${P.metal[3]}" stroke="${P.L}" stroke-width=".4" transform="rotate(${i * 90} 100 100)"/><circle cx="100" cy="6.6" r="1.3" fill="${P.B}" transform="rotate(${i * 90 + 45} 100 100)"/>`)}
+    </svg>`;
+    const corner = c => `<svg class="sb-corner ${c}" viewBox="0 0 80 80"><use href="#${id}corner"/></svg>`;
+    const crest = c => `<svg class="sb-crest ${c}" viewBox="0 0 140 36"><use href="#${id}crest"/></svg>`;
+    // glints sit on the metal: [left, top, delay s, size]
+    const glints = [
+      ['58px', '58px', 0, 1], ['calc(100% - 95px)', '23px', -2.5, .7], ['35px', 'calc(100% - 65px)', -1.6, .85],
+      ['calc(100% - 58px)', 'calc(100% - 58px)', -3, 1], ['50%', '18px', -2, 1.15], ['50%', 'calc(100% - 18px)', -.9, .9],
+      ['50%', '50%', -3.3, 1.5], ['calc(50% + var(--m) * .26)', 'calc(50% - var(--m) * .3)', -1.4, .7],
+      ['calc(50% - var(--m) * .3)', 'calc(50% + var(--m) * .22)', -2.3, .6], ['16px', '50%', -.6, .8],
+      ['calc(100% - 16px)', '50%', -2.7, .8], ['30%', '7px', -1.7, .6], ['calc(100% - 7px)', '72%', -.3, .55],
+    ].map(([x, y, d, s]) => `<i class="sb-gl" style="left:${x};top:${y};animation-delay:${d}s;--s:${s}"></i>`).join('');
+    const [motto, cap] = this.words(sg, kind);
+    return defs + `<div class="sb-bg"></div><div class="sb-rays"></div><i class="sb-dust a"></i><i class="sb-dust b"></i>
+      <svg class="sb-lattice" viewBox="0 0 100 100" preserveAspectRatio="none" fill="none" stroke="${P.A}">
+        <polygon points="50,0 100,50 50,100 0,50" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".5"/>
+        <polygon points="50,6 94,50 50,94 6,50" stroke-width=".6" vector-effect="non-scaling-stroke" opacity=".26"/>
+      </svg>
+      <i class="sb-frame"></i><i class="sb-beads"></i><i class="sb-frame2"></i>
+      ${corner('tl')}${corner('tr')}${corner('bl')}${corner('br')}${crest('t')}${crest('b')}
+      <i class="sb-node l"></i><i class="sb-node r"></i>
+      <div class="sb-medal"><i class="sb-glow"></i>${medal}<i class="sb-iris"></i>${bezel}</div>
+      <div class="sb-motto"><span>${esc(motto)}</span></div>
+      <div class="sb-cap"><b>${esc(cap)}</b></div>
+      <i class="sb-sheen"></i>${glints}<i class="sb-burst"></i><i class="sb-flash"></i>`;
   },
 };
 
@@ -1443,20 +1931,101 @@ const Motion = {
 /** Sliding highlight behind the active sidebar item. */
 const NavPill = {
   el: null,
-  move() {
+  /** instant: follow a layout change (window size, zoom, text size, the sidebar folding to icons) in place; only a
+   *  change of page slides it. Sliding there let it trail behind with its new size over the wrong item. */
+  move(instant) {
     const nav = $('#nav');
     if (!this.el) { this.el = h('div', { class: 'nav-pill' }); nav.prepend(this.el); this.el.style.transition = 'none'; requestAnimationFrame(() => this.el.style.transition = ''); }
+    NavEdges.sync();
     const a = $('#nav a.on');
-    if (!a) { this.el.style.opacity = 0; return; }
+    if (!a || !a.offsetParent) { this.el.style.opacity = 0; return; }   // none, or hidden from the sidebar (NavPick)
+    if (instant) this.el.style.transition = 'none';
     this.el.style.opacity = 1;
     this.el.style.transform = `translateY(${a.offsetTop}px)`;
     this.el.style.left = a.offsetLeft + 'px';
     this.el.style.width = a.offsetWidth + 'px';
     this.el.style.height = a.offsetHeight + 'px';   // follows the item (text size setting)
     this.el.style.right = 'auto';
+    if (instant) { void this.el.offsetWidth; this.el.style.transition = ''; }
   },
 };
-window.addEventListener('resize', () => NavPill.move());
+/** The sidebar list scrolls without a scrollbar (a 14 px bar squeezed the folded 52 px column: the icons jumped
+ *  sideways and the highlight shrank to a square whenever a short window made the list overflow). Instead the
+ *  edge with more items behind it fades out (app.css .nav.fade-t / .fade-b). */
+const NavEdges = {
+  sync() {
+    const n = $('#nav'); if (!n) return;
+    const top = n.scrollTop > 1, bottom = n.scrollTop + n.clientHeight < n.scrollHeight - 1;
+    if (n.classList.contains('fade-t') !== top) n.classList.toggle('fade-t', top);
+    if (n.classList.contains('fade-b') !== bottom) n.classList.toggle('fade-b', bottom);
+  },
+};
+window.addEventListener('resize', () => NavPill.move(true));
+$('#nav').addEventListener('scroll', () => NavEdges.sync(), { passive: true });
+// A clicked sidebar link keeps the keyboard focus. When the window comes back after a keyboard action (Alt+Tab, a
+// shortcut), Chromium re-shows that focus as a keyboard focus ring round the highlighted item. The highlight already
+// marks the page, so a mouse click (detail > 0; Enter from the keyboard is 0) lets the focus go.
+$('#nav').addEventListener('click', e => { const a = e.target.closest('a'); if (a && e.detail > 0) a.blur(); });
+
+/** Which links of the 音樂庫 section the sidebar shows: the button on the section's label (or a right-click on one of
+ *  its links, also when the sidebar is folded to icons) opens a list to tick. Kept in the ui pref navHidden (routes,
+ *  comma-separated); links that modules add later (SensMe …) can be hidden the same way. */
+const NavPick = {
+  hidden() { return new Set(String(typeof uiPref === 'function' ? uiPref('navHidden', '') : '').split(',').filter(Boolean)); },
+  /** The section's label: the one above 專輯, wherever the links were dragged to. */
+  label() { let el = $('#nav a[data-r="albums"]'); while (el && !el.classList.contains('nav-label')) el = el.previousElementSibling; return el; },
+  links() {
+    const out = [];
+    for (let el = this.label()?.nextElementSibling; el && !el.classList.contains('nav-label'); el = el.nextElementSibling)
+      if (el.tagName === 'A' && el.dataset.r) out.push(el);
+    return out;
+  },
+  apply() {
+    const label = this.label();
+    if (label && !label.querySelector('.nav-edit')) {
+      // icon only: the label's text is what navdrag.js keeps the section's order under
+      const b = h('button', { class: 'nav-edit', type: 'button', title: T('自訂顯示項目'), 'aria-label': T('自訂顯示項目'), html: icon('sliders') });
+      b.onclick = e => { e.preventDefault(); e.stopPropagation(); this.open(b); };
+      label.append(b);
+    }
+    const off = this.hidden();
+    for (const a of this.links()) if (a.classList.contains('nav-off') !== off.has(a.dataset.r)) a.classList.toggle('nav-off', off.has(a.dataset.r));
+    if (NavPill.el) NavPill.move(true);
+  },
+  open(anchor) {
+    if (Popover.el && Popover.el.classList.contains('navpick')) return Popover.close();
+    const off = this.hidden();
+    const box = h('div', null, h('div', { class: 'np-h' }, T('在側欄顯示')));
+    for (const a of this.links()) {
+      const r = a.dataset.r;
+      const pic = a.querySelector('svg, img');
+      const row = h('button', { class: 'np-row' + (off.has(r) ? '' : ' on'), type: 'button', role: 'menuitemcheckbox', 'aria-checked': String(!off.has(r)) },
+        h('span', { class: 'np-box', html: icon('check') }),
+        pic ? pic.cloneNode(true) : null,
+        h('span', { class: 'np-t' }, a.querySelector('span')?.textContent || r));
+      row.onclick = () => {
+        const s = this.hidden();
+        s.has(r) ? s.delete(r) : s.add(r);
+        setUiPref('navHidden', [...s].join(','));
+        row.classList.toggle('on', !s.has(r)); row.setAttribute('aria-checked', String(!s.has(r)));
+        this.apply();
+      };
+      box.append(row);
+    }
+    box.append(h('div', { class: 'np-foot' }, T('拖曳側欄項目可以調整順序。')));
+    Popover.show(box, anchor, { cls: 'navpick' });
+  },
+};
+$('#nav').addEventListener('contextmenu', e => {
+  const a = e.target.closest('#nav > a[data-r]');
+  if (!a || !NavPick.links().includes(a)) return;
+  e.preventDefault();
+  NavPick.open({ x: e.clientX, y: e.clientY });
+});
+// links added later by modules: hidden as chosen
+new MutationObserver(() => NavPick.apply()).observe($('#nav'), { childList: true });
+// the list's own box changes size without a window resize too (the player bar turning two-row, the brand, fonts)
+if (window.ResizeObserver) new ResizeObserver(() => { if (NavPill.el) NavPill.move(true); else NavEdges.sync(); }).observe($('#nav'));
 
 /** Calls `f` once as soon as the user starts scrolling (wheel, touch, keys, scrollbar). Returns an unsubscribe function. */
 function onUserScroll(f) {
