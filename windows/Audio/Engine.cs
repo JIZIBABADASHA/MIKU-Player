@@ -1075,7 +1075,10 @@ public sealed class AudioEngine : IAudioEngine
         if (c == null || o == null) return 0;
         try
         {
-            if (o is IWavePosition w) return _wasapiFrameBase + w.GetPosition() / c.WaveFormat.BlockAlign;
+            // never past what was submitted: while playing, NAudio adds the time since the driver's position reading
+            // (its QPC timestamp) to the position, and a driver that returns a timestamp of 0 (seen right after an
+            // exclusive stream starts) turns that into the whole time since boot
+            if (o is IWavePosition w) return Math.Min(_wasapiFrameBase + w.GetPosition() / c.WaveFormat.BlockAlign, c.FramesOut);
             if (o is AsioOut a) return Math.Max(0, c.FramesOut - a.FramesPerBuffer * 2L);
         }
         catch { }
