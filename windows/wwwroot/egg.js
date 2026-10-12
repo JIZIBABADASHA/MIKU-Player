@@ -1,15 +1,15 @@
 'use strict';
-/* The logo's secret: click the MIKU wordmark in the sidebar and something enormous comes for it. A wall of data — hex
-   words, bit streams, sample values, rates, meters, as tall as the window — moves in from the far side, slowly, and
-   nothing stops it: the window trembles, the logo strains and cracks as the wall's edge reaches it, then bursts, and
-   its pieces rain down and lie scattered on the floor of the window. They stay there until the logo's place is
-   clicked again, when they rise, whirl and lock back together with a flash. Nothing is saved: a broken logo is whole
-   again the next time MIKU starts. With 輕量化「頁面與操作動畫」 (or reduced motion) the logo only changes between
-   broken and whole. */
+/* The logo's secret: click the MIKU wordmark in the sidebar and it goes into the press. A plate of data as wide as the
+   window — hex words, bit streams, sample values, rates, meters — rises from the bottom, slowly, and nothing stops
+   it. It meets the logo and keeps coming: the logo is squeezed against the top of the window, trembles, cracks piece
+   by piece, and at last bursts; the plate draws back and the pieces come down and lie scattered on the floor of the
+   window. They stay there until the logo's place is clicked again, when they rise, whirl and lock back together with a
+   flash. Nothing is saved: a broken logo is whole again the next time MIKU starts. With 輕量化「頁面與操作動畫」 (or
+   reduced motion) the logo only changes between broken and whole. */
 const LogoEgg = {
   broken: false, busy: false, shards: null,
   calm: () => matchMedia('(prefers-reduced-motion: reduce)').matches || (typeof PageEffects !== 'undefined' && PageEffects.reduced('page')),
-  /** The wall: columns of data running up and down at their own pace, meters between them, a bright edge in front. */
+  /** The press plate: columns of data running up and down at their own pace, meters between them, a bright edge on top. */
   wall(width) {
     const hex = n => Array.from({ length: n }, () => '0123456789ABCDEF'[Math.random() * 16 | 0]).join('');
     const bits = n => Array.from({ length: n }, () => Math.random() < .5 ? '0' : '1').join('');
@@ -88,14 +88,14 @@ const LogoEgg = {
         s.style.clipPath = `polygon(${tri.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',')})`;
         s.style.transformOrigin = `${cx.toFixed(1)}px ${cy.toFixed(1)}px`;
         s.append(logo.cloneNode(true));
-        s._x = cx / w;
+        s._x = cx / w; s._y = cy / hgt;
         // strained: a crack's width out of place
         s._crack = `translate(${((Math.random() - .5) * 5).toFixed(1)}px, ${((Math.random() - .5) * 4).toFixed(1)}px) rotate(${((Math.random() - .5) * 7).toFixed(1)}deg)`;
         // where it lands: thrown out across the floor (some far), turned any way up
         const far = Math.random() < .3;
         const fx = Math.min(reach, Math.max(10, r.left + cx + (far ? 120 + Math.random() * (reach - r.left) : (Math.random() - .35) * 210)));
         s._dx = fx - (r.left + cx); s._dy = floor - Math.random() * 9 - (r.top + cy);
-        s._rot = (Math.random() - .5) * 1400; s._up = 90 + Math.random() * 260; s._scale = .85 + Math.random() * .5;
+        s._rot = (Math.random() - .5) * 1400; s._up = 8 + Math.random() * 60; s._scale = .85 + Math.random() * .5;   // squeezed out sideways, hardly upwards
         s._rest = `translate(${s._dx.toFixed(1)}px, ${s._dy.toFixed(1)}px) rotate(${s._rot.toFixed(0)}deg) scale(${s._scale.toFixed(2)})`;
         box.append(s);
       }
@@ -124,44 +124,45 @@ const LogoEgg = {
     if (this.calm() || !logo.animate) { pieces.forEach(s => { s.style.transform = s._rest; }); return; }
     this.busy = true;
     const r = logo.getBoundingClientRect(), lx = r.left + r.width / 2, ly = r.top + r.height / 2;
-    // the wall: as tall as the window and more than half as wide, from beyond the right edge all the way across and out
-    // on the left — slowly, at one steady pace. The logo, in the far corner, is the last thing it reaches.
-    const W = Math.max(520, innerWidth * .62), total = innerWidth + W, ms = 9000;
-    const disc = this.wall(W);
-    disc.style.cssText = `left:${innerWidth}px;top:0;width:${W}px;height:${innerHeight}px`;
-    document.body.append(disc);
-    const roll = disc.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${-total}px)` }], { duration: ms, easing: 'linear', fill: 'forwards' });
-    // the ground shakes the whole time it rolls, harder while it is on the logo
     const app = document.getElementById('app') || document.body;
-    const rumble = app.animate([[0, 0], [1.2, -1], [-1, 1.4], [.8, .9], [-1.3, -.6], [0, 0]].map(([x, y]) => ({ transform: `translate(${x}px, ${y}px)` })), { duration: 150, iterations: Infinity });
-    const edge = ms * (innerWidth - r.right - 6) / total;      // the wall's edge reaches the logo
     const wait = t => new Promise(done => setTimeout(done, t));
-    // 1. it looms: the logo trembles
-    await wait(Math.max(0, edge - 900));
-    const tremble = box.animate([[0, 0], [1.5, -1], [-1.5, 1], [1, 1.5], [-1, -1.5], [0, 0]].map(([x, y]) => ({ transform: `translate(${x}px, ${y}px)` })), { duration: 90, iterations: Infinity });
-    await wait(900);
-    // 2. the edge is on it: it is pressed in and cracks, piece by piece, from the side the wall comes from
-    pieces.forEach(s => s.animate([{ transform: 'none' }, { transform: s._crack }], { duration: 160, delay: (1 - s._x) * 520 + Math.random() * 120, easing: 'ease-out', fill: 'both' }));
-    box.animate([{ transform: 'scale(1,1)' }, { transform: 'scale(.82,1.05)' }], { duration: 760, easing: 'cubic-bezier(.5,0,.9,.4)', fill: 'forwards' });
-    this.spark(r.right - 6, ly, 10, ['#ffffff', '#39c5bb'], 60);
-    rumble.playbackRate = 1.8;
-    await wait(780);
-    // 3. it gives way: the pieces burst out in front of the wall and come down all over the floor
-    tremble.cancel();
+    const shake = (amp, period) => app.animate([[0, 0], [1, -.8], [-.8, 1.1], [.7, .7], [-1, -.5], [0, 0]].map(([x, y]) => ({ transform: `translate(${x * amp}px, ${y * amp}px)` })), { duration: period, iterations: Infinity });
+    // the plate: as wide as the window, rising from below it until its edge is under the logo
+    const plate = this.wall(innerWidth);
+    plate.classList.add('egg-press');
+    plate.style.cssText = `left:0;top:${innerHeight}px;width:${innerWidth}px;height:${innerHeight}px`;
+    document.body.append(plate);
+    const reach = innerHeight - r.bottom - 3, gap = 7, squeeze = Math.max(4, r.bottom - gap - Math.max(0, r.top - 14));
+    let rumble = shake(1, 170);
+    // 1. it rises, at one slow pace; the logo starts to tremble as it comes near
+    const rise = plate.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${-reach}px)` }], { duration: 5200, easing: 'linear', fill: 'forwards' });
+    await wait(5200 - 1100);
+    const tremble = box.animate([[0, 0], [1.2, -.8], [-1.2, .8], [.8, 1.2], [-.8, -1.2], [0, 0]].map(([x, y]) => ({ transform: `translate(${x}px, ${y}px)` })), { duration: 90, iterations: Infinity });
+    try { await rise.finished; } catch { }
+    // 2. contact, and it does not stop: slower now, against the logo's resistance, squeezing it flat against the top of
+    //    the window; the pieces crack from the bottom up, chips fly, everything shakes harder
+    tremble.cancel(); rumble.cancel(); rumble = shake(2.2, 110);
+    const pressMs = 2600;
+    plate.animate([{ transform: `translateY(${-reach}px)` }, { transform: `translateY(${-reach - squeeze}px)` }], { duration: pressMs, easing: 'cubic-bezier(.3,.5,.7,1)', fill: 'forwards' });
+    box.animate([{ transform: 'translateY(0) scale(1,1)' }, { transform: `translateY(${-Math.min(r.top - 6, squeeze * .35)}px) scale(1.16, ${(gap / r.height).toFixed(3)})` }],
+      { duration: pressMs, easing: 'cubic-bezier(.3,.5,.7,1)', fill: 'forwards' });
+    pieces.forEach(s => s.animate([{ transform: 'none' }, { transform: s._crack }], { duration: 200, delay: (1 - s._y) * pressMs * .55 + Math.random() * 500, easing: 'ease-out', fill: 'both' }));
+    for (let k = 1; k <= 4; k++) setTimeout(() => this.spark(r.left + Math.random() * r.width, r.bottom - k * r.height / 5, 5 + k * 2, ['#ffffff', '#39c5bb', '#e5307e'], 50 + k * 16), pressMs * k / 5);
+    await wait(pressMs);
+    // 3. it gives way: the pieces shoot out of the gap, the plate draws back, and they come down all over the floor
+    rumble.cancel();
     box.classList.add('egg-out');
     box.getAnimations().forEach(a => a.cancel());
-    this.spark(lx, ly, 46, ['#39c5bb', '#e5307e', '#ffffff', '#1c1c20'], 230);
-    app.animate([0, 14, -11, 8, -5, 3, 0].map(y => ({ transform: `translate(${y * .5}px, ${y}px)` })), { duration: 620, easing: 'ease-out' });
+    this.spark(lx, r.top + gap, 52, ['#39c5bb', '#e5307e', '#ffffff', '#1c1c20'], 250);
+    app.animate([0, 16, -12, 9, -6, 3, 0].map(y => ({ transform: `translate(${y * .4}px, ${y}px)` })), { duration: 680, easing: 'ease-out' });
+    const back = plate.animate([{ transform: `translateY(${-reach - squeeze}px)` }, { transform: `translateY(${-reach - squeeze}px)`, offset: .12 }, { transform: 'translateY(0)' }], { duration: 1900, easing: 'cubic-bezier(.6,0,.9,.5)', fill: 'forwards' });
     const falls = pieces.map(s => {
       s.getAnimations().forEach(a => a.cancel());
-      return s.animate(this.fall(s), { duration: 1150 + Math.random() * 700, delay: Math.random() * 140, easing: 'linear', fill: 'both' }).finished;
+      return s.animate(this.fall(s), { duration: 1250 + Math.random() * 750, delay: Math.random() * 160, easing: 'linear', fill: 'both' }).finished;
     });
-    try { await Promise.all(falls); } catch { }
+    try { await Promise.all([...falls, back.finished]); } catch { }
     pieces.forEach(s => { s.style.transform = s._rest; });
-    rumble.playbackRate = 1;
-    // 4. and the wall moves on, as slowly as it came
-    try { await roll.finished; } catch { }
-    rumble.cancel(); disc.remove();
+    plate.remove();
     this.busy = false;
   },
   async revive(brand) {

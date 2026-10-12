@@ -2064,7 +2064,7 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .brand { position: relative; }
 .brand.egg-broken svg.wm { visibility: hidden; }
 .egg-shards svg.wm { visibility: visible; }
-.egg-shards { position: fixed; z-index: 9990; pointer-events: none; transform-origin: 50% 100%; }
+.egg-shards { position: fixed; z-index: 9990; pointer-events: none; transform-origin: 50% 0; }
 .egg-shards.egg-out { z-index: 10000; }
 .egg-shard { position: absolute; inset: 0; will-change: transform; }
 .egg-shard svg { display: block; }
@@ -2082,6 +2082,9 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 @keyframes egg-bar { from { transform: scaleX(.12); } to { transform: scaleX(1); } }
 /* the edge in front: a hard bright line with a glow ahead of it */
 .egg-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #eafffd; box-shadow: 0 0 14px 4px #39c5bb, -18px 0 46px 10px rgba(57, 197, 187, .55), -3px 0 0 1px rgba(229, 48, 126, .9); animation: egg-flick .11s steps(2) infinite; }
+/* the press: the plate comes from below, its edge on top */
+.egg-wall.egg-press { padding: 26px 14px 0; background: linear-gradient(0deg, rgba(4, 12, 16, .97), rgba(6, 16, 22, .95) 70%, rgba(8, 20, 26, .9)); box-shadow: 0 -40px 90px rgba(57, 197, 187, .28), 0 0 0 1px rgba(57, 197, 187, .25); }
+.egg-press .egg-edge { left: 0; right: 0; top: 0; bottom: auto; width: auto; height: 7px; box-shadow: 0 0 14px 4px #39c5bb, 0 -18px 46px 10px rgba(57, 197, 187, .55), 0 3px 0 1px rgba(229, 48, 126, .9); }
 @keyframes egg-flick { from { opacity: 1; } to { opacity: .78; } }
 .egg-spark { position: fixed; z-index: 9998; pointer-events: none; border-radius: 2px; }
 .egg-ring { position: fixed; z-index: 9997; pointer-events: none; width: 60px; height: 60px; border-radius: 50%; border: 3px solid #39c5bb; box-shadow: 0 0 22px #39c5bb, inset 0 0 14px #e5307e; }
