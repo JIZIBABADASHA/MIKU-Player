@@ -2061,9 +2061,27 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 @media (max-width: 760px) { .row.trow .fq { display: none; } }
 
 /* ───────────── the logo's secret (egg.js) ───────────── */
-.brand svg.wm { transform-origin: 50% 100%; transition: none; }
-.brand.egg-flat svg.wm { transform: scale(1.3, .1); filter: saturate(.75); }
-.egg-leek { position: fixed; z-index: 9999; pointer-events: none; transform-origin: 50% 100%; filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .35)); }
-.egg-leek svg { width: 100%; height: 100%; display: block; }
+.brand { position: relative; }
+.brand.egg-broken svg.wm { visibility: hidden; }
+.egg-shards svg.wm { visibility: visible; }
+.egg-shards { position: fixed; z-index: 9990; pointer-events: none; transform-origin: 50% 100%; }
+.egg-shards.egg-out { z-index: 10000; }
+.egg-shard { position: absolute; inset: 0; will-change: transform; }
+.egg-shard svg { display: block; }
+.egg-wall { position: fixed; z-index: 9999; pointer-events: none; display: flex; gap: 10px; padding: 0 14px 0 26px; overflow: hidden; box-sizing: border-box;
+  background: linear-gradient(90deg, rgba(4, 12, 16, .97), rgba(6, 16, 22, .93) 60%, rgba(6, 16, 22, .82)); box-shadow: -40px 0 90px rgba(57, 197, 187, .28), 0 0 0 1px rgba(57, 197, 187, .25);
+  font: 600 12.5px/1.55 ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace; color: #39c5bb; }
+.egg-wall::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .045) 0 1px, transparent 1px 4px); }
+.egg-col { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: pre; text-shadow: 0 0 8px rgba(57, 197, 187, .7); }
+.egg-col.pink { color: #ff5fa6; text-shadow: 0 0 8px rgba(229, 48, 126, .75); }
+.egg-col.dim { color: #9fe9e2; opacity: .55; }
+.egg-col pre { margin: 0; font: inherit; animation: egg-run 14s linear infinite; }
+@keyframes egg-run { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.egg-meter { flex: .8 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 0; }
+.egg-meter i { display: block; height: 5px; width: var(--w); border-radius: 2px; background: linear-gradient(90deg, #39c5bb, #e5307e); transform-origin: 0 50%; animation: egg-bar .6s ease-in-out infinite alternate; box-shadow: 0 0 8px rgba(57, 197, 187, .6); }
+@keyframes egg-bar { from { transform: scaleX(.12); } to { transform: scaleX(1); } }
+/* the edge in front: a hard bright line with a glow ahead of it */
+.egg-edge { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #eafffd; box-shadow: 0 0 14px 4px #39c5bb, -18px 0 46px 10px rgba(57, 197, 187, .55), -3px 0 0 1px rgba(229, 48, 126, .9); animation: egg-flick .11s steps(2) infinite; }
+@keyframes egg-flick { from { opacity: 1; } to { opacity: .78; } }
 .egg-spark { position: fixed; z-index: 9998; pointer-events: none; border-radius: 2px; }
 .egg-ring { position: fixed; z-index: 9997; pointer-events: none; width: 60px; height: 60px; border-radius: 50%; border: 3px solid #39c5bb; box-shadow: 0 0 22px #39c5bb, inset 0 0 14px #e5307e; }
