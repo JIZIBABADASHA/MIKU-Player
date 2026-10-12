@@ -2,8 +2,9 @@
 /* ═════════════════════════════ 音樂庫 → 資料夾 ═════════════════════════════
  * The library by the folders on disk: library.json lists every folder once ("folders") and each track names its
  * folder (Lib: t.dir). Two ways to look at it, switched on the page (ui pref folderView):
- *   瀏覽 (browse): one folder at a time — its subfolders as cards (the covers of what they hold, fanned out), then its
- *                  songs as MIKU's own track rows; the path above leads up.
+ *   瀏覽 (browse): one folder at a time — its subfolders as cards (the covers of what they hold, fanned out) or as a
+ *                  list of rows (卡片 / 條列, ui pref folderLayout), then its songs as MIKU's own track rows; the path
+ *                  above leads up.
  *   樹狀 (tree):   the whole tree, folders opened and closed in place; "(n)" = what a folder holds (like foobar2000).
  * A folder plays everything under it, in the order shown. The top level is the library folders (Settings → 音樂庫);
  * files outside them hang under their drive. */
@@ -75,6 +76,8 @@ const Folders = {
   /** A library folder's short name (D:\Music → Music); its full path is shown beside it. */
   baseName(p) { return p.split(/[\\/]+/).filter(Boolean).pop() || p; },
   label(n) { return n.parent ? n.name : n.path; },
+  /** On a card or a row: a top-level folder by its own name (its whole path is in the tooltip and in the path above). */
+  short(n) { return n.parent ? n.name : this.baseName(n.path); },
   href(n) { return '#/folders/' + encodeURIComponent(n.path); },
 
   menu(n, anchor, inTree) {
@@ -145,6 +148,7 @@ const Folders = {
     const title = at ? (at.parent ? at.name : this.baseName(at.path)) : T('所有資料夾');
     const sub = [kids.length ? T`${kids.length} 個資料夾` : '', T`${count} 首`].filter(Boolean).join(' · ');
     const sortNow = () => { const k = String(uiPref('folderSort', 'name')).split(':')[0]; return ['name', 'added', 'dur'].includes(k) ? k : 'name'; };
+    const layout = () => uiPref('folderLayout', 'cards') === 'list' ? 'list' : 'cards';
     const host = h('div', { class: 'fbrowse' });
     let stop = null;
     const draw = () => {
@@ -153,7 +157,7 @@ const Folders = {
       const fs = kids.slice().sort(so.dirs[key]), ts = songs.slice().sort(so.songs[key]);
       if (key === 'added') { fs.reverse(); ts.reverse(); }   // newest first
       if (dir.rev()) { fs.reverse(); ts.reverse(); }
-      if (fs.length) host.append(h('div', { class: 'fshelf' }, fs.map(n => this.dirCard(n))));
+      if (fs.length) host.append(layout() === 'list' ? h('div', { class: 'frows' }, fs.map(n => this.dirRow(n))) : h('div', { class: 'fshelf' }, fs.map(n => this.dirCard(n))));
       if (ts.length) {
         const list = h('div', { class: 'tracks' }, thead());
         host.append(list);
@@ -163,6 +167,7 @@ const Folders = {
     const dir = sortDir('folderSortDir', sortNow, () => draw());
     view.append(crumbs, pageHead(title, sub, [
       switcher,
+      seg([['cards', T('卡片')], ['list', T('條列')]], layout(), v => { setUiPref('folderLayout', v); draw(); }),
       seg([['name', T('名稱')], ['added', T('最近加入')], ['dur', T('長度')]], sortNow(), v => { setUiPref('folderSort', v); dir.paint(); draw(); }),
       dir.el,
       h('button', { class: 'btn primary small', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(all(), 0, false) }),
@@ -221,12 +226,29 @@ const Folders = {
     const c = h('div', { class: 'ftile', title: n.path },
       stack,
       h('div', { class: 'ft-txt' },
-        h('div', { class: 't1' }, this.label(n)),
+        h('div', { class: 't1' }, this.short(n)),
         h('div', { class: 't2' }, who || ' '),
         h('div', { class: 't3 num' }, h('span', null, [n.kids.length ? T`${n.kids.length} 個資料夾` : '', T`${n.count} 首`, fmtTime(a.dur)].filter(Boolean).join(' · ')), a.fmt ? h('span', { class: 'ft-q' }, a.fmt) : null)));
     c.onclick = () => go(this.href(n));
     c.oncontextmenu = e => { e.preventDefault(); this.menu(n, { x: e.clientX, y: e.clientY }); };
     return c;
+  },
+
+  /** A folder as a row (條列): one cover, its name and whose music it is, how much it holds, its format, play. */
+  dirRow(n) {
+    const a = this.agg(n);
+    const cover = a.covers.length ? artBox('fr-cv', ...albumArt(a.covers[0]), 48, a.covers[0].title) : h('div', { class: 'fr-cv ft-none', html: icon('folder') });
+    const who = a.albums > 1 ? [a.artist, T`${a.albums} 張專輯`].filter(Boolean).join(' · ') : a.artist;
+    const r = h('div', { class: 'row frow', title: n.path },
+      cover,
+      h('div', { class: 'tt' }, h('div', null, this.short(n)), h('div', { class: 'a' }, who || ' ')),
+      h('div', { class: 'fr-ct num' }, [n.kids.length ? T`${n.kids.length} 個資料夾` : '', T`${n.count} 首`].filter(Boolean).join(' · ')),
+      h('div', { class: 'fr-q' }, a.fmt ? h('span', { class: 'ft-q' }, a.fmt) : null),
+      h('div', { class: 'd num' }, fmtTime(a.dur)),
+      this.playBtn(() => App.playTracks(this.collect(n), 0, false)));
+    r.onclick = () => go(this.href(n));
+    r.oncontextmenu = e => { e.preventDefault(); this.menu(n, { x: e.clientX, y: e.clientY }); };
+    return r;
   },
 
   /* ── 樹狀: the whole tree ── */
