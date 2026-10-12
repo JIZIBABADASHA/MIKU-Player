@@ -86,7 +86,7 @@ class NativeAudioEngine extends WebAudioEngine {
     this.restartReason = null; this.played = false;
     this.loading = false;
     ++this.loadEpoch; ++this.preloadEpoch; ++this.seekEpoch; this.preloadedFor = null; this.preloading = false;
-    this.loaded = false; this.st.playing = false; this.signal = null; this.hardware = {};
+    this.loaded = false; this.st.playing = false; this.signal = null; this.hardware = {}; this.held = false;
     this.bindMediaKeys(false);
     if (this.closed) return;
     Log.error('Native audio helper stopped', e);
@@ -239,7 +239,7 @@ class NativeAudioEngine extends WebAudioEngine {
         throw new Error(r && r.msg || '原生輸出逾時');
       }
       this.decode = prepared;
-      this.loaded = true; this.pausedAt = null; this.st.pos = pos || 0; this.st.playing = !!r.playing; this.statusAt = Date.now();
+      this.loaded = true; this.held = false; this.pausedAt = null; this.st.pos = pos || 0; this.st.playing = !!r.playing; this.statusAt = Date.now();
       this.bindMediaKeys(true);
       this.signal = this.buildSignal(t); this.emit('changed');
     } catch (e) {
@@ -305,7 +305,7 @@ class NativeAudioEngine extends WebAudioEngine {
   }
   setDevice() { return this.applyOutput(); }
   /** The helper holds the device and runs it (playing, or paused for less than 30 s): it can mix a sound in. */
-  overlayReady() { return !!this.proc && this.loaded && this.hardware.exclusive === true && this.hardware.open !== false; }
+  overlayReady() { return !!this.proc && !this.loading && this.hardware.exclusive === true && (this.held === true || (this.loaded && this.hardware.open !== false)); }
   playOverlay(cue) { this.send({ c: 'overlay', rate: cue.rate, pcm: cue.pcm }); }
   async maybePreload() {
     if (!this.s.gapless || !this.isPlaying || !this.track || this.preloadedFor || this.preloading || this.seeking) return;
@@ -327,7 +327,25 @@ class NativeAudioEngine extends WebAudioEngine {
     ++this.preloadEpoch; this.preloading = false; this.preloadedFor = null; this.preloadTried = null;
     this.send({ c: 'clearNext' });
   }
-  stop() { ++this.loadEpoch; ++this.preloadEpoch; ++this.seekEpoch; this.loading = false; this.bindMediaKeys(false); super.stop(); }
+  /**
+   * The music stops. In exclusive mode the DAC stays MIKU's (hog mode, rate, DAC format) unless `release` is asked for:
+   * the next track starts on the same device, and macOS does not move the system output back and forth in between. The
+   * app asks for the release when the listener leaves MIKU with nothing playing, plays YouTube, or quits (audio.js).
+   */
+  stop({ release = false } = {}) {
+    ++this.loadEpoch; ++this.preloadEpoch; ++this.seekEpoch; this.loading = false; this.bindMediaKeys(false);
+    const hold = !release && this.exclusiveWanted && this.hardware.exclusive === true;
+    this.pausedAt = this.loaded ? this.position : null;
+    this.send({ c: 'stop', hold });
+    this.held = hold;
+    this.loaded = false; this.track = null; this.signal = null; this.preloadedFor = null; this.st.playing = false;
+    if (!hold) this.hardware = { ...this.hardware, open: false, exclusive: false };
+    this.emit('changed');
+  }
+  /** Lets go of a device that was kept with nothing loaded. */
+  release() { if (this.held) { this.held = false; this.send({ c: 'stop' }); this.hardware = { ...this.hardware, open: false, exclusive: false }; } }
+  /** MIKU holds the DAC (playing, paused, or kept while nothing is loaded). */
+  get holdsDevice() { return !!this.proc && (this.held === true || ((this.loaded || this.loading) && this.hardware.exclusive === true)); }
   // ReplayGain belongs to the decoder: reload at the same place (same device and rate, so no relock and no gap)
   applyReplayGain() { this.invalidateNext(); if (this.track && (this.loaded || this.loading)) this.load(this.track, this.wantedPos, this.wantedPlay); }
   applyDsp() { this.send({ c: 'dsp', cfg: this.s.dsp }); this.refreshSignal(); this.emit('changed'); }

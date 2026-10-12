@@ -62,7 +62,12 @@ class AudioEngine extends EventEmitter {
   pause() { this.backend?.pause(); }
   resume() { return this.backend?.resume(); }
   seek(...a) { return this.backend?.seek(...a); }
-  stop() { this.backend?.stop(); }
+  stop(opts) { this.backend?.stop(opts); }
+  /** MIKU holds the DAC in exclusive mode (playing, paused, or kept with nothing loaded). */
+  get holdsDevice() { return !!this.backend?.holdsDevice; }
+  get isLoading() { return !!this.backend?.loading; }
+  /** Lets go of a device kept with nothing loaded (a loaded track is stopped with stop({ release: true }) instead). */
+  releaseDevice() { this.backend?.release?.(); }
   invalidateNext() { this.backend?.invalidateNext(); }
   applyVolume() { this.backend?.applyVolume(); }
   applyDsp() { this.backend?.applyDsp(); }

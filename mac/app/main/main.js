@@ -146,7 +146,7 @@ ipcMain.on('ytm', (e, m) => {
   if (!yt || e.sender !== yt.webContents) return;
   if (m.k === 'play') {
     ytActive = true; ytPlaying = true;
-    if (S.outputMode === 'coreaudio-exclusive' && engine.isLoaded) { player.saveState(); engine.stop(); }
+    if (S.outputMode === 'coreaudio-exclusive' && engine.holdsDevice) { player.saveState(); engine.stop({ release: true }); engine.releaseDevice(); }
     else if (engine.isPlaying) { player.saveState(); engine.pause(); }
     applyYtVolume();
     postSoon('state');
@@ -168,7 +168,7 @@ function applyYtVolume() {
 }
 
 // ───────────── engine / player events ─────────────
-engine.on('changed', () => { postSoon('state'); if (engine.isPlaying && ytActive) { ytActive = false; pauseYt(); } });
+engine.on('changed', () => { postSoon('state'); if (!engine.isPlaying && engine.holdsDevice) considerLettingGo(4000); if (engine.isPlaying && ytActive) { ytActive = false; pauseYt(); } });
 engine.on('loading', () => { if (ytActive) { ytActive = false; pauseYt(); } });
 engine.on('failed', msg => post('error', { message: msg }));
 engine.on('media', m => {
@@ -205,6 +205,28 @@ setInterval(() => {
   if (want && psb == null) psb = powerSaveBlocker.start('prevent-app-suspension');
   else if (!want && psb != null) { powerSaveBlocker.stop(psb); psb = null; }
 }, 2000);
+
+// ───────────── exclusive mode: when MIKU lets go of the DAC ─────────────
+// MIKU keeps the DAC it holds in exclusive mode for as long as it plays, and for as long as the listener is in MIKU:
+// between tracks, paused, stopped, at the end of the queue (so the next track starts on the same device, the system
+// output does not jump about in between, and MIKU's own sounds can be heard on it). It lets go — hog mode released,
+// the device's rate and format and the system output put back — once the listener has left MIKU for another program
+// with nothing playing, so the rest of the system can use and select the device again. Back in MIKU, Play takes it
+// again and continues at the same place.
+let letGoTimer = null;
+const mikuInFront = () => BrowserWindow.getAllWindows().some(w => !w.isDestroyed() && w.isFocused());
+function considerLettingGo(delay = 1500) {
+  clearTimeout(letGoTimer);
+  letGoTimer = setTimeout(() => {
+    if (quitting || mikuInFront() || engine.isPlaying || engine.isLoading || !engine.holdsDevice) return;
+    Log.info('Exclusive output: MIKU is not in front and nothing plays, letting go of the device');
+    if (engine.isLoaded) { player.saveState(); engine.stop({ release: true }); } else engine.releaseDevice();
+    postSoon('state');
+  }, delay);
+}
+app.on('browser-window-blur', () => considerLettingGo());
+app.on('browser-window-focus', () => clearTimeout(letGoTimer));
+if (process.platform === 'darwin') app.on('did-resign-active', () => considerLettingGo());
 
 // ───────────── extension modules ─────────────
 /** What one module gets from MIKU (the Mac side of IExtensionHost). */

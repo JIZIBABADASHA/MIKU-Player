@@ -564,6 +564,7 @@ class Engine {
     struct Overlay { std::vector<float> data; double rate = 48000; std::atomic<double> pos{0}; };
     std::atomic<Overlay *> overlay{nullptr};
     std::vector<std::pair<Overlay *, Clock::time_point>> oldOverlays;
+    bool heldIdle = false; Clock::time_point heldIdleAt{};   // nothing loaded, the device kept (see the stop command)
     void playOverlay(NSDictionary *m) {
         NSData *raw = [[NSData alloc] initWithBase64EncodedString:(text(m[@"pcm"]) ?: @"") options:NSDataBase64DecodingIgnoreUnknownCharacters];
         if (raw.length < 4) return;
@@ -572,6 +573,9 @@ class Engine {
         o->data.resize(raw.length / 2);
         for (size_t i = 0; i < o->data.size(); ++i) o->data[i] = float(p[i]) / 32768.0f;
         if (Overlay *old = overlay.exchange(o)) oldOverlays.push_back({old, Clock::now()});
+        // a kept device that has stopped running starts again for it
+        if (device && proc && !running && (heldIdle || softPaused.load() || current.load())) { try { startIO(); } catch (const std::exception &e) { trace("overlay: %s", e.what()); } }
+        if (heldIdle) heldIdleAt = Clock::now();
         for (auto it = oldOverlays.begin(); it != oldOverlays.end();)
             if (since(it->second) > 2) { delete it->first; it = oldOverlays.erase(it); } else ++it;
     }
@@ -1331,6 +1335,7 @@ class Engine {
 
     // ───────────── commands ─────────────
     void load(NSDictionary *m, NSNumber *seq) {
+        heldIdle = false;
         takeConfig(m);
         const double pos = std::max(0.0, num(m[@"pos"])), source = num(m[@"rate"]); const bool play = flag(m[@"play"]);
         const int bits = bitsNeeded(m);
@@ -1474,7 +1479,15 @@ public:
             else if (is(cmd, @"clearNext")) { queued.store(nullptr); collect(); }
             else if (is(cmd, @"pause")) { pausePlayback(); tick(true); }
             else if (is(cmd, @"resume")) { resume(seq); tick(true); }
-            else if (is(cmd, @"stop")) { stop(); emit(@{@"e":@"stopped", @"seq":seq}); }
+            else if (is(cmd, @"stop")) {
+                // "hold": MIKU is still in front and holds the DAC in exclusive mode — the music goes, the device stays
+                // (hog mode, rate and DAC format as they are; it plays silence, and stops running after 30 s idle), so
+                // the next track starts on the same device without the system output moving back and forth meanwhile.
+                // The app lets go for real (a plain stop) when the listener leaves MIKU, plays YouTube or quits.
+                if (flag(m[@"hold"]) && device && ownsHog) { dropDecks(); underruns.store(0); clips.store(0); heldIdle = true; heldIdleAt = Clock::now(); trace("stop: the device is kept (exclusive)"); }
+                else { heldIdle = false; stop(); }
+                emit(@{@"e":@"stopped", @"seq":seq, @"held":@(heldIdle)});
+            }
             else if (is(cmd, @"gain")) {
                 target.store(num(m[@"v"], 1));
                 if (!running) { gain = std::min(target.load(), graph.load()->limit); gainUnity.store(gain == 1 && target.load() == 1); }
@@ -1514,7 +1527,9 @@ public:
                 if (++ticksWithoutIO > (wireless ? 100 : 40)) restartHelper("the output stopped calling MIKU");
             }
         } else ticksWithoutIO = 0;
-        Deck *d = current.load(); if (!d) return;
+        Deck *d = current.load();
+        if (!d && heldIdle && running && since(heldIdleAt) > 30) { trace("kept device idle for 30 s: stopping it (still held)"); pauseIO(); }
+        if (!d) return;
         if (d != announced) { announced = d; emit(@{@"e":@"started", @"id":ns(d->id), @"hardware":hardware()}); }
         if (drained.load() && !ended) {
             ended = true; endedAt = Clock::now(); queued.store(nullptr); collect();
