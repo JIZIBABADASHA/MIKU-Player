@@ -1367,17 +1367,17 @@ const SigCard = {
         <path d="M58 8L48 90L20 70L46 100L30 170L58 112L84 168L66 102L104 92L64 86Z" fill="#0000ff" stroke="#ff00ff"/>${eye(48, 46, .7)}
         <path d="M218 52c-12 0-20-14-8-22c-2-14 16-20 24-10c8-12 30-8 30 6c14-2 20 16 8 22c6 12-10 22-20 14c-8 10-28 8-30-2c-14 2-18-10-4-8z" fill="#fff"/>${eye(226, 36, .6)}<ellipse cx="252" cy="44" rx="5" ry="3" fill="#e00"/>
         <ellipse cx="204" cy="250" rx="15" ry="24" fill="#000" stroke="#3030ff" transform="rotate(14 204 250)"/>${angry(300, 92)}
-      </svg><div class="sb-wordart"><span>DSP</span><span>ON!!!</span></div>${c}`,
+      </svg><div class="sb-wordart"><span>EQ</span><span>ON!!!</span></div>${c}`,
       // 1 · the table of contents (titled 狗屎): a sunset, chrome WordArt, a staircase of green bullets
       () => `<div class="u-title">狗 屎</div><svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">${angry(196, 150, 1.05)}
         <rect x="26" y="150" width="120" height="170" fill="#4a4a5a"/><path d="M40 320C40 250 60 200 86 196C112 200 132 250 132 320Z" fill="#2a2a34"/><circle cx="86" cy="182" r="26" fill="#c08a64"/><path d="M60 175Q86 150 112 175" fill="#222"/>
         <rect x="170" y="200" width="70" height="120" fill="#3a5a8a"/><path d="M178 320L186 230L206 214L226 236L234 320Z" fill="#334"/></svg>
         <ul class="u-steps">${[...items, '影響與評價', '作者QA'].map(t => `<li>${esc(t)}</li>`).join('')}</ul>${c}`,
       // 2 · the red biography slide: yellow WordArt, every line on its own highlighter box
-      () => `<i class="u-rays"></i><div class="u-title u-bling">★訊號介紹★</div>${[[8, 14, 0, 22], [86, 8, .4, 18], [16, 74, .8, 14], [78, 70, .25, 26], [50, -6, .6, 16], [96, 46, 1, 12]].map(([x, y, d, s]) => `<i class="u-spark" style="left:${x}%;top:${y + 20}px;animation-delay:-${d}s;font-size:${s}px">✦</i>`).join('')}<ul class="u-boxes"><li>格式：${esc(sg.codec || '?')}</li><li>取樣率：${esc(khz(sg.sourceRate))} kHz</li>${sg.sourceBits && !this.lossy(sg) ? `<li>位元深度：${sg.sourceBits}-bit</li>` : ''}${items.map(t => `<li>處理：${esc(t)}</li>`).join('')}<li>DSP究極無敵宇宙霹靂強</li></ul>
+      () => `<i class="u-rays"></i><div class="u-title u-bling">★訊號介紹★</div>${[[8, 14, 0, 22], [86, 8, .4, 18], [16, 74, .8, 14], [78, 70, .25, 26], [50, -6, .6, 16], [96, 46, 1, 12]].map(([x, y, d, s]) => `<i class="u-spark" style="left:${x}%;top:${y + 20}px;animation-delay:-${d}s;font-size:${s}px">✦</i>`).join('')}<ul class="u-boxes"><li>格式：${esc(sg.codec || '?')}</li><li>取樣率：${esc(khz(sg.sourceRate))} kHz</li>${sg.sourceBits && !this.lossy(sg) ? `<li>位元深度：${sg.sourceBits}-bit</li>` : ''}${items.map(t => `<li>處理：${esc(t)}</li>`).join('')}<li>EQ究極無敵宇宙霹靂強</li></ul>
         <svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">${goofy(300, 70, 1.1)}<g transform="translate(36 340)"><rect width="76" height="96" fill="#fff" stroke="#999"/><circle cx="38" cy="34" r="18" fill="#f2d2b0" stroke="#555"/><path d="M14 92Q38 50 62 92" fill="#e67a20"/><path d="M20 28Q38 4 56 28" fill="none" stroke="#555" stroke-width="3"/></g><g transform="translate(250 330)">${[0, 1, 2, 3, 4].map(i => `<path d="M${i * 18} 80Q${i * 18 + 6} ${40 - i * 6} ${i * 18 + 12} 80" fill="none" stroke="#333" stroke-width="${3 + i * .6}" stroke-linecap="round"/><circle cx="${i * 18 + 6}" cy="${34 - i * 6}" r="${4 + i}" fill="#333"/>`).join('')}</g></svg>${c}`,
       // 3 · the chemistry title slide: a letter-by-letter rainbow title on mint, clip art
-      () => `<div class="u-rainbow">${(i => 'DSP: The Study of Sound'.split(' ').map(w => `<b>${[...w].map(ch => `<span style="color:${['#ff2a2a', '#ff9a00', '#e6d000', '#22c422', '#00b4ff', '#3a3aff', '#c400ff'][i++ % 7]}">${esc(ch)}</span>`).join('')}</b>`).join(' '))(0)}</div>
+      () => `<div class="u-rainbow">${(i => 'EQ: The Study of Sound'.split(' ').map(w => `<b>${[...w].map(ch => `<span style="color:${['#ff2a2a', '#ff9a00', '#e6d000', '#22c422', '#00b4ff', '#3a3aff', '#c400ff'][i++ % 7]}">${esc(ch)}</span>`).join('')}</b>`).join(' '))(0)}</div>
         <svg class="sb-paint" viewBox="0 0 360 470" preserveAspectRatio="none">
           <g transform="translate(34 120)" fill="none" stroke="#111" stroke-width="2"><path d="M20 30L40 18L62 30V54L40 66L20 54Z"/><path d="M62 30L84 18L106 30M62 54L84 66V90M40 66V90"/><circle cx="12" cy="66" r="7" fill="#999" stroke="none"/></g>
           <g transform="translate(220 100)"><rect width="110" height="110" fill="#123"/>${[['#3af', 20], ['#f3a', 48], ['#ff3', 76]].map(([col, x]) => `<path d="M${x} 30V60L${x - 16} 100H${x + 16}L${x} 60V30Z" fill="${col}" stroke="#fff" stroke-width="1.5" opacity=".9"/>`).join('')}</g>
@@ -1389,17 +1389,17 @@ const SigCard = {
           <g transform="translate(28 300)"><rect width="64" height="92" rx="4" fill="#7a4a1e" stroke="#000" stroke-width="2"/><circle cx="32" cy="26" r="13" fill="#222" stroke="#999" stroke-width="2"/><circle cx="32" cy="26" r="4" fill="#666"/><circle cx="32" cy="64" r="20" fill="#222" stroke="#999" stroke-width="2"/><circle cx="32" cy="64" r="7" fill="#666"/>
             <path d="M74 44Q84 64 74 84M84 36Q100 64 84 92M94 28Q116 64 94 100" fill="none" stroke="#ff00ff" stroke-width="3" stroke-linecap="round"/></g></svg>${c}`,
       // 4 · GeoCities: stars, a marquee, a blinking NEW!, under construction, a hit counter
-      () => `<div class="u-marquee"><span>★ Welcome to my DSP page!!! ★ 最佳瀏覽解析度 800×600 ★ 請簽我的留言板 ★</span></div>
+      () => `<div class="u-marquee"><span>★ Welcome to my EQ page!!! ★ 最佳瀏覽解析度 800×600 ★ 請簽我的留言板 ★</span></div>
         <div class="u-new">NEW!</div><div class="u-tape">UNDER CONSTRUCTION</div>
         <div class="u-counter">你是第 <b>000${Math.floor(Math.random() * 9000 + 1000)}</b> 位訪客</div>${c}`,
       // 5 · Windows 95, an error dialog and its copies all the way down
-      () => `${[0, 1, 2, 3].map(i => `<div class="u-win" style="left:${18 + i * 16}px;top:${40 + i * 30}px"><div class="u-bar"><span>dsp.exe</span><i>×</i></div><div class="u-body"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#e00" stroke="#600"/><path d="M10 10L22 22M22 10L10 22" stroke="#fff" stroke-width="3.5"/></svg><p>DSP 已停止運作。<br>你的耳朵將被關閉。</p></div><div class="u-btns"><u>確定</u><u>取消</u></div></div>`).join('')}
+      () => `${[0, 1, 2, 3].map(i => `<div class="u-win" style="left:${18 + i * 16}px;top:${40 + i * 30}px"><div class="u-bar"><span>eq.exe</span><i>×</i></div><div class="u-body"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#e00" stroke="#600"/><path d="M10 10L22 22M22 10L10 22" stroke="#fff" stroke-width="3.5"/></svg><p>EQ 已停止運作。<br>你的耳朵將被關閉。</p></div><div class="u-btns"><u>確定</u><u>取消</u></div></div>`).join('')}
         <div class="u-task"><u>開始</u><span>${esc(cap)}</span></div>`,
       // 6 · the sludge
       () => `<svg class="sb-drip" viewBox="0 0 360 120" preserveAspectRatio="none"><path d="M0 0H360V22C352 22 350 34 344 34S338 18 330 18C318 18 322 64 312 64S304 24 296 24C286 24 290 40 280 40S270 20 262 20C250 20 256 92 244 92S234 26 224 26C214 26 218 46 208 46S198 18 188 18C176 18 182 58 170 58S160 24 150 24C140 24 144 36 134 36S124 20 114 20C102 20 108 78 96 78S86 28 76 28C66 28 70 42 60 42S50 18 40 18C28 18 34 54 22 54S12 22 0 22Z"/></svg>
         ${[[22, 66, 14], [71, 74, 9], [80, 38, 6], [12, 40, 7], [58, 86, 18]].map(([x, y, r]) => `<i class="sb-bub" style="left:${x}%;top:${y}%;--r:${r}px"></i>`).join('')}
         <div class="u-eq"><svg viewBox="0 0 90 70" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 61.5Q30 59 52 62.3T88 60.4" stroke-width="2.2"/><path d="${[9, 16, 23, 14, 6, 11, 19, 8].map((h2, i) => { const x = 8 + i * 10 + (i % 3) - 1; return `M${x} ${60 + (i % 2) * 1.5}L${x + (i % 2 ? 1.5 : -1)} ${60 - h2 * 1.6}`; }).join('')}" stroke-width="5.5" opacity=".85"/><path d="M4 34C14 22 19 44 30 26S47 12 55 33S72 49 86 18" stroke-width="2.4" stroke-dasharray="7 2 1 3"/></svg></div>
-        <div class="u-sludge-t">DSP ON</div>${c}`,
+        <div class="u-sludge-t">EQ ON</div>${c}`,
     ];
     return `<div class="sb-u" data-u="${u}">${v[u]()}</div>`;
   },
