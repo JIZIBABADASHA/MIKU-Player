@@ -476,6 +476,8 @@ const App = {
     Host.on('state', s => this.setState(s));
     Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); MikuExt.slot(q.source); });
     Host.on('error', e => toast(T.msg(e.message), { error: true }));
+    // settings the host changed by itself (YouTube Music's own output mode switched in and out)
+    Host.on('settings', s => { Object.assign(this.settings, s); if (typeof Outputs !== 'undefined') Outputs.label(); if (typeof YT !== 'undefined' && YT.drawOut) YT.drawOut(); });
     // phone remote: show the pairing code a phone asked for, and keep favourites in sync with it
     Host.on('remotePair', p => toast(T`「${p.name}」要求用手機遙控 MIKU，配對碼：${p.code}`, { ms: 180000 }));
     Host.on('remotePaired', p => toast(T`「${p.name}」已配對，可以用手機遙控了`));
@@ -1260,19 +1262,10 @@ const SigCard = {
     pop.append(back);
     if (kind === 'dsp') pop.dataset.ugly = back.querySelector('.sb-u').dataset.u;
     let turning = false, flipped = false, scroll = 0;
-    // The back is not shown (display: none) until the card is turned, so the first turn had to style, lay out, load the
-    // fonts of, decode and paint the whole back in the one frame where the card is edge-on: that frame stalled. While
-    // the card is merely open, get it ready: laid out but hidden (its loops held: app.css .sb-warm), its patterns decoded.
-    const warm = () => {
-      if (!back.isConnected || flipped) return;
-      back.classList.add('sb-warm');
-      const cs = getComputedStyle(back);
-      for (const v of ['--sb-pat', '--sb-dust', '--sb-flip']) {
-        const m = /url\(\s*["']?(.+?)["']?\s*\)/.exec(cs.getPropertyValue(v));
-        if (m) { const img = new Image(); img.src = m[1]; if (img.decode) img.decode().catch(() => { }); }
-      }
-    };
-    (window.requestIdleCallback || (f => setTimeout(f, 120)))(warm, { timeout: 500 });
+    // The back is not shown (display: none) until the card is turned: once the card is open it is laid out, hidden, its
+    // loops held (app.css .sb-warm), so the turn only has to show it. (The GPU's first drawing of a back: prime below.)
+    const warm = () => { if (back.isConnected && !flipped) back.classList.add('sb-warm'); };
+    setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 0)))(warm, { timeout: 400 }), 450);
     const tf = (turn = 0, lift = 0) => `perspective(1400px) translateZ(${lift}px) rotateY(${turn}deg)`;
     // blank: not on a control and not on a glyph of text (the empty part of a line, the gaps between rows, the padding)
     const onText = (x, y) => {
@@ -1329,6 +1322,25 @@ const SigCard = {
       try { await back2.finished; } catch { }
       turning = false;
     };
+  },
+  /**
+   * The first turn of a session stalled for a quarter of a second in the frame where the card is edge-on: the GPU
+   * compiled the shaders for the backs' metals, conic gradients, glows and blends the first time one was drawn (a trace:
+   * one raster flush of ~110 ms). Drawing them on the card when it opens only moved the stall under the card's own
+   * shimmer, so once per session, a few seconds after start-up while the page is idle, the backs are drawn once, all but
+   * invisibly (app.css .sb-primer): every kind but DSP's (a new one at every turn), each with its own palette and
+   * patterns.
+   */
+  prime() {
+    if (this.primedAll || this.calm() || PageEffects.reduced('card')) return;
+    if (document.hidden) { document.addEventListener('visibilitychange', () => this.prime(), { once: true }); return; }
+    this.primedAll = true;
+    const sg = { codec: 'FLAC', sourceBits: 16, sourceRate: 44100, dspSummary: '', dsdLabel: 'DSD64' };
+    const host = h('div', { class: 'sb-primer', 'aria-hidden': 'true' });
+    for (const kind of ['upsample', 'hires', 'dsd', 'enhanced', 'shared', 'cd', 'lossy'])
+      host.append(h('div', { class: 'sigpop sig-card sig-flipped', 'data-back': kind }, h('div', { class: 'sig-back', html: this.art(sg, kind) })));
+    document.body.append(host);
+    setTimeout(() => host.remove(), 1500);
   },
   /** The one-shot light that runs over the back as it lands. */
   shine(back) { back.classList.remove('sb-land'); void back.offsetWidth; back.classList.add('sb-land'); },
@@ -1698,6 +1710,8 @@ const SigCard = {
       <i class="sb-sheen"></i>${glints}<i class="sb-burst"></i><i class="sb-flash"></i>`;
   },
 };
+// a few seconds after start-up, when the page is idle: the GPU learns to draw the card backs before the first turn
+addEventListener('load', () => setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 0)))(() => SigCard.prime(), { timeout: 4000 }), 3000));
 
 /* ═════════════════════════════ drawers ═════════════════════════════ */
 const Drawer = {

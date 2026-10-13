@@ -23,13 +23,21 @@ public static class LiveBus
 /// <summary>
 /// Streams the captured YouTube Music audio into the playback chain.
 /// The browser and the DAC run on different clocks and the page delivers audio in irregular bursts,
-/// so this keeps a jitter buffer of ~300 ms and gently adjusts the resampling ratio (at most ±0.3 %)
-/// to hold it there. No samples are ever dropped or repeated, so there are no clicks.
+/// so this keeps a jitter buffer and gently adjusts the resampling ratio (at most ±0.5 %) to hold it
+/// there. No samples are ever dropped or repeated, so there are no clicks.
+/// The jitter buffer is all the delay between the page's picture and the sound, so it is no deeper than this
+/// machine needs: it starts at 60 ms, grows by 30 ms at each starve (up to 300 ms, the old fixed depth) and
+/// comes back down by 10 ms after every 20 s without one. What it learns is kept for the session.
 /// </summary>
 public sealed unsafe class LiveSource : PcmSource
 {
-    const double Target = 0.30;      // seconds of buffered audio we aim for
+    const double MinTarget = 0.06, MaxTarget = 0.30, Grow = 0.03, Ease = 0.01;
+    const long CalmMs = 20_000;
+    static double s_target = MinTarget;                       // seconds of buffered audio we aim for
+    static long s_calmSince = Environment.TickCount64;        // the last starve (or the last easing)
+    static double Target => Volatile.Read(ref s_target);
     const double Overflow = 1.2;     // beyond this something stalled: resynchronise once
+    bool _starving;
 
     uint _read;          // integer read position in the shared ring (frames)
     double _frac;        // fractional position between _read and _read + 1
@@ -75,7 +83,28 @@ public sealed unsafe class LiveSource : PcmSource
                 TrimTo(0.05);
                 continue;
             }
-            if (avail < 4) { if (BufferedSeconds < 0.02) LiveBus.Starves++; Thread.Sleep(3); continue; }
+            if (avail < 4)
+            {
+                if (BufferedSeconds < 0.02 && !_starving)
+                {
+                    // ran dry: a deeper buffer from now on, and wait until it is that full before playing on (one gap
+                    // instead of a run of them)
+                    _starving = true;
+                    LiveBus.Starves++;
+                    Volatile.Write(ref s_target, Math.Min(MaxTarget, Target + Grow));
+                    s_calmSince = Environment.TickCount64;
+                    _primed = false;
+                }
+                Thread.Sleep(3);
+                continue;
+            }
+            _starving = false;
+            if (Environment.TickCount64 - s_calmSince > CalmMs)
+            {
+                // a while without a starve: try a little less delay
+                Volatile.Write(ref s_target, Math.Max(MinTarget, Target - Ease));
+                s_calmSince = Environment.TickCount64;
+            }
 
             // proportional control of the buffer level through a tiny rate change
             double err = fill - Target;

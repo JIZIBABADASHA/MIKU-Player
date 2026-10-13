@@ -141,3 +141,28 @@ Object.assign(I18N_DICT["ja"], {
   "不限制": "制限なし",
   "DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇": "これより高い倍率の DSD は送りません。超える DSD ファイルは PCM で再生し、DSD への変換もこの範囲に収めます。ドライバーの申告は当てにならないことがあるため、DAC が実際に対応する形式を選んでください"
 });
+
+/* Core Audio output settings and signal notes that had no entry. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "Core Audio 獨佔": "Core Audio 独占",
+  "自動匹配取樣率": "自动匹配采样率",
+  "套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。": "应用后会先停止播放，关闭 DSP、ReplayGain 与播放方案自己的升频，设为固定 0 dB。再次播放前请先调低 DAC 音量。",
+  "缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。": "缺少原生音频组件，请安装新版 MIKU 才能使用独占与自动匹配。",
+  "無損音訊以 Core Audio 輸出；此路徑未確認原始樣本數值。": "无损音频以 Core Audio 输出；此路径未确认原始样本数值。",
+});
+Object.assign(I18N_DICT["en"], {
+  "Core Audio 獨佔": "Core Audio exclusive",
+  "DAC 格式": "DAC format",
+  "自動匹配取樣率": "Match the sample rate automatically",
+  "套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。": "Stops playback, turns off DSP, ReplayGain and the playback core's own upsampling, and sets fixed 0 dB. Turn down your DAC before playing again.",
+  "缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。": "The native audio component is missing: install a newer MIKU to use exclusive mode and automatic rate matching.",
+  "無損音訊以 Core Audio 輸出；此路徑未確認原始樣本數值。": "Lossless audio goes out through Core Audio; this path does not confirm the original sample values.",
+});
+Object.assign(I18N_DICT["ja"], {
+  "Core Audio 獨佔": "Core Audio 排他",
+  "DAC 格式": "DAC の形式",
+  "自動匹配取樣率": "サンプルレートを自動で合わせる",
+  "套用後會先停止播放，關閉 DSP、ReplayGain 與播放方案自己的升頻，設定固定 0 dB。再次播放前請先調低 DAC 音量。": "再生を停止し、DSP、ReplayGain、再生コア独自のアップサンプリングをオフにして、固定 0 dB に設定します。再生する前に DAC の音量を下げてください。",
+  "缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。": "ネイティブ音声コンポーネントがありません。排他モードと自動マッチングを使うには、新しい MIKU をインストールしてください。",
+  "無損音訊以 Core Audio 輸出；此路徑未確認原始樣本數值。": "ロスレス音声を Core Audio で出力しています。この経路では元のサンプル値を確認していません。",
+});

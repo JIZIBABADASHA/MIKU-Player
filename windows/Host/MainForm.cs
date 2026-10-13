@@ -331,6 +331,36 @@ public sealed class MainForm : Form
     }
 
     bool LiveActive => _engine.Track?.IsLive == true;
+
+    /// <summary>
+    /// YouTube Music's own output (the YouTube bar: 跟隨設定 / WASAPI 共享 / ASIO). While YouTube plays the output mode is
+    /// switched to it, and back to the library's as soon as a library track loads. Called as a track starts loading,
+    /// before the core reads the output settings (Loading), so every core, a module's too, plays it that way.
+    /// True when the output mode changed.
+    /// </summary>
+    bool YtOutput(Track t)
+    {
+        if (t == null) return false;
+        string want = t.IsLive ? _s.YtOutputMode : null;
+        if (want is not ("shared" or "asio") || (want == "asio" && Devices.AsioDrivers().Count == 0)) want = null;
+        string mode;
+        if (want != null)
+        {
+            if (_s.OutputMode != want) _s.YtRestoreMode ??= _s.OutputMode;
+            mode = want;
+        }
+        else
+        {
+            mode = _s.YtRestoreMode ?? _s.OutputMode;
+            _s.YtRestoreMode = null;
+        }
+        if (mode == _s.OutputMode) { SaveSoon(); return false; }
+        Log.Info($"Output mode {_s.OutputMode} -> {mode} ({(t.IsLive ? "YouTube Music" : "library")})");
+        _s.OutputMode = mode;
+        SaveSoon();
+        Post("settings", _s);
+        return true;
+    }
     bool _ytLoading; // switching to YouTube: the album track is still playing until the live stream opens
 
     async Task YtScript(string js)
@@ -398,6 +428,8 @@ public sealed class MainForm : Form
     {
         _s = Json.Load<Settings>(AppPaths.Settings);
         if (_s.Dsp.Bands.Count == 0) _s.Dsp.Bands = DefaultBands();
+        // closed while YouTube played in its own output: the library's output mode again
+        if (_s.YtRestoreMode != null) { _s.OutputMode = _s.YtRestoreMode; _s.YtRestoreMode = null; }
         Text = Program.AppName;
         BackColor = Bg;
         AutoScaleDimensions = new SizeF(96, 96);
@@ -581,7 +613,7 @@ public sealed class MainForm : Form
     void WireEngine(IAudioEngine engine)
     {
         engine.Changed += () => { if (!ReferenceEquals(engine, _engine)) return; PostSoon("state"); RaiseExt(library: false); if (_engine.IsPlaying && _engine.Track?.IsLive != true && !_ytLoading) PauseYt(); };
-        engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; if (t != null && !t.IsLive && LiveActive) PauseYt(); };
+        engine.Loading += t => { if (!ReferenceEquals(engine, _engine)) return; YtOutput(t); if (t != null && !t.IsLive && LiveActive) PauseYt(); };
         engine.Failed += msg => { if (ReferenceEquals(engine, _engine)) Post("error", new { message = msg }); };
         // a DAC plugged in / removed or a new system output: the output picker and the settings page refresh
         if (engine is AudioEngine own) own.DevicesChanged += () => { if (ReferenceEquals(engine, _engine)) Post("devicesChanged", new { }); };
@@ -2027,7 +2059,7 @@ public sealed class MainForm : Form
 
     object ApplySettings(JsonElement patch)
     {
-        bool reconfigure = false, volume = false, remote = false, core = false;
+        bool reconfigure = false, volume = false, remote = false, core = false, yt = false;
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
@@ -2042,7 +2074,12 @@ public sealed class MainForm : Form
             if (pi.Name is nameof(Settings.RemoteEnabled) or nameof(Settings.RemotePort)) remote = true;
             if (pi.Name == nameof(Settings.WatchFolders)) _lib.Watch();   // start / stop watching the library folders
             if (pi.Name == nameof(Settings.AutoContinue) && _engine.IsPlaying) _player.EnsureAutoNext();
+            if (pi.Name == nameof(Settings.YtOutputMode)) yt = true;
+            // the output mode picked by hand (also while YouTube plays in its own): that is the library's from now on
+            if (pi.Name == nameof(Settings.OutputMode)) _s.YtRestoreMode = null;
         }
+        // YouTube's output changed while YouTube plays: switch now
+        if (yt && LiveActive && YtOutput(_engine.Track)) reconfigure = true;
         SaveSoon();
         if (remote) StartRemote();
         if (core) _ = Task.Run(async () => { try { await SwitchCoreAsync(); } catch (Exception ex) { Log.Error("Switch core", ex); Post("error", new { message = "切換播放內核失敗：" + ex.Message }); } });

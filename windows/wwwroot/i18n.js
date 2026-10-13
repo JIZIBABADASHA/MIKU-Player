@@ -32,9 +32,12 @@ const I18N = (() => {
       if (/\{\d+\}/.test(k)) {
         const order = [];
         const src = k.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\d+)\\?\}/g, (m, i) => { order.push(+i); return '([\\s\\S]*?)'; });
-        try { pats.push({ re: new RegExp('^' + src + '$'), order, tr: dict[k] }); } catch (e) { }
+        try { pats.push({ re: new RegExp('^' + src + '$'), order, tr: dict[k], lit: k.replace(/\{\d+\}/g, '').length }); } catch (e) { }
       } else if (k.length >= 2 && !/[<>|]/.test(k)) pieces.push(k);
     }
+    // the most specific pattern first (the most text of its own): a general one like "{0}：{1}" matches any message
+    // with a colon, and used to take it before "聲道：{0}（混成立體聲）" got its turn
+    pats.sort((a, b) => b.lit - a.lit);
     pieces.sort((a, b) => b.length - a.length);
   };
 

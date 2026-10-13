@@ -5,7 +5,7 @@ const Settings = {
     Object.assign(App.settings, patch);
     const s = await Host.call('settings', patch);
     if (s) App.settings = Object.assign(App.settings, s);
-    if (window.Outputs) Outputs.label();
+    if (typeof Outputs !== 'undefined') Outputs.label();   // (a const: not on window)
   },
 
   /** Settings page in tabs: 音訊 / 曲庫 / 外觀 / 快捷鍵 / 其他 (#/settings/<tab>; the last one is remembered). */

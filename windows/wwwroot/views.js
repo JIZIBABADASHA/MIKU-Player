@@ -626,8 +626,29 @@ const Views = {
       h('button', { class: 'chip', html: icon('home') + T('首頁'), onclick: () => nav('home') }),
       h('button', { class: 'chip', html: icon('heart') + T('喜歡的音樂'), onclick: () => nav('liked') }),
       h('button', { class: 'chip', html: icon('album') + T('音樂庫'), onclick: () => nav('library') }));
+    // YouTube Music's own output (Windows): the library's output mode, or WASAPI shared / ASIO while YouTube plays
+    const out = h('div', { class: 'yt-out', title: T('YouTube Music 播放時使用的輸出方式；播回音樂庫的歌時自動切回原本的輸出模式') });
+    bar.append(out);
+    YT.drawOut = () => {
+      const d = typeof Outputs !== 'undefined' && Outputs.data;
+      // (the Mac host has no such choice: its output modes are Core Audio's)
+      if (!out.isConnected || !d || /^coreaudio/.test(App.settings.outputMode || '')) { out.replaceChildren(); return; }
+      // each choice with what it gains and what it costs (shown on hover)
+      const opts = [
+        ['', T('跟隨設定'), T('使用設定頁的輸出模式。獨佔模式下音質最完整（bit-perfect，可用 DSP 與升頻），但聲音較晚送到 DAC，畫面與聲音可能不同步。')],
+        ['shared', T('WASAPI 共享'), T('降低延遲，畫面與聲音較同步，其他程式的聲音也能同時播放。缺點：經過 Windows 混音器，不是 bit-perfect，取樣率會轉成系統設定的格式。')],
+      ];
+      if (d.asio.length) opts.push(['asio', 'ASIO', T('延遲最低（由 ASIO 驅動程式的緩衝大小決定），聲音直送 DAC，保持 bit-perfect。缺點：ASIO 會獨占 DAC，其他程式無法同時出聲；切換時 DAC 會重新開啟，可能短暫停頓。')]);
+      const cur = opts.some(o => o[0] === App.settings.ytOutputMode) ? App.settings.ytOutputMode : '';
+      const box = seg(opts.map(o => [o[0], o[1]]), cur, v => Settings.set({ ytOutputMode: v || null }));
+      [...box.children].forEach((b, i) => { b.title = opts[i][2] + (i ? T('　播回音樂庫的歌時會自動切回原本的輸出模式。') : ''); });
+      out.replaceChildren(h('span', { class: 'yt-out-label' }, T('YouTube 輸出')), box);
+    };
     const frame = h('div', { class: 'yt-frame' }, h('div', { class: 'muted' }, T('載入 YouTube Music…')));
     view.append(bar, frame);
+    // (drawn once the bar is on the page)
+    if (typeof Outputs !== 'undefined' && Outputs.data) YT.drawOut();
+    else if (typeof Outputs !== 'undefined') Outputs.refresh().then(() => YT.drawOut && YT.drawOut());
     view.classList.add('yt-view');
     // the library search bar has nothing to do with YouTube Music: hide the top bar and let the page move up into its place
     $('#main').classList.add('yt-mode');
@@ -635,6 +656,6 @@ const Views = {
     const ro = new ResizeObserver(() => YT.sync());
     ro.observe(frame);
     YT.sync();
-    return () => { ro.disconnect(); YT.frame = null; view.classList.remove('yt-view'); $('#main').classList.remove('yt-mode'); YT.sync(); };
+    return () => { ro.disconnect(); YT.frame = null; YT.drawOut = null; view.classList.remove('yt-view'); $('#main').classList.remove('yt-mode'); YT.sync(); };
   },
 };

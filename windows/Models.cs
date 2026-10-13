@@ -105,6 +105,10 @@ public sealed class Settings
     // Output
     public string AudioCore { get; set; } = "miku";       // miku（MIKU 本身的內核）| 擴充模組提供的內核 id
     public string OutputMode { get; set; } = "exclusive"; // exclusive | shared | asio
+    // YouTube Music's own output (the YouTube bar): null = as set above; shared | asio = switched to while YouTube plays
+    public string YtOutputMode { get; set; }
+    // set while YouTube plays in YtOutputMode: the output mode the library's tracks go back to
+    public string YtRestoreMode { get; set; }
     public string DeviceId { get; set; }
     public string AsioDriver { get; set; }
     public int BufferMs { get; set; } = 100;
