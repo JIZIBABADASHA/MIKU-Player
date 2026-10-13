@@ -93,7 +93,7 @@ const Settings = {
       this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
       const bufField = field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {
-        const r = h('input', { class: 'range', type: 'range', min: 40, max: 500, step: 10, value: s.bufferMs });
+        const r = h('input', { class: 'range', type: 'range', min: 40, max: 200, step: 10, value: s.bufferMs });
         const v = h('span', { class: 'num muted', style: { width: '58px', textAlign: 'right' } }, s.bufferMs + ' ms');
         r.oninput = () => v.textContent = r.value + ' ms';
         r.onchange = () => this.set({ bufferMs: +r.value });
