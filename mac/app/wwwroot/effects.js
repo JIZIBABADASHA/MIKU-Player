@@ -94,7 +94,11 @@ PageEffects.boot();
    now-playing panel. One-shot reveals, dialogs and loading feedback are never touched. Shared by Windows and Mac. */
 const IdleFx = {
   decorations: '.sig, .sigpop, .np-bg, #theme-bg, .ly-dots, .np-mini .art, .np-cover, .eq',
-  frozen: new Set(), windowVisible: true, queued: false,
+  /* The player bar's signal badge loops for as long as music plays, and almost all of it is painted (glows, foils, a
+     turning conic gradient): drawn at the display's rate it kept ~10 % of a core busy (more on a 120–160 Hz screen).
+     Its loops are slow (seconds per cycle), so they are stepped at 24 fps instead. The open card (.sigpop) stays smooth. */
+  stepped: '#bar .sig', fps: 24,
+  frozen: new Set(), steps: new Map(), stepTimer: 0, windowVisible: true, queued: false,
   get hidden() { return document.hidden || !this.windowVisible; },
   /** Batched: several triggers in one task cost one pass. */
   sync() {
@@ -107,15 +111,38 @@ const IdleFx = {
     const hidden = this.hidden, paused = !!document.body && document.body.classList.contains('paused');
     const animations = new Set(document.getAnimations());
     for (const a of this.frozen) if (!animations.has(a)) this.frozen.delete(a);
+    for (const a of this.steps.keys()) if (!animations.has(a)) this.steps.delete(a);
     for (const a of animations) {
       if (!a.effect || a.effect.getTiming().iterations !== Infinity) continue;
       const el = a.effect.target;
       if (!(el instanceof Element)) continue;
       const np = el.closest('#np');
       const idle = hidden || (paused && el.closest(this.decorations)) || (np && !np.classList.contains('on'));
-      if (idle && a.playState === 'running') { a.pause(); this.frozen.add(a); }
-      else if (!idle && this.frozen.delete(a)) a.play();
+      if (idle) {
+        if (this.steps.delete(a)) this.frozen.add(a);   // already paused: it just stops being stepped
+        else if (a.playState === 'running') { a.pause(); this.frozen.add(a); }
+      } else if (el.closest(this.stepped)) {
+        if (!this.steps.has(a) && (this.frozen.delete(a) || a.playState === 'running')) {
+          a.pause();
+          this.steps.set(a, performance.now() - (a.currentTime || 0));   // its clock: continues where it was
+        }
+      } else if (this.frozen.delete(a)) a.play();
     }
+    this.clock();
+  },
+  /** The stepped animations' clock runs only while there is something to step. */
+  clock() {
+    if (this.steps.size && !this.stepTimer) {
+      this.stepTimer = setInterval(() => {
+        const now = performance.now();
+        for (const [a, t0] of this.steps) {
+          // the badge changed class and CSS cancelled the loop: setting a time would bring its look back
+          if (a.playState === 'idle') { this.steps.delete(a); continue; }
+          try { a.currentTime = now - t0; } catch (e) { this.steps.delete(a); }
+        }
+        if (!this.steps.size) this.clock();
+      }, 1000 / this.fps);
+    } else if (!this.steps.size && this.stepTimer) { clearInterval(this.stepTimer); this.stepTimer = 0; }
   },
   /** The host's view of the window (Mac: mac-bridge.js); document.hidden covers the rest. */
   setWindowVisible(visible) { this.windowVisible = visible !== false; this.sync(); },

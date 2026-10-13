@@ -353,11 +353,12 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .row .thumb img.ok { opacity: 1; }
 .disc { color: var(--text-3); font-size: 12px; letter-spacing: .08em; padding: 18px 12px 6px; font-weight: 600; }
 .eq { display: none; position: absolute; inset: 0; align-items: flex-end; justify-content: center; gap: 2px; padding-bottom: 3px; }
-.eq i { width: 3px; background: var(--teal); border-radius: 2px; animation: eqb 1s ease-in-out infinite; }
+.eq i { width: 3px; height: 14px; background: var(--teal); border-radius: 2px; transform: scaleY(.6); transform-origin: 50% 100%; animation: eqb 1s ease-in-out infinite; }
 .eq i:nth-child(2) { animation-delay: -.35s; }
 .eq i:nth-child(3) { animation-delay: -.7s; }
 .paused .eq i { animation-play-state: paused; }
-@keyframes eqb { 0%, 100% { height: 4px; } 50% { height: 14px; } }
+/* scaled, not resized: the bars move on the compositor instead of laying out the row every frame */
+@keyframes eqb { 0%, 100% { transform: scaleY(.29); } 50% { transform: none; } }
 .vlist { position: relative; }
 .vlist .row { position: absolute; left: 0; right: 0; }
 
@@ -1028,6 +1029,9 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 }
 @supports not (width: 1cqw) { .sigpop .sig-back { --m: 210px; } }
 .sigpop.sig-flipped .sig-back { display: block; }
+/* ready before the first turn (core.js warm): laid out, fonts and patterns loaded, but not seen and its loops held */
+.sigpop:not(.sig-flipped) .sig-back.sb-warm { display: block; visibility: hidden; }
+.sigpop:not(.sig-flipped) .sig-back.sb-warm, .sigpop:not(.sig-flipped) .sig-back.sb-warm *, .sigpop:not(.sig-flipped) .sig-back.sb-warm *::before, .sigpop:not(.sig-flipped) .sig-back.sb-warm *::after { animation-play-state: paused !important; }
 .sig-back > *, .sig-back .sb-medal > * { position: absolute; pointer-events: none; }
 .sig-back .sb-defs { width: 0; height: 0; overflow: hidden; }
 /* lacquer: the kind's colour, its pattern in metal hairlines, a vignette */
@@ -1764,7 +1768,7 @@ a.link:hover { text-decoration: underline; }
 .tool-sep { width: 1px; height: 20px; background: var(--line-2); margin: 0 8px; flex: none; }
 .right-tools .sig { margin-right: 6px; flex: none; }
 .right-tools .vol { margin-left: 8px; }
-.outpop { width: 340px; padding: 14px; }
+.outpop { width: 340px; padding: 14px; max-height: calc(100vh - 140px); overflow-y: auto; overscroll-behavior: contain; }
 .outpop h3 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .outpop .seg { width: 100%; margin-bottom: 10px; }
 .outpop .seg button { flex: 1; }
@@ -1778,6 +1782,21 @@ a.link:hover { text-decoration: underline; }
 .outrow.on b { color: var(--teal-2); }
 .outrow svg.i { color: var(--text-2); }
 .outrow.on svg.i { color: var(--teal-2); }
+/* WASAPI and ASIO are two parts: the WASAPI tabs switch at once; ASIO (amber) switches only when a driver is picked */
+.out-label { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; min-height: 20px; }
+.out-label small { color: var(--text-3); font-size: 11.5px; }
+.out-tag { font-size: 10.5px; font-weight: 700; letter-spacing: .08em; padding: 2px 7px; border-radius: 6px; color: var(--teal-2); background: var(--teal-dim); }
+.out-sect.asio { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.out-sect.asio .out-tag { color: light-dark(#a86c14, #f2bd63); background: rgba(231, 169, 72, .16); }
+.out-sect.asio .outrow svg.i { color: light-dark(#c98a2c, #e7a948); }
+.out-sect.asio .outrow.on { background: rgba(231, 169, 72, .16); }
+.out-sect.asio .outrow.on b, .out-sect.asio .outrow.on svg.i { color: light-dark(#a86c14, #f2bd63); }
+.out-sect.asio .out-none { padding: 4px 8px 6px; font-size: 12.5px; }
+/* ASIO in use: the WASAPI part waits, dimmed; its tab only outlines the mode it would go back to */
+.out-sect.wasapi.idle > :not(.out-label) { opacity: .62; transition: opacity .15s; }
+.out-sect.wasapi.idle:hover > :not(.out-label) { opacity: 1; }
+.out-sect.wasapi.idle .out-tag { color: var(--text-3); background: rgba(var(--ink), .06); }
+:root:root .out-sect.wasapi.idle .seg button.on { background: transparent; color: var(--text-2); box-shadow: inset 0 0 0 1px rgba(var(--ink), .2); }
 
 /* artwork picker */
 .modal-scrim { position: fixed; inset: 0; z-index: 250; background: rgba(var(--shadow-rgb), calc(.55 * var(--sh))); backdrop-filter: blur(6px); display: grid; place-items: center; animation: fadeIn .2s; }
@@ -2051,7 +2070,8 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
    teal with its arrow); rows two lines tall like MIKU's track rows; a folder's cover carries a small folder tab. */
 .ftable { --ftc: 52px minmax(0, 2.6fr) minmax(0, 1.5fr) 108px 124px 72px 40px; margin: 2px 24px 24px; }
 .ft-head, .row.frow { display: grid; grid-template-columns: var(--ftc); align-items: center; column-gap: 16px; padding: 0 12px; }
-.ft-head { position: sticky; top: 64px; z-index: 5; height: 38px; margin-bottom: 6px; border-radius: 19px; background: rgba(var(--ink), .05); backdrop-filter: blur(18px); color: var(--text-3); font-size: 12.5px; letter-spacing: .03em; }
+/* sticky over the rows: an opaque ground (the page colour, tinted), not a see-through blur: the rows scrolled under it must not read through */
+.ft-head { position: sticky; top: 64px; z-index: 5; height: 38px; margin-bottom: 6px; border-radius: 19px; background: linear-gradient(rgba(var(--ink), .05), rgba(var(--ink), .05)), rgb(var(--bg-rgb)); box-shadow: 0 6px 14px -8px rgba(var(--shadow-rgb, 0, 0, 0), .35); color: var(--text-3); font-size: 12.5px; letter-spacing: .03em; }
 .ft-h { display: inline-flex; align-items: center; gap: 5px; min-width: 0; height: 26px; padding: 0 10px; margin-left: -10px; border-radius: 13px; color: inherit; font: inherit; white-space: nowrap; justify-self: start; transition: background .15s, color .15s; }
 .ft-h:hover { color: var(--text); background: rgba(var(--ink), .06); }
 .ft-h.on { color: var(--teal-2); font-weight: 650; background: var(--teal-dim); }

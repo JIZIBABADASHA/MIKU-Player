@@ -47,7 +47,8 @@
 :root[data-theme="miku"] .slider .fill, :root[data-theme="miku"] .slider:hover .fill { background: linear-gradient(90deg, #2cbcb4, #5fdcd3); }
 :root[data-theme="miku"] .seek .slider .knob, :root[data-theme="miku"] .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(226,53,133,.22), 0 2px 8px rgba(226,53,133,.45); }
 :root[data-theme="miku"] .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
-:root[data-theme="miku"] #bar .sig, :root[data-theme="miku"] #bar .out-btn { background: rgba(255,255,255,.06); }
+/* (not the Hi-Res / DSD / upsampling plates: their own grounds; with #bar this rule outweighed them and the gold plate went dark under its dark text) */
+:root[data-theme="miku"] #bar .sig:not(.hires):not(.dsd):not(.upsample), :root[data-theme="miku"] #bar .out-btn { background: rgba(255,255,255,.06); }
 
 /* 側欄：白→淡灰（襯衫色），底部淡淡的六角格紋 */
 :root[data-theme="miku"] #sidebar { position: relative; isolation: isolate; border-right: 1px solid #dbe8ea; }
@@ -380,6 +381,7 @@
 :root[data-theme="glass"] select.sel, :root[data-theme="glass"] input.inp { background-color: rgba(255,255,255,.08); }
 :root[data-theme="glass"] select.sel option { background: #1d2342; }
 :root[data-theme="glass"] .thead { background: transparent; backdrop-filter: blur(24px) saturate(1.4); -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); border-bottom: 1px solid rgba(255,255,255,.12); color: rgba(235,240,255,.6); }
+:root[data-theme="glass"] .ft-head { background: rgb(22, 26, 56); border: 1px solid rgba(255,255,255,.12); color: rgba(235,240,255,.7); }
 :root[data-theme="glass"] .row:hover { background: rgba(255,255,255,.08); }
 :root[data-theme="glass"] .hero::after { background: linear-gradient(180deg, transparent 0%, rgba(11,16,34,.15) 70%, transparent 100%); }
 :root[data-theme="glass"] #np { inset: 12px 12px calc(var(--bar) + 24px) 12px; border-radius: 24px; border: 1px solid rgba(255,255,255,.14); }

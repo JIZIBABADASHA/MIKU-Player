@@ -60,6 +60,10 @@ public sealed class DeviceCaps
 public static class Devices
 {
     static readonly ConcurrentDictionary<string, DeviceCaps> Cache = new();
+    // A probe taken while another program plays on the device is only partial and is taken again later, but not on
+    // every track: skipping through an album opened and closed the DAC's audio client dozens of times a second.
+    static readonly ConcurrentDictionary<string, (DeviceCaps caps, DateTime at)> Partials = new();
+    static readonly TimeSpan PartialFor = TimeSpan.FromSeconds(10);
 
     public static List<DeviceInfo> List()
     {
@@ -147,11 +151,12 @@ public static class Devices
         GC.SuppressFinalize(device);
     }
 
-    public static void Invalidate(string id) { if (id != null) Cache.TryRemove(id, out _); }
+    public static void Invalidate(string id) { if (id != null) { Cache.TryRemove(id, out _); Partials.TryRemove(id, out _); } }
 
     public static DeviceCaps Probe(MMDevice device)
     {
         if (Cache.TryGetValue(device.ID, out var cached)) return cached;
+        if (Partials.TryGetValue(device.ID, out var recent) && DateTime.UtcNow - recent.at < PartialFor) return recent.caps;
         var caps = new DeviceCaps { Id = device.ID, Name = device.FriendlyName };
         string busyBy = OthersActive(device);
         try
@@ -187,7 +192,8 @@ public static class Devices
         caps.Partial = busyBy != null;
         Log.Info($"Probe {caps.Name}: exclusive rates [{string.Join(", ", caps.Rates.Select(r => r / 1000.0))}] kHz"
                  + (caps.Partial ? $" — {busyBy} is playing on it, result not cached" : ""));
-        if (!caps.Partial) Cache[device.ID] = caps;
+        if (!caps.Partial) { Cache[device.ID] = caps; Partials.TryRemove(device.ID, out _); }
+        else Partials[device.ID] = (caps, DateTime.UtcNow);
         return caps;
     }
 

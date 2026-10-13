@@ -176,3 +176,8 @@ Object.assign(I18N_DICT["ja"], {
 Object.assign(I18N_DICT["zh-Hans"], {"卡片": "卡片", "條列": "列表"});
 Object.assign(I18N_DICT["en"], {"卡片": "Cards", "條列": "List"});
 Object.assign(I18N_DICT["ja"], {"卡片": "カード", "條列": "リスト"});
+
+/* 輸出裝置: WASAPI and ASIO as two parts. */
+Object.assign(I18N_DICT["zh-Hans"], {"點選模式或裝置即切換回 WASAPI": "点选模式或设备即切换回 WASAPI", "選擇驅動程式後才會切換": "选择驱动程序后才会切换", "使用中": "使用中"});
+Object.assign(I18N_DICT["en"], {"點選模式或裝置即切換回 WASAPI": "Pick a mode or device to go back to WASAPI", "選擇驅動程式後才會切換": "Switches once you pick a driver", "使用中": "In use"});
+Object.assign(I18N_DICT["ja"], {"點選模式或裝置即切換回 WASAPI": "モードかデバイスを選ぶと WASAPI に戻ります", "選擇驅動程式後才會切換": "ドライバーを選ぶと切り替わります", "使用中": "使用中"});

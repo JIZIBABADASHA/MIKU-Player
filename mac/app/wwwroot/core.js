@@ -1261,6 +1261,19 @@ const SigCard = {
     pop.append(back);
     if (kind === 'dsp') pop.dataset.ugly = back.querySelector('.sb-u').dataset.u;
     let turning = false, flipped = false, scroll = 0;
+    // The back is not shown (display: none) until the card is turned, so the first turn had to style, lay out, load the
+    // fonts of, decode and paint the whole back in the one frame where the card is edge-on: that frame stalled. While
+    // the card is merely open, get it ready: laid out but hidden (its loops held: app.css .sb-warm), its patterns decoded.
+    const warm = () => {
+      if (!back.isConnected || flipped) return;
+      back.classList.add('sb-warm');
+      const cs = getComputedStyle(back);
+      for (const v of ['--sb-pat', '--sb-dust', '--sb-flip']) {
+        const m = /url\(\s*["']?(.+?)["']?\s*\)/.exec(cs.getPropertyValue(v));
+        if (m) { const img = new Image(); img.src = m[1]; if (img.decode) img.decode().catch(() => { }); }
+      }
+    };
+    (window.requestIdleCallback || (f => setTimeout(f, 120)))(warm, { timeout: 500 });
     const tf = (turn = 0, lift = 0) => `perspective(1400px) translateZ(${lift}px) rotateY(${turn}deg)`;
     // blank: not on a control and not on a glyph of text (the empty part of a line, the gaps between rows, the padding)
     const onText = (x, y) => {
@@ -1290,6 +1303,7 @@ const SigCard = {
         if (to) { scroll = pop.scrollTop; pop.scrollTop = 0; pop.style.overflowY = 'hidden'; }
         // DSP: a different ugly back every time it is turned over
         if (to && kind === 'dsp') { back.innerHTML = this.art(sg, kind); pop.dataset.ugly = back.querySelector('.sb-u').dataset.u; }
+        back.classList.toggle('sb-warm', !to);   // shown: its loops run; turned away: kept ready for the next turn
         pop.classList.toggle('sig-flipped', to);
         if (!to) { pop.style.overflowY = 'auto'; pop.scrollTop = scroll; }
         flipped = to;

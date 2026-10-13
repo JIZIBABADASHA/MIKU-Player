@@ -54,12 +54,31 @@
   <Target Name="RestoreExtensions" Condition="'@(MikuExtension)' != ''">
     <MSBuild Projects="@(MikuExtension)" Targets="Restore" RemoveProperties="$(_MikuExtRemove)" Properties="Configuration=$(Configuration);MikuRestore=1" />
   </Target>
-  <Target Name="DeployExtensions" AfterTargets="Build" DependsOnTargets="RestoreExtensions" Condition="'@(MikuExtension)' != ''">
-    <MSBuild Projects="@(MikuExtension)" Targets="MikuDeploy" RemoveProperties="$(_MikuExtRemove)"
-             Properties="Configuration=$(Configuration);MikuOutDir=$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)'))" />
+  <!--
+    Each module is deployed by a build of its own: a module that cannot be built on this machine (Daphne without CMake,
+    say) is reported as a warning and left out, and MIKU itself and the other modules are still built and published.
+    (Inside this build a module's errors would fail all of it, and MIKU's folder would not be updated at all.)
+  -->
+  <PropertyGroup>
+    <_MikuDeploy>&quot;$(DOTNET_HOST_PATH)&quot; msbuild -nologo -v:m -t:MikuDeploy -p:Configuration=$(Configuration)</_MikuDeploy>
+    <_MikuDeployFailed>could not be built on this machine and was left out (its output is in the build log); MIKU itself and the other modules are built</_MikuDeployFailed>
+  </PropertyGroup>
+  <!-- one run per module (target batching): each module's exit code is its own -->
+  <Target Name="DeployExtensions" AfterTargets="Build" DependsOnTargets="RestoreExtensions" Condition="'@(MikuExtension)' != ''" Outputs="%(MikuExtension.Identity)">
+    <PropertyGroup><_MikuDeployTo>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)'))))</_MikuDeployTo></PropertyGroup>
+    <!-- the folder ends in \ : doubled, so the closing quote is not escaped on the command line -->
+    <Exec Command="$(_MikuDeploy) &quot;%(MikuExtension.FullPath)&quot; &quot;-p:MikuOutDir=$(_MikuDeployTo)\&quot;"
+          ContinueOnError="true" IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ExitCode" PropertyName="_MikuExtExit" />
+    </Exec>
+    <Warning Condition="'$(_MikuExtExit)' != '0'" Text="MIKU: extension %(MikuExtension.Filename) $(_MikuDeployFailed)" />
   </Target>
-  <Target Name="PublishExtensions" AfterTargets="Publish" DependsOnTargets="RestoreExtensions" Condition="'@(MikuExtension)' != ''">
-    <MSBuild Projects="@(MikuExtension)" Targets="MikuDeploy" RemoveProperties="$(_MikuExtRemove)"
-             Properties="Configuration=$(Configuration);MikuOutDir=$([System.IO.Path]::GetFullPath('$([System.IO.Path]::Combine($(MSBuildProjectDirectory), $(PublishDir)))'))" />
+  <Target Name="PublishExtensions" AfterTargets="Publish" DependsOnTargets="RestoreExtensions" Condition="'@(MikuExtension)' != ''" Outputs="%(MikuExtension.Identity)">
+    <PropertyGroup><_MikuDeployTo>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$([System.IO.Path]::Combine($(MSBuildProjectDirectory), $(PublishDir)))'))))</_MikuDeployTo></PropertyGroup>
+    <Exec Command="$(_MikuDeploy) &quot;%(MikuExtension.FullPath)&quot; &quot;-p:MikuOutDir=$(_MikuDeployTo)\&quot;"
+          ContinueOnError="true" IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ExitCode" PropertyName="_MikuExtExit" />
+    </Exec>
+    <Warning Condition="'$(_MikuExtExit)' != '0'" Text="MIKU: extension %(MikuExtension.Filename) $(_MikuDeployFailed)" />
   </Target>
 </Project>

@@ -69,6 +69,8 @@ public sealed class AudioEngine : IAudioEngine
     readonly Action<Action> _ui;
     readonly SemaphoreSlim _gate = new(1, 1);
     readonly Timer _monitor;
+    readonly object _monitorLock = new();
+    bool _monitorParked;   // nothing playing: the 40 ms monitor sleeps instead of waking the CPU 25×/s for nothing
     int _loadVersion;
 
     IWavePlayer _out;
@@ -568,6 +570,7 @@ public sealed class AudioEngine : IAudioEngine
             _paused = false;
             _clockFrames = -1; _clockMovedAt = DateTime.UtcNow; _clockStallHandled = false;
             _out.Play();
+            WakeMonitor();
         }
         finally { src?.Dispose(); }
     }
@@ -888,7 +891,7 @@ public sealed class AudioEngine : IAudioEngine
             if (t != null) _ = LoadAsync(t, t.IsLive ? 0 : (_pausedAt ?? 0), true);
             return;
         }
-        try { _out.Play(); _pausedAt = null; _paused = false; }
+        try { _out.Play(); _pausedAt = null; _paused = false; WakeMonitor(); }
         catch (Exception ex) { Log.Error("Resume", ex); Failed?.Invoke(ex.Message); }
         Changed?.Invoke();
     }
@@ -1126,7 +1129,7 @@ public sealed class AudioEngine : IAudioEngine
     void Monitor()
     {
         var c = _chain;
-        if (c == null || _paused) return;
+        if (c == null || _paused) { ParkMonitor(); return; }
         try
         {
             long played = PlayedFrames();
@@ -1155,6 +1158,29 @@ public sealed class AudioEngine : IAudioEngine
             }
         }
         catch (Exception ex) { Log.Error("Monitor", ex); }
+    }
+
+    /// <summary>Stopped or paused: the monitor stops ticking. The state is checked again under the lock, so a Play that
+    /// happened meanwhile (WakeMonitor) is never undone.</summary>
+    void ParkMonitor()
+    {
+        lock (_monitorLock)
+        {
+            if (_monitorParked || _disposed || (_chain != null && !_paused)) return;
+            _monitorParked = true;
+            _monitor.Change(Timeout.Infinite, Timeout.Infinite);
+        }
+    }
+
+    /// <summary>Playback started or resumed: the monitor ticks again (track changes, gapless pre-loading, stalls).</summary>
+    void WakeMonitor()
+    {
+        lock (_monitorLock)
+        {
+            if (!_monitorParked || _disposed) return;
+            _monitorParked = false;
+            _monitor.Change(40, 40);
+        }
     }
 
     /// <summary>
@@ -1351,7 +1377,7 @@ public sealed class AudioEngine : IAudioEngine
     {
         _disposed = true;
         try { _watcher?.Dispose(); } catch { }
-        _monitor.Dispose();
+        lock (_monitorLock) _monitor.Dispose();
         TearDown();
         ReleaseDevice();
     }

@@ -183,18 +183,27 @@ const LogoEgg = {
     // The now-playing page takes the whole window and the player bar (the floor the pieces lie on) goes away: the pieces
     // would be left hanging over the page. The logo is put back, quietly, as the page opens.
     const np = document.getElementById('np');
-    const mend = () => {
-      if (!this.broken || !np || !np.classList.contains('on')) return;
-      // also in the middle of it: the plate, the pieces, the shaking and the sound all go at once, nothing is left
-      // over the page
+    // also in the middle of it: the plate, the pieces, the shaking and the sound all go at once, nothing is left over
+    // the page (a running crush or restore sees `halted` and stops)
+    const putBack = () => {
       document.querySelectorAll('.egg-wall, .egg-shards, .egg-spark, .egg-ring').forEach(n => n.remove());
       const app = document.getElementById('app') || document.body;
       app.getAnimations().forEach(a => { try { a.cancel(); } catch (e) { } });
       EggSound.silence();
       this.shards = null; this.broken = false; this.halted = true; brand.classList.remove('egg-broken');
     };
+    const mend = () => { if (this.broken && np && np.classList.contains('on')) putBack(); };
     if (np) new MutationObserver(mend).observe(np, { attributes: true, attributeFilter: ['class'] });
     this.mend = mend;
+    // The window changed size (or zoom): the plate, the pieces and the floor they lie on were all laid out in pixels
+    // for the old window, and would be left in the wrong place (a plate half as wide, pieces mid-page). Put back too.
+    let size = innerWidth + 'x' + innerHeight;
+    window.addEventListener('resize', () => {
+      const now = innerWidth + 'x' + innerHeight;
+      if (now === size) return;   // (a resize event sent for a layout change, the window is the same)
+      size = now;
+      if (this.busy || this.broken) putBack();
+    });
     brand.addEventListener('click', () => {
       if (this.busy || off()) return;
       // the sidebar drew the logo again (another theme, a resize): it is whole
@@ -228,6 +237,15 @@ const LogoEgg = {
     const box = document.createElement('div');
     box.className = 'egg-shards';
     box.style.cssText = `left:${r.left}px;top:${r.top}px;width:${w}px;height:${hgt}px`;
+    // The copies live outside the sidebar: they get the size the logo is drawn at (the narrow sidebar shrinks it by CSS,
+    // which would not reach them: they were drawn at full size, cut off after "MIK") and the theme's logo colours.
+    const copy = logo.cloneNode(true), cs = getComputedStyle(logo);
+    copy.setAttribute('width', w); copy.setAttribute('height', hgt);
+    copy.style.width = w + 'px'; copy.style.height = hgt + 'px';
+    for (const v of ['--brand-ink', '--brand-track', '--tie-stripe', '--pink', '--teal']) {
+      const val = cs.getPropertyValue(v);
+      if (val) box.style.setProperty(v, val);
+    }
     const at = (y, x) => pts[y * (cols + 1) + x], floor = this.floor(), reach = Math.max(r.right + 40, innerWidth * .62);
     for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
       const q = [at(y, x), at(y, x + 1), at(y + 1, x + 1), at(y + 1, x)];
@@ -237,7 +255,7 @@ const LogoEgg = {
         const cx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3, cy = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
         s.style.clipPath = `polygon(${tri.map(p => `${p[0].toFixed(1)}px ${p[1].toFixed(1)}px`).join(',')})`;
         s.style.transformOrigin = `${cx.toFixed(1)}px ${cy.toFixed(1)}px`;
-        s.append(logo.cloneNode(true));
+        s.append(copy.cloneNode(true));
         s._x = cx / w; s._y = cy / hgt; s._cx = cx; s._cy = cy;
         // strained: a crack's width out of place
         s._crack = `translate(${((Math.random() - .5) * 5).toFixed(1)}px, ${((Math.random() - .5) * 4).toFixed(1)}px) rotate(${((Math.random() - .5) * 7).toFixed(1)}deg)`;

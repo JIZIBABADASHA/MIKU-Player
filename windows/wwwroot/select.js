@@ -257,7 +257,15 @@
       last = to;
     }).observe(np, { attributes: true, attributeFilter: ['class'] });
     addEventListener('resize', () => requestAnimationFrame(snap));
-    setInterval(snap, 1000);
+    // the position is only kept fresh while the page is open: no timer waking the page once a second otherwise
+    let fresh = 0;
+    const keepFresh = () => {
+      const on = np.classList.contains('on');
+      if (on && !fresh) fresh = setInterval(snap, 1000);
+      else if (!on && fresh) { clearInterval(fresh); fresh = 0; }
+    };
+    new MutationObserver(keepFresh).observe(np, { attributes: true, attributeFilter: ['class'] });
+    keepFresh();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
