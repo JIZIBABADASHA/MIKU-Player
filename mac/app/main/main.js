@@ -47,7 +47,7 @@ process.on('unhandledRejection', e => Log.error('Task', e));
 
 // ───────────── settings ─────────────
 const defaults = () => ({
-  folders: [], watchFolders: true, audioCore: 'miku', dsdMode: 'pcm', maxDsd: 0, ext: {}, outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
+  folders: [], watchFolders: true, audioCore: 'miku', ytThroughCore: false, dsdMode: 'pcm', maxDsd: 0, ext: {}, outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
   dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
@@ -143,7 +143,7 @@ function ensureYt() {
   // the audio tap's worklet is loaded from a blob, which the page's own content policy refuses: while a playback core
   // takes the page's audio, the page is loaded without that policy (what the Windows build does with setBypassCSP)
   wc.session.webRequest.onHeadersReceived({ urls: ['https://music.youtube.com/*'] }, (d, done) => {
-    if (d.resourceType !== 'mainFrame' || !engine.supportsLive) return done({});
+    if (d.resourceType !== 'mainFrame' || !ytThroughCore()) return done({});
     const headers = {};
     for (const [k, v] of Object.entries(d.responseHeaders || {})) if (k.toLowerCase() !== 'content-security-policy') headers[k] = v;
     done({ responseHeaders: headers });
@@ -151,15 +151,20 @@ function ensureYt() {
   wc.loadURL('https://music.youtube.com/');
   return yt;
 }
-// A playback core that takes the live track (Daphne) plays YouTube Music itself: the page's audio is tapped
+// YouTube Music is played by its page, through the system output, whatever playback core is chosen: with a module's
+// core (Daphne) the engine lets go of the device as it does with MIKU's own (FFmpeg), and takes it again for the next
+// library track.
+// A playback core that takes the live track can play YouTube Music itself instead: the page's audio is tapped
 // (ytm-preload.js) and handed to the engine, which plays it as the track below (device, exclusive mode, DSP, volume).
-// With MIKU's own core the page plays through the system output.
+// That is off unless the settings file says "ytThroughCore": true: with the real page it did not start reliably (a
+// device that is gone, a long filter design), and the page was left paused.
+const ytThroughCore = () => S.ytThroughCore === true && engine.supportsLive;
 const liveTrack = { id: 'yt-live', title: 'YouTube Music', artist: '', album: '', codec: 'YouTube', sampleRate: 48000, bits: 0, channels: 2, duration: 0, path: '' };
 const engineLive = () => !!engine.track && engine.track.id === 'yt-live';
 let ytTap = false, ytLoading = false;
 function updateYtTap() {
   if (!yt) return;
-  const on = engine.supportsLive;
+  const on = ytThroughCore();
   if (on !== ytTap) Log.info('YouTube Music audio: ' + (on ? 'through the playback core' : 'the page plays it'));
   ytTap = on;
   // tapped, the page renders to no device, paced by a timer: Chromium would slow that timer down once the panel is
@@ -207,7 +212,7 @@ ipcMain.on('ytm', (e, m) => {
   if (m.k === 'hello') { ytTap = false; updateYtTap(); }
   else if (m.k === 'tap') { Log.info(`YouTube capture ${m.rate} Hz, ${m.sink}, ${m.kind}` + (m.why ? ` (no worklet: ${m.why})` : '')); engine.setLiveRate(m.rate); }
   else if (m.k === 'tap-error') { Log.info('YouTube audio tap: ' + m.message); post('error', { message: '無法把 YouTube 的聲音導入 MIKU：' + m.message }); }
-  else if (m.k === 'play' && ytTap && engine.supportsLive) { ytActive = true; ytPlaying = true; applyYtVolume(); startLive(); }
+  else if (m.k === 'play' && ytTap && ytThroughCore()) { ytActive = true; ytPlaying = true; applyYtVolume(); startLive(); }
   else if (m.k === 'play') {
     ytActive = true; ytPlaying = true;
     if (S.outputMode === 'coreaudio-exclusive' && engine.holdsDevice) { player.saveState(); engine.stop({ release: true }); engine.releaseDevice(); }

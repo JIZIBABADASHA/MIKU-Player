@@ -26,7 +26,7 @@ MAC_OWNED = {'settings.js', 'mac-bridge.js', 'mac-navigation.js'}
 SKIP = {'mock.js', 'smooth.js'}  # Windows test helper and custom wheel scrolling
 
 # Mac suffixes added to the cache-busting ?v= of these scripts (whatever version the Windows side is on)
-VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1', 'settings.js': '-native-scroll1-nativeaudio2-lite1-cores1-label1',
+VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1', 'settings.js': '-native-scroll1-nativeaudio2-lite1-cores1-label1-out1',
                   'art.js': '-macaudio2', 'i18n-dict.js': '-macaudio3'}
 
 PATCHES = {

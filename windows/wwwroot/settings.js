@@ -53,8 +53,9 @@ const Settings = {
           await this.set({ outputMode: cur.outputMode === 'asio' ? 'asio' : 'exclusive', upsampling: 'off', muted: false, replayGain: 'off',
             volumeMode: cur.volumeMode === 'hardware' ? 'hardware' : 'fixed', dsp: { ...cur.dsp, enabled: false } });
           if (core.id !== 'miku') {
-            // a module's core turns its own processing off (bitPerfect); Daphne without that call: its upsampler
-            try { if (await Host.call(`ext.${core.id}.bitPerfect`) == null && core.id === 'daphne') await Host.call('ext.daphne.set', { upsampler: 'off' }); }
+            // a module's core turns its own processing off (bitPerfect); Daphne without that call: its upsampler and the
+            // switches that belong to it
+            try { if (await Host.call(`ext.${core.id}.bitPerfect`) == null && core.id === 'daphne') await Host.call('ext.daphne.set', { upsampler: 'off', apodize: false, doubleDouble: false }); }
             catch (e) { console.error('[ext] bitPerfect', e); }
           }
           Router.render(); toast(T('已套用 Bit-perfect 設定；請用 DAC 調整音量'));
