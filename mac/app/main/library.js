@@ -5,6 +5,7 @@ const path = require('path');
 const { EventEmitter } = require('events');
 const { AppPaths, Log, Json, hash, norm, msToTicks } = require('./common');
 const ff = require('./ffmpeg');
+const tagreader = require('./tagreader');
 
 const Extensions = new Set(['.flac', '.wav', '.mp3', '.m4a', '.aac', '.alac', '.aif', '.aiff', '.aifc', '.ogg', '.oga', '.opus',
   '.wma', '.ape', '.wv', '.dsf', '.dff', '.tak', '.tta', '.mka', '.mp2', '.caf']);
@@ -478,11 +479,42 @@ function dffTags(file) {
   } catch { return null; }
 }
 
-/** Version of the tag reading rules; raise it when a change should reach tracks already in the library. 2: ReplayGain peaks. */
-const TAG_VERSION = 2;
-/** Tracks read with older rules, read again on the next scan, once: version 2 reads the peaks of tracks that have a gain. */
+/**
+ * Version of the tag reading rules; raise it when a change should reach tracks already in the library. 2: ReplayGain
+ * peaks. 3: most formats read directly (tagreader.js), which also reads ID3v2.3's year (TYER). 4: RIFF INFO in the
+ * legacy code pages, characters lost as '?' restored.
+ */
+const TAG_VERSION = 4;
+/**
+ * Tracks read with older rules, read again on the next scan, once: version 2 reads the peaks of tracks that have a
+ * gain, version 3 DSF tracks (ffprobe often timed out on them on a network share, leaving them without tags) and
+ * tracks without a year, version 4 WAV tracks and tracks with a '?' in their text.
+ */
 const needsReread = t => !((t.readVer || 0) >= TAG_VERSION) &&
-  ((t.rgTrack != null && t.rgTrackPeak == null) || (t.rgAlbum != null && t.rgAlbumPeak == null));
+  ((t.rgTrack != null && t.rgTrackPeak == null) || (t.rgAlbum != null && t.rgAlbumPeak == null) || t.codec === 'DSF' || !t.year ||
+    t.codec === 'WAV' || [t.title, t.artist, t.albumArtist, t.album, t.genre, t.composer].some(s => s && s.includes('?')));
+
+/** Tags (lower-case names, as ffprobe reports them) into the track's fields. */
+function applyTags(t, tags) {
+  const g = (...ks) => { for (const k of ks) if (tags[k] != null && String(tags[k]).trim()) return String(tags[k]).replace(/\0/g, ' ').trim(); return ''; };
+  t.title = g('title');
+  t.artist = g('artist', 'performer');
+  t.albumArtist = g('album_artist', 'albumartist', 'album artist', 'tpe2');
+  t.album = g('album');
+  t.genre = g('genre');
+  t.composer = g('composer');
+  const y = /\d{4}/.exec(g('date', 'year', 'originaldate', 'tdrc'));
+  t.year = y ? +y[0] : 0;
+  t.trackNo = parseInt(g('track', 'tracknumber'), 10) || 0;
+  t.discNo = parseInt(g('disc', 'discnumber'), 10) || 0;
+  const rg = s => { const m = /[-+]?\d+(\.\d+)?/.exec(s || ''); return m ? parseFloat(m[0]) : null; };
+  const rgt = rg(g('replaygain_track_gain')), rga = rg(g('replaygain_album_gain'));
+  if (rgt) t.rgTrack = rgt;
+  if (rga) t.rgAlbum = rga;
+  const rgtp = rg(g('replaygain_track_peak')), rgap = rg(g('replaygain_album_peak'));
+  if (rgtp > 0) t.rgTrackPeak = rgtp;
+  if (rgap > 0) t.rgAlbumPeak = rgap;
+}
 
 async function readTrack(f) {
   const t = {
@@ -491,31 +523,27 @@ async function readTrack(f) {
     duration: 0, sampleRate: 0, bits: 0, channels: 2, bitrate: 0, hasPic: false, readVer: TAG_VERSION,
   };
   let ok = false;
-  try {
+  // most formats are read directly (tagreader.js: a fraction of ffprobe's time on a network share); the others, and
+  // files it cannot read, by ffprobe
+  const r = await tagreader.read(f.path);
+  if (r) {
+    applyTags(t, r.tags);
+    t.duration = r.duration || 0;
+    t.sampleRate = r.sampleRate || 0;
+    t.channels = r.channels || 2;
+    t.bits = r.bits || 0;
+    t.bitrate = r.bitrate || 0;
+    t.hasPic = r.hasPic;
+    if (r.codec) t.codec = r.codec;
+    ok = true;
+  } else try {
     const j = await ff.probe(f.path);
     const streams = j.streams || [];
     const a = streams.find(s => s.codec_type === 'audio');
     const fmt = j.format || {};
     const tags = {};
     for (const src of [...streams.map(s => s.tags || {}), fmt.tags || {}]) for (const k in src) tags[k.toLowerCase()] = src[k];
-    const g = (...ks) => { for (const k of ks) if (tags[k] != null && String(tags[k]).trim()) return String(tags[k]).replace(/\0/g, ' ').trim(); return ''; };
-    t.title = g('title');
-    t.artist = g('artist', 'performer');
-    t.albumArtist = g('album_artist', 'albumartist', 'album artist', 'tpe2');
-    t.album = g('album');
-    t.genre = g('genre');
-    t.composer = g('composer');
-    const y = /\d{4}/.exec(g('date', 'year', 'originaldate', 'tdrc'));
-    t.year = y ? +y[0] : 0;
-    t.trackNo = parseInt(g('track', 'tracknumber'), 10) || 0;
-    t.discNo = parseInt(g('disc', 'discnumber'), 10) || 0;
-    const rg = s => { const m = /[-+]?\d+(\.\d+)?/.exec(s || ''); return m ? parseFloat(m[0]) : null; };
-    const rgt = rg(g('replaygain_track_gain')), rga = rg(g('replaygain_album_gain'));
-    if (rgt) t.rgTrack = rgt;
-    if (rga) t.rgAlbum = rga;
-    const rgtp = rg(g('replaygain_track_peak')), rgap = rg(g('replaygain_album_peak'));
-    if (rgtp > 0) t.rgTrackPeak = rgtp;
-    if (rgap > 0) t.rgAlbumPeak = rgap;
+    applyTags(t, tags);
     t.duration = parseFloat(fmt.duration) || 0;
     t.hasPic = streams.some(s => s.codec_type === 'video' && s.disposition && s.disposition.attached_pic);
     if (a) {
@@ -530,11 +558,11 @@ async function readTrack(f) {
     }
     ok = true;
   } catch (e) { Log.info(`ffprobe failed ${f.path}: ${e.message}`); }
-  if (t.codec === 'DSF') {
+  if (!r && t.codec === 'DSF') {
     const d = dsfHeader(f.path);
     if (d) { t.sampleRate = d.rate; t.channels = d.channels; t.duration = d.duration || t.duration; ok = true; }
   }
-  if (t.codec === 'DFF') {
+  if (!r && t.codec === 'DFF') {
     const d = dffTags(f.path);
     if (d) {
       for (const k of ['title', 'artist', 'albumArtist', 'album', 'genre', 'composer']) if (d[k]) t[k] = d[k];
