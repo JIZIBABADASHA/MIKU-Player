@@ -175,8 +175,10 @@ const NowPlaying = {
     const kind = t.live ? 'y' : t.album?.loose ? 't' : 'a', id = t.live ? t.img : kind === 't' ? t.id : t.albumId;
     const cover = $('#np-cover');
     if (cover.dataset.cur !== kind + id || cover.dataset.v !== String(ArtVer[kind + id] || 0)) {
+      const changed = cover.dataset.cur !== kind + id;
       cover.dataset.cur = kind + id;
       cover.dataset.v = String(ArtVer[kind + id] || 0);
+      const current = () => cover.dataset.cur === kind + id;
       const old = cover.querySelector('img.ok');
       const img = new Image();
       img.decoding = 'async';
@@ -187,21 +189,33 @@ const NowPlaying = {
       };
       // no picture for this album: its placeholder replaces whatever is shown (also the previous album's cover), unless
       // another track has been painted meanwhile
-      img.onerror = () => { if (cover.dataset.cur === kind + id) fillArt(cover, kind, null, 0, t.album?.title); else img.remove(); };
+      img.onerror = () => { if (current()) fillArt(cover, kind, null, 0, t.album?.title); else img.remove(); };
       img.src = t.live ? bigYtImg(t.img, 1200) : artUrl(kind, id, 900);
       cover.append(img);
       // background: small image, heavy blur — cheap and smooth
       const bgA = $('.np-bg .layer.a'), bgB = $('.np-bg .layer.b');
       const small = new Image();
+      let bgDone = false;
       small.onload = () => {
+        bgDone = true;
+        if (!current()) return;
         for (const l of [bgA, bgB]) { l.classList.remove('on'); }
         setTimeout(() => {
+          if (!current()) return;
           bgA.style.backgroundImage = bgB.style.backgroundImage = `url("${small.src}")`;
           bgA.classList.add('on'); bgB.classList.add('on');
         }, 260);
       };
-      small.onerror = () => { const hue = hashHue(t.album?.title || t.title); bgA.style.backgroundImage = `linear-gradient(135deg, hsl(${hue} 50% 30%), hsl(${(hue + 60) % 360} 50% 18%))`; bgA.classList.add('on'); bgB.classList.remove('on'); };
+      const bgPlaceholder = () => { const hue = hashHue(t.album?.title || t.title); bgA.style.backgroundImage = `linear-gradient(135deg, hsl(${hue} 50% 30%), hsl(${(hue + 60) % 360} 50% 18%))`; bgA.classList.add('on'); bgB.classList.remove('on'); };
+      small.onerror = () => { bgDone = true; if (current()) bgPlaceholder(); };
       small.src = t.live ? bigYtImg(t.img, 120) : artUrl(kind, id, 64);
+      // another album whose picture is not there at once (still being read from the files or looked up online): show its
+      // placeholder rather than keep the previous album's cover; the picture fades in over it when it comes
+      if (changed) setTimeout(() => {
+        if (!current()) return;
+        if (img.isConnected && !img.classList.contains('ok')) { fillArt(cover, kind, null, 0, t.album?.title); cover.append(img); }
+        if (!bgDone) bgPlaceholder();
+      }, 200);
     }
     $('#np-title').textContent = t.title;
     const artist = t.live ? [h('a', { onclick: () => { this.hide(); go('#/ytmusic'); } }, t.artist || '')]
