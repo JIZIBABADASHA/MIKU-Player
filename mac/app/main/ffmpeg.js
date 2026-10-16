@@ -37,6 +37,9 @@ async function probe(file) {
 }
 
 async function picture(file) {
+  // straight from the file's tag (tagreader.js; ffmpeg takes seconds a file on a network share for it)
+  const b = await require('./tagreader').picture(file);
+  if (b && b.length > 100) return b;
   try {
     const buf = await run(Ffmpeg.path, ['-v', 'error', '-i', file, '-an', '-map', '0:v:0', '-frames:v', '1', '-c', 'copy', '-f', 'image2pipe', '-'], { encoding: 'buffer', timeout: 15000 });
     return buf && buf.length > 100 ? buf : null;

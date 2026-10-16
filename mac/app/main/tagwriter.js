@@ -853,4 +853,4 @@ async function write(file, set, cover, removeCover) {
   throw new Error('不支援寫入這種格式');
 }
 
-module.exports = { Fields, canWrite, write, setVerifier, imageSize, _test: { parseId3, applyId3, parseVorbis, readPages, oggCrc } };
+module.exports = { Fields, canWrite, write, setVerifier, imageSize, _test: { parseId3, applyId3, parseVorbis, readPages, oggCrc, frameText } };
