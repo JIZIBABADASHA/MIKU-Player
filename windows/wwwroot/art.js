@@ -370,9 +370,9 @@ const Outputs = {
       box.append(h('h3', { html: icon('speaker') + T('輸出裝置') }));
 
       const wasapi = h('div', { class: 'out-sect wasapi' + (asioOn ? ' idle' : '') });
+      wasapi.append(seg([['exclusive', T('獨佔')], ['shared', T('共享')]], mode, v => { switchMode(v); }));
       wasapi.append(h('div', { class: 'out-label' }, h('span', { class: 'out-tag' }, 'WASAPI'),
         asioOn ? h('small', null, T('點選模式或裝置即切換回 WASAPI')) : null));
-      wasapi.append(seg([['exclusive', T('獨佔')], ['shared', T('共享')]], mode, v => { switchMode(v); }));
       const cur = s.deviceId || (d.devices.find(x => x.isDefault) || {}).id;
       // 獨佔 lists only devices that take exclusive streams (the one in use stays, marked, if it doesn't)
       const list = mode === 'exclusive' ? d.devices.filter(x => x.exclusive !== false || (current && x.id === cur)) : d.devices;
