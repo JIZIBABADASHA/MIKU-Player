@@ -60,8 +60,8 @@ Daphne 可以在任何 x64 CPU 上執行，不需要 AVX2 或 FMA3：CPU 兩者�
 沒有的話改用一般路徑，結果逐位元相同，只是比較慢（「雙倍精度摺積」約慢 2.5 倍，仍遠快於即時播放）。
 不支援 FMA3 的較舊 CPU，FMA 會由 C 執行階段以軟體計算，速度明顯下降，建議不要開啟「雙倍精度摺積」。
 
-Mac 版也可以使用 Daphne：`Extensions/DaphneMac` 是它的 macOS 版模組（Core Audio 輸出，不修改 Daphne 的原始碼），
-打包 Mac 版時會一起編譯並放進安裝檔，之後在設定 → 音訊 → 播放方案選 Daphne。詳見 `Extensions/DaphneMac/README.md`。
+Mac 版也使用同一份 `Extensions/Daphne`（Core Audio 輸出）：打包 Mac 版時，`mac/build/build.sh` 會執行它的
+`miku/pack-mac.sh`，一起編譯並放進安裝檔，之後在設定 → 音訊 → 播放方案選 Daphne。詳見 `mac/README.md`。
 
 ### 編譯 macOS 版
 

@@ -30,19 +30,24 @@ if [ "$(uname)" != "Darwin" ]; then
   command -v rcodesign >/dev/null && EXTRA+=(--rcodesign "$(command -v rcodesign)")
   command -v mkbom >/dev/null && EXTRA+=(--mkbom "$(command -v mkbom)")
 fi
-# Extension modules for the Mac (Extensions/<name>/pack.py): Daphne Mac, the Daphne playback core, when its sources
-# are there (git submodule update --init). Without them MIKU is built as before.
-DM=../../Extensions/DaphneMac
+# Extension modules (MIKU.Extensibility/README.md), found as on Windows: every module checked out under
+# ../../Extensions/<Name>/ (git submodule update --init) that packs itself for the Mac with miku/pack-mac.sh, which
+# writes ext/<arm64|x64>/<module>/ (extension.js, web/, bin/). Windows builds the same checkout from
+# src/<Project>/<Project>.Extension.csproj. A module that fails to pack is left out; without any, MIKU is built as before.
 rm -rf ext
-if [ -f "$DM/pack.py" ] && { [ -f ../../Extensions/Daphne/core/src/player.cpp ] || [ -f ../../Extensions/Daphne/Daphne/core/src/player.cpp ] || [ -n "${DAPHNE_SRC:-}" ]; }; then
-  if [ "$(uname)" = "Darwin" ]; then bash "$DM/build.sh"; fi
-  if [ -f "$DM/build/daphne-mac-arm64" ] && [ -f "$DM/build/daphne-mac-x86_64" ]; then
-    python3 "$DM/pack.py" --out ext/arm64 --arch arm64
-    python3 "$DM/pack.py" --out ext/x64 --arch x64
-    EXTRA+=(--ext-dir ext)
-  else
-    echo "Daphne Mac 的元件需要在 Mac 編譯（Extensions/DaphneMac/build.sh）；這次打包不含 Daphne。" >&2
+for m in ../../Extensions/*/; do
+  p="${m}miku/pack-mac.sh"
+  [ -f "$p" ] || continue
+  if [ "$(uname)" != "Darwin" ]; then
+    echo "$(basename "$m"): the module is built on a Mac (miku/pack-mac.sh); this installer is made without it." >&2
+    continue
   fi
-fi
+  echo "Packing the $(basename "$m") module…"
+  t=$(mktemp -d)   # merged into ext/ only when the whole module packed
+  if bash "$p" "$t"; then mkdir -p ext && cp -R "$t"/. ext/
+  else echo "⚠️  $(basename "$m") did not pack (see the messages above); this installer is made without it." >&2; fi
+  rm -rf "$t"
+done
+for a in arm64 x64; do [ -d "ext/$a" ] || continue; EXTRA+=(--ext-dir ext); break; done
 python3 make_pkg.py --electron-dir "$DL" --ffmpeg-dir "$DL" --out ../dist "${EXTRA[@]}"
 echo "完成：$(ls ../dist/*.pkg)"
