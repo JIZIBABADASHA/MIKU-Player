@@ -413,6 +413,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .slider:hover .track, .slider.drag .track { height: 5px; }
 .slider .hover-tip { position: absolute; bottom: 18px; transform: translateX(-50%); background: var(--surface-3); color: var(--text); font-size: 11.5px; padding: 3px 7px; border-radius: 6px; pointer-events: none; opacity: 0; transition: opacity .15s; white-space: nowrap; }
 .slider:hover .hover-tip, .slider.drag .hover-tip { opacity: 1; }
+/* while it is pointed at, the slider (and its time tip) is above its neighbours: the tip was drawn under the play button */
+.slider:hover, .slider.drag { z-index: 30; }
 
 .right-tools { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .sig {
