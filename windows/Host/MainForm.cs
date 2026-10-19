@@ -314,7 +314,7 @@ public sealed class MainForm : Form
         _ytLoading = true;
         try
         {
-            if (_engine.Track != null && !_engine.Track.IsLive) _player.SaveState();
+            if (_engine.Track != null && !_engine.Track.IsLive) { _player.Stopped(); _player.SaveState(); }
             _liveTrack ??= new Track { Id = "yt-live", Title = "YouTube Music", Codec = "YouTube", SampleRate = LiveBus.Rate, Bits = 0, Channels = 2 };
             await _engine.LoadAsync(_liveTrack, 0, true);
             if (!_engine.IsLoaded && _engine.LastFailureWasDevice)
@@ -705,6 +705,7 @@ public sealed class MainForm : Form
     {
         _artSearch?.Cancel();
         _tick.Stop();
+        _player.Stopped();
         _player.SaveState();
         // closed in full screen: remember the window as it was before it
         if (_fullScreen) SetFullScreen(false);
@@ -718,6 +719,23 @@ public sealed class MainForm : Form
         _ext.StopAll();
         try { _engine.Dispose(); } catch { }
         base.OnFormClosing(e);
+    }
+
+    /// <summary>
+    /// Runs a write to a music file, trying again for a moment while the file is still in use: the playback core lets
+    /// go of the track it played, or of the next one it opened ahead for gapless playback, a little after it is told to
+    /// (Stop / InvalidateNext), sometimes after the 250 ms waited for it. Other failures are not retried.
+    /// </summary>
+    static void WhenFree(Action write)
+    {
+        for (int i = 0; ; i++)
+        {
+            try { write(); return; }
+            catch (IOException ex) when (i < 8 && (ex.HResult & 0xFFFF) is 32 or 33)   // ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION
+            {
+                System.Threading.Thread.Sleep(250);
+            }
+        }
     }
 
     void SaveSettings()
@@ -787,6 +805,12 @@ public sealed class MainForm : Form
                 tracks: () => _lib.AllTracks.Select(t => new Miku.Extensibility.ExtTrack(t.Id, t.Path, t.Title, t.Artist, t.Album, t.AlbumArtist,
                     t.Genre, t.Duration, t.SampleRate, t.Bits, t.Channels, t.Codec, t.Size, t.Mtime)).ToList(),
                 playing: () => _engine.IsPlaying,
+                upcoming: n =>
+                {
+                    var q = _player.Queue;
+                    int i = _player.Index;
+                    return i < 0 || i >= q.Count ? Array.Empty<string>() : q.Skip(i).Take(Math.Max(0, n)).ToList();
+                },
                 play: (ids, shuffle, start) => OnUi(() => _player.PlayList(ids.ToList(), start, shuffle)),
                 post: (ev, data) => Post(ev, data),
                 get: key => { lock (_s) return _s.Ext.TryGetValue(id, out var d) && d.TryGetValue(key, out var v) ? v.Clone() : null; },
@@ -799,9 +823,37 @@ public sealed class MainForm : Form
                     }
                     SaveSoon();
                 });
+            // the page adds to Recent on the UI thread: a copy taken meanwhile may need a second try
+            host.Recent = () => { for (int i = 0; i < 3; i++) try { return _s.Recent.ToList(); } catch (InvalidOperationException) { } return Array.Empty<string>(); };
+            host.Add = (ids, next) => OnUi(() => { _player.Add(ids.ToList(), next); return Task.CompletedTask; });
+            host.Source = () => _player.Source;
             _extHosts.Add(host);
             return host;
         });
+        // a module that measures loudness: ReplayGain levels tracks without tags by its measurements (Settings.ReplayGainDb)
+        if (_ext.Loudness is var (lp, lid))
+        {
+            Settings.LoudnessSource = lid;
+            Settings.Measured = t =>
+            {
+                try { return t?.Path != null && lp.TryGetLoudness(t.Path, out var l, out var p) ? (l, p) : null; }
+                catch (Exception ex) { Log.Error("[ext] loudness", ex); return null; }
+            };
+            // a loose folder of singles is no album: each track its own
+            Settings.MeasuredAlbum = t => _lib.GetAlbum(t?.AlbumId) is { Loose: false } a ? Settings.AlbumLoudness(a.Tracks.ToArray()) : Settings.Measured(t);
+        }
+        // what played, for the modules (TrackPlayed); a module that chooses what plays when the queue runs out
+        _player.Played += (t, seconds, skipped, stopped, source) =>
+        {
+            if (t == null || t.IsLive) return;
+            var p = new Miku.Extensibility.ExtPlayed(t.Id, seconds, t.Duration, skipped, stopped, source);
+            foreach (var h in _extHosts) h.RaiseTrackPlayed(p);
+        };
+        if (_ext.Continuation is var (cp, cid))
+        {
+            _player.ContinuationId = cid;
+            _player.Continuation = (played, source, chosen) => cp.Continue(new Miku.Extensibility.ExtContinue(played, source, chosen));
+        }
         // the chosen core came with a module: switch to it now that it is there (nothing is playing yet)
         if (_engine is AudioEngine && CoreProvider() != null) _ = SwitchCoreAsync();
     }
@@ -1071,7 +1123,7 @@ public sealed class MainForm : Form
                             bool withCover = CoverFor(t);
                             if (withCover || edits.ContainsKey(t.Id))   // (a track that is only renamed has nothing to write)
                             {
-                                TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover);
+                                WhenFree(() => TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover));
                                 written++;
                             }
                         }
@@ -1328,7 +1380,7 @@ public sealed class MainForm : Form
         var parked = new List<(Track T, string From, string To, string Tmp)>();
         foreach (var p in plan)
         {
-            try { File.Move(p.From, p.Tmp); parked.Add(p); }
+            try { WhenFree(() => File.Move(p.From, p.Tmp)); parked.Add(p); }
             catch (Exception ex)
             {
                 failed.Add(new { file = Path.GetFileName(p.From), error = ex is IOException ? "檔案正在被其他程式使用，沒有改名" : "沒有改名：" + ex.Message });
@@ -1545,7 +1597,7 @@ public sealed class MainForm : Form
                 return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
             }
 
-            case "stop": _engine.Stop(); return null;
+            case "stop": _player.Stopped(); _engine.Stop(); return null;
             // A short sound from the page (the logo's secret) while MIKU holds the DAC (WASAPI exclusive / ASIO), where
             // nothing else in the system can sound on it: MIKU's own core mixes it into its output (Audio/Chain.cs).
             // 48 kHz mono 16-bit, base64. A module's core has no such input: the page plays it the ordinary way.
@@ -1914,6 +1966,8 @@ public sealed class MainForm : Form
         state = State(),
         queue = QueueDto(),
         extensions = _ext.List(),
+        loudness = _ext.Loudness?.Provider.LoudnessName,   // ReplayGain's "source" option names it (settings.js)
+        continuation = _ext.Continuation?.Provider.ContinueName,   // 「佇列播完後」 offers "similar" by it (settings.js)
     };
 
     // ───────────────────────────── interface language ─────────────────────────────
@@ -1998,7 +2052,12 @@ public sealed class MainForm : Form
         };
     }
 
-    object QueueDto() => new { ids = _player.Queue, index = _player.Index, shuffle = _s.Shuffle, repeat = _s.Repeat, source = _player.Source };
+    object QueueDto() => new
+    {
+        ids = _player.Queue, index = _player.Index, shuffle = _s.Shuffle, repeat = _s.Repeat, source = _player.Source,
+        // where the queue goes on with a module's Smart Playlist (「佇列播完後」 handed to it): from that index on
+        continued = _player.ContinuedFrom >= 0 && _player.ContinuationId != null ? new { from = _player.ContinuedFrom, ext = _player.ContinuationId } : null,
+    };
 
     /// <summary>
     /// PCM sample rates an ASIO driver accepts, for the settings page's fixed rate. A driver that the playing core has
@@ -2063,7 +2122,7 @@ public sealed class MainForm : Form
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-            if (pi == null || !pi.CanWrite || pi.Name is nameof(Settings.Queue) or nameof(Settings.Folders) or nameof(Settings.Favorites) or nameof(Settings.Recent) or nameof(Settings.SearchHistory)) continue;
+            if (pi == null || !pi.CanWrite || pi.Name is nameof(Settings.Queue) or nameof(Settings.QueueContinuedFrom) or nameof(Settings.Folders) or nameof(Settings.Favorites) or nameof(Settings.Recent) or nameof(Settings.SearchHistory)) continue;
             var value = prop.Value.Deserialize(pi.PropertyType, Json.Options);
             var old = pi.GetValue(_s);
             if (Equals(old, value)) continue;

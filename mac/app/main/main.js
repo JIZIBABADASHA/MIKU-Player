@@ -181,7 +181,7 @@ async function startLive() {
   if (ytLoading) return;
   ytLoading = true;
   try {
-    if (engine.track && !engineLive()) player.saveState();
+    if (engine.track && !engineLive()) { player.stopped(); player.saveState(); }
     await engine.load(liveTrack, 0, true);
     if (!engine.isLoaded && engine.lastFailureWasDevice && engineLive()) {
       // the DAC may still be closing the album's stream: once more before giving up
@@ -310,7 +310,18 @@ function loadExtensions() {
       get ffmpegPath() { return ff.Ffmpeg.available ? ff.Ffmpeg.path : null; },
       get tracks() { return lib.allTracks; },
       get isPlaying() { return engine.isPlaying; },
+      // the track playing and the ones after it (a module analyses what is about to play first)
+      upcoming: n => player.index < 0 ? [] : player.queue.slice(player.index, player.index + Math.max(0, n)),
+      onLibraryChanged: fn => lib.on('changed', () => { try { fn(); } catch (e) { Log.error(`[${id}] library`, e); } }),
+      onPlaybackChanged: fn => player.on('now', () => { try { fn(); } catch (e) { Log.error(`[${id}] playback`, e); } }),
       play: (ids, shuffle, start = -1) => player.playList(ids, start, !!shuffle),
+      // what played (each track once it is left), what played lately, adding to the queue, the queue's source
+      onTrackPlayed: fn => player.on('played', (t, seconds, skipped, stopped, source) => {
+        try { fn({ id: t.id, seconds, duration: t.duration || 0, skipped, stopped, source }); } catch (e) { Log.error(`[${id}] played`, e); }
+      }),
+      get recentlyPlayed() { return (S.recent || []).slice(); },
+      enqueue: (ids, next = false) => player.add(ids, !!next),
+      get queueSource() { return S.queueSource || null; },
       post: (ev, data) => post(`ext.${id}.${ev}`, data),
       getSetting: key => (S.ext[id] || {})[key] ?? null,
       setSetting: (key, value) => { const o = S.ext[id] || (S.ext[id] = {}); if (value == null) delete o[key]; else o[key] = value; saveSoon(); },
@@ -325,6 +336,32 @@ function loadExtensions() {
     };
   });
   if (S.audioCore && S.audioCore !== 'miku' && !exts.core(S.audioCore)) Log.info(`Playback core "${S.audioCore}" is not available: using MIKU's own`);
+  // a module that chooses what plays when the queue runs out (「佇列播完後」, its own lists)
+  player.continuation = exts.continuation();
+  // a module that measures loudness: ReplayGain levels tracks without tags by it (web-audio.js rgDb)
+  const lp = exts.loudness();
+  if (lp) {
+    const { WebAudioEngine } = require('./web-audio');
+    WebAudioEngine.loudness = {
+      source: lp.id,
+      track: t => { try { return t && t.path ? lp.lookup(t.path) : null; } catch (e) { Log.error('[ext] loudness', e); return null; } },
+      album: t => {
+        // the album's loudness from its tracks' (BS.1770 sums energy over time), once every track is measured; a loose
+        // folder of singles is no album
+        const al = t && lib.getAlbum(t.albumId);
+        if (!al || al.loose) return WebAudioEngine.loudness.track(t);
+        let energy = 0, time = 0, peak = 0;
+        for (const x of al.tracks) {
+          const m = WebAudioEngine.loudness.track(x);
+          if (!m) return null;
+          if (!isFinite(m.lufs)) continue;
+          const w = x.duration > 0 ? x.duration : 1;
+          energy += w * Math.pow(10, m.lufs / 10); time += w; peak = Math.max(peak, m.peak);
+        }
+        return time > 0 ? { lufs: 10 * Math.log10(energy / time), peak } : null;
+      },
+    };
+  }
 }
 
 // ───────────── messaging ─────────────
@@ -402,10 +439,14 @@ function state() {
     repeat: S.repeat, shuffle: S.shuffle, signal: engine.signal, meter: m,
   };
 }
-const queueDto = () => ({ ids: player.queue.slice(), index: player.index, shuffle: S.shuffle, repeat: S.repeat });
+const queueDto = () => ({ ids: player.queue.slice(), index: player.index, shuffle: S.shuffle, repeat: S.repeat, source: S.queueSource || null,
+  // where the queue goes on with a module's Smart Playlist (「佇列播完後」 handed to it): from that index on
+  continued: player.continuedFrom >= 0 && player.continuation ? { from: player.continuedFrom, ext: player.continuation.id } : null });
 const coresDto = () => [{ id: 'miku', name: 'FFmpeg', dsdPcmRate: true }, ...exts.cores().map(c => ({ ...(c.info || {}), id: c.id, name: c.name }))];
 const init = () => ({ settings: S, version: app.getVersion(), ffmpeg: ff.Ffmpeg.available, cores: coresDto(), asio: [], scan: lib.progress, state: state(), queue: queueDto(),
-  platform: 'mac', sysLang: sysLang(), extensions: exts.list() });
+  platform: 'mac', sysLang: sysLang(), extensions: exts.list(),
+  loudness: exts.loudness() ? exts.loudness().name : null,   // ReplayGain's "source" option names it (settings.js)
+  continuation: exts.continuation() ? exts.continuation().name : null });   // 「佇列播完後」 handed to a module (settings.js)
 
 function lyricsDto(t, r) {
   return { id: t.id, source: r.source, synced: r.synced, instrumental: !!r.instrumental, lines: r.lines.map(l => ({ ...l, trans: cleanTranslation(l.trans) })), offset: S.lyricOffsets[t.id] || 0 };
@@ -738,7 +779,7 @@ async function devicesDto() {
   return { devices: list, caps, asio: [], nativeAvailable: engine.nativeAvailable };
 }
 
-const Protected = new Set(['queue', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
+const Protected = new Set(['queue', 'queueContinuedFrom', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
 async function applySettings(patch) {
   let device = false, output = false, dsp = false, volume = false, rg = false, rem = false;
   for (const [k, v] of Object.entries(patch || {})) {
@@ -792,7 +833,8 @@ async function handleRpc(m, a) {
       return null;
     case 'state': return state();
     case 'queue': return queueDto();
-    case 'play': await player.playList(L(a, 'ids'), N(a, 'start', -1), typeof a.shuffle === 'boolean' ? a.shuffle : S.shuffle); return null;
+    case 'play': await player.playList(L(a, 'ids'), N(a, 'start', -1), typeof a.shuffle === 'boolean' ? a.shuffle : S.shuffle, N(a, 'at', 0),
+      a.source && typeof a.source === 'object' ? a.source : null); return null;
     case 'toggle':
       if (liveActive()) { await ytClick('.play-pause-button'); return null; }
       await player.toggle(); return null;
@@ -813,7 +855,7 @@ async function handleRpc(m, a) {
       const r = await lyrics.get(t);
       return { id: t.id, source: r.source, synced: r.synced, instrumental: r.instrumental, lines: r.lines.map(l => ({ ...l, trans: cleanTranslation(l.trans) })), offset: S.lyricOffsets[t.id] || 0 };
     }
-    case 'stop': S.resumePosition = engine.position; engine.stop(); return null;
+    case 'stop': player.stopped(); S.resumePosition = engine.position; engine.stop(); return null;
     case 'volume':
       S.volumeDb = clamp(N(a, 'db', S.volumeDb), -80, 0);
       if ('muted' in a) S.muted = a.muted === true;
@@ -1365,7 +1407,7 @@ app.on('before-quit', e => {
   quitting = true;
   lib.scanToken++; // stop background tag probes before flushing the last library snapshot
   if (artSearch) artSearch.abort();
-  try { player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
+  try { player.stopped(); player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
   try { liveRelay && liveRelay.kill(); } catch { }
   Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });

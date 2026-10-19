@@ -137,7 +137,7 @@ public sealed class Settings
     /// <summary>MaxDsd when it is one of the multiples, else 0 (no limit).</summary>
     public int DsdLimit() => MaxDsd is 64 or 128 or 256 or 512 ? MaxDsd : 0;
     public bool Gapless { get; set; } = true;
-    public string ReplayGain { get; set; } = "off"; // off | track | album
+    public string ReplayGain { get; set; } = "off"; // off | track | album | source（只在播放量測響度的模組的頻道時，依曲目）
     public double ReplayGainPreamp { get; set; }
     /// <summary>
     /// ReplayGain for a track (dB, preamp included), or null when off or the track has no gain tag. A track is raised
@@ -147,6 +147,15 @@ public sealed class Settings
     public double? ReplayGainDb(Track t)
     {
         if (ReplayGain == "off" || t == null) return null;
+        // a module that measures loudness (Miku.Extensibility.ILoudnessProvider): its measurement first (ReplayGain 2's
+        // -18 LUFS reference, true peak), tags where it has none. "album": the album's loudness from its tracks', once
+        // every track is measured (MeasuredAlbum), so an album is never half measured, half tagged
+        if (ReplayGain == "source" && !PlayingLoudnessSource()) return null;
+        if ((ReplayGain == "album" ? MeasuredAlbum?.Invoke(t) : Measured?.Invoke(t)) is var (lufs, tp) && double.IsFinite(lufs))
+        {
+            double top = tp > 0 ? -20 * Math.Log10(tp) : 0;
+            return Math.Clamp(Math.Min(-18 - lufs + ReplayGainPreamp, top), -24, 24);
+        }
         bool album = ReplayGain == "album";
         double? g = album ? (t.RgAlbum ?? t.RgTrack) : (t.RgTrack ?? t.RgAlbum);
         if (!g.HasValue) return null;
@@ -154,6 +163,54 @@ public sealed class Settings
         double max = peak is > 0 ? -20 * Math.Log10(peak.Value) : 0;
         return Math.Clamp(Math.Min(g.Value + ReplayGainPreamp, max), -24, 24);
     }
+    /// <summary>
+    /// The loudness module's measurement of a track (LUFS, true peak linear), or null when not measured; LUFS is
+    /// -∞ for a track measured as silent (nothing to level). Set at start-up.
+    /// </summary>
+    public static Func<Track, (double Lufs, double Peak)?> Measured;
+    /// <summary>The same for the track's album: from all its tracks (null until every one is measured). Set at start-up.</summary>
+    public static Func<Track, (double Lufs, double Peak)?> MeasuredAlbum;
+
+    /// <summary>
+    /// An album's loudness from its tracks' (BS.1770 sums energy over time: the tracks' powers weighted by their
+    /// length) and its highest peak; silent tracks add nothing. Null while a track is not measured. Each track is
+    /// gated on its own, so it can differ a little from measuring the album in one go (well under 1 dB but for long
+    /// silences).
+    /// </summary>
+    public static (double Lufs, double Peak)? AlbumLoudness(IEnumerable<Track> tracks)
+    {
+        double energy = 0, time = 0, peak = 0;
+        foreach (var x in tracks)
+        {
+            if (Measured?.Invoke(x) is not var (l, p)) return null;
+            if (!double.IsFinite(l)) continue;
+            double w = x.Duration > 0 ? x.Duration : 1;
+            energy += w * Math.Pow(10, l / 10);
+            time += w;
+            peak = Math.Max(peak, p);
+        }
+        return time > 0 ? (10 * Math.Log10(energy / time), peak) : null;
+    }
+    /// <summary>The loudness module's id (the queue source's "ext"), or null when there is none.</summary>
+    public static string LoudnessSource;
+
+    /// <summary>Whether the queue playing came from the loudness module (ReplayGain "source").</summary>
+    bool PlayingLoudnessSource()
+    {
+        var src = QueueSource;
+        return LoudnessSource != null && src is { ValueKind: JsonValueKind.Object } q
+            && q.TryGetProperty("ext", out var ext) && ext.ValueKind == JsonValueKind.String && ext.GetString() == LoudnessSource;
+    }
+
+    /// <summary>What the ReplayGain of a track is based on, for the signal path ("MoodWave 量測", "依曲目" …).</summary>
+    public string ReplayGainBasis(Track t)
+    {
+        if (ReplayGain == "album") return MeasuredAlbum?.Invoke(t) is var (al, _) && double.IsFinite(al) ? "measured-album" : "album";
+        if (ReplayGain is "track" or "source" && Measured?.Invoke(t) is var (l, _) && double.IsFinite(l) && (ReplayGain == "track" || PlayingLoudnessSource()))
+            return "measured";
+        return "track";
+    }
+
     // Volume
     public string VolumeMode { get; set; } = "digital"; // digital | hardware | fixed
     public double VolumeDb { get; set; } = -20;
@@ -174,6 +231,7 @@ public sealed class Settings
     public bool Shuffle { get; set; }
     public List<string> Queue { get; set; } = new();
     public int QueueIndex { get; set; } = -1;
+    public int QueueContinuedFrom { get; set; } = -1;   // where the queue goes on with a module's Smart Playlist (Player.ContinuedFrom)
     public double ResumePosition { get; set; }
     /// <summary>Where the queue came from, when an extension module started it (MikuExt play's source); null otherwise.</summary>
     public JsonElement? QueueSource { get; set; }

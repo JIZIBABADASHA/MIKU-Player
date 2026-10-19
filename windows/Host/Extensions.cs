@@ -32,6 +32,16 @@ sealed class ExtensionManager
 
     public bool Any => _loaded.Count > 0;
 
+    /// <summary>The first module that measures loudness (for ReplayGain), and its id; null when none.</summary>
+    public (Miku.Extensibility.ILoudnessProvider Provider, string Id)? Loudness =>
+        _loaded.Where(l => l.Ext is Miku.Extensibility.ILoudnessProvider).Select(l => ((Miku.Extensibility.ILoudnessProvider)l.Ext, l.Ext.Id))
+               .Cast<(Miku.Extensibility.ILoudnessProvider, string)?>().FirstOrDefault();
+
+    /// <summary>The first module that chooses what plays when the queue runs out (「佇列播完後」), and its id; null when none.</summary>
+    public (IQueueContinuation Provider, string Id)? Continuation =>
+        _loaded.Where(l => l.Ext is IQueueContinuation).Select(l => ((IQueueContinuation)l.Ext, l.Ext.Id))
+               .Cast<(IQueueContinuation, string)?>().FirstOrDefault();
+
     /// <summary>The playback cores the modules provide (Audio/AudioCores.cs).</summary>
     public IEnumerable<Miku.Audio.IAudioCoreProvider> Cores => _loaded.Select(l => l.Ext).OfType<Miku.Audio.IAudioCoreProvider>();
 
@@ -141,15 +151,22 @@ sealed class ExtensionHost : IExtensionHost
     readonly string _id;
     readonly Func<IReadOnlyList<ExtTrack>> _tracks;
     readonly Func<bool> _playing;
+    readonly Func<int, IReadOnlyList<string>> _upcoming;
     readonly Func<IReadOnlyList<string>, bool, int, Task> _play;
     readonly Action<string, object> _post;
     readonly Func<string, JsonElement?> _get;
     readonly Action<string, object> _set;
 
+    /// <summary>What MainForm adds after construction: the recently played list, enqueueing, the queue's source.</summary>
+    public Func<IReadOnlyList<string>> Recent = () => Array.Empty<string>();
+    public Action<IReadOnlyList<string>, bool> Add = (_, _) => { };
+    public Func<JsonElement?> Source = () => null;
+
     public ExtensionHost(string id, string dir, Func<IReadOnlyList<ExtTrack>> tracks, Func<bool> playing,
-        Func<IReadOnlyList<string>, bool, int, Task> play, Action<string, object> post,
+        Func<int, IReadOnlyList<string>> upcoming, Func<IReadOnlyList<string>, bool, int, Task> play, Action<string, object> post,
         Func<string, JsonElement?> get, Action<string, object> set)
     {
+        _upcoming = upcoming;
         _id = id;
         ExtensionDir = dir;
         DataDir = Path.Combine(AppPaths.Root, "ext", id);
@@ -163,12 +180,27 @@ sealed class ExtensionHost : IExtensionHost
     public IReadOnlyList<ExtTrack> Tracks => _tracks();
     public event Action LibraryChanged;
     public bool IsPlaying => _playing();
+    public IReadOnlyList<string> Upcoming(int count) => _upcoming(count);
     public event Action PlaybackChanged;
     public Task Play(IReadOnlyList<string> trackIds, bool shuffle, int start = -1) => _play(trackIds, shuffle, start);
     public void Post(string ev, object data) => _post($"ext.{_id}.{ev}", data);
     public JsonElement? GetSetting(string key) => _get(key);
     public void SetSetting(string key, object value) => _set(key, value);
     public void Log(string message) => Miku.Log.Info($"[{_id}] {message}");
+    public event Action<ExtPlayed> TrackPlayed;
+    public IReadOnlyList<string> RecentlyPlayed => Recent();
+    public void Enqueue(IReadOnlyList<string> trackIds, bool next = false) => Add(trackIds, next);
+    public JsonElement? QueueSource => Source();
+
+    public void RaiseTrackPlayed(ExtPlayed p)
+    {
+        if (TrackPlayed == null) return;
+        foreach (Action<ExtPlayed> h in TrackPlayed.GetInvocationList())
+        {
+            try { h(p); }
+            catch (Exception ex) { Miku.Log.Error($"[ext] {_id} TrackPlayed", ex); }
+        }
+    }
 
     // raised by MainForm; a module's handler that throws must not break MIKU's own event
     public void RaiseLibraryChanged() => Raise(LibraryChanged, "LibraryChanged");
