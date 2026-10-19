@@ -130,7 +130,9 @@ Mac 版可以載入擴充模組（`app/main/extensions.js`，對應 Windows 的 
 模組和 Windows 版共用同一份 checkout（`Extensions/<名稱>/`）：Windows 版編譯 `src/<專案>/<專案>.Extension.csproj`，
 Mac 版由模組自己的 `miku/pack-mac.sh` 打包。`build/build.sh` 會對每個有 `miku/pack-mac.sh` 的模組執行它，
 輸出 `ext/<arm64|x64>/<模組>/`（`extension.js`、`web/`、`bin/`）並放進安裝檔；打包失敗的模組不放進去，不影響 MIKU。
-目前的模組是 Daphne（`Extensions/Daphne`）：支援 Core Audio 獨佔 / 共享、升頻、PCM → DSD、DoP。
+目前的模組是 Daphne（`Extensions/Daphne`）：支援 Core Audio 獨佔 / 共享、升頻、PCM → DSD、DoP；以及 MoodWave
+（`Extensions/MoodWave`）：心情與時段頻道、歌曲電台、Smart Playlist。MoodWave 的 `miku/pack-mac.sh` 需要 .NET 8 SDK
+（編譯 `moodwave-helper` 與 `moodwave-clap`，arm64 與 x64，第一次約 4 分鐘）與 python3（下載頻道模型）。
 
 ## 同步 Windows 版的介面
 
