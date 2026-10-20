@@ -60,7 +60,9 @@
     (Inside this build a module's errors would fail all of it, and MIKU's folder would not be updated at all.)
   -->
   <PropertyGroup>
-    <_MikuDeploy>&quot;$(DOTNET_HOST_PATH)&quot; msbuild -nologo -v:m -t:MikuDeploy -p:Configuration=$(Configuration)</_MikuDeploy>
+    <!-- build tools a module downloads (Daphne: MSVC, CMake, Ninja when this machine has none) go into the repo's .tools -->
+    <_MikuToolsDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\.tools'))</_MikuToolsDir>
+    <_MikuDeploy>&quot;$(DOTNET_HOST_PATH)&quot; msbuild -nologo -v:m -t:MikuDeploy -p:Configuration=$(Configuration) &quot;-p:MikuToolsDir=$(_MikuToolsDir)&quot;</_MikuDeploy>
     <_MikuDeployFailed>could not be built on this machine and was left out (its output is in the build log); MIKU itself and the other modules are built</_MikuDeployFailed>
   </PropertyGroup>
   <!-- one run per module (target batching): each module's exit code is its own -->
