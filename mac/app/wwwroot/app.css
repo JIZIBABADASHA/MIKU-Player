@@ -469,6 +469,10 @@ html.fullscreen #fullscreen-exit.is-visible:active {
   animation: popIn .22s var(--ease-out);
 }
 @keyframes popIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+/* menus fade in without moving: an item that slid under the pointer as the menu came in lost the click (pressed on
+   one spot, released on another) */
+.pop.menu-pop { animation-name: popFade; }
+@keyframes popFade { from { opacity: 0; } to { opacity: 1; } }
 .menu { padding: 6px; min-width: 210px; }
 .menu button { display: flex; width: 100%; align-items: center; gap: 12px; height: 36px; padding: 0 12px; border-radius: 8px; color: var(--text); font-size: 13.5px; text-align: left; }
 .menu button:hover { background: rgba(var(--ink), .08); }
@@ -1919,6 +1923,11 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .msel-btn:focus-visible, .msel.open .msel-btn { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .2), inset 0 1px 0 rgba(var(--ink), .06); }
 .msel.open .msel-chev { transform: rotate(180deg); background: rgba(var(--teal-rgb), .22); }
 .msel-btn:disabled { opacity: .45; cursor: default; }
+/* the picture of the bar's left part fading away while a new one comes in (core.js BarSwap): still, as it was */
+.bar-swap-old, .bar-swap-old * { animation: none !important; transition: none !important; }
+/* a module's queue continuation is on: its mark before 「… 已開啟」 (settings, 佇列播完後) */
+.ext-cont { display: inline-flex; align-items: center; gap: 6px; }
+.ext-cont > svg { width: 16px; height: 16px; flex: none; }
 .band-table .msel { width: 100%; }
 .band-table .msel-btn { height: 30px; min-width: 0; font-size: 12.5px; padding: 0 6px 0 9px; gap: 6px; }
 .band-table .msel-btn::before { display: none; }

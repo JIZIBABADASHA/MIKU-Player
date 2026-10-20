@@ -49,6 +49,12 @@ public interface IExtensionHost
     /// <summary>Playback started, paused, stopped or moved to another track.</summary>
     event Action PlaybackChanged;
 
+    /// <summary>
+    /// The library ids of the track playing (or loaded) and of the ones after it in the queue, in playing order, at
+    /// most <paramref name="count"/>; empty when the queue is empty.
+    /// </summary>
+    IReadOnlyList<string> Upcoming(int count);
+
     /// <summary>Replaces the queue with these tracks and plays them; <paramref name="start"/> = index to start at, -1 = first.</summary>
     Task Play(IReadOnlyList<string> trackIds, bool shuffle, int start = -1);
 
@@ -63,6 +69,74 @@ public interface IExtensionHost
 
     /// <summary>Writes a line to MIKU's log.</summary>
     void Log(string message);
+
+    /// <summary>
+    /// A track stopped playing: it ended, or the listener moved on (next, another track, another list, removed it,
+    /// stopped). Raised once per track that played, from any thread. Not on an older MIKU: there it is never raised.
+    /// </summary>
+    event Action<ExtPlayed> TrackPlayed;
+
+    /// <summary>The library ids of the tracks played lately, most recent first (at most 200).</summary>
+    IReadOnlyList<string> RecentlyPlayed { get; }
+
+    /// <summary>Adds tracks to the end of the queue (<paramref name="next"/>: right after the track playing).</summary>
+    void Enqueue(IReadOnlyList<string> trackIds, bool next = false);
+
+    /// <summary>Who made the queue playing: the source object a module played it with (ext = its id), or null.</summary>
+    JsonElement? QueueSource { get; }
+}
+
+/// <summary>
+/// One track that played (IExtensionHost.TrackPlayed): how far it got, and whether it ended by itself or the listener
+/// moved on (<see cref="Skipped"/>; stopping playback or closing MIKU counts as neither: <see cref="Stopped"/>).
+/// </summary>
+public sealed record ExtPlayed(string Id, double Seconds, double Duration, bool Skipped, bool Stopped, JsonElement? Source);
+
+/// <summary>
+/// Optional, on an <see cref="IMikuExtension"/>: the module chooses what plays when the queue runs out. The module turns
+/// it on in its own settings by setting MIKU's 「佇列播完後」 (Settings.AutoContinue) to "similar"; MIKU's own choice is
+/// then greyed out, noted 「<see cref="ContinueName"/> 已開啟」. While the last track of the queue plays, MIKU asks
+/// <see cref="Continue"/> and adds what it returns (random tracks when it returns none).
+/// Also asked while the queue playing is the module's own (its <c>source.ext</c>), whatever that setting: a module's
+/// endless list (a radio) goes on by itself.
+/// </summary>
+public interface IQueueContinuation
+{
+    /// <summary>The feature's name as the listener knows it, for MIKU's setting (「… 已開啟」).</summary>
+    string ContinueName { get; }
+
+    /// <summary>
+    /// What to add after the queue's last track: library ids, a few at a time (they show in the queue). Called from
+    /// any thread, at most once at a time, while that track plays: answer within a second or two.
+    /// </summary>
+    Task<IReadOnlyList<string>> Continue(ExtContinue request);
+}
+
+/// <summary>
+/// What a queue continuation is asked with: the queue's tracks up to the one playing (the last of them, in playing
+/// order, at most 50), the queue's source, and whether the listener chose the module in 「佇列播完後」 (false: only
+/// because the queue is the module's own).
+/// </summary>
+public sealed record ExtContinue(IReadOnlyList<string> Played, JsonElement? Source, bool Chosen);
+
+/// <summary>
+/// Optional, on an <see cref="IMikuExtension"/>: the module measures each track's loudness (ITU-R BS.1770), so MIKU's
+/// ReplayGain can level tracks that carry no ReplayGain tags. With such a module, ReplayGain "track" uses its
+/// measurements first (tags where it has none), "album" the album's loudness worked out from its tracks' once all are
+/// measured, and ReplayGain "source" levels only while the queue playing is the module's (played from its page),
+/// named after <see cref="LoudnessName"/>.
+/// </summary>
+public interface ILoudnessProvider
+{
+    /// <summary>The module's name as the listener knows it, for the setting ("在播放 … 時開啟").</summary>
+    string LoudnessName { get; }
+
+    /// <summary>
+    /// The file's integrated loudness (LUFS) and true peak (linear, 1.0 = full scale), when measured; a file measured
+    /// as silent (or that could not be measured) gives true with -∞ LUFS. Called as a track loads (and for every
+    /// track of its album), from any thread: keep it a lookup.
+    /// </summary>
+    bool TryGetLoudness(string path, out double lufs, out double peak);
 }
 
 /// <summary>One track of the local library, as an extension sees it.</summary>

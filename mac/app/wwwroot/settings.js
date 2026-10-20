@@ -112,15 +112,29 @@ const Settings = {
       const vol = section(T('音量'));
       vol.append(field(T('音量控制方式'), T('數位音量在 64-bit 運算中處理；固定音量保持 0 dB，請用 DAC 或系統音量調整。'),
         select([['digital', T('數位音量')], ['fixed', T('固定 0 dB')]], s.volumeMode === 'hardware' ? 'digital' : s.volumeMode, v => this.set({ volumeMode: v }))));
-      vol.append(field('ReplayGain', T('依標籤中的增益值讓曲目音量一致。'), [
-        select([['off', T('關閉')], ['track', T('依曲目')], ['album', T('依專輯')]], s.replayGain, v => this.set({ replayGain: v })),
+      // with a module that measures loudness: "track" / "album" use its measurements first, and "source" levels only its channels
+      const lm = App.loudness;
+      const rgOpts = [['off', T('關閉')], ['track', T('依曲目')], ['album', T('依專輯')]];
+      if (lm) rgOpts.push(['source', T`在播放 ${lm} 時開啟`]);
+      vol.append(field('ReplayGain', lm
+        ? T`讓曲目音量一致，使用 ${lm} 量測的響度（還沒量測時用標籤）。依專輯：整張專輯都量完後依推算的專輯響度調整，保留專輯內的大小聲差異。「在播放 ${lm} 時開啟」：只在播放 ${lm} 頻道時依曲目調整。`
+        : T('依標籤中的增益值讓曲目音量一致。'), [
+        select(rgOpts, s.replayGain === 'source' && !lm ? 'off' : s.replayGain, v => this.set({ replayGain: v })),
       ]));
       /* 播放 */
       const play = section(T('播放'));
       play.append(field(T('無縫播放'), T('預先載入下一首，曲目之間幾乎沒有間隙（Live 專輯、古典樂）。'), sw(s.gapless, v => this.set({ gapless: v }))));
       play.append(h('div', { class: 'hint' }, T('播放佇列播完後不要停，繼續從曲庫隨機挑音樂來播。重複播放開啟時不會作用。')));
-      play.append(field(T('佇列播完後'), T('隨機專輯：整張專輯從頭播完再換下一張；隨機歌曲：每次挑幾首不同專輯的歌。最近播過的會盡量避開。'),
-        select([['off', T('停止播放')], ['albums', T('隨機播放其他專輯')], ['tracks', T('隨機播放其他歌曲')]], s.autoContinue || 'off', v => this.set({ autoContinue: v }))));
+      // a module that chooses what comes next (IQueueContinuation) is turned on in its own settings ("similar"): the
+      // choice here is greyed out meanwhile, showing the one that comes back when the module's is turned off
+      const byModule = s.autoContinue === 'similar' && !!App.continuation;
+      const contSel = select([['off', T('停止播放')], ['albums', T('隨機播放其他專輯')], ['tracks', T('隨機播放其他歌曲')]],
+        byModule ? uiPref('autoContinuePrev', 'off') : s.autoContinue === 'similar' ? 'tracks' : s.autoContinue || 'off', v => this.set({ autoContinue: v }));
+      contSel.disabled = byModule;
+      let mark = null;
+      if (byModule && MikuExt.labels.continue) try { mark = MikuExt.labels.continue(); } catch (e) { console.error('[ext] continueMark', e); }
+      play.append(field(T('佇列播完後'), byModule ? h('span', { class: 'ext-cont' }, mark, T`${App.continuation} 已開啟`) : T('隨機專輯：整張專輯從頭播完再換下一張；隨機歌曲：每次挑幾首不同專輯的歌。最近播過的會盡量避開。'),
+        contSel));
     }
 
     if (tab === 'library') {
