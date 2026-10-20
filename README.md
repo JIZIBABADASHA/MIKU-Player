@@ -52,9 +52,11 @@ MIKU.Extensibility/  Windows 版的擴充模組介面
 git clone --recurse-submodules https://github.com/JIZIBABADASHA/MIKU-Player.git
 ```
 
-已經 clone 過的話，執行 `git submodule update --init`。一般的 clone 不會取得它，MIKU 照常編譯。
-取得後編譯 MIKU 時會一起建置 Daphne 的 C++ 引擎，需要 Visual Studio 2022（C++ 桌面開發）與 CMake 3.25 以上；
-第一次編譯會下載 FFmpeg 與 ASIO SDK。之後在設定 → 播放方案選 Daphne 即可使用。
+已經 clone 過的話，執行 `git submodule update --init`（`make-installer.cmd` 會自動取得還沒下載的 submodule）。
+一般的 clone 不會取得它，MIKU 照常編譯。
+取得後編譯 MIKU 時會一起建置 Daphne 的 C++ 引擎：已安裝的 Visual Studio（C++ 桌面開發）與 CMake 3.25 以上會優先使用，
+沒有的話第一次編譯會自動下載可攜式 MSVC、CMake 與 Ninja 到 `.tools`（不需要系統管理員權限，適用 Visual Studio Build Tools 授權）。
+第一次編譯也會下載 FFmpeg 與 ASIO SDK。之後在設定 → 播放方案選 Daphne 即可使用。
 
 Daphne 可以在任何 x64 CPU 上執行，不需要 AVX2 或 FMA3：CPU 兩者都有時，雙倍精度（double-double）運算會使用向量化的路徑；
 沒有的話改用一般路徑，結果逐位元相同，只是比較慢（「雙倍精度摺積」約慢 2.5 倍，仍遠快於即時播放）。
