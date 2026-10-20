@@ -63,6 +63,13 @@ Daphne 可以在任何 x64 CPU 上執行，不需要 AVX2 或 FMA3：CPU 兩者�
 Mac 版也使用同一份 `Extensions/Daphne`（Core Audio 輸出）：打包 Mac 版時，`mac/build/build.sh` 會執行它的
 `miku/pack-mac.sh`，一起編譯並放進安裝檔，之後在設定 → 音訊 → 播放方案選 Daphne。詳見 `mac/README.md`。
 
+[MoodWave](https://github.com/cychang-ykc/MoodWave) 以 git submodule 放在 `Extensions/MoodWave`：從音訊本身把曲庫分成
+5 個時段與 8 種心情的頻道，加上歌曲電台與 Smart Playlist（佇列播完後依實際聽過的歌接續）。取得的方式同上；編譯 MIKU 時
+會一起建置，只需要 .NET 8 SDK，第一次編譯會從 MoodWave 的 Releases 下載頻道模型。之後側欄會出現 MoodWave，
+設定 → 曲庫可以開關它和進階 AI（進階 AI 的模型約 285 MB，開啟時才下載）。打包 Mac 版時同樣由它的 `miku/pack-mac.sh`
+一起編譯，需要 Mac 上有 .NET 8 SDK 與 python3。MoodWave 採 PolyForm Noncommercial 1.0.0 授權，並另外授權 MIKU
+隨 MIKU 散布（見它的 `LICENSE`）。
+
 ### 編譯 macOS 版
 
 在 Finder 雙擊 `mac/Build Mac.command`（或在終端機執行 `bash mac/build/build.sh`），會下載 Electron、FFmpeg 與 fpcalc 並產生 `mac/dist/MIKU-<版本>-mac.pkg`。
