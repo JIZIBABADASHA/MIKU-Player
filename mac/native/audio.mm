@@ -19,6 +19,9 @@
 // The HAL callback never allocates, blocks, calls Foundation, or writes to a pipe.
 #import <Foundation/Foundation.h>
 #include <CoreAudio/CoreAudio.h>
+#ifndef __MAC_12_0   // SDKs before macOS 12 (build.sh may fall back to one) name the main element ...Master
+#define kAudioObjectPropertyElementMain kAudioObjectPropertyElementMaster
+#endif
 #include <algorithm>
 #include <atomic>
 #include <cassert>
