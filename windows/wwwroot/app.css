@@ -2122,7 +2122,7 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .ft-thumb.ft-none + .ft-tab { display: none; }
 .fr-song .c-pic { display: grid; place-items: center; color: var(--text-3); cursor: pointer; font-size: 14px; border-radius: 10px; transition: background .15s; }
 .fr-song .c-pic:hover { background: rgba(var(--ink), .07); }
-.fr-song .c-pic .eq { align-items: flex-end; height: 16px; }
+.fr-song .c-pic .eq { align-items: flex-end; top: 50%; bottom: auto; height: 16px; margin-top: -8px; padding-bottom: 0; }   /* centred where the number is */
 .fr-song .c-pic .pi, .fr-song .c-pic .eq { display: none; }
 .fr-song:hover .c-pic > span { display: none; }
 .fr-song:hover .c-pic .pi { display: grid; color: var(--text); }
