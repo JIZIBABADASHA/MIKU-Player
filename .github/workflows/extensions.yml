@@ -39,12 +39,16 @@ jobs:
           "MIKU_VERSION=$v" >> $env:GITHUB_ENV
       # MIKU's publish runs every module's MikuDeploy into out\ext\<id>\ (windows/MIKU.csproj), as make-installer.ps1
       # does for the installer; a module that fails is only a warning there, so the count is checked below
+      # cmd with PSModulePath cleared, not pwsh: Daphne's build_for_miku.ps1 runs in Windows PowerShell, which cannot
+      # load its own modules (Get-FileHash, …) with the PSModulePath that PowerShell 7 hands down
       - name: Build MIKU with its modules
-        shell: pwsh
+        shell: cmd
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
           DOTNET_NOLOGO: 1
-        run: dotnet publish windows/MIKU.csproj -c Release -r win-x64 --self-contained true -o "$PWD/out" -p:DebugType=none
+        run: |
+          set PSModulePath=
+          dotnet publish windows\MIKU.csproj -c Release -r win-x64 --self-contained true -o "%GITHUB_WORKSPACE%\out" -p:DebugType=none
       - name: Pack
         shell: pwsh
         run: |
