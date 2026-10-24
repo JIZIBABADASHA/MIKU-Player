@@ -540,14 +540,17 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 @keyframes rar-pan { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
 
 /* ── the badge: a mini card ── */
+/* Each special badge (Hi-Res, DSD, upsampling, DSP, lossy) also names itself under #bar with a heavier selector, so a
+   module that restyles the bar's plain badges (MoodWave: `html:root[data-ext-source] … #bar .sig`) cannot take its
+   colours away: without them only the small icon is left, and Hi-Res and upsampling look the same. */
 :root:root .sig.hires, :root:root .sig.dsd {
   position: relative; isolation: isolate; overflow: hidden; border: 0; text-shadow: 0 1px 0 rgba(0, 0, 0, .7); font-weight: 600; letter-spacing: .01em;
 }
-:root:root .sig.hires {
+:root:root .sig.hires, :root:root:root #bar .sig.hires {
   color: #fbeec8; background: radial-gradient(120% 160% at 18% 0%, #4a3410 0%, #1a1207 52%, #0b0803 100%);
   animation: rar-badge-in .9s cubic-bezier(.2, .9, .25, 1.2) both, rar-aura-ssr 3.2s ease-in-out 1s infinite;
 }
-:root:root .sig.dsd {
+:root:root .sig.dsd, :root:root:root #bar .sig.dsd {
   color: #f1f3ff; background: radial-gradient(120% 160% at 18% 0%, #2b2a6e 0%, #121238 52%, #06061a 100%);
   animation: rar-badge-in .9s cubic-bezier(.2, .9, .25, 1.2) both, rar-aura-ur 4s ease-in-out 1s infinite;
 }
@@ -754,7 +757,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 @keyframes low-tape { to { background-position: 24px 0; } }  /* exactly one tile: seamless loop */
 @keyframes low-tri { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .25; } }
 /* the badge */
-:root:root .sig.q-low {
+:root:root .sig.q-low, :root:root:root #bar .sig.q-low {
   position: relative; isolation: isolate; overflow: hidden; border: 0; color: #ffe1e3; font-weight: 700; text-shadow: 0 0 8px rgba(255, 40, 60, .8);
   background: #2a0407; animation: low-shake .6s ease-in-out both, low-alarm 1s ease-in-out .6s infinite;
 }
@@ -862,7 +865,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
   30% { opacity: .8; }
   100% { transform: translateY(-9px) scaleX(1.15); opacity: 0; }
 }
-:root:root .sig.dsp {
+:root:root .sig.dsp, :root:root:root #bar .sig.dsp {
   position: relative; isolation: isolate; overflow: visible; border: 0; color: #d6dd9a; font-weight: 800;
   text-shadow: 0 1px 0 rgba(20, 22, 0, .7);
   background:
@@ -1448,13 +1451,13 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 :root:root.lite-signal .pop.sigpop:not(.sig-flipped):has(> .up)::before { content: '' !important; }
 /* ── the badge while upsampling: the card's champagne gold as a small plate. A gold rim with light running round it,
    an engraved wave drifting through under a sheen, and the card's diamond for the dot ── */
-:root:root .sig.upsample {
+:root:root .sig.upsample, :root:root:root #bar .sig.upsample {
   position: relative; isolation: isolate; overflow: hidden; border: 0; font-weight: 600; letter-spacing: .01em;
   color: #4a3208; text-shadow: 0 1px 0 rgba(255, 252, 235, .7);
   background: linear-gradient(180deg, #fff9e6 0%, #f3e2b4 52%, #dcc283 100%);
   animation: rar-badge-in .9s cubic-bezier(.2, .9, .25, 1.2) both, up-aura 3.6s ease-in-out 1s infinite;
 }
-:root:root .sig.upsample:hover { color: #2f1f04; }
+:root:root .sig.upsample:hover, :root:root:root #bar .sig.upsample:hover { color: #2f1f04; }
 @keyframes up-aura {
   0%, 100% { box-shadow: 0 0 0 1px rgba(70, 46, 8, .55), 0 0 9px rgba(255, 214, 120, .22), 0 3px 10px rgba(0, 0, 0, .32); }
   50% { box-shadow: 0 0 0 1px rgba(70, 46, 8, .55), 0 0 20px rgba(255, 222, 135, .6), 0 3px 10px rgba(0, 0, 0, .32); }
