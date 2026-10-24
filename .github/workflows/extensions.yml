@@ -1,0 +1,120 @@
+# Builds every extension module under Extensions/ (git submodules: Daphne, MoodWave) for Windows x64, Mac arm64 and
+# Mac x64, one zip per module and platform, so a listener can add a module to an installed MIKU without building it:
+#   MIKU-ext-<id>-<MIKU version>-<win-x64|mac-arm64|mac-x64>.zip     holds <id>/ as MIKU's loader reads it from ext/<id>/
+# A module is built against the MIKU it ships with (Daphne's playback core uses MIKU's own types), hence MIKU's version
+# in the name. On a published Release the zips are added to it (GitHub keeps each asset's SHA-256); on a manual run or a
+# pull request they are kept as the run's artifacts only.
+name: Extensions
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/extensions.yml
+      - Extensions
+      - MIKU.Extensibility/**
+      - windows/MIKU.csproj
+      - mac/build/build.sh
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Version
+        shell: pwsh
+        run: |
+          $v = if ('${{ github.event_name }}' -eq 'release') { '${{ github.event.release.tag_name }}' -replace '^v', '' }
+               else { ([xml](Get-Content windows/MIKU.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1 }
+          "MIKU_VERSION=$v" >> $env:GITHUB_ENV
+      # MIKU's build runs every module's MikuDeploy into out\ext\<id>\ (windows/MIKU.csproj); a module that fails is
+      # only a warning there, so the count is checked below
+      - name: Build MIKU with its modules
+        shell: pwsh
+        env:
+          DOTNET_CLI_TELEMETRY_OPTOUT: 1
+          DOTNET_NOLOGO: 1
+        run: dotnet build windows/MIKU.csproj -c Release -o out
+      - name: Pack
+        shell: pwsh
+        run: |
+          $want = @(Get-ChildItem Extensions/*/src/*/*.Extension.csproj)
+          $got = @(if (Test-Path out/ext) { Get-ChildItem out/ext -Directory })
+          if ($want.Count -eq 0) { throw 'no *.Extension.csproj under Extensions/ (submodules not checked out?)' }
+          if ($got.Count -ne $want.Count) { throw "found $($want.Count) modules but only $($got.Count) built: $($got.Name -join ', ')" }
+          New-Item -ItemType Directory -Force zips | Out-Null
+          foreach ($d in $got) {
+            $zip = "zips/MIKU-ext-$($d.Name)-$env:MIKU_VERSION-win-x64.zip"
+            Compress-Archive -Path $d.FullName -DestinationPath $zip
+            Write-Host "$zip  $((Get-Item $zip).Length) bytes"
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extensions-win-x64
+          path: zips/*.zip
+      - name: Add to the Release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload '${{ github.event.release.tag_name }}' (Get-ChildItem zips/*.zip).FullName --clobber
+
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Version
+        run: |
+          if [ "${{ github.event_name }}" = release ]; then v="${{ github.event.release.tag_name }}"; v="${v#v}"
+          else v=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' windows/MIKU.csproj | head -1); fi
+          echo "MIKU_VERSION=$v" >> "$GITHUB_ENV"
+      # every module packs itself for the Mac with miku/pack-mac.sh into <out>/<arm64|x64>/<id>/ (as mac/build/build.sh)
+      - name: Build the modules
+        run: |
+          set -euo pipefail
+          n=0
+          for m in Extensions/*/; do
+            p="${m}miku/pack-mac.sh"
+            [ -f "$p" ] || continue
+            echo "::group::$(basename "$m")"
+            bash "$p" "$PWD/out" arm64 x86_64
+            echo "::endgroup::"
+            n=$((n + 1))
+          done
+          [ "$n" -gt 0 ] || { echo "no Extensions/*/miku/pack-mac.sh (submodules not checked out?)" >&2; exit 1; }
+      - name: Pack
+        run: |
+          set -euo pipefail
+          mkdir -p zips
+          for a in arm64 x64; do
+            for d in out/$a/*/; do
+              id=$(basename "$d")
+              zip="zips/MIKU-ext-$id-$MIKU_VERSION-mac-$a.zip"
+              ditto -c -k --keepParent "$d" "$zip"   # keeps bin/'s executable bits
+              echo "$zip  $(stat -f %z "$zip") bytes"
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extensions-mac
+          path: zips/*.zip
+      - name: Add to the Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" zips/*.zip --clobber
