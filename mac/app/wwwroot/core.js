@@ -656,7 +656,7 @@ const App = {
     ScrollBubble.init();
     Router.start();
     this.frame();
-    if (!init.ffmpeg) toast(T('找不到 FFmpeg，請在設定確認 FFmpeg 已安裝並加入 PATH。'), { error: true, ms: 9000 });
+    if (!init.ffmpeg) toast(T('找不到 FFmpeg，部分格式（DSD、APE、AIFF…）將無法播放。可用 Homebrew 安裝：brew install ffmpeg'), { error: true, ms: 9000 });
   },
 
   drawBrand() {
@@ -1169,7 +1169,7 @@ function trackMenu(t, anchor, list) {
     ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     '-',
     { label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
-    { label: T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
+    { label: T('在 Finder 中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
   ], anchor);
 }
 
@@ -1211,7 +1211,7 @@ async function albumMenu(al, anchor, onPage) {
     { label: T('編輯標籤…'), icon: 'list', run: () => TagEditor.open(al) },
     { key: 'convert', label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
     cue && cueItem(cue),
-    { label: T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
+    { label: T('在 Finder 中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
     { label: T('重新讀取專輯資訊'), icon: 'refresh', run: () => rereadAlbum(al) },
   ], anchor);

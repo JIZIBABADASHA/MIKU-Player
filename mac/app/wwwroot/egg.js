@@ -4,7 +4,9 @@
    it. It meets the logo and keeps coming: the logo is squeezed against the top of the window, trembles, cracks piece
    by piece, and at last bursts; the plate draws back and the pieces come down and lie scattered on the floor of the
    window. They stay there until the logo's place is clicked again, when they rise, whirl and lock back together with a
-   flash. Nothing is saved: a broken logo is whole again the next time MIKU starts. With 輕量化頁面 switched on there
+   flash. A click anywhere while the press or the mending is running calls it off (the logo may have been clicked by
+   accident): everything goes at once and the logo is simply whole. Nothing is saved: a broken logo is whole again the
+   next time MIKU starts. With 輕量化頁面 switched on there
    is no secret: a click on the logo does nothing. With reduced motion the logo only changes between broken and whole. */
 /* The press has a voice, made here (Web Audio, no files): a rumble that grows as the plate rises, the logo groaning and
    ticking as it cracks, a boom with breaking glass when it bursts, and a rising swell into a chord when it is put back
@@ -191,7 +193,16 @@ const LogoEgg = {
       app.getAnimations().forEach(a => { try { a.cancel(); } catch (e) { } });
       EggSound.silence();
       this.shards = null; this.broken = false; this.halted = true; brand.classList.remove('egg-broken');
+      // the run in progress is over now: the logo can be clicked again at once (the run sees it is no longer current)
+      if (this.busy) { this.busy = false; this.run = null; }
     };
+    // A click anywhere while it runs calls it off. Caught before anything else sees it, so the click does nothing else
+    // (it does not start a track or open a page under the plate). The click that started it has already passed by.
+    document.addEventListener('click', e => {
+      if (!this.busy) return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      putBack();
+    }, true);
     const mend = () => { if (this.broken && np && np.classList.contains('on')) putBack(); };
     if (np) new MutationObserver(mend).observe(np, { attributes: true, attributeFilter: ['class'] });
     this.mend = mend;
@@ -292,6 +303,7 @@ const LogoEgg = {
   async crush(brand) {
     const logo = brand.querySelector('svg.wm'); if (!logo) return;
     this.broken = true; this.halted = false;
+    const run = this.run = {};
     const box = this.shards = this.shatter(logo);
     const pieces = [...box.children];
     brand.classList.add('egg-broken');
@@ -311,7 +323,7 @@ const LogoEgg = {
     const pressMs = 2600;
     const cracks = Array.from({ length: 22 }, () => 5.2 + pressMs / 1000 * (.12 + .86 * Math.pow(Math.random(), .7))).sort((a, b) => a - b);
     const sound = await EggSound.prepare('crush', { rise: 5.2, press: pressMs / 1000, cracks });
-    const gone = () => { if (!this.halted) return false; this.busy = false; return true; };
+    const gone = () => { if (!this.halted && run === this.run) return false; if (run === this.run) this.busy = false; return true; };
     if (gone()) return;
     let rumble = shake(1, 170);
     sound();
@@ -330,7 +342,7 @@ const LogoEgg = {
     box.animate([{ transform: 'translateY(0) scale(1,1)' }, { transform: `translateY(${lift}px) scale(${sx}, ${sy.toFixed(3)})` }],
       { duration: pressMs, easing: 'cubic-bezier(.3,.5,.7,1)', fill: 'forwards' });
     pieces.forEach(s => s.animate([{ transform: 'none' }, { transform: s._crack }], { duration: 200, delay: (1 - s._y) * pressMs * .55 + Math.random() * 500, easing: 'ease-out', fill: 'both' }));
-    for (let k = 1; k <= 4; k++) setTimeout(() => this.spark(r.left + Math.random() * r.width, r.bottom - k * r.height / 5, 5 + k * 2, ['#ffffff', '#39c5bb', '#e5307e'], 50 + k * 16), pressMs * k / 5);
+    for (let k = 1; k <= 4; k++) setTimeout(() => !this.halted && run === this.run && this.spark(r.left + Math.random() * r.width, r.bottom - k * r.height / 5, 5 + k * 2, ['#ffffff', '#39c5bb', '#e5307e'], 50 + k * 16), pressMs * k / 5);
     await wait(pressMs);
     if (gone()) return;
     // 3. it gives way: the pieces shoot out of the gap, the plate draws back, and they come down all over the floor
@@ -357,6 +369,7 @@ const LogoEgg = {
   async revive(brand) {
     const box = this.shards, logo = brand.querySelector('svg.wm');
     this.broken = false; this.halted = false;
+    const run = this.run = {};
     const done = () => { box && box.remove(); this.shards = null; brand.classList.remove('egg-broken'); };
     if (!box || !logo || this.calm() || !logo.animate) { done(); return; }
     this.busy = true;
@@ -375,7 +388,7 @@ const LogoEgg = {
       ], { duration: 1250, delay: i * 6, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'both' }).finished;
     });
     try { await Promise.all(all); } catch { }
-    if (this.halted) { this.busy = false; return; }
+    if (this.halted || run !== this.run) { if (run === this.run) this.busy = false; return; }
     done();
     const ring = document.createElement('i');
     ring.className = 'egg-ring'; ring.style.cssText = `left:${cx}px;top:${cy}px`;
@@ -385,7 +398,7 @@ const LogoEgg = {
     const pop = logo.animate([{ transform: 'scale(1.22)', filter: 'brightness(2) drop-shadow(0 0 16px #39c5bb)' }, { transform: 'scale(.96)', filter: 'brightness(1.2) drop-shadow(0 0 8px #e5307e)', offset: .6 }, { transform: 'scale(1)', filter: 'none' }],
       { duration: 420, easing: 'cubic-bezier(.2,.8,.3,1)' });
     try { await pop.finished; } catch { }
-    this.busy = false;
+    if (run === this.run) this.busy = false;
   },
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => LogoEgg.init()); else LogoEgg.init();
