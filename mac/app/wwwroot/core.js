@@ -2275,20 +2275,10 @@ function flipInto(el, from, src) {
     }
   }
   void el.offsetWidth;
-  const wild = typeof Blast !== 'undefined' && Blast.on;
   requestAnimationFrame(() => {
-    let anim = null, untrack = () => {};
-    if (wild) {
-      // BLAST theme: a random, different crazy trajectory every time
-      el.style.transform = '';
-      const tm = Blast.flightTiming();
-      anim = el.animate(Blast.flight(dx, dy, sx, sy), tm);
-      anim.onfinish = () => end();
-      setTimeout(() => end(), tm.duration + 200);
-    } else {
-      el.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
-      el.style.transform = '';
-    }
+    let untrack = () => {};
+    el.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+    el.style.transform = '';
     let finished = false;
     const end = () => {
       if (finished) return; finished = true;
@@ -2304,13 +2294,11 @@ function flipInto(el, from, src) {
         else { img.addEventListener('load', () => setTimeout(drop, 600), { once: true }); setTimeout(drop, 3000); }
       }
     };
-    const finishNow = () => { if (anim) anim.cancel(); el.style.transition = 'none'; el.style.transform = ''; end(); };
+    const finishNow = () => { el.style.transition = 'none'; el.style.transform = ''; end(); };
     const stop = onUserScroll(finishNow);
     untrack = PageEffects.track('album', finishNow);
-    if (!wild) {
-      el.addEventListener('transitionend', e => { if (e.target === el && e.propertyName === 'transform') end(); });
-      setTimeout(end, 650);
-    }
+    el.addEventListener('transitionend', e => { if (e.target === el && e.propertyName === 'transform') end(); });
+    setTimeout(end, 650);
   });
 }
 /** Flying back into a list: the card sits deep inside grid rows / rails with their own stacking and
@@ -2345,35 +2333,22 @@ function flyBackClone(target, b) {
   if (card) card.classList.add('flip-dest');                 // VINYL: the record travels inside the flying sleeve, not ahead of it
   const ti = target.querySelector('img'); if (ti) ti.style.transition = 'none';
   void wrap.offsetWidth;
-  const wild = typeof Blast !== 'undefined' && Blast.on;
   requestAnimationFrame(() => {
-    let anim = null, untrack = () => {};
-    if (wild) {
-      const start = wrap.style.transform, tm = Blast.flightTiming();
-      wrap.style.transform = 'none';
-      const kf = Blast.flight(b.rect.left - t.left, b.rect.top - t.top, b.rect.width / t.width, b.rect.height / t.height);
-      kf[0] = { transform: start };
-      anim = wrap.animate(kf, tm);
-      anim.onfinish = () => end();
-      setTimeout(() => end(), tm.duration + 200);
-    } else {
-      wrap.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
-      wrap.style.transform = 'none';
-    }
+    let untrack = () => {};
+    wrap.style.transition = 'transform .5s cubic-bezier(.2,.8,.2,1)';
+    wrap.style.transform = 'none';
     let finished = false;
     const end = () => {
       if (finished) return; finished = true;
-      stop(); untrack(); if (anim) anim.cancel();
+      stop(); untrack();
       target.style.visibility = '';
       if (card) card.classList.remove('flip-dest');
       requestAnimationFrame(() => clip.remove());
     };
     const stop = onUserScroll(end);
     untrack = PageEffects.track('album', end);
-    if (!wild) {
-      wrap.addEventListener('transitionend', e => { if (e.target === wrap) end(); });
-      setTimeout(end, 650);
-    }
+    wrap.addEventListener('transitionend', e => { if (e.target === wrap) end(); });
+    setTimeout(end, 650);
   });
 }
 const Flip = {

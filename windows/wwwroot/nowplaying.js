@@ -281,8 +281,8 @@ const NowPlaying = {
     if (!box.clientHeight) return;   // hidden: measured again once it has a size
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
-    this.tops = this.lines.map(el => { const top = y; y += el.offsetHeight + 6; return top; });
     this.heights = this.lines.map(el => el.offsetHeight);
+    this.tops = this.heights.map(height => { const top = y; y += height + 6; return top; });
     this.boxH = box.clientHeight;
     this.layoutLines(false, true);
   },
@@ -292,10 +292,12 @@ const NowPlaying = {
     const a = Math.max(0, this.active);
     const anchor = this.boxH * 0.36;
     let scroll = this.tops[a] + (this.heights[a] || 0) / 2 - anchor;
-    if (performance.now() < this.manualUntil) scroll += this.manualOffset;
+    const scrolling = performance.now() < this.manualUntil;
+    if (scrolling) scroll += this.manualOffset;
     // Scrolling by hand on Mac (or with smooth scrolling turned off): the lines follow the trackpad / wheel directly,
     // without an eased transition on top of the system's own momentum. Gliding back to the current line still eases.
-    $('#lyrics').classList.toggle('ly-direct', !!manual && PageEffects.reduced('scroll'));
+    const box = $('#lyrics');
+    box.classList.toggle('ly-direct', !!manual && PageEffects.reduced('scroll'));
     this.lines.forEach((el, i) => {
       const d = i - a;
       const dist = Math.abs(d);
@@ -304,10 +306,11 @@ const NowPlaying = {
       el.style.transitionDelay = `${delay}ms, 0ms, 0ms, 0ms`;
       if (instant) el.style.transitionDuration = '0s';
       el.style.transform = `translateY(${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : 0.965})`;
-      el.style.filter = i === this.active || performance.now() < this.manualUntil ? 'none' : `blur(${Math.min(dist * 0.7, 3.2)}px)`;
+      el.style.filter = i === this.active || scrolling ? 'none' : `blur(${Math.min(dist * 0.7, 3.2)}px)`;
       el.classList.toggle('on', i === this.active);
-      if (instant) { void el.offsetWidth; el.style.transitionDuration = ''; }
     });
+    // Commit all instant positions together; reading after each line forced one layout per lyric line.
+    if (instant) { void box.offsetWidth; this.lines.forEach(el => { el.style.transitionDuration = ''; }); }
   },
 
   unscroll() {

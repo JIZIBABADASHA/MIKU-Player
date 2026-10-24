@@ -20,7 +20,7 @@
 - 曲庫：專輯 / 演出者 / 曲目瀏覽，自動抓封面（Apple Music、Deezer、MusicBrainz）與演出者照片
 - 格式：FLAC、WAV、ALAC、AIFF、MP3、AAC、OGG、Opus、APE、WavPack、DSD（DSF / DFF）…
 - 輸出：Windows 支援 WASAPI 獨佔 / 共享與 ASIO（bit-perfect、DoP、升頻）；macOS 使用原生 Core Audio 獨佔 / 共享（獨佔可 bit-perfect，兩種模式都能自動匹配取樣率）
-- DSP：參數等化器（含 AutoEq 耳機資料庫）、Crossfeed、平衡、ReplayGain，64-bit 運算
+- DSP：參數等化器（可匯入 AutoEq / Equalizer APO 設定）、Crossfeed、平衡、ReplayGain，64-bit 運算
 - 無縫播放、自動續播（佇列播完後隨機播放其他專輯或歌曲）
 - 同步歌詞（本機 LRC、LRCLIB、網易雲音樂，附中文翻譯）
 - 手機遙控：同一個 Wi-Fi 下用手機瀏覽器掃 QR code 就能控制

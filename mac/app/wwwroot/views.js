@@ -4,7 +4,7 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
   const content = $('#content');
   const wrap = h('div', { class: 'vgrid', 'data-kind': kind });
   container.append(wrap);
-  let cols = 1, cw = minW, rowH = minW + extra + gap, nodes = new Map(), raf = 0;
+  let cols = 1, cw = minW, rowH = minW + extra + gap, nodes = new Map(), raf = 0, layoutRaf = 0;
   let laid = false;
   function layout() {
     const W = wrap.clientWidth;
@@ -29,6 +29,7 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
       content.scrollTop = wrapTop + (Math.floor(anchorIdx / cols) + anchorFrac) * rowH;
     }
     laid = true;
+    if (raf) cancelAnimationFrame(raf);
     update();
   }
   let firstPaint = true;
@@ -54,12 +55,14 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
   }
   const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
   content.addEventListener('scroll', onScroll, { passive: true });
-  const ro = new ResizeObserver(() => requestAnimationFrame(layout));
+  const ro = new ResizeObserver(() => {
+    if (!layoutRaf) layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; layout(); });
+  });
   ro.observe(wrap);
   const relayout = () => layout();
   window.addEventListener('gridcols', relayout);
   layout();
-  return () => { content.removeEventListener('scroll', onScroll); window.removeEventListener('gridcols', relayout); ro.disconnect(); cancelAnimationFrame(raf); };
+  return () => { content.removeEventListener('scroll', onScroll); window.removeEventListener('gridcols', relayout); ro.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(layoutRaf); };
 }
 
 /* ── bubble next to the scrollbar while it is being dragged ── */
@@ -125,11 +128,14 @@ function vlist(container, items, rowH, render) {
   const wrap = h('div', { class: 'vlist', style: { height: items.length * rowH + 'px' } });
   container.append(wrap);
   const nodes = new Map();
-  let raf = 0;
+  let raf = 0, renderedFirst = -1, renderedLast = -1;
   function update() {
     raf = 0;
     const top = wrap.getBoundingClientRect().top - content.getBoundingClientRect().top;
     const first = Math.max(0, Math.floor(-top / rowH) - 8), last = Math.min(items.length, Math.ceil((-top + content.clientHeight) / rowH) + 8);
+    // Pixel scrolling usually leaves the mounted rows unchanged. Track changes are marked by App.trackChanged().
+    if (first === renderedFirst && last === renderedLast) return;
+    renderedFirst = first; renderedLast = last;
     for (const [i, n] of nodes) if (i < first || i >= last) { ArtSharp.release(n); n.remove(); nodes.delete(i); }
     for (let i = first; i < last; i++) {
       if (nodes.has(i)) continue;
@@ -316,6 +322,17 @@ let shuffleSeed = null;
 function randomOrder(list) {
   for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return list;
+}
+// Search only displays a fixed number of results; stop as soon as that prefix is complete.
+function searchMatches(items, terms, limit) {
+  const matches = [];
+  for (const item of items) {
+    if (terms.every(term => item.s.includes(term))) {
+      matches.push(item);
+      if (matches.length >= limit) break;
+    }
+  }
+  return matches;
 }
 const Views = {
   markPlaying(root = document) {
@@ -588,10 +605,9 @@ const Views = {
     view.addEventListener('click', keep, true);
     const cleanup = () => view.removeEventListener('click', keep, true);
     const terms = norm(q).split(/\s+/).filter(Boolean);
-    const match = s => terms.every(t => s.includes(t));
-    const artists = Lib.artists.filter(a => match(a.s)).slice(0, 10);
-    const albums = Lib.albums.filter(a => match(a.s)).slice(0, 18);
-    const tracks = Lib.tracks.filter(t => match(t.s)).slice(0, 80);
+    const artists = searchMatches(Lib.artists, terms, 10);
+    const albums = searchMatches(Lib.albums, terms, 18);
+    const tracks = searchMatches(Lib.tracks, terms, 80);
     view.append(pageHead(T`「${q}」`, `${artists.length + albums.length + tracks.length ? '' : T('沒有符合的結果')}`));
     if (artists.length) {
       view.append(h('div', { class: 'rail-head' }, h('h2', null, T('演出者', 'nav'))));

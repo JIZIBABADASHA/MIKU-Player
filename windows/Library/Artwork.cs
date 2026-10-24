@@ -16,10 +16,12 @@ public sealed class ArtworkService
 {
     readonly MusicLibrary _lib;
     readonly Settings _s;
-    readonly SemaphoreSlim _resize = new(Math.Max(2, Environment.ProcessorCount - 1));
+    // Each decode can hold a full-resolution bitmap. Bound memory/CPU use even on many-core PCs
+    // so a burst of album covers cannot occupy almost every core during playback.
+    readonly SemaphoreSlim _resize = new(Math.Clamp(Environment.ProcessorCount - 1, 1, 4));
     readonly SemaphoreSlim _online = new(2);
-    readonly ConcurrentDictionary<string, Task<byte[]>> _inflight = new();
-    readonly ConcurrentDictionary<string, Task<bool>> _onlineInflight = new();
+    readonly ConcurrentDictionary<string, Lazy<Task<byte[]>>> _inflight = new();
+    readonly ConcurrentDictionary<string, Lazy<Task<bool>>> _onlineInflight = new();
     static string OverridePath(string albumId) => Path.Combine(AppPaths.Art, "Override", "a_" + albumId + ".jpg");
 
     /// <summary>Raised when online artwork for an album or artist becomes available (kind, id).</summary>
@@ -131,21 +133,31 @@ public sealed class ArtworkService
         size = Array.Find(ThumbSizes, s => s >= size);
         string thumb = Path.Combine(AppPaths.Thumbs, $"{key}_{size}.jpg");
         if (File.Exists(thumb)) { try { return await File.ReadAllBytesAsync(thumb); } catch { } }
-        var task = _inflight.GetOrAdd(thumb, _ => Task.Run(async () =>
+        return await RunOnce(_inflight, thumb, async () =>
         {
-            byte[] src = source();
-            if (src == null) return null;
             await _resize.WaitAsync();
             try
             {
+                // Another request may have written it while this one waited for a resize slot.
+                if (File.Exists(thumb)) { try { return await File.ReadAllBytesAsync(thumb); } catch { } }
+                // Keep source images behind the gate too: queued requests must not retain full-size covers.
+                byte[] src = source();
+                if (src == null) return null;
                 var bytes = Resize(src, size);
                 if (bytes != null) { try { await File.WriteAllBytesAsync(thumb, bytes); } catch { } }
                 return bytes;
             }
             finally { _resize.Release(); }
-        }));
-        try { return await task; }
-        finally { _inflight.TryRemove(thumb, out _); }
+        });
+    }
+
+    // GetOrAdd may invoke its factory concurrently. Only the winning Lazy starts expensive work;
+    // completed waiters remove their own entry, never a newer request for the same key.
+    static async Task<T> RunOnce<T>(ConcurrentDictionary<string, Lazy<Task<T>>> pending, string key, Func<Task<T>> work)
+    {
+        var entry = pending.GetOrAdd(key, _ => new Lazy<Task<T>>(() => Task.Run(work)));
+        try { return await entry.Value.ConfigureAwait(false); }
+        finally { ((ICollection<KeyValuePair<string, Lazy<Task<T>>>>)pending).Remove(new(key, entry)); }
     }
 
     public void ForgetThumbs(string key)
@@ -281,7 +293,7 @@ public sealed class ArtworkService
         string target = Path.Combine(AppPaths.OnlineArt, "a_" + a.Id + ".jpg");
         string miss = target + MissExt;
         if (RecentlyMissed(miss)) return Task.FromResult(false);
-        return _onlineInflight.GetOrAdd(target, key => Task.Run(async () =>
+        return RunOnce(_onlineInflight, target, async () =>
         {
             await _online.WaitAsync();
             try
@@ -297,8 +309,8 @@ public sealed class ArtworkService
                 return ok;
             }
             catch (Exception ex) { Log.Info("Online art failed for " + a.Title + ": " + ex.Message); return false; }
-            finally { _online.Release(); _onlineInflight.TryRemove(target, out var removed); }
-        }));
+            finally { _online.Release(); }
+        });
     }
 
     Task<bool> FetchTrackOnline(Track t)
@@ -306,7 +318,7 @@ public sealed class ArtworkService
         string target = Path.Combine(AppPaths.OnlineArt, "t_" + t.Id + ".jpg");
         string miss = target + MissExt;
         if (RecentlyMissed(miss)) return Task.FromResult(false);
-        return _onlineInflight.GetOrAdd(target, key => Task.Run(async () =>
+        return RunOnce(_onlineInflight, target, async () =>
         {
             await _online.WaitAsync();
             try
@@ -332,8 +344,8 @@ public sealed class ArtworkService
                 return ok;
             }
             catch (Exception ex) { Log.Info("Online track art failed: " + ex.Message); return false; }
-            finally { _online.Release(); _onlineInflight.TryRemove(target, out var removed); }
-        }));
+            finally { _online.Release(); }
+        });
     }
 
     /// <summary>Look up every album that has no local art (runs in the background after a scan).</summary>
@@ -866,7 +878,7 @@ public sealed class ArtworkService
     {
         string miss = target + MissExt;
         if (RecentlyMissed(miss) || string.IsNullOrWhiteSpace(name) || name is "Various Artists" or "未知演出者") return Task.FromResult(false);
-        return _onlineInflight.GetOrAdd(target, key => Task.Run(async () =>
+        return RunOnce(_onlineInflight, target, async () =>
         {
             await _online.WaitAsync();
             try
@@ -892,7 +904,7 @@ public sealed class ArtworkService
                 return ok;
             }
             catch { return false; }
-            finally { _online.Release(); _onlineInflight.TryRemove(target, out var removed); }
-        }));
+            finally { _online.Release(); }
+        });
     }
 }

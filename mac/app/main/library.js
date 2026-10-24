@@ -13,6 +13,8 @@ const ArtNames = ['cover', 'folder', 'front', 'albumart', 'album', 'artwork', 'j
 const DiscFolder = /^(cd|disc|disk|dvd)\s*[-_.]?\s*\d+\b.*$/i;
 const LeadingNumber = /^\s*(\d{1,3})\s*[-_. ]\s*(.+)$/;
 const ImageExt = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+// Reuse ICU's collation setup across every filename comparison in a library rebuild.
+const fileNames = new Intl.Collator(undefined, { sensitivity: 'base' });
 
 const isDsd = t => t.codec === 'DSF' || t.codec === 'DFF';
 const isLossy = t => ['MP3', 'AAC', 'OGG', 'OPUS', 'WMA', 'YouTube'].includes(t.codec);
@@ -164,7 +166,7 @@ class MusicLibrary extends EventEmitter {
   }
 
   build(tracks, folderArt) {
-    const albums = new Map(), byId = new Map();
+    const albums = new Map(), albumsByKey = new Map(), byId = new Map();
     const siblings = discSiblings(tracks);
     for (const t of tracks) {
       if (!t || !t.path) continue;
@@ -174,28 +176,47 @@ class MusicLibrary extends EventEmitter {
       if (siblings.has(lc(folder))) folder = siblings.get(lc(folder));
       const loose = !t.album || !t.album.trim();
       const title = loose ? path.basename(folder) : t.album.trim();
-      const id = hash(folder.toLowerCase() + '|' + norm(title));
-      let a = albums.get(id);
-      if (!a) { a = { id, title: title && title.trim() ? title : '未知專輯', folder, loose, tracks: [], artPath: null }; albums.set(id, a); }
-      t.albumId = id;
+      const key = folder.toLowerCase() + '|' + norm(title);
+      let a = albumsByKey.get(key);
+      if (!a) {
+        const id = hash(key);
+        a = { id, title: title && title.trim() ? title : '未知專輯', folder, loose, tracks: [], artPath: null };
+        albumsByKey.set(key, a); albums.set(id, a);
+      }
+      t.albumId = a.id;
       a.tracks.push(t);
     }
     const perFolder = new Map();
     for (const a of albums.values()) perFolder.set(lc(a.folder), (perFolder.get(lc(a.folder)) || 0) + 1);
     const fa = new Map(Object.entries(folderArt).map(([k, v]) => [lc(k), v]));
     for (const a of albums.values()) {
-      a.tracks.sort((x, y) => (x.discNo - y.discNo) || (x.trackNo - y.trackNo) || path.basename(x.path).localeCompare(path.basename(y.path), undefined, { sensitivity: 'base' }));
-      const count = arr => { const m = new Map(); for (const s of arr) m.set(s, (m.get(s) || 0) + 1); return [...m.entries()].sort((p, q) => q[1] - p[1]); };
-      let artist = (count(a.tracks.map(t => t.albumArtist).filter(s => s && s.trim()))[0] || [])[0];
+      a.tracks.sort((x, y) => (x.discNo - y.discNo) || (x.trackNo - y.trackNo) || fileNames.compare(path.basename(x.path), path.basename(y.path)));
+      const albumArtists = new Map(), trackArtists = new Map(), artists = new Map();
+      let year, added = -Infinity, genre = '';
+      for (const t of a.tracks) {
+        if (t.albumArtist && t.albumArtist.trim()) albumArtists.set(t.albumArtist, (albumArtists.get(t.albumArtist) || 0) + 1);
+        if (t.artist) {
+          trackArtists.set(t.artist, (trackArtists.get(t.artist) || 0) + 1);
+          if (t.artist.trim()) artists.set(t.artist.toLowerCase(), t.artist);
+        }
+        if (t.year > 0) year = Math.min(year ?? Infinity, t.year);
+        added = Math.max(added, t.added || 0);
+        if (!genre && t.genre && t.genre.trim()) genre = t.genre;
+      }
+      // Map insertion order preserves the original first-occurrence tie breaker.
+      const mostFrequent = counts => {
+        let value, best = 0;
+        for (const [s, n] of counts) if (n > best) { value = s; best = n; }
+        return value;
+      };
+      let artist = mostFrequent(albumArtists);
       if (!artist) {
-        const artists = [...new Map(a.tracks.map(t => t.artist).filter(s => s && s.trim()).map(s => [s.toLowerCase(), s])).values()];
-        artist = artists.length === 1 ? artists[0] : artists.length === 0 ? '未知演出者' : (a.loose ? count(a.tracks.map(t => t.artist).filter(Boolean))[0][0] : 'Various Artists');
+        artist = artists.size === 1 ? artists.values().next().value : artists.size === 0 ? '未知演出者' : (a.loose ? mostFrequent(trackArtists) : 'Various Artists');
       }
       a.artist = artist;
-      const years = a.tracks.map(t => t.year).filter(y => y > 0);
-      a.year = years.length ? Math.min(...years) : 0;
-      a.genre = (a.tracks.find(t => t.genre && t.genre.trim()) || {}).genre || '';
-      a.added = Math.max(...a.tracks.map(t => t.added || 0));
+      a.year = year ?? 0;
+      a.genre = genre;
+      a.added = added;
       const n = perFolder.get(lc(a.folder)) || 0;
       if (n === 1 && fa.has(lc(a.folder))) a.artPath = fa.get(lc(a.folder));
       else { const d = lc(path.dirname(a.tracks[0].path)); if (n === 1 && fa.has(d)) a.artPath = fa.get(d); }

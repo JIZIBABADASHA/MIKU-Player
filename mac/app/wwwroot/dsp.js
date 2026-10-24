@@ -156,22 +156,6 @@ const Dsp = {
     requestAnimationFrame(() => this.drawGraph());
   },
 
-  async applyAutoEq(e) {
-    try {
-      const text = await Host.call('autoeq.get', { path: e.path, name: e.name });
-      const p = parseParametric(text);
-      if (!p.bands.length) throw new Error(T('檔案內沒有濾波器'));
-      const cfg = this.cfg;
-      cfg.bands = p.bands;
-      if (p.preamp != null) { cfg.preampDb = p.preamp; cfg.autoPreamp = false; }
-      cfg.presetName = e.name;
-      cfg.enabled = true; cfg.eqOn = true;
-      this.sel = 0;
-      this.push(); this.render();
-      toast(T`已套用 ${e.name} 的 AutoEq 校正`);
-    } catch (err) { toast(T('下載 AutoEq 設定失敗：') + err.message, { error: true }); }
-  },
-
   savePreset() {
     const name = prompt(T('預設名稱'), this.cfg.presetName || T('我的 EQ'));
     if (!name) return;
