@@ -239,7 +239,9 @@ class Player extends EventEmitter {
     if (!this.queue.length || this.index < this.queue.length - 1) return;
     const cur = this.current;
     const recent = new Set([...(this.s.recent || []).slice(0, 150), ...this.queue.slice(-300)]);
-    const albums = this.lib.albumList().filter(a => a.tracks.length);
+    // files the library could not read (no duration: damaged, empty, not audio) never play and so never become
+    // recent: left in, the "fresh" picks would end up made of them
+    const albums = this.lib.albumList().map(a => ({ id: a.id, tracks: a.tracks.filter(t => t.duration > 0) })).filter(a => a.tracks.length);
     if (!albums.length) return;
     const pickOne = arr => arr[Math.floor(Math.random() * arr.length)];
     let add;

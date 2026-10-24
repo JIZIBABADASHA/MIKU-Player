@@ -19,7 +19,7 @@ protocol.registerSchemesAsPrivileged([
 if (!app.requestSingleInstanceLock()) { app.quit(); return; }
 
 const { AppPaths, Log, Json, hash, cleanTranslation, clamp } = require('./common');
-const { MusicLibrary } = require('./library');
+const { MusicLibrary, isDsd, isLossy } = require('./library');
 const { ArtworkService } = require('./artwork');
 const { LyricsService } = require('./lyrics');
 const { AudioEngine } = require('./audio');
@@ -300,7 +300,6 @@ if (process.platform === 'darwin') app.on('did-resign-active', () => considerLet
 // ───────────── extension modules ─────────────
 /** What one module gets from MIKU (the Mac side of IExtensionHost). */
 function loadExtensions() {
-  const { isDsd, isLossy } = require('./library');
   exts.loadAll((id, dir) => {
     const dataDir = path.join(AppPaths.Root, 'ext', id);
     try { fs.mkdirSync(dataDir, { recursive: true }); } catch { }
@@ -780,7 +779,7 @@ async function devicesDto() {
 
 const Protected = new Set(['queue', 'queueContinuedFrom', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
 async function applySettings(patch) {
-  let device = false, output = false, dsp = false, volume = false, rg = false, rem = false;
+  let device = false, output = false, dsp = false, volume = false, rg = false, rem = false, dsdRate = false;
   for (const [k, v] of Object.entries(patch || {})) {
     if (!(k in S) || Protected.has(k)) continue;
     if (JSON.stringify(S[k]) === JSON.stringify(v)) continue;
@@ -795,7 +794,7 @@ async function applySettings(patch) {
     if (k === 'remoteEnabled' || k === 'remotePort') rem = true;
     if (k === 'autoContinue' && engine.isPlaying) player.ensureAutoNext();
     if (k === 'gapless' && !v) engine.invalidateNext();
-    if (k === 'dsdPcmRate' && engine.track) { engine.invalidateNext(); if (S.outputMode === 'coreaudio-exclusive') output = true; }
+    if (k === 'dsdPcmRate' && engine.track) { engine.invalidateNext(); dsdRate = isDsd(engine.track); }
   }
   if (S.volumeMode === 'hardware') S.volumeMode = 'digital';
   saveSoon();
@@ -805,6 +804,8 @@ async function applySettings(patch) {
   if (volume) { engine.applyVolume(); applyYtVolume(); }
   if (rg && !output) engine.applyReplayGain();
   if (dsp && !output) engine.applyDsp();
+  // a DSD track playing on MIKU's own core is decoded at the PCM rate chosen here: start it again at the same place
+  if (dsdRate && !output && engine.coreId === 'miku' && engine.track && isDsd(engine.track)) await engine.load(engine.track, engine.position, engine.isPlaying);
   return S;
 }
 
@@ -1181,6 +1182,15 @@ function createWindow() {
   });
   win.once('ready-to-show', () => win.show());
   for (const event of ['show', 'restore', 'hide', 'minimize']) win.on(event, syncWindowVisibility);
+  // A crashed page reloads (the audio core keeps playing); a renderer that keeps crashing is left alone, as on Windows.
+  let lastRecovery = 0;
+  win.webContents.on('render-process-gone', (_e, d) => {
+    Log.info(`Page renderer gone: ${d.reason} (exit ${d.exitCode})`);
+    ready = false;
+    if (quitting || d.reason === 'clean-exit' || Date.now() - lastRecovery < 60000) return;
+    lastRecovery = Date.now();
+    setTimeout(() => { if (win && !win.isDestroyed()) { win.webContents.reload(); Log.info('Page reloaded; audio core retained'); } }, 500);
+  });
   win.webContents.setWindowOpenHandler(({ url }) => { openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('miku://app/')) { e.preventDefault(); openExternal(url); } });
   win.webContents.on('before-input-event', (e, input) => {
