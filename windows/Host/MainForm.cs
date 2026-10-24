@@ -1970,8 +1970,6 @@ public sealed class MainForm : Form
                 if (t != null) Process.Start("explorer.exe", $"/select,\"{t.Path}\"");
                 return null;
             }
-            case "autoeq.search": return await AutoEq.Search(S(a, "q"));
-            case "autoeq.get": return await AutoEq.Fetch(S(a, "path"), S(a, "name"));
             case "yt.show":
             {
                 await EnsureYt();

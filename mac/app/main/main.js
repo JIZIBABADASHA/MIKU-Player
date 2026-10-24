@@ -25,7 +25,6 @@ const { LyricsService } = require('./lyrics');
 const { AudioEngine } = require('./audio');
 const { Player } = require('./player');
 const { RemoteServer } = require('./remote');
-const AutoEq = require('./autoeq');
 const ff = require('./ffmpeg');
 const TagWriter = require('./tagwriter');
 const Metadata = require('./metadata');
@@ -1038,8 +1037,6 @@ async function handleRpc(m, a) {
       if (t) shell.showItemInFolder(t.path);
       return null;
     }
-    case 'autoeq.search': return AutoEq.search(a.q);
-    case 'autoeq.get': return AutoEq.fetch(a.path, a.name);
     case 'yt.show': {
       const v = ensureYt();
       v.setBounds({ x: Math.round(N(a, 'x')), y: Math.round(N(a, 'y')), width: Math.round(N(a, 'w')), height: Math.round(N(a, 'h')) });
