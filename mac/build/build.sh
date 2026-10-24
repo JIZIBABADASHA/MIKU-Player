@@ -34,8 +34,10 @@ fi
 # ../../Extensions/<Name>/ (git submodule update --init) that packs itself for the Mac with miku/pack-mac.sh, which
 # writes ext/<arm64|x64>/<module>/ (extension.js, web/, bin/). Windows builds the same checkout from
 # src/<Project>/<Project>.Extension.csproj. A module that fails to pack is left out; without any, MIKU is built as before.
+# MIKU_NO_EXT=1 makes MIKU alone, as the Release installer: the modules ship as their own zips.
 rm -rf ext
 for m in ../../Extensions/*/; do
+  [ "${MIKU_NO_EXT:-}" = 1 ] && { echo "MIKU_NO_EXT=1: this installer is made without extension modules."; break; }
   p="${m}miku/pack-mac.sh"
   [ -f "$p" ] || continue
   if [ "$(uname)" != "Darwin" ]; then

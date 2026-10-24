@@ -41,7 +41,8 @@
     <ExtensionsDir Condition="'$(ExtensionsDir)' == ''">$(MSBuildThisFileDirectory)..\Extensions</ExtensionsDir>
   </PropertyGroup>
   <ItemGroup>
-    <MikuExtension Include="$(ExtensionsDir)\*\src\*\*.Extension.csproj" />
+    <!-- MIKU_NO_EXT=1 (environment or -p:) builds MIKU alone, as the Release installer: modules ship as their own zips -->
+    <MikuExtension Include="$(ExtensionsDir)\*\src\*\*.Extension.csproj" Condition="'$(MIKU_NO_EXT)' != '1'" />
   </ItemGroup>
   <Target Name="ReportExtensions" BeforeTargets="CoreCompile">
     <Message Importance="high" Text="MIKU: extension %(MikuExtension.Filename)" Condition="'@(MikuExtension)' != ''" />

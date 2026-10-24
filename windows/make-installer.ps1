@@ -99,8 +99,10 @@ try {
     Say '[2/4] 編譯 MIKU（獨立版，使用者不需要安裝 .NET）...'
     # extension modules kept as git submodules (Daphne, MoodWave): a plain clone leaves their folders empty.
     # Only those not checked out yet are fetched; one already there stays at whatever commit it is on.
+    # MIKU_NO_EXT=1: MIKU alone, as the Release installer (the modules ship as their own zips; MIKU.csproj skips them too)
+    $noExt = $env:MIKU_NO_EXT -eq '1'
     $repo = Split-Path $Src -Parent
-    if ((Test-Path (Join-Path $repo '.gitmodules')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+    if (-not $noExt -and (Test-Path (Join-Path $repo '.gitmodules')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
         $old = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
         $missing = @(& git -C $repo submodule status 2>$null | Where-Object { $_ -match '^-\S+\s+(\S+)' } | ForEach-Object { $Matches[1] })
         $ErrorActionPreference = $old
@@ -111,8 +113,9 @@ try {
             }
         }
     }
-    $found = @(Find-Extensions)
-    if ($found.Count -gt 0) {
+    $found = @(if (-not $noExt) { Find-Extensions })
+    if ($noExt) { Say '    MIKU_NO_EXT=1：不打包 extension，只打包 MIKU 本體' }
+    elseif ($found.Count -gt 0) {
         Say "    找到 $($found.Count) 個 extension，會一起打包："
         foreach ($p in $found) { Say "      - $($p.BaseName -replace '\.Extension$', '')（Extensions\$((Split-Path (Split-Path (Split-Path $p.DirectoryName -Parent) -Parent) -Leaf))）" }
         if ($found | Where-Object { $_.BaseName -eq 'Daphne.Extension' }) {
