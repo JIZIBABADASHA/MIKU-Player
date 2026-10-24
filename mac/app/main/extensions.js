@@ -2,6 +2,8 @@
 // Optional extension modules on macOS: the Mac side of what windows/Host/Extensions.cs does (MIKU.Extensibility/README.md).
 // A module is a folder with extension.js (CommonJS, run in this process) and, for its page parts, web/manifest.json:
 //
+//   ~/Library/Application Support/MIKU/extensions/<id>/   added after installing (MIKU 下載器 puts the modules it
+//                                                        downloads here: the app bundle is signed and replaced on update)
 //   <MIKU.app>/Contents/Resources/ext/<id>/      in the installed app
 //   <repo>/Extensions/<name>/miku/               in a checkout (mac/app run with Electron)
 //
@@ -19,7 +21,7 @@
 // A module that fails to load, start or answer is logged and left out; MIKU itself carries on.
 const fs = require('fs');
 const path = require('path');
-const { Log } = require('./common');
+const { AppPaths, Log } = require('./common');
 
 class ExtensionManager {
   constructor() { this.loaded = []; }
@@ -27,6 +29,8 @@ class ExtensionManager {
   roots() {
     const roots = [];
     if (process.env.MIKU_EXT_DIR) roots.push({ dir: process.env.MIKU_EXT_DIR, sub: '' });
+    // before the bundle's own: a module added here replaces one an older installer put inside the app
+    roots.push({ dir: path.join(AppPaths.Root, 'extensions'), sub: '' });
     if (process.resourcesPath) roots.push({ dir: path.join(process.resourcesPath, 'ext'), sub: '' });
     roots.push({ dir: path.join(__dirname, '..', '..', '..', 'Extensions'), sub: 'miku' });
     return roots;
