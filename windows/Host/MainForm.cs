@@ -38,6 +38,8 @@ public sealed class MainForm : Form
     readonly System.Windows.Forms.Timer _tick;
     readonly System.Windows.Forms.Timer _saveTimer;
     bool _ready;
+    bool _closing;
+    long _lastWebRecovery;
     CancellationTokenSource _artJob;
     CancellationTokenSource _artSearch;
     string _artSearchId;
@@ -703,6 +705,9 @@ public sealed class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        Log.Info($"Window closing: {e.CloseReason}");
+        _closing = true;
+        _ready = false;
         _artSearch?.Cancel();
         _tick.Stop();
         _player.Stopped();
@@ -744,7 +749,12 @@ public sealed class MainForm : Form
         catch (Exception ex) { Log.Error("Save settings", ex); }
     }
 
-    void SaveSoon() { if (IsHandleCreated) BeginInvoke(new Action(() => { _saveTimer.Stop(); _saveTimer.Start(); })); }
+    void SaveSoon()
+    {
+        if (_closing || !IsHandleCreated) return;
+        try { BeginInvoke(new Action(() => { if (_closing) return; _saveTimer.Stop(); _saveTimer.Start(); })); }
+        catch (InvalidOperationException) { /* the window closed after the handle check */ }
+    }
 
     // ───────────────────────────── WebView2 ─────────────────────────────
 
@@ -779,6 +789,7 @@ public sealed class MainForm : Form
         core.AddWebResourceRequestedFilter($"https://{MediaHost}/*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnResource;
         core.WebMessageReceived += OnMessage;
+        core.ProcessFailed += OnWebProcessFailed;
         core.NewWindowRequested += (_, e) => { e.Handled = true; OpenExternal(e.Uri); };
         core.NavigationStarting += (_, e) =>
         {
@@ -787,6 +798,36 @@ public sealed class MainForm : Form
         _lib.Load();
         StartExtensions(core);
         core.Navigate($"https://{AppHost}/index.html");
+    }
+
+    void OnWebProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
+    {
+        Log.Info($"WebView2 process failed: kind={e.ProcessFailedKind}, reason={e.Reason}, exit={e.ExitCode}, description={e.ProcessDescription}");
+        if (_closing || IsDisposed) return;
+        // Chromium recovers GPU/utility failures itself. Reload a crashed main renderer only;
+        // an unresponsive renderer may still be doing work, so never repeatedly reload it.
+        if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.RenderProcessExited)
+        {
+            _ready = false;
+            long now = Environment.TickCount64;
+            if (_lastWebRecovery != 0 && now - _lastWebRecovery < 60_000) return;
+            _lastWebRecovery = now;
+            try
+            {
+                ((CoreWebView2)sender).Reload();
+                Log.Info("WebView2 renderer reloaded; audio core retained");
+            }
+            catch (Exception ex) { Log.Error("WebView2 recovery", ex); }
+        }
+        else if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.BrowserProcessExited)
+        {
+            _ready = false;
+            MessageBox.Show(this, Tr("MIKU 的介面程序已停止，請關閉並重新開啟 MIKU。診斷資訊已記錄於 sonora.log。",
+                "MIKU 的界面进程已停止，请关闭并重新打开 MIKU。诊断信息已记录于 sonora.log。",
+                "MIKU's interface process stopped. Please close and reopen MIKU. Diagnostic details were saved to sonora.log.",
+                "MIKU の画面プロセスが停止しました。MIKU を閉じて開き直してください。診断情報は sonora.log に記録されました。"),
+                Program.AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     // ───────────────────────────── extension modules ─────────────────────────────
@@ -902,22 +943,34 @@ public sealed class MainForm : Form
 
     async void OnResource(object sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
-        var deferral = e.GetDeferral();
+        CoreWebView2Deferral deferral = null;
+        CoreWebView2Environment environment = null;
+        string requestUri = "(unavailable)";
         try
         {
-            var uri = new Uri(e.Request.Uri);
+            if (_closing || sender is not CoreWebView2 core) return;
+            deferral = e.GetDeferral();
+            environment = core.Environment;
+            requestUri = e.Request.Uri;
+            var uri = new Uri(requestUri);
             var (data, type, cache) = await MediaAsync(uri.AbsolutePath, System.Web.HttpUtility.ParseQueryString(uri.Query));
+            if (_closing || IsDisposed) return;
             string headers = $"Content-Type: {type}\r\nCache-Control: {cache}\r\nAccess-Control-Allow-Origin: *";
             e.Response = data != null
-                ? _web.CoreWebView2.Environment.CreateWebResourceResponse(new MemoryStream(data), 200, "OK", headers)
-                : _web.CoreWebView2.Environment.CreateWebResourceResponse(null, 404, "Not Found", "Access-Control-Allow-Origin: *\r\nCache-Control: no-store");
+                ? environment.CreateWebResourceResponse(new MemoryStream(data), 200, "OK", headers)
+                : environment.CreateWebResourceResponse(null, 404, "Not Found", "Access-Control-Allow-Origin: *\r\nCache-Control: no-store");
         }
         catch (Exception ex)
         {
-            Log.Error("Resource " + e.Request.Uri, ex);
-            try { e.Response = _web.CoreWebView2.Environment.CreateWebResourceResponse(null, 500, "Error", "Access-Control-Allow-Origin: *"); } catch { }
+            Log.Error("Resource " + requestUri, ex);
+            try { if (!_closing && environment != null) e.Response = environment.CreateWebResourceResponse(null, 500, "Error", "Access-Control-Allow-Origin: *"); } catch { }
         }
-        finally { deferral.Complete(); }
+        finally
+        {
+            // A renderer/browser can exit while artwork is loading. COM completion must not
+            // escape this async-void event handler during shutdown or renderer recovery.
+            try { deferral?.Complete(); } catch (Exception ex) { if (!_closing) Log.Error("Resource completion", ex); }
+        }
     }
 
     // ───────────────────────────── phone remote ─────────────────────────────
@@ -1437,15 +1490,21 @@ public sealed class MainForm : Form
     readonly HashSet<string> _pending = new();
     void PostSoon(string what)
     {
-        if (!IsHandleCreated) return;
+        if (_closing || !IsHandleCreated) return;
         lock (_pending) { if (!_pending.Add(what)) return; }
-        BeginInvoke(new Action(async () =>
+        try { BeginInvoke(new Action(async () =>
         {
-            await Task.Delay(30);
-            lock (_pending) _pending.Remove(what);
-            if (what == "state") Post("state", State());
-            else if (what == "queue") Post("queue", QueueDto());
-        }));
+            try
+            {
+                await Task.Delay(30);
+                lock (_pending) _pending.Remove(what);
+                if (_closing || IsDisposed) return;
+                if (what == "state") Post("state", State());
+                else if (what == "queue") Post("queue", QueueDto());
+            }
+            catch (Exception ex) { Log.Error("Post " + what, ex); }
+        })); }
+        catch (InvalidOperationException) { lock (_pending) _pending.Remove(what); }
     }
 
     string _lastTickJson;    // the last periodic state sent to the page
@@ -1483,10 +1542,13 @@ public sealed class MainForm : Form
     {
         string raw;
         try { raw = e.TryGetWebMessageAsString(); } catch { return; }
-        JsonElement msg;
-        try { msg = JsonDocument.Parse(raw).RootElement; } catch { return; }
-        int id = msg.TryGetProperty("id", out var idEl) ? idEl.GetInt32() : 0;
-        string method = msg.GetProperty("m").GetString();
+        JsonDocument document;
+        try { document = JsonDocument.Parse(raw); } catch { return; }
+        using var ownedDocument = document;
+        var msg = document.RootElement;
+        if (msg.ValueKind != JsonValueKind.Object || !msg.TryGetProperty("m", out var methodEl) || methodEl.ValueKind != JsonValueKind.String) return;
+        int id = msg.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.Number && idEl.TryGetInt32(out int parsedId) ? parsedId : 0;
+        string method = methodEl.GetString();
         JsonElement args = msg.TryGetProperty("a", out var a) ? a : default;
         object result = null; string error = null;
         try { result = await HandleRpc(method, args); }

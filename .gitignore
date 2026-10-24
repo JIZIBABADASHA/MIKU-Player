@@ -15,7 +15,8 @@ mac/build/ext/
 
 # local development checks and cleanup backups
 /.local-dev/
-/tests/
+/tests/*
+!/tests/performance/
 /mac/tests/
 /build-review.ps1
 /mac/Test Native Audio.command

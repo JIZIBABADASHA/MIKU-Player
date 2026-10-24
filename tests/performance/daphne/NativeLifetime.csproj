@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../windows/MIKU.csproj" />
+    <Compile Include="../../../Extensions/Daphne/src/Daphne.Extension/DaphneNative.cs" Link="DaphneNative.cs" />
+    <Compile Include="../../../Extensions/Daphne/src/Daphne.Extension/DaphneEngine.cs" Link="DaphneEngine.cs" />
+    <Compile Include="../../../Extensions/Daphne/src/Daphne.Extension/DaphneOptions.cs" Link="DaphneOptions.cs" />
+    <Compile Include="../../../Extensions/Daphne/src/Daphne.Extension/DaphnePath.cs" Link="DaphnePath.cs" />
+  </ItemGroup>
+</Project>

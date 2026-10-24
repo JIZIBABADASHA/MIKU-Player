@@ -79,11 +79,12 @@ public static class FileServer
             {
                 client.NoDelay = true;
                 var net = client.GetStream();
+                var headers = new HeaderReader(net);
                 var buf = new byte[1 << 16];
                 // HTTP/1.1 keep-alive: FFmpeg may send several requests on one connection
                 while (true)
                 {
-                    string head = await ReadHead(net);
+                    string head = await headers.Read();
                     if (head == null) return;
                     var lines = head.Split("\r\n");
                     var req = lines[0].Split(' ');
@@ -98,7 +99,7 @@ public static class FileServer
                     var parts = target.TrimStart('/').Split('/');
                     if (parts.Length < 1 || !_tokenToPath.TryGetValue(parts[0], out var path)) { await Reply(net, "404 Not Found", 0, null, true); return; }
                     FileStream fs;
-                    try { fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1 << 16, FileOptions.SequentialScan); }
+                    try { fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1 << 16, FileOptions.Asynchronous | FileOptions.SequentialScan); }
                     catch { await Reply(net, "404 Not Found", 0, null, true); return; }
                     using (fs)
                     {
@@ -146,18 +147,39 @@ public static class FileServer
         return net.WriteAsync(b, 0, b.Length);
     }
 
-    /// <summary>The request line and headers, up to the blank line; null when the connection closed.</summary>
-    static async Task<string> ReadHead(NetworkStream net)
+    /// <summary>Buffered headers, retaining any pipelined request bytes for the next keep-alive request.</summary>
+    sealed class HeaderReader
     {
-        var sb = new StringBuilder();
-        var one = new byte[1];
-        while (sb.Length < 16384)
+        readonly NetworkStream _net;
+        readonly byte[] _buffer = new byte[16384];
+        int _start, _end;
+
+        public HeaderReader(NetworkStream net) { _net = net; }
+
+        public async Task<string> Read()
         {
-            int n = await net.ReadAsync(one.AsMemory(0, 1));
-            if (n <= 0) return null;
-            sb.Append((char)one[0]);
-            if (sb.Length >= 4 && sb[^1] == '\n' && sb[^2] == '\r' && sb[^3] == '\n' && sb[^4] == '\r') return sb.ToString(0, sb.Length - 4);
+            int scan = _start;
+            while (true)
+            {
+                for (; scan + 3 < _end; scan++)
+                    if (_buffer[scan] == '\r' && _buffer[scan + 1] == '\n' && _buffer[scan + 2] == '\r' && _buffer[scan + 3] == '\n')
+                    {
+                        string head = Encoding.Latin1.GetString(_buffer, _start, scan - _start);
+                        _start = scan + 4;
+                        return head;
+                    }
+                if (_start > 0)
+                {
+                    Buffer.BlockCopy(_buffer, _start, _buffer, 0, _end - _start);
+                    _end -= _start;
+                    scan -= _start;
+                    _start = 0;
+                }
+                if (_end == _buffer.Length) return null; // preserve the 16 KiB per-header limit
+                int n = await _net.ReadAsync(_buffer.AsMemory(_end));
+                if (n <= 0) return null;
+                _end += n;
+            }
         }
-        return null;
     }
 }
