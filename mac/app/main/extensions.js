@@ -10,6 +10,9 @@
 //     start(host), stop(),
 //     handleRpc(method, args),          the page called ext.<id>.<method>
 //     core                              optional playback core: { id, name, info, createEngine(settings) }
+//     loudness                          optional: { name, lookup(path) } for ReplayGain
+//     continuation                      optional: { name, continue({ played, source, chosen }) → Promise<ids> }, what
+//                                       plays when the queue runs out (「佇列播完後」 handed to it, or its own lists)
 //   }
 //
 // The page reaches a module through ext.<id>.* calls and events, and loads web/ from miku://app/ext/<id>/web/….
@@ -76,6 +79,27 @@ class ExtensionManager {
     return out;
   }
   core(id) { return this.cores().find(c => c.id === id) || null; }
+  /**
+   * The first module that measures loudness ({ name, lookup(path) → { lufs, peak } | null }), with its id (the queue
+   * source a module's page sets), for ReplayGain; null when none.
+   */
+  loudness() {
+    for (const l of this.loaded) {
+      try { const p = l.ext.loudness; if (p && typeof p.lookup === 'function') return { id: l.ext.id, name: p.name || l.ext.id, lookup: p.lookup.bind(p) }; }
+      catch (e) { Log.error('[ext] loudness ' + l.ext.id, e); }
+    }
+    return null;
+  }
+  /** The first module that chooses what plays when the queue runs out: { id, name, ask(played, source, chosen) }, or null. */
+  continuation() {
+    for (const l of this.loaded) {
+      try {
+        const c = l.ext.continuation;
+        if (c && typeof c.continue === 'function') return { id: l.ext.id, name: c.name || l.ext.id, ask: (played, source, chosen) => c.continue({ played, source, chosen }) };
+      } catch (e) { Log.error('[ext] continuation ' + l.ext.id, e); }
+    }
+    return null;
+  }
   /** miku://app/ext/<id>/web/<file> → the file, only inside the module's web folder. */
   webFile(pathname) {
     const m = /^\/ext\/([a-z][a-z0-9_-]*)\/web\/(.+)$/.exec(pathname);

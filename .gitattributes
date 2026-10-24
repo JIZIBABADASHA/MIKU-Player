@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+# shell scripts run on macOS: LF even in a Windows checkout copied to a Mac
+*.sh text eol=lf
+*.command text eol=lf

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Miku.Audio;
 using Miku.Library;
@@ -23,11 +25,36 @@ public sealed class Player
     public event Action NowChanged;
     public event Action<string> Error;
 
+    /// <summary>
+    /// A track stopped playing (extension modules' TrackPlayed): the track, the seconds it played, whether the listener
+    /// moved on (skipped) or stopped playback, and the queue's source while it played. Once per track that started.
+    /// </summary>
+    public event Action<Track, double, bool, bool, JsonElement?> Played;
+
+    /// <summary>
+    /// A module that chooses what plays when the queue runs out (Miku.Extensibility.IQueueContinuation): its id, and
+    /// how to ask it (the queue's tracks up to the one playing, the queue's source, whether 「佇列播完後」 chose it).
+    /// </summary>
+    public string ContinuationId;
+    public Func<IReadOnlyList<string>, JsonElement?, bool, Task<IReadOnlyList<string>>> Continuation;
+
+    /// <summary>
+    /// Where the queue goes on with what a module chose (「佇列播完後」 handed to it: its Smart Playlist): the index of the
+    /// first track it added, -1 while there is none. The bar shows the module's slot from there on (QueueDto).
+    /// </summary>
+    public int ContinuedFrom { get { lock (_lock) return _continuedFrom; } }
+    int _continuedFrom = -1;
+
+    Track _playing;                 // the track playing now, reported (Played) once it is left
+    JsonElement? _playingSource;
+    int _asking;                    // a module is being asked what comes next
+
     public Player(IAudioEngine engine, MusicLibrary lib, Settings s)
     {
         _lib = lib; _s = s;
         _queue = s.Queue?.ToList() ?? new();
         _index = Math.Clamp(s.QueueIndex, -1, _queue.Count - 1);
+        _continuedFrom = s.QueueContinuedFrom >= 0 && s.QueueContinuedFrom < _queue.Count ? s.QueueContinuedFrom : -1;   // kept with the queue
         Attach(engine);
     }
 
@@ -62,7 +89,7 @@ public sealed class Player
 
     void Persist()
     {
-        lock (_lock) { _s.Queue = _queue.ToList(); _s.QueueIndex = _index; }
+        lock (_lock) { _s.Queue = _queue.ToList(); _s.QueueIndex = _index; _s.QueueContinuedFrom = _continuedFrom; }
     }
 
     Track PeekNext()
@@ -82,6 +109,8 @@ public sealed class Player
 
     void OnGaplessStart(Track t)
     {
+        Left(_playing?.Duration ?? 0, false, false);
+        Started(t);
         lock (_lock)
         {
             if (_s.Repeat == "one" && Current?.Id == t.Id) { }
@@ -101,6 +130,7 @@ public sealed class Player
 
     void OnEnded()
     {
+        Left(_playing?.Duration ?? Engine.Position, false, false);
         EnsureAutoNext();
         Track next = null;
         lock (_lock)
@@ -131,6 +161,8 @@ public sealed class Player
     async Task Load(Track t, double pos, bool play)
     {
         if (t == null) return;
+        // another track replaces the one playing: the listener moved on (the same one again: a reload, not a leave)
+        if (_playing != null && _playing.Id != t.Id) Left(Engine.Position, true, false);
         NowChanged?.Invoke();
         if (t.Codec == "CD" && CdService.Instance != null)
         {
@@ -139,7 +171,7 @@ public sealed class Player
             catch (Exception ex) { Error?.Invoke(ex.Message); NowChanged?.Invoke(); return; }
         }
         await Engine.LoadAsync(t, pos, play);
-        if (Engine.IsLoaded) { _failures = 0; if (play) EnsureAutoNext(); }
+        if (Engine.IsLoaded) { _failures = 0; if (play) { Started(t); EnsureAutoNext(); } }
         // only skip ahead for an unreadable file; if the DAC couldn't be opened every track would fail the same way,
         // so stay on the chosen one (the error is shown) instead of jumping to the next song
         else if (play && !Engine.LastFailureWasDevice && ++_failures < 3 && Engine.Track == t)
@@ -166,6 +198,7 @@ public sealed class Player
         {
             _s.QueueSource = source;
             _s.Shuffle = shuffle;
+            _continuedFrom = -1;
             if (shuffle)
             {
                 _unshuffled = list.ToList();
@@ -280,7 +313,11 @@ public sealed class Player
         lock (_lock)
         {
             var valid = ids.Where(id => _lib.GetTrack(id) != null).ToList();
-            if (playNext && _index >= 0) _queue.InsertRange(_index + 1, valid);
+            if (playNext && _index >= 0)
+            {
+                _queue.InsertRange(_index + 1, valid);
+                if (_continuedFrom > _index) _continuedFrom += valid.Count;   // played next, before the Smart Playlist's part
+            }
             else _queue.AddRange(valid);
             if (_index < 0 && _queue.Count > 0) _index = 0;
             _unshuffled?.AddRange(valid);
@@ -301,6 +338,8 @@ public sealed class Player
             _queue.RemoveAt(i);
             _unshuffled?.Remove(id);
             if (i < _index) _index--;
+            if (i < _continuedFrom) _continuedFrom--;
+            if (_continuedFrom >= _queue.Count) _continuedFrom = -1;
             if (_index >= _queue.Count) _index = _queue.Count - 1;
         }
         Engine.InvalidateNext();
@@ -310,7 +349,7 @@ public sealed class Player
         {
             var t = Current;
             if (t != null) _ = Load(t, 0, Engine.IsPlaying);
-            else Engine.Stop();
+            else { Left(Engine.Position, true, false); Engine.Stop(); }
         }
     }
 
@@ -325,6 +364,11 @@ public sealed class Player
             if (_index == from) _index = to;
             else if (from < _index && to >= _index) _index--;
             else if (from > _index && to <= _index) _index++;
+            if (_continuedFrom >= 0)
+            {
+                if (from < _continuedFrom && to >= _continuedFrom) _continuedFrom--;
+                else if (from >= _continuedFrom && to < _continuedFrom) _continuedFrom++;
+            }
         }
         Engine.InvalidateNext();
         Persist();
@@ -338,6 +382,7 @@ public sealed class Player
             if (_index >= 0 && _index < _queue.Count) _queue = _queue.Take(_index + 1).ToList();
             else _queue.Clear();
             _unshuffled = null;
+            if (_continuedFrom > _index) _continuedFrom = -1;
         }
         Engine.InvalidateNext();
         Persist();
@@ -378,14 +423,67 @@ public sealed class Player
     }
 
     /// <summary>
-    /// Auto continue: when the last song in the queue is playing, add a random album (or a random song) from the
-    /// library so playback never stops. Albums / songs played recently are avoided while there are others left.
+    /// Auto continue: when the last song in the queue is playing, add more so playback never stops: what a module
+    /// chooses (「佇列播完後」 = similar, or the queue is the module's own list, e.g. its radio), or a random album or a
+    /// few random songs from the library (albums / songs played recently are avoided while there are others left).
     /// </summary>
     public void EnsureAutoNext()
     {
-        string mode = _s.AutoContinue;
-        if (mode != "albums" && mode != "tracks") return;
         if (_s.Repeat != "off") return;
+        string mode = _s.AutoContinue;
+        string ext = null;
+        var src = Source;
+        if (src is { ValueKind: JsonValueKind.Object } o && o.TryGetProperty("ext", out var e) && e.ValueKind == JsonValueKind.String) ext = e.GetString();
+        bool chosen = mode == "similar" && Continuation != null;
+        if (chosen || Continuation != null && ext != null && ext == ContinuationId) { AskContinuation(chosen, src); return; }
+        AddRandom(mode == "similar" ? "tracks" : mode);   // similar without its module: random songs
+    }
+
+    /// <summary>Asks the module what comes after the last track (in the background) and adds it; random songs when it has none and 「佇列播完後」 chose it.</summary>
+    void AskContinuation(bool chosen, JsonElement? src)
+    {
+        List<string> played;
+        int count;
+        lock (_lock)
+        {
+            if (_queue.Count == 0 || _index < _queue.Count - 1) return;
+            played = _queue.Take(_index + 1).Skip(Math.Max(0, _index + 1 - 50)).ToList();
+            count = _queue.Count;
+        }
+        if (Interlocked.Exchange(ref _asking, 1) == 1) return;
+        var ask = Continuation;
+        _ = Task.Run(async () =>
+        {
+            IReadOnlyList<string> add = null;
+            try { add = await ask(played, src, chosen).WaitAsync(TimeSpan.FromSeconds(10)); }
+            catch (Exception ex) { Log.Error("[ext] continue", ex); }
+            finally { Interlocked.Exchange(ref _asking, 0); }
+            bool added = false;
+            lock (_lock)
+            {
+                if (_queue.Count != count || _index != count - 1) return;   // the queue changed meanwhile
+                var valid = (add ?? Array.Empty<string>()).Where(id => _lib.GetTrack(id) != null).ToList();
+                if (valid.Count > 0)
+                {
+                    if (chosen && _continuedFrom < 0) _continuedFrom = _queue.Count;   // the module's own list (a radio) is all its own already
+                    _queue.AddRange(valid);
+                    _unshuffled?.AddRange(valid);
+                    added = true;
+                }
+            }
+            if (added)
+            {
+                Engine.InvalidateNext();
+                Persist();
+                QueueChanged?.Invoke();
+            }
+            else if (chosen) AddRandom("tracks");
+        });
+    }
+
+    void AddRandom(string mode)
+    {
+        if (mode != "albums" && mode != "tracks") return;
         List<string> add = null;
         lock (_lock)
         {
@@ -420,12 +518,43 @@ public sealed class Player
         QueueChanged?.Invoke();
     }
 
+    void Started(Track t)
+    {
+        lock (_lock) { _playing = t; _playingSource = _s.QueueSource; }
+    }
+
+    /// <summary>The track playing is left: reported once (Played).</summary>
+    void Left(double seconds, bool skipped, bool stopped)
+    {
+        Track t;
+        JsonElement? src;
+        lock (_lock)
+        {
+            (t, src) = (_playing, _playingSource);
+            _playing = null;
+        }
+        if (t == null) return;
+        try { Played?.Invoke(t, Math.Max(0, seconds), skipped, stopped, src); }
+        catch (Exception ex) { Log.Error("[player] played", ex); }
+    }
+
+    /// <summary>Playback was stopped (the stop button, a live stream taking over, MIKU closing): the track playing is reported as stopped.</summary>
+    public void Stopped() => Left(Engine.Position, false, true);
+
     /// <summary>Drop queue entries whose files disappeared after a rescan.</summary>
     public void Validate()
     {
         lock (_lock)
         {
             string cur = _index >= 0 && _index < _queue.Count ? _queue[_index] : null;
+            // the Smart Playlist's part starts where it did, less the entries dropped before it (a tag edit or a rescan
+            // changes the library and so comes here: the boundary must not go with it)
+            if (_continuedFrom >= 0)
+            {
+                int before = _queue.Take(_continuedFrom).Count(id => _lib.GetTrack(id) != null);
+                bool any = _queue.Skip(_continuedFrom).Any(id => _lib.GetTrack(id) != null);
+                _continuedFrom = any ? before : -1;
+            }
             _queue = _queue.Where(id => _lib.GetTrack(id) != null).ToList();
             _index = cur == null ? (_queue.Count > 0 ? 0 : -1) : Math.Max(_queue.IndexOf(cur), _queue.Count > 0 ? 0 : -1);
         }

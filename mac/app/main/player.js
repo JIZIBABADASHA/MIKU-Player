@@ -12,12 +12,19 @@ class Player extends EventEmitter {
     this.index = Math.min(Math.max(s.queueIndex ?? -1, -1), this.queue.length - 1);
     this.unshuffled = null;
     this.failures = 0;
+    // a module that chooses what plays when the queue runs out (its continuation: { id, ask(played, source, chosen) }),
+    // and where the queue goes on with what it chose (「佇列播完後」 handed to it: its Smart Playlist), -1: nowhere
+    this.continuation = null;
+    this.continuedFrom = s.queueContinuedFrom >= 0 && s.queueContinuedFrom < this.queue.length ? s.queueContinuedFrom : -1;   // kept with the queue
+    this.asking = false;
+    this.playing = null;            // the track playing now, reported ('played') once it is left
+    this.playingSource = null;
     engine.peekNext = () => this.peekNext();
     engine.on('trackStarted', t => this.onGapless(t));
     engine.on('ended', () => this.onEnded());
   }
   get current() { return this.index >= 0 && this.index < this.queue.length ? this.lib.getTrack(this.queue[this.index]) : null; }
-  persist() { this.s.queue = this.queue.slice(); this.s.queueIndex = this.index; }
+  persist() { this.s.queue = this.queue.slice(); this.s.queueIndex = this.index; this.s.queueContinuedFrom = this.continuedFrom; }
   changedQueue() { this.emit('queue'); }
   changedNow() { this.emit('now'); }
 
@@ -31,6 +38,8 @@ class Player extends EventEmitter {
     return t && t.codec === 'CD' && this.cd && !this.cd.isReady(t) ? null : t;
   }
   onGapless(t) {
+    this.left(this.playing ? this.playing.duration || 0 : 0, false, false);
+    this.started(t);
     if (!(this.s.repeat === 'one' && this.current && this.current.id === t.id)) {
       const n = this.index + 1 < this.queue.length ? this.index + 1 : 0;
       if (n < this.queue.length && this.queue[n] === t.id) this.index = n;
@@ -41,6 +50,7 @@ class Player extends EventEmitter {
     this.ensureAutoNext();
   }
   onEnded() {
+    this.left(this.playing ? this.playing.duration || this.engine.position : this.engine.position, false, false);
     this.ensureAutoNext();
     let next = null;
     if (this.queue.length) {
@@ -56,6 +66,8 @@ class Player extends EventEmitter {
 
   async load(t, pos, play) {
     if (!t) return;
+    // another track replaces the one playing: the listener moved on (the same one again: a reload, not a leave)
+    if (this.playing && this.playing.id !== t.id) this.left(this.engine.position, true, false);
     this.changedNow();
     if (t.codec === 'CD' && this.cd) {
       // a track of the disc in the drive: copied into the cache first, playback starts once 20 s are there
@@ -64,7 +76,7 @@ class Player extends EventEmitter {
       if (this.current !== t) return;   // something else was chosen meanwhile
     }
     await this.engine.load(t, pos, play);
-    if (this.engine.isLoaded) { this.failures = 0; if (play) this.ensureAutoNext(); }
+    if (this.engine.isLoaded) { this.failures = 0; if (play) { this.started(t); this.ensureAutoNext(); } }
     // only when this very load failed: a load replaced by a newer one (output switch, reopening) must not skip ahead
     else if (play && this.engine.loadFailed && !this.engine.lastFailureWasDevice && this.engine.track === t && ++this.failures < 3) {
       // unreadable file: move on rather than stalling the queue
@@ -76,9 +88,11 @@ class Player extends EventEmitter {
   }
 
   // ───────────── commands ─────────────
-  playList(ids, start, shuffle) {
+  playList(ids, start, shuffle, at = 0, source = null) {
     const list = (ids || []).filter(id => this.lib.getTrack(id));
     if (!list.length) return;
+    this.s.queueSource = source || null;   // who made the list (a module's page): shown by the player bar; none clears it
+    this.continuedFrom = -1;
     const explicit = start >= 0;
     start = Math.min(Math.max(start, 0), list.length - 1);
     this.s.shuffle = shuffle;
@@ -90,7 +104,7 @@ class Player extends EventEmitter {
     } else { this.unshuffled = null; this.queue = list; this.index = start; }
     this.engine.invalidateNext();
     this.persist(); this.changedQueue();
-    return this.load(this.current, 0, true);
+    return this.load(this.current, at > 0 ? at : 0, true);
   }
   jumpTo(i) {
     if (i < 0 || i >= this.queue.length) return;
@@ -130,7 +144,10 @@ class Player extends EventEmitter {
   }
   add(ids, playNext) {
     const valid = (ids || []).filter(id => this.lib.getTrack(id));
-    if (playNext && this.index >= 0) this.queue.splice(this.index + 1, 0, ...valid); else this.queue.push(...valid);
+    if (playNext && this.index >= 0) {
+      this.queue.splice(this.index + 1, 0, ...valid);
+      if (this.continuedFrom > this.index) this.continuedFrom += valid.length;   // played next, before the Smart Playlist's part
+    } else this.queue.push(...valid);
     if (this.index < 0 && this.queue.length) this.index = 0;
     if (this.unshuffled) this.unshuffled.push(...valid);
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
@@ -143,8 +160,10 @@ class Player extends EventEmitter {
     if (this.unshuffled) { const k = this.unshuffled.indexOf(id); if (k >= 0) this.unshuffled.splice(k, 1); }
     if (i < this.index) this.index--;
     if (this.index >= this.queue.length) this.index = this.queue.length - 1;
+    if (i < this.continuedFrom) this.continuedFrom--;
+    if (this.continuedFrom >= this.queue.length) this.continuedFrom = -1;
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
-    if (wasCurrent) { const t = this.current; if (t) this.load(t, 0, this.engine.isPlaying); else this.engine.stop(); }
+    if (wasCurrent) { const t = this.current; if (t) this.load(t, 0, this.engine.isPlaying); else { this.left(this.engine.position, true, false); this.engine.stop(); } }
   }
   move(from, to) {
     if (from < 0 || from >= this.queue.length || to < 0 || to >= this.queue.length || from === to) return;
@@ -153,11 +172,16 @@ class Player extends EventEmitter {
     if (this.index === from) this.index = to;
     else if (from < this.index && to >= this.index) this.index--;
     else if (from > this.index && to <= this.index) this.index++;
+    if (this.continuedFrom >= 0) {
+      if (from < this.continuedFrom && to >= this.continuedFrom) this.continuedFrom--;
+      else if (from >= this.continuedFrom && to < this.continuedFrom) this.continuedFrom++;
+    }
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
   }
   clearUpcoming() {
     this.queue = this.index >= 0 && this.index < this.queue.length ? this.queue.slice(0, this.index + 1) : [];
     this.unshuffled = null;
+    if (this.continuedFrom > this.index) this.continuedFrom = -1;
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
   }
   setShuffle(on) {
@@ -178,11 +202,40 @@ class Player extends EventEmitter {
     this.engine.invalidateNext(); this.changedQueue();
     if (this.engine.isPlaying) this.ensureAutoNext();
   }
-  /** Auto continue: when the last queued song is playing, add a random album or a few random songs. */
+  /**
+   * Auto continue: when the last song in the queue is playing, add more so playback never stops: what a module chooses
+   * (「佇列播完後」 = similar, or the queue is the module's own list, e.g. its radio), or a random album or a few random
+   * songs from the library (albums / songs played recently are avoided while there are others left).
+   */
   ensureAutoNext() {
-    const mode = this.s.autoContinue;
-    if (mode !== 'albums' && mode !== 'tracks') return;
     if (this.s.repeat !== 'off') return;
+    const mode = this.s.autoContinue, src = this.s.queueSource, c = this.continuation;
+    const chosen = mode === 'similar' && !!c;
+    if (chosen || (c && src && src.ext && src.ext === c.id)) { this.askContinuation(chosen, src); return; }
+    this.addRandom(mode === 'similar' ? 'tracks' : mode);   // similar without its module: random songs
+  }
+  /** Asks the module what comes after the last track and adds it; random songs when it has none and 「佇列播完後」 chose it. */
+  askContinuation(chosen, src) {
+    if (!this.queue.length || this.index < this.queue.length - 1 || this.asking) return;
+    const played = this.queue.slice(Math.max(0, this.index + 1 - 50), this.index + 1), count = this.queue.length;
+    this.asking = true;
+    const ask = this.continuation.ask;
+    Promise.race([Promise.resolve().then(() => ask(played, src, chosen)), new Promise(r => setTimeout(() => r(null), 10000))])
+      .catch(e => { require('./common').Log.error('[ext] continue', e); return null; })
+      .then(add => {
+        this.asking = false;
+        if (this.queue.length !== count || this.index !== count - 1) return;   // the queue changed meanwhile
+        const valid = (add || []).filter(id => this.lib.getTrack(id));
+        if (valid.length) {
+          if (chosen && this.continuedFrom < 0) this.continuedFrom = this.queue.length;   // the module's own list (a radio) is all its own already
+          this.queue.push(...valid);
+          if (this.unshuffled) this.unshuffled.push(...valid);
+          this.engine.invalidateNext(); this.persist(); this.changedQueue();
+        } else if (chosen) this.addRandom('tracks');
+      });
+  }
+  addRandom(mode) {
+    if (mode !== 'albums' && mode !== 'tracks') return;
     if (!this.queue.length || this.index < this.queue.length - 1) return;
     const cur = this.current;
     const recent = new Set([...(this.s.recent || []).slice(0, 150), ...this.queue.slice(-300)]);
@@ -205,8 +258,25 @@ class Player extends EventEmitter {
     if (this.unshuffled) this.unshuffled.push(...add);
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
   }
+  started(t) { this.playing = t; this.playingSource = this.s.queueSource || null; }
+  /** The track playing is left: reported once ('played': track, seconds, skipped, stopped, the queue's source then). */
+  left(seconds, skipped, stopped) {
+    const t = this.playing, src = this.playingSource;
+    this.playing = null;
+    if (!t || t.id === 'yt-live') return;
+    try { this.emit('played', t, Math.max(0, seconds || 0), skipped, stopped, src); } catch (e) { require('./common').Log.error('[player] played', e); }
+  }
+  /** Playback was stopped (the stop button, a live stream taking over, MIKU quitting): the track playing is reported as stopped. */
+  stopped() { this.left(this.engine.position, false, true); }
   validate() {
     const cur = this.index >= 0 && this.index < this.queue.length ? this.queue[this.index] : null;
+    // the Smart Playlist's part starts where it did, less the entries dropped before it (a tag edit or a rescan changes
+    // the library and so comes here: the boundary must not go with it)
+    if (this.continuedFrom >= 0) {
+      const before = this.queue.slice(0, this.continuedFrom).filter(id => this.lib.getTrack(id)).length;
+      const any = this.queue.slice(this.continuedFrom).some(id => this.lib.getTrack(id));
+      this.continuedFrom = any ? before : -1;
+    }
     this.queue = this.queue.filter(id => this.lib.getTrack(id));
     this.index = cur == null ? (this.queue.length ? 0 : -1) : Math.max(this.queue.indexOf(cur), this.queue.length ? 0 : -1);
     this.persist(); this.changedQueue();

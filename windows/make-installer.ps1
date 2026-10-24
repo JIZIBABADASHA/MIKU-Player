@@ -50,7 +50,7 @@ function Get($url, $file) { Say "    下載 $url"; Invoke-WebRequest -Uri $url -
 
 try {
     # ── 1. .NET 8 SDK ─────────────────────────────────────────
-    # Prefer an existing SDK 8; otherwise install it privately under repo/.tools.
+    # Prefer this machine's SDK 8, then one installed earlier under repo/.tools; otherwise install it privately there.
     # This only prepares the build machine. The published app is self-contained.
     Say '[1/4] 準備 .NET 8 SDK...'
     function Read-Sdks([string]$exe) {
@@ -60,8 +60,9 @@ try {
     }
     $localDotnet = Join-Path $Tools 'dotnet\dotnet.exe'
     $systemCommand = Get-Command dotnet.exe -ErrorAction SilentlyContinue
-    $candidates = @($localDotnet)
+    $candidates = @()
     if ($systemCommand) { $candidates += $systemCommand.Source }
+    $candidates += $localDotnet
     $dotnet = $null
     $sdks = ''
     foreach ($candidate in $candidates) {
@@ -96,10 +97,27 @@ try {
 
     # ── 2. self-contained publish ────────────────────────────
     Say '[2/4] 編譯 MIKU（獨立版，使用者不需要安裝 .NET）...'
+    # extension modules kept as git submodules (Daphne, MoodWave): a plain clone leaves their folders empty.
+    # Only those not checked out yet are fetched; one already there stays at whatever commit it is on.
+    $repo = Split-Path $Src -Parent
+    if ((Test-Path (Join-Path $repo '.gitmodules')) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        $old = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+        $missing = @(& git -C $repo submodule status 2>$null | Where-Object { $_ -match '^-\S+\s+(\S+)' } | ForEach-Object { $Matches[1] })
+        $ErrorActionPreference = $old
+        if ($missing.Count -gt 0) {
+            Say "    取得 extension 的 git submodule：$($missing -join '、')"
+            if ((Run 'git' (@('-C', $repo, 'submodule', 'update', '--init', '--recursive', '--') + $missing)) -ne 0) {
+                Say '    ⚠ 取得 git submodule 失敗（請查看 installer.log），已經取得的照常打包'
+            }
+        }
+    }
     $found = @(Find-Extensions)
     if ($found.Count -gt 0) {
         Say "    找到 $($found.Count) 個 extension，會一起打包："
         foreach ($p in $found) { Say "      - $($p.BaseName -replace '\.Extension$', '')（Extensions\$((Split-Path (Split-Path (Split-Path $p.DirectoryName -Parent) -Parent) -Leaf))）" }
+        if ($found | Where-Object { $_.BaseName -eq 'Daphne.Extension' }) {
+            Say '    （Daphne 的 C++ 引擎：這台電腦沒有 Visual Studio C++ 工具時，第一次會下載 MSVC、CMake 到 .tools，約需數分鐘）'
+        }
     } else { Say '    沒有找到 extension（..\Extensions 下沒有 *.Extension.csproj），只打包 MIKU 本體' }
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'; $env:DOTNET_NOLOGO = '1'
     if (Test-Path (Join-Path $Src 'dist')) { Remove-Item (Join-Path $Src 'dist') -Recurse -Force }

@@ -1305,8 +1305,12 @@ public sealed class AudioEngine : IAudioEngine
 
             double rg = info.ReplayGainDb ?? 0, gain = DigitalGain();
             if (Math.Abs(rg) > 1e-9)
-                dsp.Add("ReplayGain", Db(rg), true,
-                    $"{(_s.ReplayGain == "album" ? "依專輯" : "依曲目")}；只在峰值允許的範圍內提高，沒有峰值標籤時只降不升");
+                dsp.Add("ReplayGain", Db(rg), true, _s.ReplayGainBasis(t) switch
+                {
+                    "measured" => "依量測的響度（-18 LUFS）；只在真峰值允許的範圍內提高",
+                    "measured-album" => "依量測的專輯響度（-18 LUFS，由各曲目推算）；只在專輯的真峰值允許的範圍內提高",
+                    _ => $"{(_s.ReplayGain == "album" ? "依專輯" : "依曲目")}；只在峰值允許的範圍內提高，沒有峰值標籤時只降不升",
+                });
             bool eq = d.Enabled && d.EqOn && d.Bands.Any(b => b.On && !Biquad.IsIdentity(b));
             if (eq)
             {

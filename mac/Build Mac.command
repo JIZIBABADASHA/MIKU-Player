@@ -16,6 +16,18 @@ if ! xcode-select -p >/dev/null 2>&1; then
   pause; exit 1
 fi
 
+# The extension modules (Extensions/<Name>, git submodules): a fresh clone has them empty. A ZIP download has no
+# submodules at all; the installer is then built without them.
+if git -C .. rev-parse --git-dir >/dev/null 2>&1 && [ -f ../.gitmodules ] && git -C .. submodule status | grep -q '^-'; then
+  echo "⓪ Fetching the extension modules (git submodule update --init)…"
+  git -C .. submodule update --init || echo "⚠️  The extension modules could not be fetched; building without them."
+  echo
+elif ! ls ../Extensions/*/miku/pack-mac.sh >/dev/null 2>&1; then
+  echo "⚠️  No extension modules under Extensions/ (a ZIP download has none: clone the repository with git to include"
+  echo "   Daphne and MoodWave). Building without them."
+  echo
+fi
+
 echo "① Syncing the Windows UI…"
 if ! python3 build/sync_wwwroot.py; then
   echo
@@ -24,7 +36,7 @@ if ! python3 build/sync_wwwroot.py; then
 fi
 echo
 
-echo "② Downloading components and packaging (about 400 MB the first time, reused afterwards)…"
+echo "② Downloading components and packaging (about 1 GB and 20–30 minutes the first time, reused afterwards)…"
 bash build/build.sh || fail "Build failed. Please take a screenshot of the messages above."
 
 echo

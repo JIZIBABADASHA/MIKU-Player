@@ -368,9 +368,122 @@ const Lib = {
  * MikuExt.register({ id, init(api) }) and are set up before the first page is drawn. A module that fails to load
  * is logged and left out.
  */
+/**
+ * The player bar's left part (a module's slot, the cover, the title and artist, the heart) as one when the slot
+ * changes (entering a module's list, leaving it, or one of its lists after another): the group there stays (a copy
+ * over it) until the new track's title and cover have come (a moment after the list, at most 0.3 s), then fades away
+ * in place while the new one slides in from the bar's left edge as a whole, every element keeping its place in it.
+ * The picture of the old group is taken when a list is asked for (prepare): MIKU sends the new track's title and
+ * cover a moment before the list's source, and the group must not change before it goes.
+ */
+const BarSwap = {
+  FADE: 180, PUSH: 460, WAIT: 300, EASE: 'cubic-bezier(.16,.84,.3,1)',   // out of the edge at once, settling gently
+  cur: null, pending: null,
+
+  /** A still picture of the bar's left part as it is now (without ids, so the bar's own updates never reach it). */
+  snapshot() {
+    const bar = $('#bar'), mini = bar && $('.np-mini', bar);
+    if (!mini) return null;
+    const br = bar.getBoundingClientRect(), r = mini.getBoundingClientRect();
+    if (!r.width) return null;
+    const old = mini.cloneNode(true);
+    old.classList.add('bar-swap-old');             // as it looks now: the title's entrance (.swap) and the like do not play again (app.css)
+    const real = [...mini.querySelectorAll('[id]')];
+    [...old.querySelectorAll('[id]')].forEach((el, i) => {
+      if (real[i] && getComputedStyle(real[i]).display === 'none') el.style.display = 'none';   // hidden by an id rule (a narrow window's heart)
+      el.removeAttribute('id');
+    });
+    Object.assign(old.style, { position: 'absolute', left: (r.left - br.left - bar.clientLeft) + 'px', top: (r.top - br.top - bar.clientTop) + 'px',
+      width: r.width + 'px', height: r.height + 'px', margin: '0', pointerEvents: 'none', zIndex: '2' });
+    return { old, track: App.state && App.state.trackId, at: performance.now() };
+  },
+
+  /** A new list is asked for: the bar's left part as it is, kept for a swap if the slot then changes (for 2 s). */
+  prepare() { this.pending = this.snapshot(); },
+
+  /** Starts a swap: returns go(), to call once the new slot is drawn. Null when there is nothing to animate. */
+  begin() {
+    const bar = $('#bar'), mini = bar && $('.np-mini', bar);
+    const shot = this.pending && performance.now() - this.pending.at < 2000 ? this.pending : null;
+    this.pending = null;
+    if (!mini || document.hidden || Motion.quiet || matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+    this.stop();
+    // the group as it was when the list was asked for (or as it is now), over the real one
+    const pic = shot || this.snapshot();
+    if (!pic) return null;
+    const old = pic.old, track = pic.track, t0 = performance.now();
+    mini.after(old);
+    mini.style.opacity = '0';                      // the new group out of sight until it comes in
+    const run = this.cur = { old, mini, anims: [], frame: 0, fading: 0 };
+    return () => {
+      const step = () => {
+        if (this.cur !== run) return;
+        const t = performance.now() - t0;
+        const arrived = (App.state && App.state.trackId) !== track;
+        // the old group stays until the new track is there; then it fades, and a third into that the new one comes
+        if (!run.fading && !arrived && t < this.WAIT) { run.frame = requestAnimationFrame(step); return; }
+        if (!run.fading) {
+          run.fading = t;
+          run.anims.push(old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.FADE, easing: 'ease-out', fill: 'forwards' }));
+        }
+        if (t - run.fading < this.FADE / 3) { run.frame = requestAnimationFrame(step); return; }
+        setTimeout(() => old.remove(), this.FADE);
+        // in from the bar's left edge: moved by its right end's distance from that edge, and cut off at the edge on
+        // the way (keyframes along the path: the cut is exact, and both share the one easing)
+        const nr = mini.getBoundingClientRect(), nb = bar.getBoundingClientRect();
+        const off = nr.left - nb.left, d = off + nr.width;
+        const frames = [];
+        for (let k = 0; k <= 10; k++) {
+          const q = 1 - k / 10;
+          frames.push({ offset: k / 10, transform: `translateX(${-d * q}px)`, clipPath: `inset(0 0 0 ${Math.max(0, d * q - off)}px)`, opacity: Math.min(1, 0.15 + k / 6) });
+        }
+        mini.style.opacity = '';
+        const a = mini.animate(frames, { duration: this.PUSH, easing: this.EASE });
+        run.anims.push(a);
+        a.onfinish = a.oncancel = () => { if (this.cur === run) this.cur = null; };
+      };
+      run.frame = requestAnimationFrame(step);
+    };
+  },
+
+  /** A swap still running ends at once (another one starts). */
+  stop() {
+    const run = this.cur;
+    if (!run) return;
+    this.cur = null;
+    cancelAnimationFrame(run.frame);
+    run.old.remove();
+    run.anims.forEach(a => a.cancel());
+    run.mini.style.opacity = '';
+  },
+};
+
 const MikuExt = {
-  defs: {}, settings: {}, slots: {}, paths: {}, labels: {}, slotKey: null, slotDef: null, slotSeq: 0,
+  defs: {}, settings: {}, slots: {}, paths: {}, labels: {}, menus: {}, queueHeads: {}, slotKey: null, slotDef: null, slotSeq: 0, slotDrawn: false,
+  /** MIKU swaps the bar's left part as a whole when a module's slot changes (BarSwap): modules leave their slot's own entrances and exits. */
+  swapsBar: true,
   register(def) { if (def && def.id) this.defs[def.id] = def; },
+
+  /**
+   * What the bar's slot shows for a queue: its source (a module's list), or, while the queue goes on with a module's
+   * Smart Playlist (「佇列播完後」 handed to it) and plays its part, { ext, smart: true }. Kept as queue.slotSource.
+   */
+  slotSource(q) {
+    const c = q && q.continued;
+    const src = q && q.source ? q.source : c && q.index >= c.from ? { ext: c.ext, smart: true } : null;
+    if (q) q.slotSource = src;
+    return src;
+  },
+
+  /** The modules' items for a context menu (addMenu): kind 'track' (t, list) or 'album' (al); after a separator. */
+  menuItems(kind, ...args) {
+    const items = [];
+    for (const fn of this.menus[kind] || []) {
+      try { for (const it of fn(...args) || []) if (it && it.label && it.run) items.push(it); }
+      catch (e) { console.error('[ext] menu', e); }
+    }
+    return items.length ? ['-', ...items] : [];
+  },
 
   async load(list) {
     for (const x of list || []) {
@@ -394,7 +507,14 @@ const MikuExt = {
     const def = source && source.ext && this.slots[source.ext];
     const key = def ? JSON.stringify(source) : null;
     if (key === this.slotKey) return;
+    const prevSource = this.slotKey ? JSON.parse(this.slotKey) : null;
     this.slotKey = key;
+    // a change after the page came up, or one a list asked for: the bar's left part goes and comes as a whole,
+    // unless the module keeps it (its slot's swap(prev, next) says no: one of its lists after another it shows itself)
+    const keep = def && prevSource && prevSource.ext === source.ext && def.swap && def.swap(prevSource, source) === false;
+    if (keep) BarSwap.pending = null;
+    const swap = !keep && (this.slotDrawn || BarSwap.pending) ? BarSwap.begin() : null;
+    this.slotDrawn = true;
     const prev = this.slotDef;
     this.slotDef = def || null;
     const leaving = ++this.slotSeq;
@@ -402,8 +522,9 @@ const MikuExt = {
     else delete document.documentElement.dataset.extSource;
     for (const [sel, fn] of [['#b-ext', def && def.bar], ['#np-ext', def && def.nowPlaying]]) {
       const el = $(sel);
-      // leaving a module's list: its bar slot may play a way out (leaveBar, at most a second) before it is emptied
-      if (!def && sel === '#b-ext' && prev && prev.leaveBar && !el.hidden) {
+      // leaving a module's list: its bar slot may play a way out (leaveBar, at most a second) before it is emptied;
+      // not while the bar's left part is swapped as a whole
+      if (!swap && !def && sel === '#b-ext' && prev && prev.leaveBar && !el.hidden) {
         let out;
         try { out = prev.leaveBar(el); } catch (e) { console.error('[ext]', e); }
         Promise.race([Promise.resolve(out), new Promise(r => setTimeout(r, 1000))]).then(() => {
@@ -415,6 +536,7 @@ const MikuExt = {
       el.hidden = !fn;
       if (fn) try { fn(el, source); } catch (e) { console.error('[ext]', source.ext, e); }
     }
+    if (swap) swap();
   },
 
   /** What a module gets: its own RPC and events, playback, and places in the sidebar, the router and the settings. */
@@ -427,14 +549,16 @@ const MikuExt = {
        * Play a list. opts.at: where the first track starts (seconds); opts.source: what made the list (any JSON
        * object), kept with the queue and handed to the module's playerSlot until something else is played.
        */
-      play: (ids, shuffle = false, start = -1, opts = {}) =>
-        Host.call('play', { ids, shuffle, start, at: opts.at || 0, source: opts.source ? { ...opts.source, ext: id } : undefined }),
+      play: (ids, shuffle = false, start = -1, opts = {}) => {
+        BarSwap.prepare();                         // the bar's left part as it is, in case this list changes its slot
+        return Host.call('play', { ids, shuffle, start, at: opts.at || 0, source: opts.source ? { ...opts.source, ext: id } : undefined });
+      },
       /**
        * { bar(el, source), nowPlaying(el, source), leaveBar(el) }: draw the player bar's and the now-playing page's
        * slots while a list this module played with a source is the queue; leaveBar (optional) plays the bar slot's
        * way out when another list is played, and returns a promise (waited for up to a second).
        */
-      playerSlot: def => { this.slots[id] = def; this.slotKey = null; this.slot(App.queue && App.queue.source); },
+      playerSlot: def => { this.slots[id] = def; this.slotKey = null; this.slot(this.slotSource(App.queue)); },
       /** A sidebar link to #/<route>; after = the data-r of the link to follow (default: before the 系統 section). */
       addNav: ({ route, label, icon: svg, after }) => {
         const a = h('a', { href: '#/' + route, 'data-r': route, html: svg || '' }, h('span', null, label));
@@ -460,6 +584,18 @@ const MikuExt = {
        * place of its name (a wordmark, …). The menu keeps the name for assistive technology.
        */
       coreLabel: (coreId, fn) => { this.labels['core:' + coreId] = fn; },
+      /**
+       * Items in a context menu: kind 'track' → fn(track, list) or 'album' → fn(album) returns [{ label, icon, run }]
+       * (or nothing), shown after MIKU's play and queue items.
+       */
+      addMenu: (kind, fn) => (this.menus[kind] = this.menus[kind] || []).push(fn),
+      /**
+       * fn(el, source): a header at the top of the queue drawer (what made the list, what comes after it); source is
+       * the queue's (any module's, or null). Drawn each time the queue is; leave el empty for none.
+       */
+      queueHead: fn => { this.queueHeads[id] = fn; },
+      /** fn() → a node: this module's mark before 「… 已開啟」 under 佇列播完後 while its queue continuation is on. */
+      continueMark: fn => { this.labels.continue = fn; },
     };
   },
 };
@@ -474,7 +610,7 @@ const App = {
     this.bindKeys();
     this.bindFullscreenControls();
     Host.on('state', s => this.setState(s));
-    Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); MikuExt.slot(q.source); });
+    Host.on('queue', q => { this.queue = q; Queue.render(); Views.markPlaying(); MikuExt.slot(MikuExt.slotSource(q)); });
     Host.on('error', e => toast(T.msg(e.message), { error: true }));
     // settings the host changed by itself (YouTube Music's own output mode switched in and out)
     Host.on('settings', s => { Object.assign(this.settings, s); if (typeof Outputs !== 'undefined') Outputs.label(); if (typeof YT !== 'undefined' && YT.drawOut) YT.drawOut(); });
@@ -505,6 +641,8 @@ const App = {
     this.lastRecent = (init.settings.recent || [])[0] || null;
     this.queue = init.queue;
     this.ffmpeg = init.ffmpeg;
+    this.loudness = init.loudness || null;   // a module that measures loudness: its name (ReplayGain, settings.js)
+    this.continuation = init.continuation || null;   // a module that chooses what plays when the queue runs out: its name (settings.js)
     // the playback cores: MIKU's own and those of extension modules (Settings → 播放方案)
     this.cores = init.cores && init.cores.length ? init.cores : [{ id: 'miku', name: 'FFmpeg', dsdPcmRate: true }];
     this.version = init.version;
@@ -581,6 +719,10 @@ const App = {
   /* ── state ── */
   setState(s) {
     const prev = this.state;
+    // the first track of a module's Smart Playlist comes: the bar's left part as it is, before it shows that track
+    // (the queue, which changes the slot, may come a moment later)
+    const q = this.queue, c = q && q.continued;
+    if (c && !q.source && prev && s.trackId !== prev.trackId && q.ids && s.trackId === q.ids[c.from]) BarSwap.prepare();
     this.state = s;
     // after a seek, ignore stale positions until the engine reports the new one
     const settling = this.seekUntil && performance.now() < this.seekUntil && Math.abs(s.pos - this.seekTarget) > 1.2;
@@ -772,6 +914,7 @@ const App = {
   /* ── commands ── */
   playTracks(list, start = 0, shuffle) {
     if (!list.length) return;
+    BarSwap.prepare();                             // the bar's left part as it is, in case this list changes its slot
     const a = { ids: list.map(t => t.id), start };
     if (shuffle !== undefined) a.shuffle = shuffle;
     Host.call('play', a);
@@ -998,14 +1141,20 @@ const Popover = {
   },
 };
 
-function menu(items, anchor, opts) {
+/** One item of a menu (its key, when given, marks it for items added later: albumMenu's CUE item). */
+const menuButton = it => h('button', { 'data-key': it.key || null, onclick: () => { Popover.close(); it.run(); },
+  html: icon(it.icon || 'note') + `<span>${esc(it.label)}</span>` });
+
+/** A menu of items ('-' a line); it comes in fading only (menu-pop): items that moved under the pointer as it came in lost the click. */
+function menu(items, anchor, opts = {}) {
   const box = h('div', { class: 'menu' });
   for (const it of items) {
     if (it === '-') { box.append(h('hr')); continue; }
     if (!it) continue;
-    box.append(h('button', { onclick: () => { Popover.close(); it.run(); }, html: icon(it.icon || 'note') + `<span>${esc(it.label)}</span>` }));
+    box.append(menuButton(it));
   }
-  Popover.show(box, anchor, opts);
+  Popover.show(box, anchor, { ...opts, cls: ((opts.cls || '') + ' menu-pop').trim() });
+  return box;
 }
 
 function trackMenu(t, anchor, list) {
@@ -1013,6 +1162,7 @@ function trackMenu(t, anchor, list) {
     { label: T('播放'), icon: 'play', run: () => App.playTracks(list || [t], list ? list.indexOf(t) : 0) },
     { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: [t.id], next: true }); toast(T('已排在下一首')); } },
     { label: T('加入播放佇列'), icon: 'queue', run: () => { Host.call('queue.add', { ids: [t.id] }); toast(T('已加入佇列')); } },
+    ...MikuExt.menuItems('track', t, list),
     '-',
     { label: App.favs.has(t.id) ? T('從最愛移除') : T('加入我的最愛'), icon: 'heart', run: () => App.toggleFav(t.id) },
     { label: T('前往專輯'), icon: 'album', run: () => go('#/album/' + t.albumId) },
@@ -1042,23 +1192,30 @@ function artistItems(names) {
 
 /** An album's menu. On its own page (onPage) the page already has 播放 / 隨機 and the artist links: left out. */
 async function albumMenu(al, anchor, onPage) {
-  const cue = await Convert.cueFor(al);  // 「按 CUE 標記切開…」 only when the album's folder has a CUE sheet for its big file
-  menu([
+  // 「按 CUE 標記切開…」 only when the album's folder has a CUE sheet for its big file. The menu does not wait for that
+  // (a busy disk can take a while, and a menu that comes late comes as the click does): an answer within 80 ms is in
+  // it, a later one adds the item to it then
+  const cuePromise = Convert.cueFor(al);
+  const cue = await Promise.race([cuePromise, new Promise(r => setTimeout(() => r(undefined), 80))]);
+  const cueItem = c => ({ label: T`按 CUE 標記切開（${c.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue: c }) });
+  const box = menu([
     !onPage && { label: T('播放'), icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
     !onPage && { label: T('隨機播放'), icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
     { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast(T('已排在下一首')); } },
     { label: T('加入播放佇列'), icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(T`已加入 ${al.tracks.length} 首`); } },
+    ...MikuExt.menuItems('album', al),
     '-',
     ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
     // one entry: the cover view shows the picture and leads on to 更換封面 / 寫入音樂檔案
     { label: T('封面…'), icon: 'image', run: () => CoverView.open(al) },
     { label: T('編輯標籤…'), icon: 'list', run: () => TagEditor.open(al) },
-    { label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
-    cue && { label: T`按 CUE 標記切開（${cue.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue }) },
+    { key: 'convert', label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
+    cue && cueItem(cue),
     { label: T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
     '-',
     { label: T('重新讀取專輯資訊'), icon: 'refresh', run: () => rereadAlbum(al) },
   ], anchor);
+  if (cue === undefined) cuePromise.then(c => { if (c && box.isConnected) box.querySelector('[data-key="convert"]')?.after(menuButton(cueItem(c))); });
 }
 
 /** Read the album's tags again (after editing them in another program) and show the page with the new data. */
@@ -1798,6 +1955,12 @@ const Queue = {
     ArtSharp.release(body);
     body.textContent = '';
     if (!ids.length) { body.append(h('div', { class: 'muted', style: { padding: '40px 12px', textAlign: 'center' } }, T('佇列是空的'))); return; }
+    // the modules' headers (MikuExt queueHead): what made the list, what comes after it
+    for (const [id, fn] of Object.entries(MikuExt.queueHeads)) {
+      const el = h('div', { class: 'qext', 'data-ext': id });
+      try { fn(el, App.queue.source || null); } catch (e) { console.error('[ext] queue', id, e); }
+      if (el.childNodes.length) body.append(el);
+    }
     const row = (id, i) => {
       const t = Lib.trackById.get(id);
       if (!t) return null;

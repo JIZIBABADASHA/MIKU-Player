@@ -104,6 +104,19 @@ class WebAudioEngine extends EventEmitter {
    */
   rgDb(t) {
     if (this.s.replayGain === 'off' || !t) return null;
+    // a module that measures loudness (WebAudioEngine.loudness, main.js): its measurement first (ReplayGain 2's -18 LUFS
+    // reference, true peak), tags where it has none; "album" from all the album's tracks once measured; "source" only
+    // while the queue is the module's. The same rule as Windows.
+    const lm = WebAudioEngine.loudness;
+    if (this.s.replayGain === 'source') {
+      const src = this.s.queueSource;
+      if (!lm || !src || src.ext !== lm.source) return null;
+    }
+    const m = lm ? (this.s.replayGain === 'album' ? lm.album(t) : lm.track(t)) : null;
+    if (m && isFinite(m.lufs)) {
+      const top = m.peak > 0 ? -20 * Math.log10(m.peak) : 0;
+      return Math.max(-24, Math.min(24, Math.min(-18 - m.lufs + (this.s.replayGainPreamp || 0), top)));
+    }
     const album = this.s.replayGain === 'album';
     const g = album ? (t.rgAlbum ?? t.rgTrack) : (t.rgTrack ?? t.rgAlbum);
     if (g == null) return null;

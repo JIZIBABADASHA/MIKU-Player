@@ -22,9 +22,10 @@
     for (const el of document.querySelectorAll(SEL)) {
       if (!el.isConnected || !el.offsetParent) continue;
       const shift = el === art ? ['left', 'top'] : null;   // the cover: in layout (see above)
-      // the cover is measured at rest only: hovered or mid-transition its box is off the grid on purpose, and nudging it
-      // then moved it sideways after it grew and after it shrank. Its nudge stays as it is until it is back at rest.
-      if (shift && (el.matches(':hover') || el.getAnimations().some(a => a.playState === 'running'))) continue;
+      // measured at rest only: hovered or mid-transition (the cover growing, a play button's scale) its box is off the
+      // grid on purpose, and a nudge measured then moved it sideways after it grew and after it shrank back (a play
+      // button's glow finishing while it was scaled up). Its nudge stays as it is until it is back at rest.
+      if (el.matches(':hover') || el.getAnimations().some(a => a.playState === 'running')) continue;
       if (shift) el.style.left = el.style.top = ''; else el.style.translate = '';
       const r = el.getBoundingClientRect();
       const dx = (Math.round(r.left * dpr) - r.left * dpr) / dpr;
