@@ -203,11 +203,13 @@ public sealed class Player
             {
                 _unshuffled = list.ToList();
                 // start < 0 means "shuffle everything"; otherwise the chosen track plays first
-                var order = list.OrderBy(_ => Random.Shared.Next()).ToList();
+                string first = list[start];
+                var order = list;
+                ShuffleRange(order, 0);
                 if (startExplicit)
                 {
-                    order.Remove(list[start]);
-                    order.Insert(0, list[start]);
+                    order.Remove(first);
+                    order.Insert(0, first);
                 }
                 _queue = order;
                 _index = 0;
@@ -399,8 +401,7 @@ public sealed class Player
             if (on)
             {
                 _unshuffled = _queue.ToList();
-                var rest = _queue.Where((_, i) => i > _index).OrderBy(_ => Random.Shared.Next()).ToList();
-                _queue = _queue.Take(_index + 1).Concat(rest).ToList();
+                ShuffleRange(_queue, _index + 1);
             }
             else if (_unshuffled != null)
             {
@@ -412,6 +413,16 @@ public sealed class Player
         Engine.InvalidateNext();
         Persist();
         QueueChanged?.Invoke();
+    }
+
+    // Fisher-Yates: linear time, without sorting keys or allocating a second queue.
+    static void ShuffleRange<T>(List<T> items, int start)
+    {
+        for (int i = items.Count - 1; i > start; i--)
+        {
+            int j = Random.Shared.Next(start, i + 1);
+            (items[i], items[j]) = (items[j], items[i]);
+        }
     }
 
     public void SetRepeat(string mode)
@@ -508,7 +519,14 @@ public sealed class Player
                 var fresh = all.Where(t => !recent.Contains(t.Id)).ToList();
                 var pool = fresh.Count > 0 ? fresh : all;
                 // a few songs at a time, so the queue shows what's coming up
-                add = pool.OrderBy(_ => Random.Shared.Next()).Take(5).Select(t => t.Id).ToList();
+                int take = Math.Min(5, pool.Count);
+                add = new List<string>(take);
+                for (int i = 0; i < take; i++)
+                {
+                    int j = Random.Shared.Next(i, pool.Count);
+                    (pool[i], pool[j]) = (pool[j], pool[i]);
+                    add.Add(pool[i].Id);
+                }
             }
             _queue.AddRange(add);
             _unshuffled?.AddRange(add);

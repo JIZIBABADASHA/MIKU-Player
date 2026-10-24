@@ -27,8 +27,10 @@ static class Program
         Application.ThreadException += (_, e) => Log.Error("UI", e.Exception);
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Fatal", e.ExceptionObject as Exception);
         TaskSchedulerHook();
-        Log.Info("Start " + Application.ProductVersion);
-        Application.Run(new Host.MainForm());
+        Log.Info($"Start {Application.ProductVersion} (pid={Environment.ProcessId}, runtime={Environment.Version})");
+        try { Application.Run(new Host.MainForm()); }
+        catch (Exception ex) { Log.Error("Main loop", ex); throw; }
+        finally { Log.Info("Application message loop ended"); }
     }
 
     static void TaskSchedulerHook()

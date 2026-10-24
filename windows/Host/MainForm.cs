@@ -38,6 +38,8 @@ public sealed class MainForm : Form
     readonly System.Windows.Forms.Timer _tick;
     readonly System.Windows.Forms.Timer _saveTimer;
     bool _ready;
+    bool _closing;
+    long _lastWebRecovery;
     CancellationTokenSource _artJob;
     CancellationTokenSource _artSearch;
     string _artSearchId;
@@ -619,16 +621,16 @@ public sealed class MainForm : Form
         if (engine is AudioEngine own) own.DevicesChanged += () => { if (ReferenceEquals(engine, _engine)) Post("devicesChanged", new { }); };
     }
 
+    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
+    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
+    volatile CoreSwitch _switching;
+
     /// <summary>
     /// 設定切換了播放內核：短暫停頓後從同一個位置繼續（原本在播就繼續播，YouTube Music 也接著播）。
     /// 1. 先建立新內核、接上 Player 和介面，再停掉舊內核：舊內核在停止過程中發出的事件（例如 Ended）不會再讓 Player 換歌
     /// 2. 舊內核放開 DAC 之後才開新的：回收殘留的 WASAPI / COM 物件，再等一下（獨佔模式、ASIO 都需要時間交接）
     /// 3. 新內核開不到裝置時重試幾次
     /// </summary>
-    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
-    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
-    volatile CoreSwitch _switching;
-
     async Task SwitchCoreAsync()
     {
         var old = _engine;
@@ -703,6 +705,9 @@ public sealed class MainForm : Form
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        Log.Info($"Window closing: {e.CloseReason}");
+        _closing = true;
+        _ready = false;
         _artSearch?.Cancel();
         _tick.Stop();
         _player.Stopped();
@@ -744,7 +749,12 @@ public sealed class MainForm : Form
         catch (Exception ex) { Log.Error("Save settings", ex); }
     }
 
-    void SaveSoon() { if (IsHandleCreated) BeginInvoke(new Action(() => { _saveTimer.Stop(); _saveTimer.Start(); })); }
+    void SaveSoon()
+    {
+        if (_closing || !IsHandleCreated) return;
+        try { BeginInvoke(new Action(() => { if (_closing) return; _saveTimer.Stop(); _saveTimer.Start(); })); }
+        catch (InvalidOperationException) { /* the window closed after the handle check */ }
+    }
 
     // ───────────────────────────── WebView2 ─────────────────────────────
 
@@ -779,6 +789,7 @@ public sealed class MainForm : Form
         core.AddWebResourceRequestedFilter($"https://{MediaHost}/*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnResource;
         core.WebMessageReceived += OnMessage;
+        core.ProcessFailed += OnWebProcessFailed;
         core.NewWindowRequested += (_, e) => { e.Handled = true; OpenExternal(e.Uri); };
         core.NavigationStarting += (_, e) =>
         {
@@ -787,6 +798,36 @@ public sealed class MainForm : Form
         _lib.Load();
         StartExtensions(core);
         core.Navigate($"https://{AppHost}/index.html");
+    }
+
+    void OnWebProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
+    {
+        Log.Info($"WebView2 process failed: kind={e.ProcessFailedKind}, reason={e.Reason}, exit={e.ExitCode}, description={e.ProcessDescription}");
+        if (_closing || IsDisposed) return;
+        // Chromium recovers GPU/utility failures itself. Reload a crashed main renderer only;
+        // an unresponsive renderer may still be doing work, so never repeatedly reload it.
+        if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.RenderProcessExited)
+        {
+            _ready = false;
+            long now = Environment.TickCount64;
+            if (_lastWebRecovery != 0 && now - _lastWebRecovery < 60_000) return;
+            _lastWebRecovery = now;
+            try
+            {
+                ((CoreWebView2)sender).Reload();
+                Log.Info("WebView2 renderer reloaded; audio core retained");
+            }
+            catch (Exception ex) { Log.Error("WebView2 recovery", ex); }
+        }
+        else if (e.ProcessFailedKind == CoreWebView2ProcessFailedKind.BrowserProcessExited)
+        {
+            _ready = false;
+            MessageBox.Show(this, Tr("MIKU 的介面程序已停止，請關閉並重新開啟 MIKU。診斷資訊已記錄於 sonora.log。",
+                "MIKU 的界面进程已停止，请关闭并重新打开 MIKU。诊断信息已记录于 sonora.log。",
+                "MIKU's interface process stopped. Please close and reopen MIKU. Diagnostic details were saved to sonora.log.",
+                "MIKU の画面プロセスが停止しました。MIKU を閉じて開き直してください。診断情報は sonora.log に記録されました。"),
+                Program.AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     // ───────────────────────────── extension modules ─────────────────────────────
@@ -902,22 +943,34 @@ public sealed class MainForm : Form
 
     async void OnResource(object sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
-        var deferral = e.GetDeferral();
+        CoreWebView2Deferral deferral = null;
+        CoreWebView2Environment environment = null;
+        string requestUri = "(unavailable)";
         try
         {
-            var uri = new Uri(e.Request.Uri);
+            if (_closing || sender is not CoreWebView2 core) return;
+            deferral = e.GetDeferral();
+            environment = core.Environment;
+            requestUri = e.Request.Uri;
+            var uri = new Uri(requestUri);
             var (data, type, cache) = await MediaAsync(uri.AbsolutePath, System.Web.HttpUtility.ParseQueryString(uri.Query));
+            if (_closing || IsDisposed) return;
             string headers = $"Content-Type: {type}\r\nCache-Control: {cache}\r\nAccess-Control-Allow-Origin: *";
             e.Response = data != null
-                ? _web.CoreWebView2.Environment.CreateWebResourceResponse(new MemoryStream(data), 200, "OK", headers)
-                : _web.CoreWebView2.Environment.CreateWebResourceResponse(null, 404, "Not Found", "Access-Control-Allow-Origin: *\r\nCache-Control: no-store");
+                ? environment.CreateWebResourceResponse(new MemoryStream(data), 200, "OK", headers)
+                : environment.CreateWebResourceResponse(null, 404, "Not Found", "Access-Control-Allow-Origin: *\r\nCache-Control: no-store");
         }
         catch (Exception ex)
         {
-            Log.Error("Resource " + e.Request.Uri, ex);
-            try { e.Response = _web.CoreWebView2.Environment.CreateWebResourceResponse(null, 500, "Error", "Access-Control-Allow-Origin: *"); } catch { }
+            Log.Error("Resource " + requestUri, ex);
+            try { if (!_closing && environment != null) e.Response = environment.CreateWebResourceResponse(null, 500, "Error", "Access-Control-Allow-Origin: *"); } catch { }
         }
-        finally { deferral.Complete(); }
+        finally
+        {
+            // A renderer/browser can exit while artwork is loading. COM completion must not
+            // escape this async-void event handler during shutdown or renderer recovery.
+            try { deferral?.Complete(); } catch (Exception ex) { if (!_closing) Log.Error("Resource completion", ex); }
+        }
     }
 
     // ───────────────────────────── phone remote ─────────────────────────────
@@ -1437,15 +1490,21 @@ public sealed class MainForm : Form
     readonly HashSet<string> _pending = new();
     void PostSoon(string what)
     {
-        if (!IsHandleCreated) return;
+        if (_closing || !IsHandleCreated) return;
         lock (_pending) { if (!_pending.Add(what)) return; }
-        BeginInvoke(new Action(async () =>
+        try { BeginInvoke(new Action(async () =>
         {
-            await Task.Delay(30);
-            lock (_pending) _pending.Remove(what);
-            if (what == "state") Post("state", State());
-            else if (what == "queue") Post("queue", QueueDto());
-        }));
+            try
+            {
+                await Task.Delay(30);
+                lock (_pending) _pending.Remove(what);
+                if (_closing || IsDisposed) return;
+                if (what == "state") Post("state", State());
+                else if (what == "queue") Post("queue", QueueDto());
+            }
+            catch (Exception ex) { Log.Error("Post " + what, ex); }
+        })); }
+        catch (InvalidOperationException) { lock (_pending) _pending.Remove(what); }
     }
 
     string _lastTickJson;    // the last periodic state sent to the page
@@ -1483,15 +1542,34 @@ public sealed class MainForm : Form
     {
         string raw;
         try { raw = e.TryGetWebMessageAsString(); } catch { return; }
-        JsonElement msg;
-        try { msg = JsonDocument.Parse(raw).RootElement; } catch { return; }
-        int id = msg.TryGetProperty("id", out var idEl) ? idEl.GetInt32() : 0;
-        string method = msg.GetProperty("m").GetString();
+        JsonDocument document;
+        try { document = JsonDocument.Parse(raw); } catch { return; }
+        using var ownedDocument = document;
+        var msg = document.RootElement;
+        if (msg.ValueKind != JsonValueKind.Object || !msg.TryGetProperty("m", out var methodEl) || methodEl.ValueKind != JsonValueKind.String) return;
+        int id = msg.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.Number && idEl.TryGetInt32(out int parsedId) ? parsedId : 0;
+        string method = methodEl.GetString();
         JsonElement args = msg.TryGetProperty("a", out var a) ? a : default;
         object result = null; string error = null;
         try { result = await HandleRpc(method, args); }
         catch (Exception ex) { error = ex.Message; Log.Error("RPC " + method, ex); }
         if (id != 0) Send(Json.Serialize(new { id, r = result, e = error }));
+    }
+
+    /// <summary>A track's lyrics for the page: translations cleaned, with the track's saved offset.</summary>
+    object LyricsDto(Track t, LyricsResult r)
+    {
+        var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
+        return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+    }
+
+    /// <summary>The bytes of a picture from the page: base64, or a data: URL.</summary>
+    static byte[] DataBytes(string data)
+    {
+        data ??= "";
+        int comma = data.IndexOf(',');
+        if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
+        return Convert.FromBase64String(data);
     }
 
     static string S(JsonElement a, string n) => a.ValueKind == JsonValueKind.Object && a.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
@@ -1592,9 +1670,7 @@ public sealed class MainForm : Form
                 var parts = (ym.By ?? "").Split('•', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 string artist = parts.Length > 0 ? parts[0].Replace(" 和 ", " ").Replace(" & ", " ") : "";
                 var t = new Track { Id = "yt-" + Miku.Text.Hash(ym.Title + "|" + artist), Title = ym.Title, Artist = artist, Album = parts.Length > 1 ? parts[1] : "", Duration = ym.D, Codec = "YouTube" };
-                var r = await _lyrics.GetAsync(t);
-                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
-                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+                return LyricsDto(t, await _lyrics.GetAsync(t));
             }
 
             case "stop": _player.Stopped(); _engine.Stop(); return null;
@@ -1690,9 +1766,7 @@ public sealed class MainForm : Form
             {
                 var t = _lib.GetTrack(S(a, "id"));
                 if (t == null) return null;
-                var r = await _lyrics.GetAsync(t, B(a, "refresh"));
-                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
-                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+                return LyricsDto(t, await _lyrics.GetAsync(t, B(a, "refresh")));
             }
             case "lyrics.candidates":
             {
@@ -1704,9 +1778,7 @@ public sealed class MainForm : Form
                 var t = _lib.GetTrack(S(a, "id"));
                 if (t == null) return null;
                 var r = await _lyrics.Apply(t, S(a, "key"));
-                if (r == null) return null;
-                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
-                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+                return r == null ? null : LyricsDto(t, r);
             }
             case "lyrics.clear":
             {
@@ -1842,14 +1914,9 @@ public sealed class MainForm : Form
                 _s.ArtConfirmed.Add(S(a, "id")); SaveSoon();
                 return true;
             case "art.setData":
-            {
-                string data = S(a, "data") ?? "";
-                int comma = data.IndexOf(',');
-                if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
-                _art.SetOverride(S(a, "id"), Convert.FromBase64String(data));
+                _art.SetOverride(S(a, "id"), DataBytes(S(a, "data")));
                 _s.ArtConfirmed.Add(S(a, "id")); SaveSoon();
                 return true;
-            }
             case "art.clear": _art.ClearOverride(S(a, "id")); _s.ArtConfirmed.Remove(S(a, "id")); SaveSoon(); return null;
             case "art.confirm": _s.ArtConfirmed.Add(S(a, "id")); SaveSoon(); return null;
             case "art.reject": _art.RejectOnline(S(a, "id")); _s.ArtConfirmed.Remove(S(a, "id")); SaveSoon(); return null;
@@ -1882,13 +1949,7 @@ public sealed class MainForm : Form
             case "artistArt.info": return new { source = _art.ArtistSourceOf(S(a, "name")) };
             case "artistArt.candidates": return S(a, "search") != null ? await SearchArt(a, true) : await _art.ArtistCandidates(S(a, "name"), S(a, "q"));
             case "artistArt.setUrl": return await _art.SetArtistOverrideFromUrl(S(a, "name"), S(a, "url"));
-            case "artistArt.setData":
-            {
-                string data = S(a, "data") ?? "";
-                int comma = data.IndexOf(',');
-                if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
-                return _art.SetArtistOverride(S(a, "name"), Convert.FromBase64String(data));
-            }
+            case "artistArt.setData": return _art.SetArtistOverride(S(a, "name"), DataBytes(S(a, "data")));
             case "artistArt.clear": _art.ClearArtistOverride(S(a, "name")); return null;
             case "track":
             {
@@ -1909,8 +1970,6 @@ public sealed class MainForm : Form
                 if (t != null) Process.Start("explorer.exe", $"/select,\"{t.Path}\"");
                 return null;
             }
-            case "autoeq.search": return await AutoEq.Search(S(a, "q"));
-            case "autoeq.get": return await AutoEq.Fetch(S(a, "path"), S(a, "name"));
             case "yt.show":
             {
                 await EnsureYt();

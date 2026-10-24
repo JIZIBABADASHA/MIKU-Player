@@ -6,7 +6,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
-using NAudio.Wave;
 
 namespace Miku.Audio;
 

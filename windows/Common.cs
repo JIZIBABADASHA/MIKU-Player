@@ -54,7 +54,7 @@ public static class Log
             lock (Gate)
             {
                 var fi = new FileInfo(AppPaths.LogFile);
-                if (fi.Exists && fi.Length > 2_000_000) fi.Delete();
+                if (fi.Exists && fi.Length > 2_000_000) File.Move(AppPaths.LogFile, AppPaths.LogFile + ".previous", true);
                 File.AppendAllText(AppPaths.LogFile, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {message}{Environment.NewLine}");
             }
         }

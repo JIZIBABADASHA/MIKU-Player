@@ -132,7 +132,6 @@ const TagEditor = {
   /** The tracks a change applies to: the selected ones, or all of them when none is selected. */
   scope() { const s = this.s; return s.sel.size ? s.rows.filter((_, i) => s.sel.has(i)) : s.rows; },
   scopeIdx() { const s = this.s; return s.rows.map((_, i) => i).filter(i => !s.sel.size || s.sel.has(i)); },
-  scopeName() { return this.s.sel.size ? T`選取的 ${this.s.sel.size} 首` : T('全部'); },
 
   setAll(k, v) { for (const r of this.scope()) r.cur[k] = v; },
 

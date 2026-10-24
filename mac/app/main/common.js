@@ -26,12 +26,19 @@ const AppPaths = {
   },
 };
 
+// The size is read once and then counted, not stat'ed for every line. Past 2 MB the log moves to miku.log.previous
+// (as on Windows), so the lines before a problem survive the rotation.
+let logSize = null;
+const pad = (n, w = 2) => String(n).padStart(w, '0');
 function write(level, msg) {
   try {
-    try { const st = fs.statSync(AppPaths.LogFile); if (st.size > 2_000_000) fs.unlinkSync(AppPaths.LogFile); } catch { }
+    if (logSize === null) { try { logSize = fs.statSync(AppPaths.LogFile).size; } catch { logSize = 0; } }
+    if (logSize > 2_000_000) { try { fs.renameSync(AppPaths.LogFile, AppPaths.LogFile + '.previous'); } catch { } logSize = 0; }
     const d = new Date();
-    const ts = d.toISOString().replace('T', ' ').replace('Z', '');
-    fs.appendFileSync(AppPaths.LogFile, `${ts} [${level}] ${msg}\n`);
+    const ts = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
+    const line = `${ts} [${level}] ${msg}\n`;
+    fs.appendFileSync(AppPaths.LogFile, line);
+    logSize += Buffer.byteLength(line);
   } catch { }
 }
 const Log = {

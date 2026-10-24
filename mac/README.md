@@ -20,7 +20,7 @@ Windows 版 MIKU（C# + WebView2 + NAudio）移植到 macOS 的版本。介面�
 | DoP 原生 DSD | 有 | 沒有：DSF/DFF 以 FFmpeg 轉成 PCM（88.2/176.4/352.8 kHz） |
 | 升頻（SoX） | 有 | 沒有 |
 | DAC 硬體音量 | 有 | 沒有（數位音量 / 固定 0 dB） |
-| EQ、AutoEq、Crossfeed、平衡、反相、ReplayGain | 有 | 有（64-bit 演算法，原生處理） |
+| EQ（可匯入 AutoEq 設定）、Crossfeed、平衡、反相、ReplayGain | 有 | 有（64-bit 演算法，原生處理） |
 | 無縫播放 | 有 | 有（同取樣率預先解碼並在同一個 HAL 緩衝內接上；跨取樣率需要 DAC 重新鎖定） |
 | 曲庫、封面搜尋、歌詞（LRCLIB / 網易雲 + 簡轉繁）、手機遙控 | 有 | 有（資料格式相同） |
 | YouTube Music | 聲音導入 MIKU 的 DSP | 內建面板直接播放，不經過 DSP |
