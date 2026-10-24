@@ -17,8 +17,12 @@ if ! xcode-select -p >/dev/null 2>&1; then
 fi
 
 # The extension modules (Extensions/<Name>, git submodules): a fresh clone has them empty. A ZIP download has no
-# submodules at all; the installer is then built without them.
-if git -C .. rev-parse --git-dir >/dev/null 2>&1 && [ -f ../.gitmodules ] && git -C .. submodule status | grep -q '^-'; then
+# submodules at all; the installer is then built without them. MIKU_NO_EXT=1 ("Build Mac (no extensions).command")
+# builds MIKU alone, as the Release installer: the modules ship as their own zips.
+if [ "${MIKU_NO_EXT:-}" = 1 ]; then
+  echo "⓪ MIKU_NO_EXT=1: building MIKU without the extension modules."
+  echo
+elif git -C .. rev-parse --git-dir >/dev/null 2>&1 && [ -f ../.gitmodules ] && git -C .. submodule status | grep -q '^-'; then
   echo "⓪ Fetching the extension modules (git submodule update --init)…"
   git -C .. submodule update --init || echo "⚠️  The extension modules could not be fetched; building without them."
   echo
