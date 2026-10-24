@@ -621,16 +621,16 @@ public sealed class MainForm : Form
         if (engine is AudioEngine own) own.DevicesChanged += () => { if (ReferenceEquals(engine, _engine)) Post("devicesChanged", new { }); };
     }
 
+    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
+    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
+    volatile CoreSwitch _switching;
+
     /// <summary>
     /// 設定切換了播放內核：短暫停頓後從同一個位置繼續（原本在播就繼續播，YouTube Music 也接著播）。
     /// 1. 先建立新內核、接上 Player 和介面，再停掉舊內核：舊內核在停止過程中發出的事件（例如 Ended）不會再讓 Player 換歌
     /// 2. 舊內核放開 DAC 之後才開新的：回收殘留的 WASAPI / COM 物件，再等一下（獨佔模式、ASIO 都需要時間交接）
     /// 3. 新內核開不到裝置時重試幾次
     /// </summary>
-    /// <summary>What was playing when the core switch started; the state shows it until the new core has loaded it.</summary>
-    sealed record CoreSwitch(Track Track, bool Playing, double Pos, SignalInfo Signal);
-    volatile CoreSwitch _switching;
-
     async Task SwitchCoreAsync()
     {
         var old = _engine;
@@ -1556,6 +1556,22 @@ public sealed class MainForm : Form
         if (id != 0) Send(Json.Serialize(new { id, r = result, e = error }));
     }
 
+    /// <summary>A track's lyrics for the page: translations cleaned, with the track's saved offset.</summary>
+    object LyricsDto(Track t, LyricsResult r)
+    {
+        var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
+        return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+    }
+
+    /// <summary>The bytes of a picture from the page: base64, or a data: URL.</summary>
+    static byte[] DataBytes(string data)
+    {
+        data ??= "";
+        int comma = data.IndexOf(',');
+        if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
+        return Convert.FromBase64String(data);
+    }
+
     static string S(JsonElement a, string n) => a.ValueKind == JsonValueKind.Object && a.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
     static double D(JsonElement a, string n, double def = 0) => a.ValueKind == JsonValueKind.Object && a.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : def;
     static int I(JsonElement a, string n, int def = 0) => a.ValueKind == JsonValueKind.Object && a.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : def;
@@ -1654,9 +1670,7 @@ public sealed class MainForm : Form
                 var parts = (ym.By ?? "").Split('•', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 string artist = parts.Length > 0 ? parts[0].Replace(" 和 ", " ").Replace(" & ", " ") : "";
                 var t = new Track { Id = "yt-" + Miku.Text.Hash(ym.Title + "|" + artist), Title = ym.Title, Artist = artist, Album = parts.Length > 1 ? parts[1] : "", Duration = ym.D, Codec = "YouTube" };
-                var r = await _lyrics.GetAsync(t);
-                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
-                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+                return LyricsDto(t, await _lyrics.GetAsync(t));
             }
 
             case "stop": _player.Stopped(); _engine.Stop(); return null;
@@ -1752,9 +1766,7 @@ public sealed class MainForm : Form
             {
                 var t = _lib.GetTrack(S(a, "id"));
                 if (t == null) return null;
-                var r = await _lyrics.GetAsync(t, B(a, "refresh"));
-                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
-                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+                return LyricsDto(t, await _lyrics.GetAsync(t, B(a, "refresh")));
             }
             case "lyrics.candidates":
             {
@@ -1766,9 +1778,7 @@ public sealed class MainForm : Form
                 var t = _lib.GetTrack(S(a, "id"));
                 if (t == null) return null;
                 var r = await _lyrics.Apply(t, S(a, "key"));
-                if (r == null) return null;
-                var lines = r.Lines.Select(l => new LyricLine { T = l.T, Text = l.Text, Words = l.Words, Trans = Miku.Text.CleanTranslation(l.Trans) }).ToList();
-                return new { id = t.Id, r.Source, r.Synced, r.Instrumental, Lines = lines, offset = _s.LyricOffsets.GetValueOrDefault(t.Id) };
+                return r == null ? null : LyricsDto(t, r);
             }
             case "lyrics.clear":
             {
@@ -1904,14 +1914,9 @@ public sealed class MainForm : Form
                 _s.ArtConfirmed.Add(S(a, "id")); SaveSoon();
                 return true;
             case "art.setData":
-            {
-                string data = S(a, "data") ?? "";
-                int comma = data.IndexOf(',');
-                if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
-                _art.SetOverride(S(a, "id"), Convert.FromBase64String(data));
+                _art.SetOverride(S(a, "id"), DataBytes(S(a, "data")));
                 _s.ArtConfirmed.Add(S(a, "id")); SaveSoon();
                 return true;
-            }
             case "art.clear": _art.ClearOverride(S(a, "id")); _s.ArtConfirmed.Remove(S(a, "id")); SaveSoon(); return null;
             case "art.confirm": _s.ArtConfirmed.Add(S(a, "id")); SaveSoon(); return null;
             case "art.reject": _art.RejectOnline(S(a, "id")); _s.ArtConfirmed.Remove(S(a, "id")); SaveSoon(); return null;
@@ -1944,13 +1949,7 @@ public sealed class MainForm : Form
             case "artistArt.info": return new { source = _art.ArtistSourceOf(S(a, "name")) };
             case "artistArt.candidates": return S(a, "search") != null ? await SearchArt(a, true) : await _art.ArtistCandidates(S(a, "name"), S(a, "q"));
             case "artistArt.setUrl": return await _art.SetArtistOverrideFromUrl(S(a, "name"), S(a, "url"));
-            case "artistArt.setData":
-            {
-                string data = S(a, "data") ?? "";
-                int comma = data.IndexOf(',');
-                if (comma >= 0 && data.StartsWith("data:")) data = data[(comma + 1)..];
-                return _art.SetArtistOverride(S(a, "name"), Convert.FromBase64String(data));
-            }
+            case "artistArt.setData": return _art.SetArtistOverride(S(a, "name"), DataBytes(S(a, "data")));
             case "artistArt.clear": _art.ClearArtistOverride(S(a, "name")); return null;
             case "track":
             {

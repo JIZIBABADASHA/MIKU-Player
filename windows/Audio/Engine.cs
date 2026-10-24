@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using NAudio.CoreAudioApi;
@@ -1256,7 +1255,7 @@ public sealed class AudioEngine : IAudioEngine
             info.Note = "DoP 播放時無法使用數位音量，DAC 會以原始音量輸出，請用 DAC 的音量旋鈕調整。";
         if (info.Note == null && sp?.Note != null) info.Note = sp.Note;
         info.Quality = Quality(info);
-        info.Path = BuildPath(t, sp, plan, info);
+        info.Path = BuildPath(t, plan, info);
         return info;
     }
 
@@ -1273,7 +1272,7 @@ public sealed class AudioEngine : IAudioEngine
     /// headroom), the ReplayGain gain is applied to the decoded samples, then the DSP (EQ, crossfeed, balance, invert,
     /// digital volume) in 64-bit float, then the conversion to the device format (TPDF dither when the samples were changed).
     /// </summary>
-    SignalPath BuildPath(Track t, SourcePlan sp, OutputPlan plan, SignalInfo info)
+    SignalPath BuildPath(Track t, OutputPlan plan, SignalInfo info)
     {
         var p = new SignalPath();
         bool isDsd = t.IsDsd, dop = plan.Dop;

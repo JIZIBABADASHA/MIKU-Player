@@ -259,12 +259,11 @@ public static class AccurateRip
     /// </summary>
     public sealed class Summer
     {
-        readonly long _total, _from, _to;
+        readonly long _from, _to;
         long _i;
         uint _v1, _v2;
         public Summer(long totalSamples, bool first, bool last)
         {
-            _total = totalSamples;
             _from = first ? 5 * CdDrive.SamplesPerSector - 1 : 0;
             _to = last ? totalSamples - 5 * CdDrive.SamplesPerSector : totalSamples;
         }
