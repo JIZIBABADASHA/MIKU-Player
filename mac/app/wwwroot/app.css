@@ -429,6 +429,11 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .q-high { --q: var(--amber); }
 .q-low { --q: #ff3b4f; }
 .sig .dot { background: var(--q, var(--text-3)); box-shadow: 0 0 10px var(--q, transparent); }
+/* the tier's name, written in front of the format (core.js SigTier): a small tag framed in the badge's own text colour;
+   on the plain badges it takes the tier's colour. It stays when the bar is too narrow for the format. */
+.sig .sig-tier { position: relative; z-index: 3; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; line-height: 1; padding: 2px 5px; border-radius: 4px; box-shadow: inset 0 0 0 1px currentColor; }
+.sig .sig-tier[hidden] { display: none; }
+.sig:not(.hires, .dsd, .upsample, .dsp, .q-low) .sig-tier { color: color-mix(in srgb, var(--q, var(--text-2)) 75%, var(--text)); }
 /* lossy source: the dot blinks red */
 .sig.q-low .dot { animation: sig-blink 1.2s ease-in-out infinite; }
 @keyframes sig-blink { 0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--q), 0 0 3px var(--q); } 50% { opacity: .18; box-shadow: 0 0 0 transparent; } }

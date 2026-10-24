@@ -872,6 +872,12 @@ const App = {
     // upsampling wears the badge of its own card (app.css .sig.upsample), like Hi-Res, DSD and DSP wear theirs
     const cls = 'sig' + (sg ? ' q-' + sigQuality(sg) : '') + sigShine(sg) + (sg && SigCard.kind(sg) === 'upsample' ? ' upsample' : '');
     if (el.className !== cls) el.className = cls;
+    // the badge's look alone did not say which tier it is: its name is written on it, and the tooltip says what it means
+    const tier = sg ? SigTier[SigCard.kind(sg)] : null, tag = $('#b-sigtier');
+    tag.hidden = !tier;
+    setText(tag, tier ? tier.name() : '');
+    const title = tier ? `${tier.name()} — ${tier.desc(sg)}\n${T('點一下查看訊號路徑')}` : T('訊號路徑');
+    if (el.title !== title) el.title = title;
     if (!sg) { setText($('#b-sigtxt'), this.state.trackId ? T('已停止') : T('未播放')); return; }
     const src = sg.dsd ? sg.dsdLabel : `${sg.sourceBits || ''}${sg.sourceBits ? '/' : ''}${khz(sg.sourceRate)}`;
     setText($('#b-sigtxt'), `${sg.codec} ${src}${sg.dop ? ' · DoP' : ''}`);
@@ -1261,6 +1267,17 @@ const QLead = {
   enhanced: T('訊號經過 DSP、重新取樣或數位音量處理（64-bit 浮點運算）。'),
   high: T('無損音訊以 Core Audio 輸出；此路徑未確認原始樣本數值。'),
   low: T('來源為有損壓縮格式：部分聲音資訊在壓縮時已被永久丟棄，無法還原。'),
+};
+/** The badge's tiers, one for each kind of signal card (SigCard.kind): the name written on the badge, and what it means. */
+const SigTier = {
+  hires: { name: () => 'Hi-Res', desc: () => T('高於 CD 規格（16-bit / 48 kHz）的無損音訊，原樣輸出（Bit-perfect）。') },
+  dsd: { name: () => 'DSD', desc: () => T('DSD 音訊以原生 DSD 輸出，未轉成 PCM。') },
+  cd: { name: () => 'Bit-perfect', desc: () => T('CD 規格（最高 16-bit / 48 kHz）的無損音訊，原樣輸出。') },
+  upsample: { name: () => T('升頻'), desc: sg => T('來源以更高的取樣率輸出（{0} → {1} kHz）。', khz(sg.sourceRate), khz(sg.outputRate)) },
+  enhanced: { name: () => QLabel.enhanced, desc: () => QLead.enhanced },
+  shared: { name: () => QLabel.high, desc: () => QLead.high },
+  lossy: { name: () => T('有損'), desc: () => QLead.low },
+  dsp: { name: () => 'DSP', desc: () => T('DSP（等化器、音效）開啟中，聲音經過處理後輸出。') },
 };
 /** One stage of the signal path card: its dot (pink when it changes the samples), label and value. */
 const sigStage = (k, v, mod) => h('div', { class: 'stage' }, h('i', { class: 'd' + (mod ? ' mod' : '') }), h('div', null, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v)));
