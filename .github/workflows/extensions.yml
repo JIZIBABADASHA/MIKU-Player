@@ -37,14 +37,14 @@ jobs:
           $v = if ('${{ github.event_name }}' -eq 'release') { '${{ github.event.release.tag_name }}' -replace '^v', '' }
                else { ([xml](Get-Content windows/MIKU.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1 }
           "MIKU_VERSION=$v" >> $env:GITHUB_ENV
-      # MIKU's build runs every module's MikuDeploy into out\ext\<id>\ (windows/MIKU.csproj); a module that fails is
-      # only a warning there, so the count is checked below
+      # MIKU's publish runs every module's MikuDeploy into out\ext\<id>\ (windows/MIKU.csproj), as make-installer.ps1
+      # does for the installer; a module that fails is only a warning there, so the count is checked below
       - name: Build MIKU with its modules
         shell: pwsh
         env:
           DOTNET_CLI_TELEMETRY_OPTOUT: 1
           DOTNET_NOLOGO: 1
-        run: dotnet build windows/MIKU.csproj -c Release -o out
+        run: dotnet publish windows/MIKU.csproj -c Release -r win-x64 --self-contained true -o "$PWD/out" -p:DebugType=none
       - name: Pack
         shell: pwsh
         run: |
