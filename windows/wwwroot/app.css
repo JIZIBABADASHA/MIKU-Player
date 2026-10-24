@@ -707,13 +707,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .sigpop > .dsd .sig-sect { color: #c9c2ff; }
 .sigpop > :is(.hires, .dsd) .sig-sect::after { border-top: 0; height: 1px; background: linear-gradient(90deg, currentColor, transparent); opacity: .6; }
 .sigpop > :is(.hires, .dsd) .sig-details { color: rgba(240, 232, 215, .55); }
-.sigpop > :is(.hires, .dsd) .rp-badge { text-shadow: none; font-weight: 700; }
-.sigpop > :is(.hires, .dsd) .rp-badge .rp-icon { box-shadow: 0 0 0 1px rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .2); }
-/* Rplay badges use the same circular icon in the signal path and audio settings. */
-:root:root .sigpop .rp-badge .rp-icon,
-:root:root .settings .rp-badge .rp-icon { border-radius: 50%; object-fit: cover; clip-path: circle(50%); }
-.sigpop > .hires .rp-badge { color: #f6dc96; background: linear-gradient(180deg, rgba(255, 220, 140, .14), rgba(255, 220, 140, .05)); box-shadow: inset 0 0 0 1px rgba(232, 196, 110, .45), inset 0 1px 0 rgba(255, 240, 200, .18); }
-.sigpop > .dsd .rp-badge { color: #e6e3ff; background: linear-gradient(180deg, rgba(210, 205, 255, .14), rgba(210, 205, 255, .05)); box-shadow: inset 0 0 0 1px rgba(200, 195, 255, .42), inset 0 1px 0 rgba(255, 255, 255, .16); }
 .sigpop > :is(.hires, .dsd) > :nth-child(3) { animation-delay: 0.08s; }
 .sigpop > :is(.hires, .dsd) > :nth-child(3) .d { animation-delay: 0.00s; }
 .sigpop > :is(.hires, .dsd) > :nth-child(4) { animation-delay: 0.11s; }
