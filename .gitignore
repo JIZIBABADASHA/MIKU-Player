@@ -44,5 +44,6 @@ Thumbs.db
 builder/work/
 /MIKU-Builder-*.zip
 /MIKU Builder.app/
+/MIKU Builder/
 /electron-v*.zip
 /SHASUMS256.txt
