@@ -455,6 +455,7 @@ public sealed class MainForm : Form
         _fp = new FingerprintService(_s);
         _engine = CreateEngine();
         _player = new Player(_engine, _lib, _s);
+        _update = new Updater(Application.ProductVersion, () => _s.AutoUpdate, () => Post("update", _update.Info()));
         WireEngine(_engine);
         _player.NowChanged += () => { PostSoon("state"); RaiseExt(library: false); };
         _player.QueueChanged += () => PostSoon("queue");
@@ -494,6 +495,7 @@ public sealed class MainForm : Form
 
         Load += async (_, _) => { RestoreWindow(); await InitWebView(); };
         Shown += (_, _) => StartRemote();
+        Shown += (_, _) => _update.Start();
     }
 
     static List<EqBand> DefaultBands() => new[] { 32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000 }
@@ -721,6 +723,7 @@ public sealed class MainForm : Form
         SaveSettings();
         for (int i = 1; i <= 4; i++) UnregisterHotKey(Handle, i);
         try { _remote?.Dispose(); } catch { }
+        _update.Stop();
         _ext.StopAll();
         try { _engine.Dispose(); } catch { }
         base.OnFormClosing(e);
@@ -833,11 +836,14 @@ public sealed class MainForm : Form
     // ───────────────────────────── extension modules ─────────────────────────────
 
     readonly ExtensionManager _ext = new();
+    readonly Updater _update;
     readonly List<ExtensionHost> _extHosts = new();
 
     /// <summary>Starts the optional modules in ext\ (Host/Extensions.cs) once the library is loaded, before the page asks for them.</summary>
     void StartExtensions(CoreWebView2 core)
     {
+        // what 設定 → 其他 → 更新與擴充套件 staged for this start (Host/Updater.cs)
+        try { Updater.ApplyPending(Application.ProductVersion); } catch (Exception ex) { Log.Error("[ext] pending", ex); }
         if (!Directory.Exists(ExtensionManager.Root)) return;
         core.SetVirtualHostNameToFolderMapping(ExtensionManager.WebHost, ExtensionManager.Root, CoreWebView2HostResourceAccessKind.Allow);
         _ext.LoadAll((id, dir) =>
@@ -2003,6 +2009,14 @@ public sealed class MainForm : Form
             case "remote.info": return RemoteInfo();
             case "remote.revoke": _remote?.Revoke(S(a, "id")); return RemoteInfo();
             case "quit": BeginInvoke(new Action(Close)); return null;
+            // MIKU's updates and extension modules (Host/Updater.cs)
+            case "update.info": return _update.Info();
+            case "update.check": return await _update.Check();
+            case "update.install": return await _update.Install(S(a, "lang"), () => BeginInvoke(new Action(Close)));
+            case "update.addModule": return await _update.AddModule(S(a, "id"));
+            case "update.removeModule": return _update.RemoveModule(S(a, "id"));
+            case "update.undo": return _update.Undo(S(a, "id"));
+            case "update.restart": Updater.RelaunchAfterExit(); BeginInvoke(new Action(Close)); return null;
             case "openUrl": OpenExternal(S(a, "url")); return null;
             case "ui":
                 _s.Ui[S(a, "key")] = S(a, "value");

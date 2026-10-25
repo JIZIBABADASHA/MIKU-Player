@@ -51,7 +51,7 @@ const defaults = () => ({
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
   repeat: 'off', autoContinue: 'off', shuffle: false, queue: [], queueIndex: -1, resumePosition: 0, favorites: [], recent: [], searchHistory: [], artConfirmed: [],
-  lyricOffsets: {}, ui: {}, acoustIdKey: null, remoteEnabled: true, remotePort: 8765, window: null, maximized: false,
+  lyricOffsets: {}, ui: {}, acoustIdKey: null, remoteEnabled: true, remotePort: 8765, window: null, maximized: false, autoUpdate: true,
 });
 const S = Object.assign(defaults(), Json.load(AppPaths.Settings, {}));
 S.dsp = Object.assign(defaults().dsp, S.dsp || {});
@@ -74,6 +74,10 @@ const engine = new AudioEngine(S);
 // extension modules (extensions.js): a module may provide a playback core (設定 → 播放方案)
 const { ExtensionManager } = require('./extensions');
 const exts = new ExtensionManager();
+// MIKU's updates and the modules from the GitHub Releases (設定 → 其他 → 更新與擴充套件)
+const Updater = require('./updater');
+const updater = new Updater.Updater(app.getVersion(), () => S.autoUpdate !== false, () => post('update', updater.info()),
+  process.resourcesPath ? path.join(process.resourcesPath, 'ext') : null);
 engine.coreFor = id => exts.core(id);
 const player = new Player(engine, lib, S);
 lib.playbackActive = () => engine.isPlaying;
@@ -1062,6 +1066,14 @@ async function handleRpc(m, a) {
     case 'remote.info': return remoteInfo();
     case 'remote.revoke': if (remote) remote.revoke(a.id); return remoteInfo();
     case 'quit': setTimeout(() => app.quit(), 10); return null;
+    // MIKU's updates and extension modules (updater.js)
+    case 'update.info': return updater.info();
+    case 'update.check': return updater.check();
+    case 'update.install': return updater.install(file => shell.openPath(file), () => setTimeout(() => app.quit(), 300));
+    case 'update.addModule': return updater.addModule(a.id);
+    case 'update.removeModule': return updater.removeModule(a.id);
+    case 'update.undo': return updater.undo(a.id);
+    case 'update.restart': app.relaunch(); setTimeout(() => app.quit(), 10); return null;
     case 'openUrl': openExternal(a.url); return null;
     case 'openAudioMidi': {
       for (const p of ['/System/Applications/Utilities/Audio MIDI Setup.app', '/Applications/Utilities/Audio MIDI Setup.app'])
@@ -1416,6 +1428,7 @@ app.on('before-quit', e => {
   if (artSearch) artSearch.abort();
   try { player.stopped(); player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
+  updater.stop();
   try { liveRelay && liveRelay.kill(); } catch { }
   Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });
 });
@@ -1431,8 +1444,11 @@ app.whenReady().then(async () => {
   registerProtocols();
   buildMenu();
   lib.load();
+  // what 設定 → 其他 → 更新與擴充套件 staged for this start (updater.js)
+  try { Updater.applyPending(app.getVersion()); } catch (e) { Log.error('[ext] pending', e); }
   loadExtensions();
   createWindow();
   engine.start();
   startRemote().catch(e => Log.error('Remote', e));
+  updater.start();
 });

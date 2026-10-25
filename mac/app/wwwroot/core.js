@@ -646,6 +646,7 @@ const App = {
     // the playback cores: MIKU's own and those of extension modules (Settings → 播放方案)
     this.cores = init.cores && init.cores.length ? init.cores : [{ id: 'miku', name: 'FFmpeg', dsdPcmRate: true }];
     this.version = init.version;
+    this.platform = init.platform || 'windows';   // the Mac host says 'mac' (updates.js)
     this.scan(init.scan);
     await Lib.load();
     this.trackKey = null; // states received while the library was loading may have drawn an empty now-playing bar
