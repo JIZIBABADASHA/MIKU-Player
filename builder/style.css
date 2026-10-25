@@ -1,0 +1,144 @@
+/* MIKU 下載器 — MIKU's own look (windows/wwwroot/app.css): the same palette tokens, teal / pink accents,
+   rounded surfaces, pill buttons and switches. */
+:root {
+  --bg: #0d0f13;
+  --surface: #161920;
+  --surface-2: #1d2028;
+  --surface-3: #272b35;
+  --ink: 255, 255, 255;
+  --line: rgba(255, 255, 255, .065);
+  --line-2: rgba(255, 255, 255, .11);
+  --text: #eef1f5;
+  --text-hi: #ffffff;
+  --text-2: #a3a9b5;
+  --text-3: #6b7280;
+  --teal: #39c5bb;
+  --teal-rgb: 57, 197, 187;
+  --teal-2: #63dad1;
+  --teal-dim: rgba(57, 197, 187, .14);
+  --pink: #e5307e;
+  --pink-text: #ff7cb0;
+  --on-accent: #04201d;
+  --knob: #ffffff;
+  --knob-off: #c8ccd4;
+  --brand-ink: #f2f4f8;
+  --brand-track: #2c3039;
+  --radius: 14px;
+  --radius-s: 9px;
+  --ease: cubic-bezier(.22, .8, .24, 1);
+  --spring: cubic-bezier(.34, 1.36, .5, 1);
+  --font: "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--text); font: 14px/1.45 var(--font); -webkit-font-smoothing: antialiased;
+  background: radial-gradient(ellipse 70% 50% at 100% 0, rgba(var(--teal-rgb), .10), transparent 70%),
+              radial-gradient(ellipse 50% 40% at 0 100%, rgba(229, 48, 126, .06), transparent 70%), var(--bg);
+  background-attachment: fixed;
+}
+main { max-width: 860px; margin: auto; padding: 26px 40px 24px; }
+h1, h2, h3 { margin: 0; }
+p { margin: 4px 0; color: var(--text-2); line-height: 1.6; }
+small { font-size: 11.5px; color: var(--text-3); line-height: 1.6; }
+.grow { flex: 1; min-width: 0; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+::-webkit-scrollbar { width: 14px; }
+::-webkit-scrollbar-thumb { background: rgba(var(--ink), .16); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+
+/* header: MIKU's wordmark */
+header, .brand, .core, .set-row, .actions, .section-head, .result, footer { display: flex; align-items: center; }
+header, footer, .section-head { justify-content: space-between; }
+.brand { gap: 12px; }
+.wm { display: block; }
+.wm-ink { stroke: var(--brand-ink); }
+.wm-teal { fill: var(--teal); stroke: var(--teal); }
+.wm-stripe { stroke: rgba(255, 255, 255, .55); }
+.wm-pink { fill: var(--pink); stroke: var(--pink); }
+.wm-track { stroke: var(--brand-track); }
+.wm-progress { stroke: var(--teal); }
+.wm-head { fill: var(--pink); }
+.brand-sub { font-size: 13px; font-weight: 600; color: var(--text-2); padding-left: 12px; border-left: 1px solid var(--line-2); letter-spacing: 1px; }
+.pill { height: 30px; padding: 0 13px; border-radius: 15px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--text-2); font-size: 12px; display: inline-flex; align-items: center; white-space: nowrap; }
+
+.intro { margin: 30px 0 22px; }
+h1 { font: 700 32px/1.2 var(--font-display); letter-spacing: -.5px; color: var(--text-hi); }
+.intro p { font-size: 14.5px; margin-top: 6px; }
+
+/* surfaces */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+.core { gap: 16px; }
+.icon { width: 48px; height: 48px; border-radius: 12px; background: var(--teal-dim); display: grid; place-items: center; flex: none; }
+.icon svg { width: 24px; height: 24px; fill: none; stroke: var(--teal-2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+h2 { font-size: 15px; font-weight: 600; color: var(--text-hi); }
+h3 { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.tag { margin-left: 8px; padding: 2px 8px; border-radius: 10px; background: var(--teal-dim); color: var(--teal-2); font-size: 11px; font-weight: 600; vertical-align: 1px; }
+.core p, .extension p { font-size: 12.5px; }
+.section-head { margin: 28px 0 12px; }
+.section-head h2 { font-size: 16px; }
+.section-head > span { font-size: 12px; color: var(--text-3); }
+
+/* extensions: cards that light up teal when chosen; the checkbox is MIKU's round check */
+.extension { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; cursor: pointer; transition: background .18s, border-color .18s; }
+.extension:hover { background: var(--surface-2); }
+.extension:has(input:checked) { border-color: rgba(var(--teal-rgb), .55); background: rgba(var(--teal-rgb), .07); }
+.extension:has(input:disabled) { cursor: default; opacity: .5; }
+.extension input { appearance: none; flex: none; width: 22px; height: 22px; margin: 1px 0 0; border-radius: 50%; border: 2px solid var(--surface-3); background: transparent; display: grid; place-items: center; cursor: inherit; transition: background .18s, border-color .18s; }
+.extension input::after { content: ""; width: 9px; height: 5px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 0 2px 2px; transform: rotate(-45deg) scale(0); transition: transform .25s var(--spring); }
+.extension input:checked { background: var(--teal); border-color: var(--teal); }
+.extension input:checked::after { transform: rotate(-45deg) scale(1); }
+.extension .name-row { display: flex; gap: 9px; align-items: center; }
+.extension .ext-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(var(--ink), .07); color: var(--text-2); }
+.extension .source { font-size: 11px; margin-top: 6px; color: var(--text-3); }
+.muted { font-size: 12px; color: var(--text-3); }
+
+/* settings-style list: rows split by hairlines, the option as MIKU's switch */
+.list { padding: 4px 20px; }
+.set-row { gap: 16px; padding: 14px 0; }
+.set-row + .set-row { border-top: 1px solid var(--line); }
+.path { font-size: 12px; word-break: break-all; }
+.auto-option { cursor: pointer; }
+.auto-option small { display: block; margin-top: 2px; }
+.auto-option input { appearance: none; flex: none; width: 42px; height: 24px; margin: 0; border-radius: 12px; background: var(--surface-3); position: relative; cursor: pointer; transition: background .25s var(--ease); }
+.auto-option input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--knob-off); transition: transform .3s var(--spring), background .2s; }
+.auto-option input:checked { background: var(--teal); }
+.auto-option input:checked::after { transform: translateX(18px); background: var(--knob); }
+
+/* buttons: MIKU's .btn */
+.btn { height: 38px; padding: 0 18px; border: 0; border-radius: 19px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(var(--ink), .07); color: var(--text); font: 600 13.5px var(--font); cursor: pointer; white-space: nowrap; transition: background .18s, transform .18s var(--ease), box-shadow .2s; }
+.btn:hover:enabled { background: rgba(var(--ink), .12); transform: translateY(-1px); }
+.btn:active:enabled { transform: scale(.97); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.small { height: 32px; padding: 0 14px; font-size: 12.5px; }
+.btn.primary { background: var(--teal); color: var(--on-accent); box-shadow: 0 4px 16px rgba(var(--teal-rgb), .18); }
+.btn.primary:hover:enabled { background: var(--teal-2); box-shadow: 0 6px 24px rgba(var(--teal-rgb), .28); }
+.btn.big { height: 48px; padding: 0 30px; border-radius: 24px; font-size: 15px; }
+.btn.danger { color: var(--pink-text); }
+.actions { gap: 10px; margin-top: 22px; }
+.hint { font-size: 12px; margin: 12px 0 20px; color: var(--text-3); }
+
+/* progress: a teal track through the four steps */
+.progress { padding: 16px 20px; }
+.stage-line { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
+.dot.busy { background: var(--teal); box-shadow: 0 0 0 4px var(--teal-dim); animation: pulse 1.3s infinite; }
+@keyframes pulse { 50% { opacity: .4; } }
+ol { list-style: none; display: flex; gap: 8px; padding: 0; margin: 14px 0 0; }
+li { flex: 1; padding-top: 9px; border-top: 3px solid var(--surface-3); border-radius: 2px; font-size: 11.5px; color: var(--text-3); transition: color .2s, border-color .2s; }
+li.active { border-color: var(--teal); color: var(--teal-2); }
+
+.error { font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere; padding: 14px 16px; border-radius: var(--radius-s); background: rgba(229, 48, 126, .12); border: 1px solid rgba(229, 48, 126, .45); color: var(--pink-text); }
+.result { gap: 10px; margin-top: 14px; border-color: rgba(var(--teal-rgb), .45); background: rgba(var(--teal-rgb), .07); }
+.result p { font-size: 12px; }
+details { margin-top: 18px; }
+summary { cursor: pointer; font-size: 12px; color: var(--text-2); }
+pre { white-space: pre-wrap; word-break: break-word; max-height: 240px; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-s); padding: 14px; font-size: 11px; color: var(--text-2); }
+footer { font-size: 11px; color: var(--text-3); margin-top: 24px; }
+
+@media (max-width: 760px) {
+  main { padding: 22px; }
+  .core, .result { flex-wrap: wrap; }
+  .result .grow { flex-basis: 100%; }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "miku-builder",
+  "productName": "MIKU Builder",
+  "version": "0.3.0",
+  "description": "從 GitHub 下載已編譯的 MIKU 與選用擴充套件安裝檔",
+  "main": "main.js",
+  "private": true,
+  "scripts": { "test": "node --test test/*.test.js" }
+}
