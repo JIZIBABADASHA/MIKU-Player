@@ -2,8 +2,10 @@
 # Mac x64, one zip per module and platform, so a listener can add a module to an installed MIKU without building it:
 #   MIKU-ext-<id>-<MIKU version>-<win-x64|mac-arm64|mac-x64>.zip     holds <id>/ as MIKU's loader reads it from ext/<id>/
 # A module is built against the MIKU it ships with (Daphne's playback core uses MIKU's own types), hence MIKU's version
-# in the name. On a published Release the zips are added to it (GitHub keeps each asset's SHA-256); on a manual run or a
-# pull request they are kept as the run's artifacts only.
+# in the name. On a published Release the zips go to a pre-release of their own, tagged extensions-<MIKU version>, so the
+# version's Release holds only its installers (GitHub keeps each asset's SHA-256); MIKU fetches the modules of its own
+# version from there (windows/Host/Updater.cs, mac/app/main/updater.js). On a manual run or a pull request the zips are
+# kept as the run's artifacts only.
 name: Extensions
 
 on:
@@ -23,6 +25,8 @@ permissions:
 
 jobs:
   windows:
+    # not for the extensions-<version> pre-releases themselves
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'extensions-')
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -66,14 +70,22 @@ jobs:
         with:
           name: extensions-win-x64
           path: zips/*.zip
-      - name: Add to the Release
+      # the other job may create it at the same time: a failed create is fine once the release is there
+      - name: Add to extensions-<version>
         if: github.event_name == 'release'
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload '${{ github.event.release.tag_name }}' (Get-ChildItem zips/*.zip).FullName --clobber
+        run: |
+          set -euo pipefail
+          t="extensions-$MIKU_VERSION"
+          gh release view "$t" >/dev/null 2>&1 ||
+            gh release create "$t" --prerelease --latest=false --title "$t" --notes "" --target "${{ github.sha }}" ||
+            gh release view "$t" >/dev/null
+          gh release upload "$t" zips/*.zip --clobber
 
   mac:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'extensions-')
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -117,8 +129,14 @@ jobs:
         with:
           name: extensions-mac
           path: zips/*.zip
-      - name: Add to the Release
+      - name: Add to extensions-<version>
         if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" zips/*.zip --clobber
+        run: |
+          set -euo pipefail
+          t="extensions-$MIKU_VERSION"
+          gh release view "$t" >/dev/null 2>&1 ||
+            gh release create "$t" --prerelease --latest=false --title "$t" --notes "" --target "${{ github.sha }}" ||
+            gh release view "$t" >/dev/null
+          gh release upload "$t" zips/*.zip --clobber

@@ -13,9 +13,10 @@ using System.Threading.Tasks;
 namespace Miku.Host;
 
 /// <summary>
-/// 設定 → 其他 → 更新與擴充套件: MIKU's own updates and its extension modules, from the GitHub Releases. A Release
-/// holds MIKU-Setup-&lt;tag&gt;.exe and, added by .github/workflows/extensions.yml, one zip per module built against it:
-/// MIKU-ext-&lt;id&gt;-&lt;version&gt;-win-x64.zip with &lt;id&gt;\ inside. Every download is checked against the SHA-256 GitHub keeps.
+/// 設定 → 其他 → 更新與擴充套件: MIKU's own updates and its extension modules, from the GitHub Releases. A version's
+/// Release holds MIKU-Setup-&lt;tag&gt;.exe; the modules built against it are kept apart, in its own pre-release tagged
+/// extensions-&lt;version&gt; (.github/workflows/extensions.yml): MIKU-ext-&lt;id&gt;-&lt;version&gt;-win-x64.zip with &lt;id&gt;\ inside.
+/// Every download is checked against the SHA-256 GitHub keeps.
 ///
 /// A module is never changed while MIKU runs (its DLL is loaded): an install or removal is staged in ext\.pending\ and
 /// <see cref="ApplyPending"/> carries it out at the next start, before the modules load. A staged module carries the
@@ -41,6 +42,15 @@ sealed class Updater
             .Where(n => n.StartsWith("MIKU-ext-") && n.EndsWith($"-{Version}-{Platform}.zip"))
             .Select(n => n.Substring(9, n.Length - 9 - $"-{Version}-{Platform}.zip".Length))
             .Where(ValidId);
+
+        /// <summary>This Release with the modules of its extensions-&lt;version&gt; Release added (an older Release holds its own).</summary>
+        public Release With(Release modules)
+        {
+            if (modules == null) return this;
+            var all = new Dictionary<string, Asset>(Assets);
+            foreach (var (name, a) in modules.Assets) all.TryAdd(name, a);
+            return this with { Assets = all };
+        }
     }
 
     readonly string _version;
@@ -48,7 +58,7 @@ sealed class Updater
     readonly Action _changed;
     readonly object _gate = new();
     readonly SemaphoreSlim _work = new(1, 1);
-    Release _latest, _own;        // the newest Release, and the one for this MIKU (its modules)
+    Release _latest, _own;        // the newest Release, and the one for this MIKU (each with its modules)
     string _installer;            // the newest Release's installer, downloaded and checked
     string _busy, _error;
     double? _progress;
@@ -118,6 +128,7 @@ sealed class Updater
         {
             Set("checking");
             var latest = await GetRelease("latest");
+            latest = latest.With(await Find(ModulesTag(latest.Version)));
             var own = latest.Version == _version ? latest : await FindOwn();
             lock (_gate) { _latest = latest; _own = own; _checkedAt = DateTime.UtcNow; _error = null; }
             if (background && Compare(latest.Version, _version) > 0 && latest.Installer != null) await DownloadInstaller(latest);
@@ -129,12 +140,17 @@ sealed class Updater
 
     async Task<Release> FindOwn()
     {
-        foreach (var tag in new[] { _version, "v" + _version })
-        {
-            try { return await GetRelease("tags/" + Uri.EscapeDataString(tag)); }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { }
-        }
-        return null;   // a build of its own (no Release): no modules to offer
+        // a build of its own (no Release) still finds modules built for its version
+        var own = await Find(_version) ?? await Find("v" + _version) ?? new Release(_version, _version, new());
+        return own.With(await Find(ModulesTag(_version)));
+    }
+
+    static string ModulesTag(string version) => "extensions-" + version;
+
+    async Task<Release> Find(string tag)
+    {
+        try { return await GetRelease("tags/" + Uri.EscapeDataString(tag)); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return null; }
     }
 
     async Task<string> DownloadInstaller(Release r)
