@@ -1,8 +1,8 @@
 'use strict';
 // 設定 → 其他 → 更新與擴充套件: MIKU's own updates and its extension modules, from the GitHub Releases (the Mac side of
-// windows/Host/Updater.cs). A Release holds MIKU-<tag>-mac.pkg and, added by .github/workflows/extensions.yml, one zip
-// per module built against it: MIKU-ext-<id>-<version>-mac-<arm64|x64>.zip with <id>/ inside. Every download is checked
-// against the SHA-256 GitHub keeps.
+// windows/Host/Updater.cs). A version's Release holds MIKU-<tag>-mac.pkg; the modules built against it are kept apart, in
+// its own pre-release tagged extensions-<version> (.github/workflows/extensions.yml):
+// MIKU-ext-<id>-<version>-mac-<arm64|x64>.zip with <id>/ inside. Every download is checked against the SHA-256 GitHub keeps.
 //
 // Modules go to ~/Library/Application Support/MIKU/extensions/<id>/ (extensions.js), never into the signed app. A change
 // is staged in extensions/.pending/ and applyPending() carries it out at the next start, before the modules load: a
@@ -85,6 +85,13 @@ function parseRelease(r) {
   };
 }
 
+// the modules of a version's extensions-<version> Release added to its Release (an older Release holds its own)
+function withModules(r, modules) {
+  if (modules) for (const [name, a] of modules.assets) if (!r.assets.has(name)) r.assets.set(name, a);
+  return r;
+}
+const modulesTag = version => 'extensions-' + version;
+
 class Updater {
   /** version: this MIKU's; auto(): whether automatic updates are on; changed(): 設定 shows the new state. */
   constructor(version, auto, changed, bundled) {
@@ -162,6 +169,7 @@ class Updater {
       try {
         this.set('checking');
         const latest = parseRelease(await this.api('latest'));
+        withModules(latest, await this.find(modulesTag(latest.version)));
         const own = latest.version === this.version ? latest : await this.findOwn();
         Object.assign(this, { latest, own, checkedAt: new Date().toISOString(), error: null });
         if (background && compare(latest.version, this.version) > 0 && latest.installer) await this.downloadInstaller(latest);
@@ -172,11 +180,15 @@ class Updater {
   }
 
   async findOwn() {
-    for (const tag of [this.version, 'v' + this.version]) {
-      try { return parseRelease(await this.api('tags/' + encodeURIComponent(tag))); }
-      catch (e) { if (e.status !== 404) throw e; }
-    }
-    return null;   // a build of its own (no Release): no modules to offer
+    // a build of its own (no Release) still finds modules built for its version
+    const own = await this.find(this.version) || await this.find('v' + this.version) ||
+      parseRelease({ tag_name: this.version, draft: false, assets: [] });
+    return withModules(own, await this.find(modulesTag(this.version)));
+  }
+
+  async find(tag) {
+    try { return parseRelease(await this.api('tags/' + encodeURIComponent(tag))); }
+    catch (e) { if (e.status !== 404) throw e; return null; }
   }
 
   async downloadInstaller(r) {
