@@ -164,6 +164,9 @@ class Player extends EventEmitter {
     if (this.continuedFrom >= this.queue.length) this.continuedFrom = -1;
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
     if (wasCurrent) { const t = this.current; if (t) this.load(t, 0, this.engine.isPlaying); else { this.left(this.engine.position, true, false); this.engine.stop(); } }
+    // the queue may now end with the track playing: a module going on with it is asked at once (a track it had
+    // picked taken out, e.g. after a 👎: the next pick knows it), not only when the track is over
+    else if (this.engine.isPlaying) this.ensureAutoNext(false);
   }
   move(from, to) {
     if (from < 0 || from >= this.queue.length || to < 0 || to >= this.queue.length || from === to) return;
@@ -206,13 +209,14 @@ class Player extends EventEmitter {
    * Auto continue: when the last song in the queue is playing, add more so playback never stops: what a module chooses
    * (「佇列播完後」 = similar, or the queue is the module's own list, e.g. its radio), or a random album or a few random
    * songs from the library (albums / songs played recently are avoided while there are others left).
+   * random false: only a module going on with the queue is asked (its end changed while a track plays); no random songs yet.
    */
-  ensureAutoNext() {
+  ensureAutoNext(random = true) {
     if (this.s.repeat !== 'off') return;
     const mode = this.s.autoContinue, src = this.s.queueSource, c = this.continuation;
     const chosen = mode === 'similar' && !!c;
     if (chosen || (c && src && src.ext && src.ext === c.id)) { this.askContinuation(chosen, src); return; }
-    this.addRandom(mode === 'similar' ? 'tracks' : mode);   // similar without its module: random songs
+    if (random) this.addRandom(mode === 'similar' ? 'tracks' : mode);   // similar without its module: random songs
   }
   /** Asks the module what comes after the last track and adds it; random songs when it has none and 「佇列播完後」 chose it. */
   askContinuation(chosen, src) {
@@ -224,7 +228,11 @@ class Player extends EventEmitter {
       .catch(e => { require('./common').Log.error('[ext] continue', e); return null; })
       .then(add => {
         this.asking = false;
-        if (this.queue.length !== count || this.index !== count - 1) return;   // the queue changed meanwhile
+        if (this.queue.length !== count || this.index !== count - 1) {
+          // the queue changed meanwhile (a pick taken out after a vote): asked again if it still ends at the track playing
+          if (this.queue.length && this.index === this.queue.length - 1 && this.engine.isPlaying) this.ensureAutoNext(false);
+          return;
+        }
         const valid = (add || []).filter(id => this.lib.getTrack(id));
         if (valid.length) {
           if (chosen && this.continuedFrom < 0) this.continuedFrom = this.queue.length;   // the module's own list (a radio) is all its own already

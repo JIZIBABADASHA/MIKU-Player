@@ -459,7 +459,7 @@ const BarSwap = {
 };
 
 const MikuExt = {
-  defs: {}, settings: {}, slots: {}, paths: {}, labels: {}, menus: {}, queueHeads: {}, slotKey: null, slotDef: null, slotSeq: 0, slotDrawn: false,
+  defs: {}, settings: {}, slots: {}, paths: {}, labels: {}, menus: {}, queueHeads: {}, queueRows: {}, slotKey: null, slotDef: null, slotSeq: 0, slotDrawn: false,
   /** MIKU swaps the bar's left part as a whole when a module's slot changes (BarSwap): modules leave their slot's own entrances and exits. */
   swapsBar: true,
   register(def) { if (def && def.id) this.defs[def.id] = def; },
@@ -473,6 +473,18 @@ const MikuExt = {
     const src = q && q.source ? q.source : c && q.index >= c.from ? { ext: c.ext, smart: true } : null;
     if (q) q.slotSource = src;
     return src;
+  },
+
+  /** A module's part at the right of an upcoming queue row (queueRow), or null for MIKU's remove button. */
+  queueRow(q, id, i) {
+    const c = q.continued;
+    const source = q.source || (c && i >= c.from ? { ext: c.ext, smart: true } : null);
+    for (const [ext, fn] of Object.entries(this.queueRows)) {
+      const el = h('div', { class: 'qext-row', 'data-ext': ext });
+      try { fn(el, { id, i, index: q.index, source }); } catch (e) { console.error('[ext] queue row', ext, e); }
+      if (el.childNodes.length) return el;
+    }
+    return null;
   },
 
   /** The modules' items for a context menu (addMenu): kind 'track' (t, list) or 'album' (al); after a separator. */
@@ -594,6 +606,12 @@ const MikuExt = {
        * the queue's (any module's, or null). Drawn each time the queue is; leave el empty for none.
        */
       queueHead: fn => { this.queueHeads[id] = fn; },
+      /**
+       * fn(el, { id, i, index, source }): what an upcoming row of the queue drawer shows at its right in place of
+       * MIKU's remove button (the track id, its place in the queue, the track playing's place, and the source that
+       * row plays under: the queue's, or the Smart Playlist's from where it goes on). Leave el empty for MIKU's button.
+       */
+      queueRow: fn => { this.queueRows[id] = fn; },
       /** fn() → a node: this module's mark before 「… 已開啟」 under 佇列播完後 while its queue continuation is on. */
       continueMark: fn => { this.labels.continue = fn; },
     };
@@ -1968,7 +1986,8 @@ const Queue = {
       const r = h('div', { class: 'qrow' + (i === index ? ' cur' : '') + (i < index ? ' past' : ''), draggable: 'true', 'data-i': i },
         artBox('thumb', ...trackArt(t), 48, t.album?.title),
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't' }, t.title), h('div', { class: 'a' }, t.artist)),
-        h('button', { class: 'icon-btn x', title: T('移除'), html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
+        (i > index && MikuExt.queueRow(App.queue, id, i)) ||
+          h('button', { class: 'icon-btn x', title: T('移除'), html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
       r.ondblclick = () => Host.call('queue.jump', { i });
       r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }); };
       r.ondragstart = e => { e.dataTransfer.setData('text/plain', i); r.classList.add('dragging'); };

@@ -35,6 +35,7 @@ MIKU 編譯（build）與發佈（publish）時，都會對每個模組執行 `M
   - `coreLabel(coreId, fn)`：本模組提供的播放內核在「播放方案」選單中的顯示方式：`fn()` 回傳一個節點（例如字標），取代內核名稱顯示在選單按鈕與選項中；原生選項仍保留名稱文字（輔助技術使用）
   - `addMenu(kind, fn)`：在右鍵選單加項目，排在 MIKU 的播放與佇列項目之後。`kind` 是 `track`（`fn(track, list)`）或 `album`（`fn(album)`），回傳 `[{ label, icon, run }]`，不加就回傳空的
   - `queueHead(fn)`：播放佇列抽屜最上方的標題區塊，`fn(el, source)`，`source` 是目前佇列的 source（任何模組的，或 null）。每次佇列重畫時呼叫；不需要時讓 `el` 保持空白
+  - `queueRow(fn)`：播放佇列抽屜裡「接下來」每一列右側的區塊，取代 MIKU 的移除按鈕。`fn(el, { id, i, index, source })`：`id` 是那首歌，`i` 是它在佇列中的位置，`index` 是正在播放的位置，`source` 是那一列播放時的 source（佇列的 source；佇列交給模組的 Smart Playlist 接續時，從接續處開始是 `{ ext, smart: true }`）。每次佇列重畫時呼叫；`el` 保持空白就顯示 MIKU 的移除按鈕
   - `continueMark(fn)`：`fn()` 回傳一個節點（例如模組的圖示），「佇列播完後」交給模組時，顯示在「… 已開啟」前面
 
 ## 播放內核
