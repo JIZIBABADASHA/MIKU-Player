@@ -80,6 +80,8 @@ Type: files; Name: "{app}\language.txt"
 
 [Run]
 Filename: "{app}\MIKU.exe"; Description: "{cm:LaunchProgram,MIKU}"; Flags: nowait postinstall skipifsilent
+; an update started from MIKU (Host/Updater.cs) runs silently with /relaunch=1: start MIKU again afterwards
+Filename: "{app}\MIKU.exe"; Flags: nowait; Check: Relaunch
 
 [Code]
 // MIKU's interface runs on Microsoft Edge WebView2. Windows 11 has it built in; on an older
@@ -100,6 +102,11 @@ begin
   else if ActiveLanguage() = 'en' then Result := 'en'
   else if ActiveLanguage() = 'ja' then Result := 'ja'
   else Result := 'zh-Hant';
+end;
+
+function Relaunch(): Boolean;
+begin
+  Result := ExpandConstant('{param:relaunch|0}') = '1';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

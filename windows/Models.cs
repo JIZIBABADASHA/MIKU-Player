@@ -242,6 +242,8 @@ public sealed class Settings
     public Dictionary<string, string> Ui { get; set; } = new();
     /// <summary>Settings of extension modules: id → key → value (see Host/Extensions.cs).</summary>
     public Dictionary<string, Dictionary<string, JsonElement>> Ext { get; set; } = new();
+    /// <summary>Check GitHub for a new MIKU and download it in the background (Host/Updater.cs; 設定 → 其他).</summary>
+    public bool AutoUpdate { get; set; } = true;
     // Phone remote (LAN web server)
     public bool RemoteEnabled { get; set; } = true;
     public int RemotePort { get; set; } = 8765;
