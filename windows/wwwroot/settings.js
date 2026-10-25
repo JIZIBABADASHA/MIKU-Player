@@ -289,6 +289,9 @@ const Settings = {
       const lg = section(T('語言'));
       lg.append(field(T('介面語言'), T('介面顯示的語言。切換後會重新載入介面。'), select(I18N.LANGS, I18N.lang, v => I18N.set(v))));
 
+      /* ── MIKU's updates and extension modules (updates.js) ── */
+      Updates.section(section, field, sw);
+
       /* ── phone remote ── */
       const rm = section(T('手機遙控'), T('手機和這台電腦連同一個 Wi-Fi，用瀏覽器打開下面的網址就能選歌、控制播放。聲音一樣從這台電腦的 DAC 播出。'));
       const rmBox = h('div');
