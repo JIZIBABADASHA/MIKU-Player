@@ -101,6 +101,10 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .brand { display: flex; flex: none; align-items: center; gap: 11px; padding: 4px 14px 26px; }
 .brand svg { display: block; }
 .nav { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+/* the list is a scroll box, so it clips whatever a theme draws outside its items: the miku highlight's drop shadow
+   was cut flat under the last item (設定) and at the right edge, a hard grey ledge under the teal pill. The box
+   reaches into the sidebar's padding (negative margin, same padding back) so shadows and glows have room. */
+.nav { margin: -8px -12px 0; padding: 8px 12px 16px; }
 /* the list scrolls without a scrollbar: a 14 px bar squeezed the folded 52 px column (icons jumped sideways, the
    highlight shrank) whenever a short window made it overflow. The edge with more items behind it fades instead
    (classes set by NavEdges in core.js). */
@@ -1718,7 +1722,7 @@ a.link:hover { text-decoration: underline; }
 .nav a svg.i { transition: transform .3s var(--spring); }
 .nav a:hover svg.i { transform: scale(1.12); }
 .nav a.on svg.i { color: var(--teal-2); }
-.nav-pill { position: absolute; left: 12px; right: 12px; height: 38px; border-radius: 10px; background: rgba(var(--ink), .07); transition: transform .42s var(--spring), opacity .2s; pointer-events: none; z-index: 0; }
+.nav-pill { position: absolute; top: 0; left: 12px; right: 12px; height: 38px; border-radius: 10px; background: rgba(var(--ink), .07); transition: transform .42s var(--spring), opacity .2s; pointer-events: none; z-index: 0; }
 .nav-pill::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--teal); box-shadow: 0 0 12px var(--teal); }
 .nav { position: relative; }
 .nav a { position: relative; z-index: 1; }
