@@ -39,3 +39,6 @@ ChineseTraditional.isl
 
 .DS_Store
 Thumbs.db
+
+# local build shortcut (MIKU without extensions)
+/windows/make-installer-no-ext.cmd
