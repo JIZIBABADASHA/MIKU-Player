@@ -31,11 +31,11 @@ def main():
     expected_suffix = f'-{"darwin" if platform == "mac" else "win32"}-{arch}.zip'
     if not args.electron_zip.name.endswith(expected_suffix):
         parser.error('Electron ZIP does not match target')
-    sums = {parts[1].lstrip('*'): parts[0] for line in args.checksums.read_text().splitlines() if len(parts := line.split()) == 2}
+    sums = {parts[1].lstrip('*'): parts[0] for line in args.checksums.read_text(encoding='utf-8').splitlines() if len(parts := line.split()) == 2}
     digest = hashlib.sha256(args.electron_zip.read_bytes()).hexdigest()
     if sums.get(args.electron_zip.name) != digest:
         parser.error('Electron ZIP SHA-256 verification failed')
-    version = json.loads((HERE / 'package.json').read_text())['version']
+    version = json.loads((HERE / 'package.json').read_text(encoding='utf-8'))['version']
     args.out.mkdir(parents=True, exist_ok=True)
     HERE.joinpath('work').mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='package-', dir=HERE / 'work') as tmp:
