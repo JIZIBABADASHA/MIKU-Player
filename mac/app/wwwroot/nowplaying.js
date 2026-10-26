@@ -44,7 +44,7 @@ const NowPlaying = {
       getSelection()?.removeAllRanges();
       const t = App.track();
       if (!t || t.live) return;
-      this.heartPop(e, App.toggleFav(t.id));
+      this.heartPop(App.toggleFav(t.id));
     });
     $('#np-cand').onclick = e => { e.stopPropagation(); this.togglePicker(); };
     document.addEventListener('click', e => { const p = $('#ly-pick'); if (!p.hidden && !p.contains(e.target)) p.hidden = true; });
@@ -177,13 +177,11 @@ const NowPlaying = {
         } }, T('都不對，不要顯示歌詞'))));
   },
 
-  /** The heart on the cover after a double-click, where it was clicked: popping in (on) or shrinking away (off). */
-  heartPop(e, on) {
-    const cover = $('#np-cover'), r = cover.getBoundingClientRect();
+  /** The heart in the middle of the cover after a double-click: popping in (on) or shrinking away (off). */
+  heartPop(on) {
+    const cover = $('#np-cover');
     cover.querySelector('.np-heart')?.remove();
     const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: '<svg class="i"><use href="#i-heartf"/></svg>' });
-    el.style.left = (e.clientX - r.left) + 'px';
-    el.style.top = (e.clientY - r.top) + 'px';
     cover.append(el);
     el.addEventListener('animationend', () => el.remove());
   },

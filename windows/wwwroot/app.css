@@ -1555,7 +1555,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 #np.paused .np-cover { transform: scale(.94); }
 /* a double-click on the cover: the track is a favourite (nowplaying.js heartPop) */
 .np-cover { user-select: none; }
-.np-heart { position: absolute; z-index: 2; width: 26%; aspect-ratio: 1; margin: -13% 0 0 -13%; pointer-events: none; color: #ff3d7f; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); animation: np-heart .9s cubic-bezier(.2, .9, .3, 1.2) forwards; }
+.np-heart { position: absolute; z-index: 2; left: 37%; top: 37%; width: 26%; aspect-ratio: 1; pointer-events: none; color: #ff3d7f; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); animation: np-heart .9s cubic-bezier(.2, .9, .3, 1.2) forwards; }
 .np-heart .i { width: 100%; height: 100%; }
 @keyframes np-heart { 0% { opacity: 0; transform: scale(.3); } 22% { opacity: 1; transform: scale(1.15); } 40% { transform: scale(.95); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.05) translateY(-14%); } }
 .np-heart.off { animation-name: np-heart-off; animation-duration: .7s; }
