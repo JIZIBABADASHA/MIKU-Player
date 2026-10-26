@@ -186,6 +186,30 @@ const NowPlaying = {
     const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: on ? heart : `<i class="l">${heart}</i><i class="r">${heart}</i>` });
     cover.append(el);
     setTimeout(() => el.remove(), 2700);
+    if (on) this.ripple(cover);
+  },
+
+  /**
+   * Added to the favourites: the cover gives under the double-click and springs back, and as it does rings in the
+   * heart's colour leave its edge and spread over the page behind it, fast then slowing, each fainter than the last
+   * (app.css np-ripple; in a layer of their own between the background and .np-wrap).
+   */
+  ripple(cover) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page')) return;
+    const np = $('#np');
+    let layer = np.querySelector('.np-ripples');
+    if (!layer) np.insertBefore(layer = h('div', { class: 'np-ripples' }), np.querySelector('.np-wrap'));
+    // the press: in, then a little past its size and back (scale: apart from the paused cover's transform)
+    cover.animate([{ scale: 1 }, { scale: .96, offset: .3 }, { scale: 1.03, offset: .7 }, { scale: 1 }], { duration: 350, easing: 'ease-out' });
+    const r = cover.getBoundingClientRect(), p = np.getBoundingClientRect();
+    [.8, .5, .3].forEach((strength, i) => {
+      const ring = h('div', { class: 'np-ripple' });
+      Object.assign(ring.style, { left: r.left - p.left + 'px', top: r.top - p.top + 'px', width: r.width + 'px', height: r.height + 'px',
+        animationDelay: 150 + i * 180 + 'ms' });   // the first as the cover springs back out
+      ring.style.setProperty('--np-ripple', strength);
+      ring.addEventListener('animationend', () => ring.remove());
+      layer.append(ring);
+    });
   },
 
   /* paints cover, background and text for the current track */
