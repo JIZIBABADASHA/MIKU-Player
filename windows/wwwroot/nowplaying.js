@@ -190,9 +190,9 @@ const NowPlaying = {
   },
 
   /**
-   * Added to the favourites: the cover gives under the double-click and springs back, and as it does rings in the
-   * heart's colour leave its edge and spread over the page behind it, fast then slowing, each fainter than the last
-   * (app.css np-ripple; in a layer of their own between the background and .np-wrap).
+   * Added to the favourites: the cover gives under the double-click and springs back, and as it does, as from a drop on
+   * water, soft round waves leave from behind it and spread over the page, fast then slowing, each fainter than the
+   * last (app.css np-ripple; in a layer of their own between the background and .np-wrap).
    */
   ripple(cover) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page')) return;
@@ -202,11 +202,14 @@ const NowPlaying = {
     // the press: in, then a little past its size and back (scale: apart from the paused cover's transform)
     cover.animate([{ scale: 1 }, { scale: .96, offset: .3 }, { scale: 1.03, offset: .7 }, { scale: 1 }], { duration: 350, easing: 'ease-out' });
     const r = cover.getBoundingClientRect(), p = np.getBoundingClientRect();
-    [.8, .5, .3].forEach((strength, i) => {
+    // a wave's full size: well past the page's corners; it starts about half the cover's, hidden behind it
+    const size = 1.6 * Math.hypot(p.width, p.height), x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
+    [.36, .24, .15].forEach((strength, i) => {
       const ring = h('div', { class: 'np-ripple' });
-      Object.assign(ring.style, { left: r.left - p.left + 'px', top: r.top - p.top + 'px', width: r.width + 'px', height: r.height + 'px',
+      Object.assign(ring.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px',
         animationDelay: 150 + i * 180 + 'ms' });   // the first as the cover springs back out
       ring.style.setProperty('--np-ripple', strength);
+      ring.style.setProperty('--np-ripple-from', (r.width * .55 / size).toFixed(4));
       ring.addEventListener('animationend', () => ring.remove());
       layer.append(ring);
     });
