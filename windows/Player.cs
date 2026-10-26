@@ -171,7 +171,9 @@ public sealed class Player
             catch (Exception ex) { Error?.Invoke(ex.Message); NowChanged?.Invoke(); return; }
         }
         await Engine.LoadAsync(t, pos, play);
-        if (Engine.IsLoaded) { _failures = 0; if (play) { Started(t); EnsureAutoNext(); } }
+        // loaded paused (previous / next while paused): a module going on with the queue is still asked if this is its
+        // last track, or nothing comes after it when play goes on; no random songs until it plays
+        if (Engine.IsLoaded) { _failures = 0; if (play) { Started(t); EnsureAutoNext(); } else EnsureAutoNext(false); }
         // only skip ahead for an unreadable file; if the DAC couldn't be opened every track would fail the same way,
         // so stay on the chosen one (the error is shown) instead of jumping to the next song
         else if (play && !Engine.LastFailureWasDevice && ++_failures < 3 && Engine.Track == t)
