@@ -1555,9 +1555,23 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 #np.paused .np-cover { transform: scale(.94); }
 /* a double-click on the cover: the track is a favourite (nowplaying.js heartPop) */
 .np-cover { user-select: none; }
-.np-heart { position: absolute; z-index: 2; width: 26%; aspect-ratio: 1; margin: -13% 0 0 -13%; pointer-events: none; color: #ff3d7f; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); animation: np-heart .9s cubic-bezier(.2, .9, .3, 1.2) forwards; }
-.np-heart .i { width: 100%; height: 100%; }
-@keyframes np-heart { 0% { opacity: 0; transform: scale(.3); } 22% { opacity: 1; transform: scale(1.15); } 40% { transform: scale(.95); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.05) translateY(-14%); } }
+.np-heart { position: absolute; z-index: 2; left: 37%; top: 37%; width: 26%; aspect-ratio: 1; pointer-events: none; color: #ff3d7f; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); animation: np-heart .9s cubic-bezier(.2, .9, .3, 1.2) forwards; }
+.np-heart .i { width: 100%; height: 100%; transform: translateY(-2%); }   /* i-heartf is drawn .48 of 24 low in its box (y 5.37–19.6): centred on the cover */
+@keyframes np-heart { 0% { opacity: 0; transform: scale(.3); } 22% { opacity: 1; transform: scale(1.15); } 40% { transform: scale(.95); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.05); } }
+.np-heart.off { animation: none; }
+.np-heart.off > i { position: absolute; inset: 0; animation: 1.5s linear forwards; }
+.np-heart.off > i.l { clip-path: polygon(0 0, 52% 0, 44% 30%, 56% 50%, 46% 72%, 50% 100%, 0 100%); animation-name: np-heart-l; }
+.np-heart.off > i.r { clip-path: polygon(52% 0, 100% 0, 100% 100%, 50% 100%, 46% 72%, 56% 50%, 44% 30%); animation-name: np-heart-r; }
+@keyframes np-heart-l { 0% { opacity: 0; transform: scale(.4); animation-timing-function: cubic-bezier(.2, .9, .3, 1.3); } 14.7% { opacity: 1; transform: scale(1.1); } 21.3%, 29.3% { opacity: 1; transform: none; filter: none; animation-timing-function: cubic-bezier(.3, 1.6, .5, 1); } 37.3%, 69.3% { opacity: 1; transform: translateX(-7%) rotate(-9deg); filter: grayscale(.7); animation-timing-function: cubic-bezier(.5, 0, .9, .5); } 100% { opacity: 0; transform: translate(-26%, 60%) rotate(-32deg); filter: grayscale(1) brightness(.8); } }
+@keyframes np-heart-r { 0% { opacity: 0; transform: scale(.4); animation-timing-function: cubic-bezier(.2, .9, .3, 1.3); } 14.7% { opacity: 1; transform: scale(1.1); } 21.3%, 29.3% { opacity: 1; transform: none; filter: none; animation-timing-function: cubic-bezier(.3, 1.6, .5, 1); } 37.3%, 69.3% { opacity: 1; transform: translateX(7%) rotate(9deg); filter: grayscale(.7); animation-timing-function: cubic-bezier(.5, 0, .9, .5); } 100% { opacity: 0; transform: translate(26%, 60%) rotate(32deg); filter: grayscale(1) brightness(.8); } }
+/* added to the favourites: two thin rings as from a drop on water spread from the cover out past the window (nowplaying.js ripple), above the background */
+.np-ripples { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+/* a ring: a thin soft light line with a faint pink tint and a faint shade outside it (seen on light pages too) */
+.np-ripple { position: absolute; border-radius: 50%; opacity: 0; pointer-events: none; will-change: scale, opacity;
+  background: radial-gradient(circle closest-side, transparent calc(100% - var(--np-ripple-band, 1%)), rgba(255, 200, 222, 1) calc(100% - var(--np-ripple-band, 1%) * .55),
+    rgba(var(--np-ink, 255, 255, 255), .38) calc(100% - var(--np-ripple-band, 1%) * .2), transparent 100%);
+  animation: np-ripple 2.4s cubic-bezier(.25, .6, .4, 1) both; }
+@keyframes np-ripple { 0% { opacity: var(--np-ripple, .4); scale: var(--np-ripple-from, .3); } 70% { opacity: calc(var(--np-ripple, .4) * .7); } 100% { opacity: 0; scale: 1; } }
 .np-info { margin-top: 22px; width: clamp(260px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); }
 /* positioned so the text paints above the cover's big drop shadow (it fell on the title and greyed it) */
 .np-title, .np-artist, .np-badges { position: relative; }

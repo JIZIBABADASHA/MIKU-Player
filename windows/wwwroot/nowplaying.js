@@ -37,14 +37,14 @@ const NowPlaying = {
       } catch { toast(T('自動對齊失敗')); }
       finally { b.disabled = false; b.textContent = T('自動'); }
     };
-    // a double-click on the cover adds the track to the favourites (never takes it out): a heart pops on the cover
+    // a double-click on the cover adds the track to the favourites, or takes a favourite out: a heart pops on the cover,
+    // or shrinks away
     $('#np-cover').addEventListener('dblclick', e => {
       e.preventDefault();
       getSelection()?.removeAllRanges();
       const t = App.track();
       if (!t || t.live) return;
-      if (!App.favs.has(t.id)) App.toggleFav(t.id);
-      this.heartPop(e);
+      this.heartPop(App.toggleFav(t.id));
     });
     $('#np-cand').onclick = e => { e.stopPropagation(); this.togglePicker(); };
     document.addEventListener('click', e => { const p = $('#ly-pick'); if (!p.hidden && !p.contains(e.target)) p.hidden = true; });
@@ -177,15 +177,45 @@ const NowPlaying = {
         } }, T('都不對，不要顯示歌詞'))));
   },
 
-  /** The heart on the cover after a double-click: where it was clicked, popping in and fading out. */
-  heartPop(e) {
-    const cover = $('#np-cover'), r = cover.getBoundingClientRect();
+  /** The heart in the middle of the cover after a double-click: popping in (on) or shrinking away (off). */
+  heartPop(on) {
+    const cover = $('#np-cover');
     cover.querySelector('.np-heart')?.remove();
-    const el = h('div', { class: 'np-heart', html: '<svg class="i"><use href="#i-heartf"/></svg>' });
-    el.style.left = (e.clientX - r.left) + 'px';
-    el.style.top = (e.clientY - r.top) + 'px';
+    // taken out: the heart breaks in two, the halves falling apart (np-heart-l / -r)
+    const heart = '<svg class="i"><use href="#i-heartf"/></svg>';
+    const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: on ? heart : `<i class="l">${heart}</i><i class="r">${heart}</i>` });
     cover.append(el);
-    el.addEventListener('animationend', () => el.remove());
+    setTimeout(() => el.remove(), 1600);
+    if (on) this.ripple(cover);
+  },
+
+  /**
+   * Added to the favourites: the cover gives under the double-click and springs back, and as it does two thin soft
+   * rings, as from a drop on water, leave from just around it and slowly spread out past the window's edges (app.css
+   * np-ripple; in a layer of their own between the background and .np-wrap).
+   */
+  ripple(cover) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page')) return;
+    const np = $('#np');
+    let layer = np.querySelector('.np-ripples');
+    if (!layer) np.insertBefore(layer = h('div', { class: 'np-ripples' }), np.querySelector('.np-wrap'));
+    // the press: in, then a little past its size and back (scale: apart from the paused cover's transform)
+    cover.animate([{ scale: 1 }, { scale: .96, offset: .3 }, { scale: 1.03, offset: .7 }, { scale: 1 }], { duration: 350, easing: 'ease-out' });
+    const r = cover.getBoundingClientRect(), p = np.getBoundingClientRect();
+    // a ring's full size: past the window's farthest corner from the cover; it starts just around the cover's edge, its band
+    // (--np-ripple-band, of its radius) about 7 px wide at the end
+    const x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
+    const size = 2 * Math.hypot(Math.max(x, p.width - x), Math.max(y, p.height - y)) + 40;
+    [.85, .55].forEach((strength, i) => {
+      const ring = h('div', { class: 'np-ripple' });
+      Object.assign(ring.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px',
+        animationDelay: 150 + i * 400 + 'ms' });   // the first as the cover springs back out
+      ring.style.setProperty('--np-ripple', strength);
+      ring.style.setProperty('--np-ripple-from', (1.05 * r.width / size).toFixed(4));
+      ring.style.setProperty('--np-ripple-band', (1400 / size).toFixed(3) + '%');
+      ring.addEventListener('animationend', () => ring.remove());
+      layer.append(ring);
+    });
   },
 
   /* paints cover, background and text for the current track */
