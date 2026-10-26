@@ -1989,7 +1989,8 @@ const Queue = {
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't' }, t.title), h('div', { class: 'a' }, t.artist)),
         (i > index && MikuExt.queueRow(App.queue, id, i)) ||
           h('button', { class: 'icon-btn x', title: T('移除'), html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
-      r.ondblclick = () => Host.call('queue.jump', { i });
+      // one click plays the row (a button in it, × or a module's, does its own thing); the track playing: on if paused
+      r.onclick = e => { if (e.target.closest('button')) return; if (i !== index) Host.call('queue.jump', { i }); else if (!App.state.playing) Host.call('toggle'); };
       r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }); };
       r.ondragstart = e => { e.dataTransfer.setData('text/plain', i); r.classList.add('dragging'); };
       r.ondragend = () => r.classList.remove('dragging');
