@@ -478,7 +478,9 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .pop.menu-pop { animation-name: popFade; }
 @keyframes popFade { from { opacity: 0; } to { opacity: 1; } }
 .menu { padding: 6px; min-width: 210px; }
-.menu button { display: flex; width: 100%; align-items: center; gap: 12px; height: 36px; padding: 0 12px; border-radius: 8px; color: var(--text); font-size: 13.5px; text-align: left; }
+/* the press ripple stays inside its item: outside it the menu (scrolling, overflow: auto) grew a scrollbar while it
+   spread, moved up when it opened upwards, and a press near an item's lower edge was released on another (no click) */
+.menu button { position: relative; overflow: hidden; display: flex; width: 100%; align-items: center; gap: 12px; height: 36px; padding: 0 12px; border-radius: 8px; color: var(--text); font-size: 13.5px; text-align: left; }
 .menu button:hover { background: rgba(var(--ink), .08); }
 .menu button svg.i { width: 18px; height: 18px; color: var(--text-2); }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 5px 4px; }
