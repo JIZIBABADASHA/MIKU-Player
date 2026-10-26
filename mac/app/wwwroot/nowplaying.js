@@ -190,9 +190,9 @@ const NowPlaying = {
   },
 
   /**
-   * Added to the favourites: the cover gives under the double-click and springs back, and as it does, as from a drop on
-   * water, soft round waves leave from behind it and spread over the page, fast then slowing, each fainter than the
-   * last (app.css np-ripple; in a layer of their own between the background and .np-wrap).
+   * Added to the favourites: the cover gives under the double-click and springs back, and as it does two thin soft
+   * rings, as from a drop on water, leave from just around it and slowly spread a little way out, fading (app.css
+   * np-ripple; in a layer of their own between the background and .np-wrap).
    */
   ripple(cover) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page')) return;
@@ -202,14 +202,14 @@ const NowPlaying = {
     // the press: in, then a little past its size and back (scale: apart from the paused cover's transform)
     cover.animate([{ scale: 1 }, { scale: .96, offset: .3 }, { scale: 1.03, offset: .7 }, { scale: 1 }], { duration: 350, easing: 'ease-out' });
     const r = cover.getBoundingClientRect(), p = np.getBoundingClientRect();
-    // a wave's full size: well past the page's corners; it starts about half the cover's, hidden behind it
-    const size = 1.6 * Math.hypot(p.width, p.height), x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
-    [.36, .24, .15].forEach((strength, i) => {
+    // a ring's full size: about twice the cover's; it starts just around the cover's edge
+    const size = 1.9 * r.width, x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
+    [.55, .32].forEach((strength, i) => {
       const ring = h('div', { class: 'np-ripple' });
       Object.assign(ring.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px',
-        animationDelay: 150 + i * 180 + 'ms' });   // the first as the cover springs back out
+        animationDelay: 150 + i * 400 + 'ms' });   // the first as the cover springs back out
       ring.style.setProperty('--np-ripple', strength);
-      ring.style.setProperty('--np-ripple-from', (r.width * .55 / size).toFixed(4));
+      ring.style.setProperty('--np-ripple-from', (1.05 * r.width / size).toFixed(4));
       ring.addEventListener('animationend', () => ring.remove());
       layer.append(ring);
     });

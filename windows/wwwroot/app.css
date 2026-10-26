@@ -1564,15 +1564,13 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .np-heart.off > i.r { clip-path: polygon(52% 0, 100% 0, 100% 100%, 50% 100%, 46% 72%, 56% 50%, 44% 30%); animation-name: np-heart-r; }
 @keyframes np-heart-l { 0% { opacity: 0; transform: scale(.4); animation-timing-function: cubic-bezier(.2, .9, .3, 1.3); } 11% { opacity: 1; transform: scale(1.1); } 16%, 22% { opacity: 1; transform: none; filter: none; animation-timing-function: cubic-bezier(.3, 1.6, .5, 1); } 28%, 52% { opacity: 1; transform: translateX(-7%) rotate(-9deg); filter: grayscale(.7); animation-timing-function: cubic-bezier(.5, 0, .9, .5); } 100% { opacity: 0; transform: translate(-26%, 60%) rotate(-32deg); filter: grayscale(1) brightness(.8); } }
 @keyframes np-heart-r { 0% { opacity: 0; transform: scale(.4); animation-timing-function: cubic-bezier(.2, .9, .3, 1.3); } 11% { opacity: 1; transform: scale(1.1); } 16%, 22% { opacity: 1; transform: none; filter: none; animation-timing-function: cubic-bezier(.3, 1.6, .5, 1); } 28%, 52% { opacity: 1; transform: translateX(7%) rotate(9deg); filter: grayscale(.7); animation-timing-function: cubic-bezier(.5, 0, .9, .5); } 100% { opacity: 0; transform: translate(26%, 60%) rotate(32deg); filter: grayscale(1) brightness(.8); } }
-/* added to the favourites: waves as from a drop on water spread from behind the cover (nowplaying.js ripple), above the background */
+/* added to the favourites: two thin rings as from a drop on water spread a little way from the cover (nowplaying.js ripple), above the background */
 .np-ripples { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
-/* a wave: a soft round crest with a faint trough outside it and a hint of the heart's pink before it, no line; its width
-   grows with it (the gradient is in the wave's own size) */
+/* a ring: a thin soft light line with a faint pink tint and a faint shade outside it (seen on light pages too) */
 .np-ripple { position: absolute; border-radius: 50%; opacity: 0; pointer-events: none; will-change: scale, opacity;
-  background: radial-gradient(circle closest-side, transparent 85%, rgba(255, 61, 127, .22) 89.5%, rgba(255, 255, 255, .9) 93%,
-    rgba(var(--np-ink, 255, 255, 255), .32) 96.5%, transparent 100%);
-  animation: np-ripple 1.1s cubic-bezier(.1, .6, .3, 1) both; }
-@keyframes np-ripple { 0% { opacity: var(--np-ripple, .3); scale: var(--np-ripple-from, .2); } 55% { opacity: calc(var(--np-ripple, .3) * .7); } 100% { opacity: 0; scale: 1; } }
+  background: radial-gradient(circle closest-side, transparent 97.2%, rgba(255, 225, 236, .95) 98.5%, rgba(var(--np-ink, 255, 255, 255), .28) 99.4%, transparent 100%);
+  animation: np-ripple 1.9s cubic-bezier(.2, .6, .35, 1) both; }
+@keyframes np-ripple { 0% { opacity: var(--np-ripple, .4); scale: var(--np-ripple-from, .55); } 100% { opacity: 0; scale: 1; } }
 .np-info { margin-top: 22px; width: clamp(260px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); }
 /* positioned so the text paints above the cover's big drop shadow (it fell on the title and greyed it) */
 .np-title, .np-artist, .np-badges { position: relative; }
