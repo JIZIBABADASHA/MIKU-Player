@@ -181,9 +181,11 @@ const NowPlaying = {
   heartPop(on) {
     const cover = $('#np-cover');
     cover.querySelector('.np-heart')?.remove();
-    const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: '<svg class="i"><use href="#i-heartf"/></svg>' });
+    // taken out: the heart breaks in two, the halves falling apart (np-heart-l / -r)
+    const heart = '<svg class="i"><use href="#i-heartf"/></svg>';
+    const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: on ? heart : `<i class="l">${heart}</i><i class="r">${heart}</i>` });
     cover.append(el);
-    el.addEventListener('animationend', () => el.remove());
+    setTimeout(() => el.remove(), 1600);
   },
 
   /* paints cover, background and text for the current track */
