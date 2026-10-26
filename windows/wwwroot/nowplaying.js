@@ -37,14 +37,14 @@ const NowPlaying = {
       } catch { toast(T('自動對齊失敗')); }
       finally { b.disabled = false; b.textContent = T('自動'); }
     };
-    // a double-click on the cover adds the track to the favourites (never takes it out): a heart pops on the cover
+    // a double-click on the cover adds the track to the favourites, or takes a favourite out: a heart pops on the cover,
+    // or shrinks away
     $('#np-cover').addEventListener('dblclick', e => {
       e.preventDefault();
       getSelection()?.removeAllRanges();
       const t = App.track();
       if (!t || t.live) return;
-      if (!App.favs.has(t.id)) App.toggleFav(t.id);
-      this.heartPop(e);
+      this.heartPop(e, App.toggleFav(t.id));
     });
     $('#np-cand').onclick = e => { e.stopPropagation(); this.togglePicker(); };
     document.addEventListener('click', e => { const p = $('#ly-pick'); if (!p.hidden && !p.contains(e.target)) p.hidden = true; });
@@ -177,11 +177,11 @@ const NowPlaying = {
         } }, T('都不對，不要顯示歌詞'))));
   },
 
-  /** The heart on the cover after a double-click: where it was clicked, popping in and fading out. */
-  heartPop(e) {
+  /** The heart on the cover after a double-click, where it was clicked: popping in (on) or shrinking away (off). */
+  heartPop(e, on) {
     const cover = $('#np-cover'), r = cover.getBoundingClientRect();
     cover.querySelector('.np-heart')?.remove();
-    const el = h('div', { class: 'np-heart', html: '<svg class="i"><use href="#i-heartf"/></svg>' });
+    const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: '<svg class="i"><use href="#i-heartf"/></svg>' });
     el.style.left = (e.clientX - r.left) + 'px';
     el.style.top = (e.clientY - r.top) + 'px';
     cover.append(el);
