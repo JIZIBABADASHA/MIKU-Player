@@ -165,8 +165,8 @@ class Player extends EventEmitter {
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
     if (wasCurrent) { const t = this.current; if (t) this.load(t, 0, this.engine.isPlaying); else { this.left(this.engine.position, true, false); this.engine.stop(); } }
     // the queue may now end with the track playing: a module going on with it is asked at once (a track it had
-    // picked taken out, e.g. after a 👎: the next pick knows it), not only when the track is over
-    else if (this.engine.isPlaying) this.ensureAutoNext(false);
+    // picked taken out, e.g. after a 👎: the next pick knows it), not only when the track is over; paused too
+    else if (this.engine.isLoaded) this.ensureAutoNext(false);
   }
   move(from, to) {
     if (from < 0 || from >= this.queue.length || to < 0 || to >= this.queue.length || from === to) return;
@@ -209,7 +209,7 @@ class Player extends EventEmitter {
    * Auto continue: when the last song in the queue is playing, add more so playback never stops: what a module chooses
    * (「佇列播完後」 = similar, or the queue is the module's own list, e.g. its radio), or a random album or a few random
    * songs from the library (albums / songs played recently are avoided while there are others left).
-   * random false: only a module going on with the queue is asked (its end changed while a track plays); no random songs yet.
+   * random false: only a module going on with the queue is asked (its end changed while a track plays or is paused); no random songs yet.
    */
   ensureAutoNext(random = true) {
     if (this.s.repeat !== 'off') return;
@@ -230,7 +230,7 @@ class Player extends EventEmitter {
         this.asking = false;
         if (this.queue.length !== count || this.index !== count - 1) {
           // the queue changed meanwhile (a pick taken out after a vote): asked again if it still ends at the track playing
-          if (this.queue.length && this.index === this.queue.length - 1 && this.engine.isPlaying) this.ensureAutoNext(false);
+          if (this.queue.length && this.index === this.queue.length - 1 && this.engine.isLoaded) this.ensureAutoNext(false);
           return;
         }
         const valid = (add || []).filter(id => this.lib.getTrack(id));

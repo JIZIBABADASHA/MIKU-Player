@@ -354,8 +354,8 @@ public sealed class Player
             else { Left(Engine.Position, true, false); Engine.Stop(); }
         }
         // the queue may now end with the track playing: a module going on with it is asked at once (a track it had
-        // picked taken out, e.g. after a 👎: the next pick knows it), not only when the track is over
-        else if (Engine.IsPlaying) EnsureAutoNext(false);
+        // picked taken out, e.g. after a 👎: the next pick knows it), not only when the track is over; paused too
+        else if (Engine.IsLoaded) EnsureAutoNext(false);
     }
 
     public void Move(int from, int to)
@@ -443,7 +443,7 @@ public sealed class Player
     /// </summary>
     public void EnsureAutoNext() => EnsureAutoNext(true);
 
-    /// <param name="random">false: only a module going on with the queue is asked (its end changed while a track plays); no random songs yet.</param>
+    /// <param name="random">false: only a module going on with the queue is asked (its end changed while a track plays or is paused); no random songs yet.</param>
     void EnsureAutoNext(bool random)
     {
         if (_s.Repeat != "off") return;
@@ -491,7 +491,7 @@ public sealed class Player
                     added = true;
                 }
             }
-            if (again) { if (Engine.IsPlaying) EnsureAutoNext(false); }
+            if (again) { if (Engine.IsLoaded) EnsureAutoNext(false); }
             else if (added)
             {
                 Engine.InvalidateNext();
