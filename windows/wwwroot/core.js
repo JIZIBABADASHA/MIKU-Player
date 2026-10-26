@@ -967,8 +967,10 @@ const App = {
       // over Now Playing (brought back with the 「顯示播放列」 handle): the same click puts the bar away again
       else if (window.BarPeek && BarPeek.on) BarPeek.hide();
     });
-    $('#b-title').onclick = () => { const t = this.track(); if (t) go(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
-    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return go('#/ytmusic'); if (t) go('#/artist/' + encodeURIComponent(mainArtist(t))); };
+    // the bar's title and artist go to their page: off the full-screen now-playing page first, as its own links do
+    const barGo = hash => { NowPlaying.hide(); go(hash); };
+    $('#b-title').onclick = () => { const t = this.track(); if (t) barGo(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
+    $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return barGo('#/ytmusic'); if (t) barGo('#/artist/' + encodeURIComponent(mainArtist(t))); };
     $('#b-queue').onclick = () => Drawer.toggle('queue');
     $('#b-dsp').onclick = () => Drawer.toggle('dsp');
     $('#b-sig').onclick = e => SignalPop.toggle(e.currentTarget);
