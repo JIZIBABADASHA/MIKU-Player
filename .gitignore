@@ -3,6 +3,7 @@ bin/
 obj/
 dist/
 /MIKU/
+/MIKU-new/
 /MIKU-Setup/
 /Extensions/
 /artifacts/
