@@ -353,6 +353,9 @@ public sealed class Player
             if (t != null) _ = Load(t, 0, Engine.IsPlaying);
             else { Left(Engine.Position, true, false); Engine.Stop(); }
         }
+        // the queue may now end with the track playing: a module going on with it is asked at once (a track it had
+        // picked taken out, e.g. after a 👎: the next pick knows it), not only when the track is over; paused too
+        else if (Engine.IsLoaded) EnsureAutoNext(false);
     }
 
     public void Move(int from, int to)
@@ -438,7 +441,10 @@ public sealed class Player
     /// chooses (「佇列播完後」 = similar, or the queue is the module's own list, e.g. its radio), or a random album or a
     /// few random songs from the library (albums / songs played recently are avoided while there are others left).
     /// </summary>
-    public void EnsureAutoNext()
+    public void EnsureAutoNext() => EnsureAutoNext(true);
+
+    /// <param name="random">false: only a module going on with the queue is asked (its end changed while a track plays or is paused); no random songs yet.</param>
+    void EnsureAutoNext(bool random)
     {
         if (_s.Repeat != "off") return;
         string mode = _s.AutoContinue;
@@ -447,7 +453,7 @@ public sealed class Player
         if (src is { ValueKind: JsonValueKind.Object } o && o.TryGetProperty("ext", out var e) && e.ValueKind == JsonValueKind.String) ext = e.GetString();
         bool chosen = mode == "similar" && Continuation != null;
         if (chosen || Continuation != null && ext != null && ext == ContinuationId) { AskContinuation(chosen, src); return; }
-        AddRandom(mode == "similar" ? "tracks" : mode);   // similar without its module: random songs
+        if (random) AddRandom(mode == "similar" ? "tracks" : mode);   // similar without its module: random songs
     }
 
     /// <summary>Asks the module what comes after the last track (in the background) and adds it; random songs when it has none and 「佇列播完後」 chose it.</summary>
@@ -469,11 +475,14 @@ public sealed class Player
             try { add = await ask(played, src, chosen).WaitAsync(TimeSpan.FromSeconds(10)); }
             catch (Exception ex) { Log.Error("[ext] continue", ex); }
             finally { Interlocked.Exchange(ref _asking, 0); }
-            bool added = false;
+            bool added = false, again;
             lock (_lock)
             {
-                if (_queue.Count != count || _index != count - 1) return;   // the queue changed meanwhile
-                var valid = (add ?? Array.Empty<string>()).Where(id => _lib.GetTrack(id) != null).ToList();
+                // the queue changed meanwhile (a pick taken out after a vote): asked again if it still ends at the track playing
+                bool changed = _queue.Count != count || _index != count - 1;
+                again = changed && _queue.Count > 0 && _index == _queue.Count - 1;
+                if (changed && !again) return;
+                var valid = changed ? new List<string>() : (add ?? Array.Empty<string>()).Where(id => _lib.GetTrack(id) != null).ToList();
                 if (valid.Count > 0)
                 {
                     if (chosen && _continuedFrom < 0) _continuedFrom = _queue.Count;   // the module's own list (a radio) is all its own already
@@ -482,7 +491,8 @@ public sealed class Player
                     added = true;
                 }
             }
-            if (added)
+            if (again) { if (Engine.IsLoaded) EnsureAutoNext(false); }
+            else if (added)
             {
                 Engine.InvalidateNext();
                 Persist();
