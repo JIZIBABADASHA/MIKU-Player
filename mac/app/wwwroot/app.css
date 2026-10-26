@@ -1553,6 +1553,11 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .np-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s var(--ease); }
 .np-cover img.ok { opacity: 1; }
 #np.paused .np-cover { transform: scale(.94); }
+/* a double-click on the cover: the track is a favourite (nowplaying.js heartPop) */
+.np-cover { user-select: none; }
+.np-heart { position: absolute; z-index: 2; width: 26%; aspect-ratio: 1; margin: -13% 0 0 -13%; pointer-events: none; color: #ff3d7f; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .35)); animation: np-heart .9s cubic-bezier(.2, .9, .3, 1.2) forwards; }
+.np-heart .i { width: 100%; height: 100%; }
+@keyframes np-heart { 0% { opacity: 0; transform: scale(.3); } 22% { opacity: 1; transform: scale(1.15); } 40% { transform: scale(.95); } 70% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.05) translateY(-14%); } }
 .np-info { margin-top: 22px; width: clamp(260px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); }
 /* positioned so the text paints above the cover's big drop shadow (it fell on the title and greyed it) */
 .np-title, .np-artist, .np-badges { position: relative; }

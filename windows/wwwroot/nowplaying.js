@@ -37,6 +37,15 @@ const NowPlaying = {
       } catch { toast(T('自動對齊失敗')); }
       finally { b.disabled = false; b.textContent = T('自動'); }
     };
+    // a double-click on the cover adds the track to the favourites (never takes it out): a heart pops on the cover
+    $('#np-cover').addEventListener('dblclick', e => {
+      e.preventDefault();
+      getSelection()?.removeAllRanges();
+      const t = App.track();
+      if (!t || t.live) return;
+      if (!App.favs.has(t.id)) App.toggleFav(t.id);
+      this.heartPop(e);
+    });
     $('#np-cand').onclick = e => { e.stopPropagation(); this.togglePicker(); };
     document.addEventListener('click', e => { const p = $('#ly-pick'); if (!p.hidden && !p.contains(e.target)) p.hidden = true; });
     const box = $('#lyrics');
@@ -166,6 +175,17 @@ const NowPlaying = {
           this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
           toast(T('已回報，這首歌不再自動顯示錯誤的歌詞'));
         } }, T('都不對，不要顯示歌詞'))));
+  },
+
+  /** The heart on the cover after a double-click: where it was clicked, popping in and fading out. */
+  heartPop(e) {
+    const cover = $('#np-cover'), r = cover.getBoundingClientRect();
+    cover.querySelector('.np-heart')?.remove();
+    const el = h('div', { class: 'np-heart', html: '<svg class="i"><use href="#i-heartf"/></svg>' });
+    el.style.left = (e.clientX - r.left) + 'px';
+    el.style.top = (e.clientY - r.top) + 'px';
+    cover.append(el);
+    el.addEventListener('animationend', () => el.remove());
   },
 
   /* paints cover, background and text for the current track */
