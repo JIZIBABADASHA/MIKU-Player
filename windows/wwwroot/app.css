@@ -1568,7 +1568,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .np-ripples { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
 /* a ring: a thin soft light line with a faint pink tint and a faint shade outside it (seen on light pages too) */
 .np-ripple { position: absolute; border-radius: 50%; opacity: 0; pointer-events: none; will-change: scale, opacity;
-  background: radial-gradient(circle closest-side, transparent 97.2%, rgba(255, 225, 236, .95) 98.5%, rgba(var(--np-ink, 255, 255, 255), .28) 99.4%, transparent 100%);
+  background: radial-gradient(circle closest-side, transparent 96.7%, rgba(255, 200, 222, 1) 98.2%, rgba(var(--np-ink, 255, 255, 255), .38) 99.3%, transparent 100%);
   animation: np-ripple 1.9s cubic-bezier(.2, .6, .35, 1) both; }
 @keyframes np-ripple { 0% { opacity: var(--np-ripple, .4); scale: var(--np-ripple-from, .55); } 100% { opacity: 0; scale: 1; } }
 .np-info { margin-top: 22px; width: clamp(260px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); }

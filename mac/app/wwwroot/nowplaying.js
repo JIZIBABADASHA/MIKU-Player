@@ -202,9 +202,9 @@ const NowPlaying = {
     // the press: in, then a little past its size and back (scale: apart from the paused cover's transform)
     cover.animate([{ scale: 1 }, { scale: .96, offset: .3 }, { scale: 1.03, offset: .7 }, { scale: 1 }], { duration: 350, easing: 'ease-out' });
     const r = cover.getBoundingClientRect(), p = np.getBoundingClientRect();
-    // a ring's full size: about twice the cover's; it starts just around the cover's edge
-    const size = 1.9 * r.width, x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
-    [.55, .32].forEach((strength, i) => {
+    // a ring's full size: about 2.4 times the cover's; it starts just around the cover's edge
+    const size = 2.4 * r.width, x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
+    [.85, .55].forEach((strength, i) => {
       const ring = h('div', { class: 'np-ripple' });
       Object.assign(ring.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px',
         animationDelay: 150 + i * 400 + 'ms' });   // the first as the cover springs back out
