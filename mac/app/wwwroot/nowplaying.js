@@ -185,7 +185,7 @@ const NowPlaying = {
     const heart = '<svg class="i"><use href="#i-heartf"/></svg>';
     const el = h('div', { class: 'np-heart' + (on ? '' : ' off'), html: on ? heart : `<i class="l">${heart}</i><i class="r">${heart}</i>` });
     cover.append(el);
-    setTimeout(() => el.remove(), 1600);
+    setTimeout(() => el.remove(), 2700);
   },
 
   /* paints cover, background and text for the current track */
