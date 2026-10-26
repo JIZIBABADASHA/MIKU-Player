@@ -76,7 +76,9 @@ class Player extends EventEmitter {
       if (this.current !== t) return;   // something else was chosen meanwhile
     }
     await this.engine.load(t, pos, play);
-    if (this.engine.isLoaded) { this.failures = 0; if (play) { this.started(t); this.ensureAutoNext(); } }
+    // loaded paused (previous / next while paused): a module going on with the queue is still asked if this is its last
+    // track, or nothing comes after it when play goes on; no random songs until it plays
+    if (this.engine.isLoaded) { this.failures = 0; if (play) { this.started(t); this.ensureAutoNext(); } else this.ensureAutoNext(false); }
     // only when this very load failed: a load replaced by a newer one (output switch, reopening) must not skip ahead
     else if (play && this.engine.loadFailed && !this.engine.lastFailureWasDevice && this.engine.track === t && ++this.failures < 3) {
       // unreadable file: move on rather than stalling the queue
