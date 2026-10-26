@@ -191,7 +191,7 @@ const NowPlaying = {
 
   /**
    * Added to the favourites: the cover gives under the double-click and springs back, and as it does two thin soft
-   * rings, as from a drop on water, leave from just around it and slowly spread a little way out, fading (app.css
+   * rings, as from a drop on water, leave from just around it and slowly spread out past the window's edges (app.css
    * np-ripple; in a layer of their own between the background and .np-wrap).
    */
   ripple(cover) {
@@ -202,14 +202,17 @@ const NowPlaying = {
     // the press: in, then a little past its size and back (scale: apart from the paused cover's transform)
     cover.animate([{ scale: 1 }, { scale: .96, offset: .3 }, { scale: 1.03, offset: .7 }, { scale: 1 }], { duration: 350, easing: 'ease-out' });
     const r = cover.getBoundingClientRect(), p = np.getBoundingClientRect();
-    // a ring's full size: about 2.4 times the cover's; it starts just around the cover's edge
-    const size = 2.4 * r.width, x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
+    // a ring's full size: past the window's farthest corner from the cover; it starts just around the cover's edge, its band
+    // (--np-ripple-band, of its radius) about 7 px wide at the end
+    const x = r.left + r.width / 2 - p.left, y = r.top + r.height / 2 - p.top;
+    const size = 2 * Math.hypot(Math.max(x, p.width - x), Math.max(y, p.height - y)) + 40;
     [.85, .55].forEach((strength, i) => {
       const ring = h('div', { class: 'np-ripple' });
       Object.assign(ring.style, { left: x - size / 2 + 'px', top: y - size / 2 + 'px', width: size + 'px', height: size + 'px',
         animationDelay: 150 + i * 400 + 'ms' });   // the first as the cover springs back out
       ring.style.setProperty('--np-ripple', strength);
       ring.style.setProperty('--np-ripple-from', (1.05 * r.width / size).toFixed(4));
+      ring.style.setProperty('--np-ripple-band', (1400 / size).toFixed(3) + '%');
       ring.addEventListener('animationend', () => ring.remove());
       layer.append(ring);
     });
