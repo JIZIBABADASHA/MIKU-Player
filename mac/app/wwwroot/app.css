@@ -307,8 +307,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .hero .cover img.ok { opacity: 1; }
 .hero .meta { min-width: 0; padding-bottom: 4px; }
 .hero .kind { color: var(--text-2); font-size: 12px; letter-spacing: .1em; font-weight: 600; }
-.hero h1 { font: 750 46px/1.1 var(--font-display); margin: 8px 0 10px; letter-spacing: -.015em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hero .by { font-size: 18px; color: var(--text); font-weight: 600; }
+.hero h1 { font: 750 46px/1.22 var(--font-display); margin: 6px 0 8px; padding-bottom: .08em; letter-spacing: -.015em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }  /* roomy enough that descenders (g, y, p) are not shaved off by the clamp */
+.hero .by { font-size: 18px; line-height: 1.4; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hero .by a { cursor: pointer; }
 .hero .by a:hover { text-decoration: underline; }
 .hero .facts { color: var(--text-2); font-size: 15px; margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
