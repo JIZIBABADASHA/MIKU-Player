@@ -890,10 +890,10 @@ public sealed class MainForm : Form
             Settings.MeasuredAlbum = t => _lib.GetAlbum(t?.AlbumId) is { Loose: false } a ? Settings.AlbumLoudness(a.Tracks.ToArray()) : Settings.Measured(t);
         }
         // what played, for the modules (TrackPlayed); a module that chooses what plays when the queue runs out
-        _player.Played += (t, seconds, skipped, stopped, source) =>
+        _player.Played += (t, seconds, skipped, stopped, source, back) =>
         {
             if (t == null || t.IsLive) return;
-            var p = new Miku.Extensibility.ExtPlayed(t.Id, seconds, t.Duration, skipped, stopped, source);
+            var p = new Miku.Extensibility.ExtPlayed(t.Id, seconds, t.Duration, skipped, stopped, source) { Back = back };
             foreach (var h in _extHosts) h.RaiseTrackPlayed(p);
         };
         if (_ext.Continuation is var (cp, cid))
