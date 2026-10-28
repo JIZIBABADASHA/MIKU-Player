@@ -641,7 +641,8 @@
 :root[data-theme="washi"] .toast { color: #f8f2e7; }
 :root[data-theme="washi"] .badge.hi { background: rgba(47,75,128,.1); color: #2f4b80; }
 :root[data-theme="washi"] .badge.dsd { color: #a83521; }
-:root[data-theme="washi"] .np-cover { border-radius: 2px; border: 10px solid #fffbf3; box-shadow: 0 2px 6px rgba(80,55,30,.2), 0 40px 80px -20px rgba(80,55,30,.4); }
+:root[data-theme="washi"] .np-cover { border-radius: 2px; border: 10px solid #fffbf3; box-shadow: 0 2px 6px rgba(80,55,30,.2), 0 18px 30px -14px rgba(80,55,30,.34); }  /* kept short: a long drop shadow lay over the title below and greyed it */
+:root[data-theme="washi"] #np .np-title { -webkit-text-stroke: .35px currentColor; text-shadow: 0 1px 0 rgba(255, 251, 243, .55); }  /* the Mincho's thin strokes read grey at this size */
 :root[data-theme="washi"] .np-bg .layer.b.on { opacity: 0; }
 :root[data-theme="washi"] .np-badges .badge { background: rgba(70,50,30,.08); color: #5a4f45; }
 :root[data-theme="washi"] .np-ctrl .icon-btn.on { color: #c4432c; }
