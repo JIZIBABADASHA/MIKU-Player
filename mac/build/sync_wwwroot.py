@@ -32,7 +32,7 @@ VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1',
 PATCHES = {
     'index.html': [
         ('<kbd>Ctrl F</kbd>', '<kbd>⌘F</kbd>'),
-        ('<script src="core.js', '<script src="mac-bridge.js?v=macpower1"></script>\n<script src="mac-navigation.js?v=macswipe2"></script>\n<script src="core.js'),
+        ('<script src="core.js', '<script src="mac-bridge.js?v=macpower1"></script>\n<script src="mac-navigation.js?v=macswipe6"></script>\n<script src="core.js'),
         ('<script src="smooth.js?v=20261004s16-lite1"></script>\n', ''),
     ],
     'core.js': [
