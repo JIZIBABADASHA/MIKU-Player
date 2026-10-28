@@ -88,9 +88,18 @@ public interface IExtensionHost
 
 /// <summary>
 /// One track that played (IExtensionHost.TrackPlayed): how far it got, and whether it ended by itself or the listener
-/// moved on (<see cref="Skipped"/>; stopping playback or closing MIKU counts as neither: <see cref="Stopped"/>).
+/// moved on (<see cref="Skipped"/>; stopping playback or closing MIKU counts as neither: <see cref="Stopped"/>; going
+/// back to the previous track neither: <see cref="Back"/>).
 /// </summary>
-public sealed record ExtPlayed(string Id, double Seconds, double Duration, bool Skipped, bool Stopped, JsonElement? Source);
+public sealed record ExtPlayed(string Id, double Seconds, double Duration, bool Skipped, bool Stopped, JsonElement? Source)
+{
+    /// <summary>
+    /// The listener went back to the previous track (previous, in the first 3 s of this one): they want to hear that one
+    /// again, which says nothing against this one. Not <see cref="Skipped"/>. An older MIKU has no Back: it reports this
+    /// as skipped.
+    /// </summary>
+    public bool Back { get; init; }
+}
 
 /// <summary>
 /// Optional, on an <see cref="IMikuExtension"/>: the module chooses what plays when the queue runs out. The module turns

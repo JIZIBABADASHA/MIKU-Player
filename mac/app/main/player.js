@@ -64,10 +64,11 @@ class Player extends EventEmitter {
     this.changedQueue(); this.changedNow();
   }
 
-  async load(t, pos, play) {
+  /** back: the listener went back to this track (previous): the one playing is left, not skipped. */
+  async load(t, pos, play, back = false) {
     if (!t) return;
     // another track replaces the one playing: the listener moved on (the same one again: a reload, not a leave)
-    if (this.playing && this.playing.id !== t.id) this.left(this.engine.position, true, false);
+    if (this.playing && this.playing.id !== t.id) this.left(this.engine.position, !back, false, back);
     this.changedNow();
     if (t.codec === 'CD' && this.cd) {
       // a track of the disc in the drive: copied into the cache first, playback starts once 20 s are there
@@ -129,7 +130,7 @@ class Player extends EventEmitter {
     else if (this.s.repeat === 'all') this.index = this.queue.length - 1;
     else return this.engine.seek(0);
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
-    return this.load(this.current, 0, this.engine.isPlaying || !this.engine.track);
+    return this.load(this.current, 0, this.engine.isPlaying || !this.engine.track, true);
   }
   toggle() {
     if (this.engine.isLoaded) { if (this.engine.isPlaying) this.engine.pause(); else this.engine.resume(); return; }
@@ -271,12 +272,15 @@ class Player extends EventEmitter {
     this.engine.invalidateNext(); this.persist(); this.changedQueue();
   }
   started(t) { this.playing = t; this.playingSource = this.s.queueSource || null; }
-  /** The track playing is left: reported once ('played': track, seconds, skipped, stopped, the queue's source then). */
-  left(seconds, skipped, stopped) {
+  /**
+   * The track playing is left: reported once ('played': track, seconds, skipped, stopped, the queue's source then, and
+   * back: the listener went back to the previous track, not skipped).
+   */
+  left(seconds, skipped, stopped, back = false) {
     const t = this.playing, src = this.playingSource;
     this.playing = null;
     if (!t || t.id === 'yt-live') return;
-    try { this.emit('played', t, Math.max(0, seconds || 0), skipped, stopped, src); } catch (e) { require('./common').Log.error('[player] played', e); }
+    try { this.emit('played', t, Math.max(0, seconds || 0), skipped, stopped, src, back); } catch (e) { require('./common').Log.error('[player] played', e); }
   }
   /** Playback was stopped (the stop button, a live stream taking over, MIKU quitting): the track playing is reported as stopped. */
   stopped() { this.left(this.engine.position, false, true); }

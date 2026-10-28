@@ -318,8 +318,8 @@ function loadExtensions() {
       onPlaybackChanged: fn => player.on('now', () => { try { fn(); } catch (e) { Log.error(`[${id}] playback`, e); } }),
       play: (ids, shuffle, start = -1) => player.playList(ids, start, !!shuffle),
       // what played (each track once it is left), what played lately, adding to the queue, the queue's source
-      onTrackPlayed: fn => player.on('played', (t, seconds, skipped, stopped, source) => {
-        try { fn({ id: t.id, seconds, duration: t.duration || 0, skipped, stopped, source }); } catch (e) { Log.error(`[${id}] played`, e); }
+      onTrackPlayed: fn => player.on('played', (t, seconds, skipped, stopped, source, back) => {
+        try { fn({ id: t.id, seconds, duration: t.duration || 0, skipped, stopped, source, back: !!back }); } catch (e) { Log.error(`[${id}] played`, e); }
       }),
       get recentlyPlayed() { return (S.recent || []).slice(); },
       enqueue: (ids, next = false) => player.add(ids, !!next),

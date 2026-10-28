@@ -27,9 +27,10 @@ public sealed class Player
 
     /// <summary>
     /// A track stopped playing (extension modules' TrackPlayed): the track, the seconds it played, whether the listener
-    /// moved on (skipped) or stopped playback, and the queue's source while it played. Once per track that started.
+    /// moved on (skipped) or stopped playback, the queue's source while it played, and whether the listener went back to
+    /// the previous track (back: not skipped). Once per track that started.
     /// </summary>
-    public event Action<Track, double, bool, bool, JsonElement?> Played;
+    public event Action<Track, double, bool, bool, JsonElement?, bool> Played;
 
     /// <summary>
     /// A module that chooses what plays when the queue runs out (Miku.Extensibility.IQueueContinuation): its id, and
@@ -158,11 +159,12 @@ public sealed class Player
         Error?.Invoke(message);
     }
 
-    async Task Load(Track t, double pos, bool play)
+    /// <param name="back">the listener went back to this track (Previous): the one playing is left, not skipped.</param>
+    async Task Load(Track t, double pos, bool play, bool back = false)
     {
         if (t == null) return;
         // another track replaces the one playing: the listener moved on (the same one again: a reload, not a leave)
-        if (_playing != null && _playing.Id != t.Id) Left(Engine.Position, true, false);
+        if (_playing != null && _playing.Id != t.Id) Left(Engine.Position, !back, false, back);
         NowChanged?.Invoke();
         if (t.Codec == "CD" && CdService.Instance != null)
         {
@@ -288,7 +290,7 @@ public sealed class Player
         Engine.InvalidateNext();
         Persist();
         QueueChanged?.Invoke();
-        return Load(Current, 0, Engine.IsPlaying || Engine.Track == null);
+        return Load(Current, 0, Engine.IsPlaying || Engine.Track == null, back: true);
     }
 
     public Task Toggle()
@@ -554,7 +556,7 @@ public sealed class Player
     }
 
     /// <summary>The track playing is left: reported once (Played).</summary>
-    void Left(double seconds, bool skipped, bool stopped)
+    void Left(double seconds, bool skipped, bool stopped, bool back = false)
     {
         Track t;
         JsonElement? src;
@@ -564,7 +566,7 @@ public sealed class Player
             _playing = null;
         }
         if (t == null) return;
-        try { Played?.Invoke(t, Math.Max(0, seconds), skipped, stopped, src); }
+        try { Played?.Invoke(t, Math.Max(0, seconds), skipped, stopped, src, back); }
         catch (Exception ex) { Log.Error("[player] played", ex); }
     }
 

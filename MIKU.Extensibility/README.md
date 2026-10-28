@@ -49,7 +49,7 @@ MIKU 編譯（build）與發佈（publish）時，都會對每個模組執行 `M
 
 ## 播放紀錄與佇列
 
-- `IExtensionHost.TrackPlayed`：每首開始播放的歌離開時通知一次（`ExtPlayed`：播了幾秒、總長、是不是聽到一半就換掉（`Skipped`）、是不是按了停止或關閉 MIKU（`Stopped`）、當時佇列的 `source`）
+- `IExtensionHost.TrackPlayed`：每首開始播放的歌離開時通知一次（`ExtPlayed`：播了幾秒、總長、是不是聽到一半就換掉（`Skipped`）、是不是按了停止或關閉 MIKU（`Stopped`）、是不是按「上一首」退回前一首（`Back`，這時 `Skipped` 是 false；舊版 MIKU 沒有 `Back`，退回會算成 `Skipped`）、當時佇列的 `source`）
 - `RecentlyPlayed`（最近播過的歌，最新的在前，最多 200 首）、`Enqueue(ids, next)`（加到佇列最後，或下一首）、`QueueSource`（目前佇列是誰產生的）
 - 舊版 MIKU 沒有這些成員：模組在舊版上呼叫會丟 `MissingMethodException`，要自己接住
 
