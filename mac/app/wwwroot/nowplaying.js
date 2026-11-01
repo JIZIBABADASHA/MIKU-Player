@@ -340,12 +340,16 @@ const NowPlaying = {
   /** Scroll that puts line i where the current line sits. */
   scrollTo(i) { return this.tops[i] + (this.heights[i] || 0) / 2 - this.boxH * 0.36; },
 
-  /** A hand-scroll offset kept between the first line and the last line sitting where the current line does, so
-   *  the lyrics can't be pulled away into a blank page above the first line or below the last. */
+  /** A hand-scroll offset that stops once the first line is just under the box's faded top edge, or the last line just
+   *  above its faded bottom edge (.lyrics mask: 13% / 80%), so the lyrics can't be pulled away into a blank page.
+   *  Never tighter than where the current line already puts them. */
   clampScroll(off) {
-    if (!this.tops.length) return 0;
+    const n = this.tops.length;
+    if (!n) return 0;
     const base = this.scrollTo(Math.max(0, this.active));
-    return Math.min(this.scrollTo(this.tops.length - 1) - base, Math.max(this.scrollTo(0) - base, off));
+    const lo = Math.min(base, this.tops[0] - this.boxH * 0.13);
+    const hi = Math.max(base, this.tops[n - 1] + (this.heights[n - 1] || 0) - this.boxH * 0.8);
+    return Math.min(hi - base, Math.max(lo - base, off));
   },
 
   layoutLines(manual, instant) {
