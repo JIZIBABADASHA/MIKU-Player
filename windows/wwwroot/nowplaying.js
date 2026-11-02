@@ -52,7 +52,7 @@ const NowPlaying = {
     box.addEventListener('wheel', e => {
       if (!this.ly || !this.ly.synced) return;
       e.preventDefault();
-      this.manualOffset += e.deltaY;
+      this.manualOffset = this.clampScroll(this.manualOffset + e.deltaY);
       this.manualUntil = performance.now() + 2600;
       this.layoutLines(true);
       // glide back to the current line after a pause in scrolling (also when paused: tick() may not run then)
@@ -337,13 +337,27 @@ const NowPlaying = {
     this.layoutLines(false, true);
   },
 
+  /** Scroll that puts line i where the current line sits. */
+  scrollTo(i) { return this.tops[i] + (this.heights[i] || 0) / 2 - this.boxH * 0.36; },
+
+  /** A hand-scroll offset that stops once the first line is just under the box's faded top edge, or the last line just
+   *  above its faded bottom edge (.lyrics mask: 13% / 80%), so the lyrics can't be pulled away into a blank page.
+   *  Never tighter than where the current line already puts them. */
+  clampScroll(off) {
+    const n = this.tops.length;
+    if (!n) return 0;
+    const base = this.scrollTo(Math.max(0, this.active));
+    const lo = Math.min(base, this.tops[0] - this.boxH * 0.13);
+    const hi = Math.max(base, this.tops[n - 1] + (this.heights[n - 1] || 0) - this.boxH * 0.8);
+    return Math.min(hi - base, Math.max(lo - base, off));
+  },
+
   layoutLines(manual, instant) {
     if (!this.tops.length) return;
     const a = Math.max(0, this.active);
-    const anchor = this.boxH * 0.36;
-    let scroll = this.tops[a] + (this.heights[a] || 0) / 2 - anchor;
+    let scroll = this.scrollTo(a);
     const scrolling = performance.now() < this.manualUntil;
-    if (scrolling) scroll += this.manualOffset;
+    if (scrolling) scroll += this.clampScroll(this.manualOffset);   // the current line may have moved on mid-scroll
     // Scrolling by hand on Mac (or with smooth scrolling turned off): the lines follow the trackpad / wheel directly,
     // without an eased transition on top of the system's own momentum. Gliding back to the current line still eases.
     const box = $('#lyrics');
