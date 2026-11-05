@@ -415,7 +415,9 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .slider .knob { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--knob); box-shadow: 0 2px 6px rgba(var(--shadow-rgb), calc(.4 * var(--sh))); left: 0; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .2s var(--spring); will-change: left; pointer-events: none; }
 .slider:hover .knob, .slider.drag .knob { opacity: 1; transform: none; }
 .slider:hover .track, .slider.drag .track { height: 5px; }
-.slider .hover-tip { position: absolute; bottom: 18px; transform: translateX(-50%); background: var(--surface-3); color: var(--text); font-size: 11.5px; padding: 3px 7px; border-radius: 6px; pointer-events: none; opacity: 0; transition: opacity .15s; white-space: nowrap; }
+/* the tip has its own solid backing (--tip-bg): on a see-through theme surface (glass) it took on the white play button
+   behind it, and its white time text vanished into it */
+.slider .hover-tip { position: absolute; bottom: 18px; z-index: 1; transform: translateX(-50%); background: var(--tip-bg, var(--surface-3)); color: var(--tip-ink, var(--text)); font-size: 11.5px; padding: 3px 7px; border-radius: 6px; box-shadow: 0 2px 8px rgba(var(--shadow-rgb), calc(.35 * var(--sh))); pointer-events: none; opacity: 0; transition: opacity .15s; white-space: nowrap; }
 .slider:hover .hover-tip, .slider.drag .hover-tip { opacity: 1; }
 /* while it is pointed at, the slider (and its time tip) is above its neighbours: the tip was drawn under the play button */
 .slider:hover, .slider.drag { z-index: 30; }

@@ -338,6 +338,7 @@
   --knob: #fff; --knob-off: #d7deef;
   --bar-bg: rgba(18,24,52,.45); --pop-bg: rgba(40,46,74,.62); --drawer-bg: rgba(30,36,64,.55); --toast-bg: rgba(40,46,74,.7); --modal-bg: rgba(28,33,58,.72);
   --shadow-rgb: 4, 6, 20; --sh: .9;
+  --tip-bg: rgba(26,31,60,.94); --tip-ink: #fff;
   --np-base: #0b1022; --np-ink: 255, 255, 255; --np-pill-ink: #0b1022; --np-dim: .62;
   --np-veil: radial-gradient(120% 90% at 30% 40%, rgba(10,14,40,.05), rgba(10,14,40,.45));
   --ph-s1: 55%; --ph-l1: 42%; --ph-s2: 60%; --ph-l2: 28%;
