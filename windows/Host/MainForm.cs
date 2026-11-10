@@ -996,6 +996,7 @@ public sealed class MainForm : Form
         _remote ??= new RemoteServer(RemoteRpc, (p, q) => OnUi(() => MediaAsync(p, q)),
             (name, code) => Post("remotePair", new { name, code }),
             name => { Post("remotePaired", new { name }); Post("remoteChanged", RemoteInfo()); });
+        _remote.TrackResolver ??= id => _lib.GetTrack(id);   // 「在手機上聽」 streams
         _remote.Stop();
         if (_s.RemoteEnabled) _remote.Start(Math.Clamp(_s.RemotePort, 1024, 65535));
         Post("remoteChanged", RemoteInfo());

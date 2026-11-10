@@ -7,6 +7,7 @@ const path = require('path');
 const http = require('http');
 const zlib = require('zlib');
 const crypto = require('crypto');
+const { spawn } = require('child_process');
 const { AppPaths, Log, Json, hash } = require('./common');
 
 const StorePath = () => path.join(AppPaths.Root, 'remote.json');
@@ -129,6 +130,11 @@ class RemoteServer {
       req.on('close', done); res.on('error', done);
       return;
     }
+    if (p.startsWith('/api/pair/') && !isLocalNetwork(ip)) return this.json(req, res, 403, { e: '為了安全，第一次配對只能在家裡的 Wi-Fi 或 Tailscale 內進行。配對好之後在外面也能用。' });
+    if (p.startsWith('/stream/')) {
+      if (!this.authorized(req, q)) return this.json(req, res, 401, { e: 'unpaired' });
+      return this.stream(req, res, decodeURIComponent(p.slice(8)), q);
+    }
     if (p === '/api/ping') return this.json(req, res, 200, { app: 'MIKU', paired: this.authorized(req, q) });
     if (p === '/api/pair/request' && req.method === 'POST') {
       const name = readName(await this.body(req));
@@ -184,9 +190,107 @@ class RemoteServer {
   }
 }
 
+// ───────────── 「在手機上聽」: /stream/{trackId} (port of RemoteStream.cs) ─────────────
+// A file the phone's browser can play (listed in c=) goes as it is, with Range support so the phone can seek in it;
+// anything else (DSD, APE, WMA…), or a lossless track when a lower quality (q=128…320) is asked for, is encoded by FFmpeg to
+// MP3 as it is sent. Such a stream has no length, so the phone seeks by asking again with ss= (seconds).
+const MaxTranscodes = 6;
+let transcodes = 0;
+
+/** Addresses a phone may pair from: the home network, this Mac and Tailscale (100.64/10). */
+function isLocalNetwork(ip) {
+  ip = String(ip || '').replace(/^::ffff:/, '');
+  if (ip === '127.0.0.1' || ip === '::1') return true;
+  const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(ip);
+  if (m) {
+    const a = +m[1], b = +m[2];
+    return a === 10 || (a === 172 && (b & 0xF0) === 16) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && (b & 0xC0) === 64);
+  }
+  return /^fe[89ab]/i.test(ip) || /^f[cd]/i.test(ip);
+}
+
+function directFormat(t) {
+  const ext = path.extname(t.path || '').toLowerCase();
+  switch (t.codec) {
+    case 'MP3': return { cap: 'mp3', mime: 'audio/mpeg' };
+    case 'AAC': return { cap: 'aac', mime: ext === '.aac' ? 'audio/aac' : 'audio/mp4' };
+    case 'ALAC': return { cap: 'alac', mime: 'audio/mp4' };
+    case 'FLAC': return { cap: 'flac', mime: 'audio/flac' };
+    case 'WAV': return t.bits > 0 && t.bits <= 24 ? { cap: 'wav', mime: 'audio/wav' } : null;
+    case 'OGG': return { cap: 'ogg', mime: 'audio/ogg' };
+    case 'OPUS': return { cap: 'opus', mime: 'audio/ogg' };
+  }
+  return null;
+}
+
+RemoteServer.prototype.stream = async function (req, res, id, q) {
+  let t = null;
+  try { t = this.trackResolver ? this.trackResolver(id) : null; } catch (e) { Log.error('Remote stream track', e); }
+  if (!t || t.codec === 'YouTube' || !t.path || id.startsWith('cd-') || !fs.existsSync(t.path)) return this.send(req, res, 404, 'text/plain', 'not found', { 'Cache-Control': 'no-store' });
+  const kbps = { 128: 128, 192: 192, 256: 256, 320: 320 }[q.get('q')] || 0;   // 0: original
+  const caps = new Set((q.get('c') || '').split(',').filter(Boolean));
+  const ss = Math.max(0, parseFloat(q.get('ss')) || 0);
+  const d = directFormat(t);
+  const lossy = ['MP3', 'AAC', 'OGG', 'OPUS', 'WMA'].includes(t.codec);
+  // a lossy file the phone can play always goes as it is (encoding it again only loses more); the page makes the
+  // same choice from the codec alone (Local.direct in remote/app.js), so it knows whether it can seek in it
+  if (d && caps.has(d.cap) && (kbps === 0 || lossy)) return this.sendFile(req, res, t.path, d.mime);
+  return this.transcode(req, res, t, kbps || 320, ss);
+};
+
+RemoteServer.prototype.sendFile = async function (req, res, file, mime) {
+  let size;
+  try { size = (await fs.promises.stat(file)).size; } catch { return this.send(req, res, 404, 'text/plain', 'not found', { 'Cache-Control': 'no-store' }); }
+  let start = 0, end = size - 1, status = 200;
+  const headers = { 'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, no-store' };
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (m) {
+    if (m[1] === '' && m[2] !== '') start = Math.max(0, size - parseInt(m[2], 10));
+    else { start = parseInt(m[1] || '0', 10); if (m[2]) end = Math.min(size - 1, parseInt(m[2], 10)); }
+    if (start >= size || end < start) { res.writeHead(416, { 'Content-Range': `bytes */${size}` }); return res.end(); }
+    status = 206;
+    headers['Content-Range'] = `bytes ${start}-${end}/${size}`;
+  }
+  headers['Content-Length'] = end - start + 1;
+  res.writeHead(status, headers);
+  if (req.method === 'HEAD') return res.end();
+  const rs = fs.createReadStream(file, { start, end, highWaterMark: 256 * 1024 });
+  rs.on('error', () => res.destroy());
+  res.on('close', () => rs.destroy());
+  rs.pipe(res);
+};
+
+RemoteServer.prototype.transcode = async function (req, res, t, kbps, ss) {
+  const { Ffmpeg } = require('./ffmpeg');
+  if (!Ffmpeg.path) return this.send(req, res, 415, 'text/plain; charset=utf-8', '這首歌的格式需要 FFmpeg 轉換才能在手機上播放，但 Mac 上找不到 FFmpeg。', { 'Cache-Control': 'no-store' });
+  if (transcodes >= MaxTranscodes) return this.send(req, res, 503, 'text/plain', 'busy', { 'Cache-Control': 'no-store', 'Retry-After': '2' });
+  const enc = await require('./converter').getEncoders();
+  const mp3 = enc.has('libmp3lame');
+  const aac = ['aac_at', 'aac'].find(e => enc.has(e));
+  if (!mp3 && !aac) return this.send(req, res, 415, 'text/plain; charset=utf-8', 'Mac 上的 FFmpeg 沒有 MP3 / AAC 編碼器。', { 'Cache-Control': 'no-store' });
+  const rate = (t.sampleRate > 0 ? t.sampleRate : 44100) % 11025 === 0 ? 44100 : 48000;
+  const args = ['-nostdin', '-hide_banner', '-loglevel', 'error'];
+  if (ss > 0.01) args.push('-ss', ss.toFixed(3));
+  args.push('-i', t.path, '-map', '0:a:0', '-vn', '-sn', '-dn', '-ac', '2', '-ar', String(rate));
+  if (mp3) args.push('-c:a', 'libmp3lame', '-b:a', kbps + 'k', '-write_xing', '0', '-id3v2_version', '0', '-f', 'mp3', 'pipe:1');
+  else args.push('-c:a', aac, '-b:a', kbps + 'k', '-f', 'adts', 'pipe:1');
+  transcodes++;
+  let done = false;
+  const proc = spawn(Ffmpeg.path, args, { stdio: ['ignore', 'pipe', 'ignore'] });
+  const finish = () => { if (done) return; done = true; transcodes--; try { proc.kill('SIGKILL'); } catch { } };
+  proc.on('error', e => { Log.error('Remote stream ffmpeg', e); finish(); res.destroy(); });
+  proc.on('exit', () => { if (!done) { done = true; transcodes--; } });
+  // the phone skipped, seeked or went away: stop encoding
+  res.on('close', finish);
+  // no Content-Length: the stream ends when FFmpeg is done
+  res.writeHead(200, { 'Content-Type': mp3 ? 'audio/mpeg' : 'audio/aac', 'Cache-Control': 'no-store', Connection: 'close' });
+  if (req.method === 'HEAD') { finish(); return res.end(); }
+  proc.stdout.pipe(res);
+};
+
 function readName(buf) {
   try { const n = String(JSON.parse(buf.toString()).name || '').trim(); if (n) return n.slice(0, 40); } catch { }
   return '手機';
 }
 
-module.exports = { RemoteServer };
+module.exports = { RemoteServer, isLocalNetwork };

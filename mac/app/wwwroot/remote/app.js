@@ -1,5 +1,5 @@
 'use strict';
-/* MIKU phone remote — talks to the MIKU desktop app over the LAN (RemoteServer.cs). */
+/* MIKU phone remote — talks to the MIKU desktop app over the LAN (RemoteServer.cs), or plays MIKU's music on the phone (Out / Local). */
 
 /* ═════════════════════════════ helpers ═════════════════════════════ */
 const $ = s => document.querySelector(s);
@@ -68,9 +68,10 @@ const Api = {
     return `/media/art/${kind}/${encodeURIComponent(id)}?s=${s}&r=2&t=${this.token}`;   // r: ArtworkService.Rules
   },
 };
-/** RPC that reports failures as a toast instead of throwing. */
+/** RPC that reports failures as a toast instead of throwing. Transport / queue calls go to the phone's own player
+ *  while it is the output (synchronously, so the first play still counts as the user's tap). */
 async function call(m, a = {}) {
-  try { return await Api.rpc(m, a); }
+  try { return Out.phone && Local.handles.has(m) ? Local.rpc(m, a) : await Api.rpc(m, a); }
   catch (e) { if (!e.unpaired) toast(e.message, true); return undefined; }
 }
 
@@ -565,7 +566,7 @@ function filterBar(v, placeholder, sorts, onChange) {
 
 const Views = {
   home(el) {
-    el.append(h('div', { class: 'homeNow' }), h('div', { class: 'homeYt' }));
+    el.append(h('div', { class: 'homeOut' }), h('div', { class: 'homeNow' }), h('div', { class: 'homeYt' }));
     App.updateHome();
     const recent = Lib.albumsBy('added').slice(0, 24);
     if (recent.length) {
@@ -840,7 +841,7 @@ const NP = {
     $('#npCover').classList.toggle('paused', !s.playing);
     $('#npTitle').textContent = c.title;
     $('#npSub').textContent = [c.artist, c.album].filter(Boolean).join(' — ');
-    $('#npSrc').textContent = c.live ? 'YOUTUBE MUSIC' : (c.album ? '來自「' + c.album + '」' : '正在播放');
+    $('#npSrc').textContent = (Out.phone ? '在手機上播放 · ' : '') + (c.live ? 'YOUTUBE MUSIC' : (c.album ? '來自「' + c.album + '」' : '正在播放'));
     $('#npFav').hidden = !!c.live;
     $('#npFav').classList.toggle('on', !c.live && App.favs.has(c.id));
     $('#npToggle').innerHTML = ico(s.playing ? 'pause' : 'play', true);
@@ -930,7 +931,7 @@ $('#npPrev').onclick = () => call('prev');
 $('#npShuffle').onclick = () => call('shuffle', { on: !App.state.shuffle });
 $('#npRepeat').onclick = () => call('repeat', { mode: { off: 'all', all: 'one', one: 'off' }[App.state.repeat || 'off'] });
 $('#npFav').onclick = () => { const c = NP.cur(); if (c && !c.live) App.setFav(c.id, !App.favs.has(c.id)); };
-$('#npMore').onclick = () => { const c = NP.cur(); if (c?.t) Menu.track(c.t); };
+$('#npMore').onclick = () => { const c = NP.cur(); if (c?.t) Menu.track(c.t, Out.phone ? [{ label: '手機播放音質：' + Out.qualityLabel(), icon: 'speaker', run: () => Out.pickQuality() }] : []); };
 $('#npLyricsBtn').onclick = () => NP.toggleLyrics();
 $('#npQueueBtn').onclick = () => { NP.close(); Nav.go('queue'); };
 {
@@ -971,6 +972,344 @@ $('#npQueueBtn').onclick = () => { NP.close(); Nav.go('queue'); };
   });
 }
 
+/* ═════════════════════════════ 在手機上聽 (the phone plays, streamed from MIKU) ═════════════════════════════ */
+/**
+ * Where the music plays: 'pc' (the phone is a remote, sound from the computer's DAC) or 'phone' (MIKU streams the
+ * track and this phone plays it, also away from home over Tailscale). In phone mode the transport and queue RPCs
+ * are answered here by Local, which keeps its own queue; everything else (library, artwork, lyrics) still asks MIKU.
+ */
+const Out = {
+  mode: store('out') === 'phone' ? 'phone' : 'pc',
+  get phone() { return this.mode === 'phone'; },
+  async set(mode) {
+    if (mode === this.mode) return;
+    this.mode = mode;
+    store('out', mode);
+    if (mode === 'phone') {
+      // hand over what the computer is playing: same queue and place, and the computer pauses
+      const s = App.state, q = App.queue;
+      if (s.playing && s.trackId && s.trackId !== 'yt-live' && q.ids?.length) {
+        Local.take(q.ids, q.index, App.pos(), !!s.shuffle, s.repeat || 'off');
+        Api.rpc('toggle').catch(() => { });   // pause the computer (not Local: the output is the phone now)
+        toast('已從電腦接手，改在這支手機上播放');
+      } else toast('改在這支手機上播放');
+      Local.publishQueue();
+    } else {
+      Local.pause();
+      toast('改回電腦播放');
+      App.reconnect();
+    }
+    App.updateHome();
+    NP.update(true);
+  },
+  /** Quality: 'auto' (original at home, 256k away from home), 'orig', or an MP3 bitrate. */
+  get quality() { return store('quality') || 'auto'; },
+  set quality(v) { store('quality', v); },
+  get atHome() { return /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|127\.|localhost$)/.test(location.hostname); },
+  effectiveQuality() { const q = this.quality; return q === 'auto' ? (this.atHome ? 'orig' : '256') : q; },
+  qualityLabel(q = this.quality) {
+    return { auto: this.atHome ? '自動（原音質）' : '自動（256k）', orig: '原音質', 320: '高音質 320k', 256: '標準 256k', 128: '省流量 128k' }[q] || q;
+  },
+  pickQuality() {
+    Menu.open(Menu.head(h('div', { class: 'art sm', html: ico('speaker') }), '手機播放音質', '在外面用行動網路時建議 256k 或 128k'),
+      ['auto', 'orig', '320', '256', '128'].map(q => ({ label: (q === this.quality ? '✓ ' : '') + this.qualityLabel(q), run: () => { this.quality = q; Local.qualityChanged(); App.updateHome(); } })));
+  },
+};
+
+const Local = {
+  audio: null, ids: [], index: -1, unshuffled: null, shuffle: false, repeat: 'off',
+  offset: 0, seekable: null, pendingSeek: null, loadedId: null, wantPlay: false, error: null,
+
+  init() {
+    const a = this.audio = document.createElement('audio');
+    a.preload = 'auto';
+    a.setAttribute('playsinline', '');
+    document.body.append(a);
+    try {
+      const saved = JSON.parse(store('local.queue') || 'null');
+      if (saved && Array.isArray(saved.ids)) Object.assign(this, { ids: saved.ids, index: saved.index ?? -1, shuffle: !!saved.shuffle, repeat: saved.repeat || 'off', unshuffled: saved.unshuffled || null, offset: saved.pos || 0 });
+    } catch { }
+    a.addEventListener('loadedmetadata', () => {
+      if (this.pendingSeek != null && this.seekable) { a.currentTime = this.pendingSeek; this.pendingSeek = null; }
+      this.publish();
+    });
+    a.addEventListener('playing', () => { this.error = null; this.publish(); });
+    a.addEventListener('pause', () => this.publish());
+    a.addEventListener('seeked', () => this.publish());
+    let last = 0;
+    a.addEventListener('timeupdate', () => { const n = performance.now(); if (n - last > 2000) { last = n; this.publish(); this.save(); } });
+    a.addEventListener('ended', () => this.onEnded());
+    a.addEventListener('error', () => this.onError());
+    const ms = navigator.mediaSession;
+    if (ms) {
+      const set = (k, f) => { try { ms.setActionHandler(k, f); } catch { } };
+      set('play', () => this.rpc('toggle', { on: true }));
+      set('pause', () => this.pause());
+      set('nexttrack', () => this.rpc('next'));
+      set('previoustrack', () => this.rpc('prev'));
+      set('seekto', d => this.seek(d.seekTime));
+      set('seekforward', d => this.seek(this.pos() + (d.seekOffset || 10)));
+      set('seekbackward', d => this.seek(this.pos() - (d.seekOffset || 10)));
+    }
+  },
+
+  /** What this browser can play as it is; the rest MIKU converts with FFmpeg. */
+  caps: (() => {
+    const a = document.createElement('audio'), ok = t => { try { return !!a.canPlayType(t); } catch { return false; } };
+    const safari = /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|Android/.test(navigator.userAgent);
+    const c = [];
+    if (ok('audio/mpeg')) c.push('mp3');
+    if (ok('audio/mp4; codecs="mp4a.40.2"') || ok('audio/mp4')) c.push('aac');
+    if (ok('audio/mp4; codecs="alac"') || safari) c.push('alac');
+    if (ok('audio/flac') || ok('audio/x-flac')) c.push('flac');
+    if (ok('audio/wav; codecs="1"') || ok('audio/wav')) c.push('wav');
+    // Ogg in Safari is unreliable: let MIKU convert it there
+    if (!safari && ok('audio/ogg; codecs="vorbis"')) c.push('ogg');
+    if (!safari && ok('audio/ogg; codecs="opus"')) c.push('opus');
+    return c.join(',');
+  })(),
+
+  /** Whether MIKU sends this track as it is (seekable by Range) or converts it — same rule as RemoteStream.cs. */
+  direct(t) {
+    if (!t) return false;
+    const cap = { MP3: 'mp3', AAC: 'aac', ALAC: 'alac', FLAC: 'flac', WAV: t.bits > 0 && t.bits <= 24 ? 'wav' : null, OGG: 'ogg', OPUS: 'opus' }[t.codec];
+    if (!cap || !this.caps.split(',').includes(cap)) return false;
+    return Out.effectiveQuality() === 'orig' || ['MP3', 'AAC', 'OGG', 'OPUS'].includes(t.codec);
+  },
+
+  get id() { return this.index >= 0 ? this.ids[this.index] : null; },
+  track() { return Lib.trackById.get(this.id); },
+  pos() { return this.loadedId === this.id && this.audio ? this.offset + (this.audio.currentTime || 0) : this.offset; },
+  dur() { const t = this.track(), a = this.audio; return t?.dur || (this.seekable && a && isFinite(a.duration) ? a.duration : 0); },
+  playing() { return !!this.audio && !this.audio.paused && this.loadedId === this.id; },
+
+  url(id, ss) {
+    const q = Out.effectiveQuality();
+    return `/stream/${encodeURIComponent(id)}?t=${encodeURIComponent(Api.token)}&q=${q === 'orig' ? 'orig' : q}&c=${this.caps}` + (ss > 0 ? `&ss=${ss.toFixed(2)}` : '');
+  },
+
+  state() {
+    const t = this.track();
+    const q = Out.effectiveQuality();
+    const conv = this.seekable === false;   // a converted stream has no length
+    return {
+      trackId: this.id, playing: this.playing() || (this.wantPlay && this.loadedId === this.id && !this.error), pos: this.pos(), dur: this.dur(),
+      shuffle: this.shuffle, repeat: this.repeat, volumeMode: 'fixed', volumeDb: 0, muted: false,
+      signal: t ? { codec: t.codec, sourceRate: conv ? 0 : t.rate, sourceBits: conv ? 0 : t.bits, resampled: conv, mode: conv ? `手機播放 · MP3 ${q === 'orig' ? 320 : q}k` : '手機播放 · 原檔' } : null,
+    };
+  },
+  queueDto() { return { ids: this.ids.slice(), index: this.index, shuffle: this.shuffle }; },
+
+  /** Pushes this player's state into the page (only while the phone is the output). */
+  publish() {
+    if (!Out.phone) return;
+    App.setState(this.state());
+    this.mediaSession();
+  },
+  publishQueue() {
+    this.save();
+    if (!Out.phone) return;
+    App.queue = this.queueDto();
+    Nav.rebuildAll(['queue']);
+    this.publish();
+  },
+  save() {
+    try { store('local.queue', JSON.stringify({ ids: this.ids.slice(0, 5000), index: this.index, shuffle: this.shuffle, repeat: this.repeat, unshuffled: this.unshuffled?.slice(0, 5000) || null, pos: Math.round(this.pos()) })); } catch { }
+  },
+
+  /** Starts the current track at pos (must run inside the tap's handler for the first play). */
+  load(pos = 0, play = true) {
+    const id = this.id, a = this.audio;
+    if (!id) { a.removeAttribute('src'); a.load(); this.loadedId = null; this.publish(); return; }
+    this.seekable = this.direct(this.track());
+    this.loadedId = id; this.error = null; this.wantPlay = play;
+    // a converted stream starts where asked (and has no length); a file is seeked once it has loaded
+    this.offset = !this.seekable && pos > 0.5 ? pos : 0;
+    this.pendingSeek = this.seekable && pos > 0.5 ? pos : null;
+    a.src = this.url(id, this.offset);
+    if (play) a.play().catch(e => this.playFailed(e));
+    this.publish();
+  },
+  playFailed(e) {
+    if (e?.name === 'NotAllowedError') { this.wantPlay = false; this.publish(); toast('請再按一次播放', true); }
+    else if (e?.name !== 'AbortError') console.warn(e);
+  },
+  pause() { this.wantPlay = false; this.audio?.pause(); this.save(); this.publish(); },
+  take(ids, index, pos, shuffle, repeat) {
+    Object.assign(this, { ids: ids.slice(), index, shuffle, repeat, unshuffled: null });
+    this.load(pos, true);
+    this.publishQueue();
+  },
+  seek(pos) {
+    const id = this.id, a = this.audio;
+    if (!id) return;
+    pos = Math.max(0, Math.min(pos, (this.dur() || 1e9) - 0.5));
+    if (this.loadedId !== id) { this.load(pos, this.wantPlay); return; }
+    if (this.seekable) {
+      if (a.readyState >= 1) a.currentTime = pos; else this.pendingSeek = pos;
+    }
+    else {
+      // a converted stream: ask MIKU to start encoding from there
+      this.offset = pos;
+      a.src = this.url(id, pos);
+      if (this.wantPlay) a.play().catch(e => this.playFailed(e));
+    }
+    this.save();
+    this.publish();
+  },
+  qualityChanged() {
+    if (!this.id || this.loadedId !== this.id) return;
+    const p = this.pos(), play = this.wantPlay;
+    this.load(p, play);
+  },
+  onEnded() {
+    if (this.repeat === 'one') { this.load(0, true); return; }
+    if (this.index + 1 < this.ids.length) this.index++;
+    else if (this.repeat === 'all' && this.ids.length) this.index = 0;
+    else { this.wantPlay = false; this.offset = 0; this.loadedId = null; this.save(); this.publish(); return; }
+    this.load(0, true);
+    this.publishQueue();
+  },
+  async onError() {
+    const a = this.audio;
+    if (!a.getAttribute('src') || this.loadedId !== this.id) return;
+    this.error = true;
+    let msg = '這首歌無法在手機上播放';
+    try {
+      const r = await fetch(a.src.replace(/&ss=[^&]*/, ''), { method: 'HEAD', credentials: 'same-origin' });
+      if (r.status === 401) { Pair.show(); return; }
+      if (r.status === 415) msg = '這首歌的格式需要電腦上的 FFmpeg 轉換，但找不到 FFmpeg';
+      else if (r.status === 404) msg = '在電腦上找不到這首歌的檔案';
+    } catch { msg = '無法連線到 MIKU'; }
+    this.wantPlay = false;
+    toast(msg, true);
+    this.publish();
+  },
+
+  mediaSession() {
+    const ms = navigator.mediaSession, t = this.track();
+    if (!ms) return;
+    if (t && ms._id !== t.id) {
+      ms._id = t.id;
+      try {
+        const src = s => new URL(Api.art(t.album?.loose ? 't' : 'a', t.album?.loose ? t.id : t.albumId, s), location.href).href;
+        ms.metadata = new MediaMetadata({ title: t.title, artist: t.artist, album: t.album?.title || '', artwork: [{ src: src(256), sizes: '512x512' }, { src: src(512), sizes: '1024x1024' }] });
+      } catch { }
+    }
+    try { ms.playbackState = this.playing() ? 'playing' : 'paused'; } catch { }
+    const d = this.dur();
+    if (d > 0 && ms.setPositionState) try { ms.setPositionState({ duration: d, position: Math.min(d, this.pos()), playbackRate: 1 }); } catch { }
+  },
+
+  /** The desktop's transport / queue RPCs, answered for this phone's own player. */
+  handles: new Set(['state', 'queue', 'play', 'toggle', 'next', 'prev', 'seek', 'volume', 'shuffle', 'repeat', 'queue.add', 'queue.remove', 'queue.move', 'queue.jump', 'queue.clear', 'yt.toggle', 'yt.next', 'yt.prev']),
+  rpc(m, a = {}) {
+    switch (m) {
+      case 'state': return this.state();
+      case 'queue': return this.queueDto();
+      case 'play': {
+        let ids = (a.ids || []).slice(), start = a.start ?? 0;
+        if (!ids.length) return null;
+        this.shuffle = !!a.shuffle;
+        this.unshuffled = this.shuffle ? ids.slice() : null;
+        if (this.shuffle) {
+          const first = start >= 0 && start < ids.length ? ids.splice(start, 1)[0] : null;
+          shuffleArr(ids);
+          if (first != null) ids.unshift(first);
+          start = 0;
+        } else if (start < 0) start = 0;
+        this.ids = ids; this.index = Math.min(start, ids.length - 1);
+        this.load(0, true);
+        this.publishQueue();
+        return null;
+      }
+      case 'toggle':
+        if (!this.id) return null;
+        if (this.playing() || (this.wantPlay && a.on !== true)) this.pause();
+        else if (this.loadedId !== this.id || !this.audio.getAttribute('src') || this.error) this.load(this.offset, true);
+        else { this.wantPlay = true; this.audio.play().catch(e => this.playFailed(e)); this.publish(); }
+        return null;
+      case 'next':
+        if (!this.ids.length) return null;
+        if (this.index + 1 < this.ids.length) this.index++;
+        else if (this.repeat !== 'off') this.index = 0;
+        else return null;
+        this.load(0, this.wantPlay || this.playing());
+        this.publishQueue();
+        return null;
+      case 'prev':
+        if (this.pos() > 3 || this.index <= 0) { this.seek(0); return null; }
+        this.index--;
+        this.load(0, this.wantPlay || this.playing());
+        this.publishQueue();
+        return null;
+      case 'seek': this.seek(+a.pos || 0); return null;
+      case 'volume': return null;   // the phone's own volume buttons
+      case 'shuffle': {
+        const on = !!a.on;
+        if (on === this.shuffle) return null;
+        this.shuffle = on;
+        const cur = this.id;
+        if (on) { this.unshuffled = this.ids.slice(); const rest = this.ids.slice(this.index + 1); shuffleArr(rest); this.ids = [...this.ids.slice(0, this.index + 1), ...rest]; }
+        else if (this.unshuffled) { this.ids = this.unshuffled; this.unshuffled = null; this.index = Math.max(0, this.ids.indexOf(cur)); }
+        this.publishQueue();
+        return null;
+      }
+      case 'repeat': this.repeat = ['off', 'all', 'one'].includes(a.mode) ? a.mode : 'off'; this.save(); this.publish(); return null;
+      case 'queue.add': {
+        const ids = a.ids || [];
+        if (!ids.length) return null;
+        const empty = !this.ids.length;
+        if (a.next && this.index >= 0) this.ids.splice(this.index + 1, 0, ...ids);
+        else this.ids.push(...ids);
+        this.unshuffled?.push(...ids);
+        if (empty) { this.index = 0; this.load(0, true); }
+        this.publishQueue();
+        return null;
+      }
+      case 'queue.remove': {
+        const i = a.i;
+        if (!(i >= 0 && i < this.ids.length)) return null;
+        const wasCur = i === this.index, play = this.wantPlay || this.playing();
+        const [id] = this.ids.splice(i, 1);
+        if (this.unshuffled) { const k = this.unshuffled.indexOf(id); if (k >= 0) this.unshuffled.splice(k, 1); }
+        if (i < this.index) this.index--;
+        if (this.index >= this.ids.length) this.index = this.ids.length - 1;
+        if (wasCur) this.load(0, play && this.index >= 0);
+        this.publishQueue();
+        return null;
+      }
+      case 'queue.move': {
+        const { from, to } = a, n = this.ids.length;
+        if (!(from >= 0 && from < n && to >= 0 && to < n) || from === to) return null;
+        const [id] = this.ids.splice(from, 1);
+        this.ids.splice(to, 0, id);
+        if (this.index === from) this.index = to;
+        else if (from < this.index && to >= this.index) this.index--;
+        else if (from > this.index && to <= this.index) this.index++;
+        this.publishQueue();
+        return null;
+      }
+      case 'queue.jump':
+        if (!(a.i >= 0 && a.i < this.ids.length)) return null;
+        this.index = a.i;
+        this.load(0, true);
+        this.publishQueue();
+        return null;
+      case 'queue.clear':
+        this.ids = this.index >= 0 ? this.ids.slice(0, this.index + 1) : [];
+        this.unshuffled = null;
+        this.publishQueue();
+        return null;
+      case 'yt.toggle': case 'yt.next': case 'yt.prev':
+        throw new Error('YouTube Music 只能在電腦上播放，請先切回「電腦播放」。');
+    }
+    return null;
+  },
+};
+function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+Local.init();
+
 /* ═════════════════════════════ app ═════════════════════════════ */
 const App = {
   state: {}, queue: { ids: [], index: -1 }, favs: new Set(), hello: null, posBase: 0, posAt: 0, online: true, booted: false,
@@ -994,6 +1333,7 @@ const App = {
     $('#app').hidden = false;
     $('#view').innerHTML = '<div class="page"><div class="empty">讀取曲庫中…</div></div>';
     try { await Lib.load(hello.revision); } catch (e) { if (!e.unpaired) toast('讀取曲庫失敗：' + e.message, true); }
+    if (Out.phone) { this.queue = Local.queueDto(); this.state = {}; this.setState(Local.state()); }
     this.booted = true;
     this.setOnline(true);
     Events.start();
@@ -1008,8 +1348,8 @@ const App = {
       const hello = await Api.rpc('hello');
       this.hello = hello;
       this.favs = new Set(hello.favorites || []);
-      this.queue = hello.queue;
-      this.setState(hello.state);
+      if (Out.phone) { this.queue = Local.queueDto(); this.setState(Local.state()); }
+      else { this.queue = hello.queue; this.setState(hello.state); }
       this.setOnline(true);
       if (hello.revision !== Lib.rev) { await Lib.load(hello.revision); Nav.rebuildAll(['home', 'albums', 'artists', 'tracks', 'queue']); }
       else Nav.rebuildAll(['queue']);
@@ -1023,6 +1363,7 @@ const App = {
   },
 
   onEvent(ev, d) {
+    if ((ev === 'state' || ev === 'queue') && Out.phone) return;   // the computer's player; this phone plays its own
     if (ev === 'state') this.setState(d);
     else if (ev === 'queue') {
       this.queue = d;
@@ -1084,6 +1425,15 @@ const App = {
   },
 
   updateHome() {
+    document.querySelectorAll('.homeOut').forEach(box => {
+      box.textContent = '';
+      box.append(h('div', { class: 'seg', role: 'tablist' },
+        h('button', { class: Out.phone ? '' : 'on', role: 'tab', html: ico('speaker') + '<span>電腦播放</span>', onclick: () => Out.set('pc') }),
+        h('button', { class: Out.phone ? 'on' : '', role: 'tab', html: ico('phone') + '<span>在手機上聽</span>', onclick: () => Out.set('phone') })));
+      box.append(h('div', { class: 'outnote' }, Out.phone
+        ? [h('span', null, '聲音從這支手機播出，在外面也能聽'), h('button', { onclick: () => Out.pickQuality() }, '音質：' + Out.qualityLabel())]
+        : h('span', null, '手機當遙控器，聲音從電腦播出')));
+    });
     document.querySelectorAll('.homeNow').forEach(now => {
       now.textContent = '';
       const c = NP.cur();
@@ -1096,7 +1446,7 @@ const App = {
     });
     document.querySelectorAll('.homeYt').forEach(yt => {
       yt.textContent = '';
-      if (this.hello?.yt || this.state.trackId === 'yt-live') {
+      if (!Out.phone && (this.hello?.yt || this.state.trackId === 'yt-live')) {
         const live = this.state.trackId === 'yt-live';
         const l = this.state.live || {};
         yt.append(h('div', { class: 'ytcard', role: 'button', onclick: () => live && NP.open() },
@@ -1158,6 +1508,7 @@ const Pair = {
     store('name', name);
     try {
       const r = await fetch('/api/pair/request', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      if (r.status === 403) { const j = await r.json().catch(() => ({})); $('#pairErr').textContent = j.e || '這個網路不能配對'; return; }
       if (!r.ok) throw new Error();
       $('#pairHint').textContent = '請輸入電腦上 MIKU 顯示的 4 位數配對碼（也可以在 MIKU 的「設定 → 手機遙控」看到）。';
       $('#pairReq').hidden = true;

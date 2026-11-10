@@ -21,7 +21,7 @@ namespace Miku.Host;
 /// and a Server-Sent-Events stream with MIKU's state. Devices must pair once with a 4-digit code shown on the PC.
 /// Plain TcpListener (no HttpListener) so it needs neither admin rights nor a URL reservation.
 /// </summary>
-public sealed class RemoteServer : IDisposable
+public sealed partial class RemoteServer : IDisposable
 {
     public sealed class Device
     {
@@ -123,7 +123,7 @@ public sealed class RemoteServer : IDisposable
             foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (ni.OperationalStatus != OperationalStatus.Up) continue;
-                if (ni.NetworkInterfaceType is NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel) continue;
+                if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
                 var props = ni.GetIPProperties();
                 bool gw = props.GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any));
                 foreach (var ua in props.UnicastAddresses)
@@ -131,6 +131,8 @@ public sealed class RemoteServer : IDisposable
                     if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
                     string ip = ua.Address.ToString();
                     if (ip.StartsWith("169.254.")) continue;
+                    // tunnels only when they are Tailscale (the address to use away from home)
+                    if (ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel && !IsTailscale(ua.Address)) continue;
                     list.Add((ip, gw));
                 }
             }
@@ -206,6 +208,12 @@ public sealed class RemoteServer : IDisposable
                         await RunEvents(stream, ct);
                         return;
                     }
+                    if (req.Path.StartsWith("/stream/"))
+                    {
+                        if (!Authorized(req)) { await SendJson(stream, req, 401, new { e = "unpaired" }, keep); if (!keep) return; continue; }
+                        if (!await RunStream(stream, req, keep, ct)) return;
+                        continue;
+                    }
                     await Handle(stream, req, keep);
                     if (!keep) return;
                 }
@@ -225,6 +233,11 @@ public sealed class RemoteServer : IDisposable
         if (p == "/api/ping")
         {
             await SendJson(s, req, 200, new { app = "MIKU", paired = Authorized(req) }, keep);
+            return;
+        }
+        if (p.StartsWith("/api/pair/") && !IsLocalNetwork(req.Ip))
+        {
+            await SendJson(s, req, 403, new { e = "為了安全，第一次配對只能在家裡的 Wi-Fi 或 Tailscale 內進行。配對好之後在外面也能用。" }, keep);
             return;
         }
         if (p == "/api/pair/request" && req.Method == "POST")
@@ -403,7 +416,7 @@ public sealed class RemoteServer : IDisposable
             using (var gz = new GZipStream(ms, CompressionLevel.Fastest, true)) gz.Write(body);
             body = ms.ToArray();
         }
-        string reason = status switch { 200 => "OK", 204 => "No Content", 401 => "Unauthorized", 403 => "Forbidden", 404 => "Not Found", _ => "Error" };
+        string reason = status switch { 200 => "OK", 204 => "No Content", 401 => "Unauthorized", 403 => "Forbidden", 404 => "Not Found", 415 => "Unsupported Media Type", 416 => "Range Not Satisfiable", 503 => "Service Unavailable", _ => "Error" };
         var head = new StringBuilder();
         head.Append($"HTTP/1.1 {status} {reason}\r\n");
         head.Append($"Content-Type: {type}\r\n");

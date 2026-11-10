@@ -57,7 +57,7 @@ public static class AudioConverter
     static readonly object Gate = new();
 
     /// <summary>The encoders the FFmpeg in use has (asked once).</summary>
-    static HashSet<string> Encoders()
+    internal static HashSet<string> Encoders()
     {
         lock (Gate)
         {

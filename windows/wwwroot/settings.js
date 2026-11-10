@@ -293,7 +293,7 @@ const Settings = {
       Updates.section(section, field, sw);
 
       /* ── phone remote ── */
-      const rm = section(T('手機遙控'), T('手機和這台電腦連同一個 Wi-Fi，用瀏覽器打開下面的網址就能選歌、控制播放。聲音一樣從這台電腦的 DAC 播出。'));
+      const rm = section(T('手機遙控'), T('手機和這台電腦連同一個 Wi-Fi，用瀏覽器打開下面的網址就能選歌、控制播放，聲音從這台電腦的 DAC 播出。在手機頁選「在手機上聽」，歌會改從手機播放；裝了 Tailscale，在外面也能聽。'));
       const rmBox = h('div');
       rm.append(field(T('啟用手機遙控'), T('關閉後手機就無法連線。'), sw(s.remoteEnabled !== false, async v => { await this.set({ remoteEnabled: v }); setTimeout(drawRemote, 300); })));
       rm.append(field(T('連接埠'), T('一般不用改；被其他程式占用時再換一個（1024–65535）。'), (() => {
@@ -315,7 +315,9 @@ const Settings = {
             try { qrBox.innerHTML = QR.svg(u, 168); } catch (e) { qrBox.textContent = ''; }
             urlList.querySelectorAll('button').forEach(b => b.style.opacity = b.dataset.u === u ? '1' : '.5');
           };
-          r.urls.forEach(u => urlList.append(h('button', { 'data-u': u, style: { fontSize: '16px', fontWeight: '700', letterSpacing: '.02em', userSelect: 'text', cursor: 'pointer' }, onclick: () => pick(u) }, u)));
+          // Tailscale gives each device a 100.64.0.0/10 address: the one to use away from home
+          const isTs = u => /^http:\/\/100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(u);
+          r.urls.forEach(u => urlList.append(h('button', { 'data-u': u, style: { fontSize: '16px', fontWeight: '700', letterSpacing: '.02em', userSelect: 'text', cursor: 'pointer' }, onclick: () => pick(u) }, u, isTs(u) ? h('small', { class: 'muted', style: { fontWeight: '400', marginLeft: '6px' } }, T('Tailscale・外出用')) : null)));
           if (r.urls.length > 1) urlList.append(h('small', { class: 'muted' }, T('有多個網址時，點一下切換 QR code')));
           rmBox.append(h('div', { class: 'field' }, h('div', { class: 'lbl' }, h('b', null, T('用手機掃描 QR code')),
             h('small', null, T('iPhone 用相機掃描，在 Safari 打開後按「分享 → 加入主畫面」就能像 App 一樣使用。第一次連線若 Windows 跳出防火牆提示，請勾選「私人網路」並允許。'))),
@@ -323,6 +325,11 @@ const Settings = {
               ? h('div', { class: 'ctl', style: { alignItems: 'center', gap: '18px' } }, urlList, qrBox)
               : h('div', { class: 'ctl' }, h('span', { class: 'muted' }, T('找不到區域網路位址，請確認已連上 Wi-Fi 或有線網路。')))));
           if (r.urls.length) pick(r.urls[0]);
+          const ts = r.urls.filter(isTs);
+          rmBox.append(field(T('在外面也能聽'), ts.length
+            ? T`已連上 Tailscale。手機也裝 Tailscale、登入同一個帳號，在外面打開 ${ts[0]} 就能連回來，再選「在手機上聽」就能聽這台電腦裡的歌。第一次配對請在家裡的 Wi-Fi 完成。`
+            : T('電腦和手機都安裝 Tailscale（免費）並登入同一個帳號，在外面就能用手機連回來聽歌。不用設定路由器，連線全程加密，外人連不到。裝好後上面會多一個 100. 開頭的網址。'),
+            h('button', { class: 'btn small ghost', onclick: () => Host.call('openUrl', { url: 'https://tailscale.com/download' }) }, T('下載 Tailscale'))));
           if (r.code) rmBox.append(field(T('目前的配對碼'), T('手機上輸入這組數字完成配對（3 分鐘內有效）。'), h('b', { style: { fontSize: '22px', letterSpacing: '.2em' } }, r.code)));
         }
         if (r.devices.length) {
