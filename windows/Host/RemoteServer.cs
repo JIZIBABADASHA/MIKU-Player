@@ -232,7 +232,7 @@ public sealed partial class RemoteServer : IDisposable
 
         if (p == "/api/ping")
         {
-            await SendJson(s, req, 200, new { app = "MIKU", paired = Authorized(req) }, keep);
+            await SendJson(s, req, 200, new { app = "MIKU", name = Environment.MachineName, paired = Authorized(req) }, keep);
             return;
         }
         if (p.StartsWith("/api/pair/") && !IsLocalNetwork(req.Ip))

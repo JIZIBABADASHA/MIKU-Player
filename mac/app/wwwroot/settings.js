@@ -154,6 +154,9 @@ const Settings = {
           h('button', { class: 'btn small ghost', onclick: () => { Host.call('rescan', { full: true }); toast(T('開始完整掃描（重新讀取所有標籤）')); } }, T('完整重掃')))));
       lib.append(field(T('自動偵測新歌曲'), T('MIKU 開著時，音樂庫資料夾有新增、修改或刪除的音樂會自動更新，不用重新掃描。平常不耗資源，只在有變動時讀取變動的資料夾。'), sw(s.watchFolders !== false, v => this.set({ watchFolders: v }))));
 
+      /* ── the Windows PC's library (remote-lib.js) ── */
+      if (typeof RemoteLib !== 'undefined') RemoteLib.section(section, field, sw, select);
+
       /* ── online ── */
       const on = section(T('線上服務'), T('只會傳送演出者、專輯與曲名，不會上傳音樂檔案。'));
       on.append(field(T('自動補上專輯封面'), T('沒有封面的音樂會從 Apple Music、Deezer、MusicBrainz 搜尋高解析封面。'), sw(s.onlineArt, v => this.set({ onlineArt: v }))));
