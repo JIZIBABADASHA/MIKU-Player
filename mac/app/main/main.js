@@ -1098,7 +1098,9 @@ async function handleRpc(m, a) {
     case 'remoteLib.info': return remoteDto();
     case 'remoteLib.pair': return remoteLib.pairStart(a.url);
     case 'remoteLib.confirm': return remoteLib.pairConfirm(a.code);
-    case 'remoteLib.unpair': remoteLib.unpair(); return remoteDto();
+    case 'remoteLib.unpair': remoteLib.unpair(a.key); return remoteDto();
+    case 'remoteLib.cancelPair': remoteLib.cancelPairing(); return remoteDto();
+    case 'remoteLib.only': remoteLib.setOnly(a.key); return remoteDto();
     case 'remoteLib.active': remoteLib.setActive(a.on === true); return remoteDto();
     case 'remoteLib.refresh': await remoteLib.refresh(); return remoteDto();
     case 'remoteLib.set':

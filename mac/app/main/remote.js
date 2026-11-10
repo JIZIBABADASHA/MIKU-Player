@@ -135,7 +135,8 @@ class RemoteServer {
       if (!this.authorized(req, q)) return this.json(req, res, 401, { e: 'unpaired' });
       return this.stream(req, res, decodeURIComponent(p.slice(8)), q);
     }
-    if (p === '/api/ping') return this.json(req, res, 200, { app: 'MIKU', paired: this.authorized(req, q) });
+    // name: what another MIKU's 遠端音樂庫 calls this computer
+    if (p === '/api/ping') return this.json(req, res, 200, { app: 'MIKU', name: require('os').hostname().replace(/\.local$/i, ''), paired: this.authorized(req, q) });
     if (p === '/api/pair/request' && req.method === 'POST') {
       const name = readName(await this.body(req));
       let code;

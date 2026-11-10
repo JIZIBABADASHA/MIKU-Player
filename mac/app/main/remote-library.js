@@ -1,9 +1,8 @@
 'use strict';
-// 遠端音樂庫: the library of MIKU on another computer (the Windows PC at home), reached over the home network or
-// Tailscale. This Mac pairs with that MIKU's phone-remote server once (a 4-digit code shown there), then lists its
-// library and covers here and plays its songs with this Mac's own engine: a song is copied into a cache first (as it
-// is, or encoded smaller when 省流量 is chosen), the next ones while it plays. Whole albums can be kept on this Mac to
-// listen without a connection (離線下載).
+// 遠端音樂庫: the libraries of MIKU on other computers (a Windows PC at home…), reached over the home network or
+// Tailscale. This Mac pairs with each one's phone-remote server once (a 4-digit code shown there), lists their songs
+// together under 遠端 and plays them with this Mac's own engine: streamed from there at once (FFmpeg reads the address),
+// the next ones of the queue copied into a cache meanwhile. Whole albums can be kept on this Mac (離線下載).
 const fs = require('fs');
 const fsp = fs.promises;
 const os = require('os');
@@ -12,93 +11,125 @@ const { EventEmitter } = require('events');
 const { app } = require('electron');
 const { AppPaths, Log, Json, hash } = require('./common');
 
-const Dir = path.join(AppPaths.Root, 'Remote');                 // the library list and the offline albums: kept
+const Dir = path.join(AppPaths.Root, 'Remote');                 // the library lists and the offline albums: kept
 const OfflineDir = path.join(Dir, 'Offline');
 const CacheDir = path.join(app.getPath('cache'), 'MIKU', 'Remote');   // songs played lately: may be cleared
 const ArtDir = path.join(CacheDir, 'Art');
-const LibFile = path.join(Dir, 'library.json');
 const IndexFile = path.join(Dir, 'files.json');
 const Lossy = new Set(['MP3', 'AAC', 'OGG', 'OPUS', 'WMA']);
 // what this Mac's engine (FFmpeg) plays as it is when a smaller copy is asked for: a lossy file is never encoded again
 const Caps = 'mp3,aac,alac,flac,wav,ogg,opus';
 const ExtOfType = { 'audio/mpeg': '.mp3', 'audio/aac': '.aac', 'audio/mp4': '.m4a', 'audio/flac': '.flac', 'audio/wav': '.wav', 'audio/ogg': '.ogg' };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Several computers can be paired; their songs are shown together under 遠端. Ids are "<key>~<id there>" (two
+// computers can have the same file path, so the same id); key: a short hash of the computer's address.
+const keyOf = url => hash(url).slice(0, 6);
+const split = id => { const i = id ? id.indexOf('~') : -1; return i > 0 ? [id.slice(0, i), id.slice(i + 1)] : [null, id]; };
 
 class RemoteLibrary extends EventEmitter {
   constructor(s) {
     super();
     this.s = s;
-    const d = { url: '', token: '', name: '', active: false, quality: 'orig', cacheGB: 5 };
-    s.remoteLib = Object.assign(d, s.remoteLib && typeof s.remoteLib === 'object' ? s.remoteLib : {});
-    this.raw = null;              // the library.json bytes as the PC sent them (what the page reads)
+    const d = { remotes: [], active: false, only: '', quality: 'orig', cacheGB: 5 };
+    const c = s.remoteLib = Object.assign(d, s.remoteLib && typeof s.remoteLib === 'object' ? s.remoteLib : {});
+    // one computer, as the first version kept it
+    if (c.url && c.token && !c.remotes.length) c.remotes.push({ url: c.url, token: c.token, name: c.name || '' });
+    delete c.url; delete c.token; delete c.name;
+    this.state = new Map();       // key → { online, error, events, data (library.json parsed), raw }
     this.tracks = new Map(); this.albums = new Map();
+    this.merged = null;           // the library.json the page reads (all computers, or the one chosen)
     this.files = {};              // id → { file, size, q, used, pin }
-    this.jobs = new Map();        // id → running download { promise, got, total, abort }
-    this.online = false; this.lastError = ''; this.pairing = false;
+    this.jobs = new Map();        // id|q → running download { promise, got, total, ac }
+    this.lastError = ''; this.pairing = null;
     this.offlineQueue = []; this.offlineBusy = false; this.offlineDone = 0; this.offlineTotal = 0;
     this.playingId = null;
-    this.events = null;
     try { fs.mkdirSync(OfflineDir, { recursive: true }); fs.mkdirSync(ArtDir, { recursive: true }); } catch { }
     this.files = Json.load(IndexFile, {}) || {};
     for (const [id, f] of Object.entries(this.files)) if (!f || !f.file || !fs.existsSync(f.file)) delete this.files[id];
-    try { this.parse(fs.readFileSync(LibFile)); } catch { }
+    for (const r of this.cfg.remotes) {
+      const st = this.st(r);
+      try { st.raw = fs.readFileSync(this.libFile(r)); st.data = JSON.parse(st.raw.toString('utf8')); } catch { }
+    }
+    this.rebuild();
   }
 
   get cfg() { return this.s.remoteLib; }
-  get paired() { return !!(this.cfg.url && this.cfg.token); }
-  get active() { return this.paired && this.cfg.active === true && !!this.raw; }
+  get paired() { return this.cfg.remotes.length > 0; }
+  get active() { return this.paired && this.cfg.active === true && !!this.merged; }
+  get online() { return this.cfg.remotes.some(r => this.st(r).online); }
+  st(r) { const k = keyOf(r.url); let st = this.state.get(k); if (!st) this.state.set(k, st = { online: false, error: '', events: null, data: null, raw: null }); return st; }
+  remoteOf(id) { const [k] = split(id); return k ? this.cfg.remotes.find(r => keyOf(r.url) === k) || null : null; }
+  libFile(r) { return path.join(Dir, 'lib-' + keyOf(r.url) + '.json'); }
+  label(r) { return r.name || r.url.replace(/^https?:\/\//, ''); }
 
   // ───────────── the library ─────────────
-  parse(buf) {
-    const data = JSON.parse(buf.toString('utf8'));
+  /** All the computers' libraries (or only the one chosen) as one: ids prefixed, folders numbered on. */
+  rebuild() {
     const albums = new Map(), tracks = new Map();
-    for (const a of data.albums || []) albums.set(a[0], { id: a[0], title: a[1] || '', artist: a[2] || '', year: a[3] || 0, genre: a[4] || '', tracks: [], remote: true });
-    for (const r of data.tracks || []) {
-      const al = albums.get(r[3]);
-      const base = { codec: r[7] || '', sampleRate: r[8] || 0, bits: r[9] || 0, channels: 2 };
-      // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
-      const t = Object.assign({
-        id: r[0], title: r[1] || '', artist: r[2] || '', albumArtist: al ? al.artist : '', album: al ? al.title : '', albumId: r[3],
-        discNo: r[4] || 1, trackNo: r[5] || 0, duration: r[6] || 0, year: r[10] || 0, composer: r[11] || '', genre: al ? al.genre : '',
-        path: '', hasPic: false, remote: true, base,
-      }, base);
-      tracks.set(t.id, t);
-      if (al) al.tracks.push(t);
+    const out = { revision: Date.now(), albums: [], tracks: [], folders: [] };
+    let any = false;
+    for (const r of this.cfg.remotes) {
+      const k = keyOf(r.url), data = this.st(r).data;
+      if (!data) continue;
+      any = true;
+      const shown = !this.cfg.only || this.cfg.only === k;
+      const fo = out.folders.length;
+      if (shown) out.folders.push(...(data.folders || []));
+      for (const a of data.albums || []) {
+        const id = k + '~' + a[0];
+        albums.set(id, { id, title: a[1] || '', artist: a[2] || '', year: a[3] || 0, genre: a[4] || '', tracks: [], remote: true });
+        if (shown) { const b = a.slice(); b[0] = id; out.albums.push(b); }
+      }
+      for (const r2 of data.tracks || []) {
+        // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
+        const id = k + '~' + r2[0], albumId = k + '~' + r2[3];
+        const al = albums.get(albumId);
+        const base = { codec: r2[7] || '', sampleRate: r2[8] || 0, bits: r2[9] || 0, channels: 2 };
+        let t = this.tracks.get(id);
+        const fresh = {
+          id, title: r2[1] || '', artist: r2[2] || '', albumArtist: al ? al.artist : '', album: al ? al.title : '', albumId,
+          discNo: r2[4] || 1, trackNo: r2[5] || 0, duration: r2[6] || 0, year: r2[10] || 0, composer: r2[11] || '', genre: al ? al.genre : '',
+          hasPic: false, remote: true, base,
+        };
+        // a track the player holds keeps its object (and where it plays from)
+        if (t && t.path) Object.assign(t, fresh); else t = Object.assign(fresh, base, { path: '' });
+        tracks.set(id, t);
+        if (al) al.tracks.push(t);
+        if (shown) { const b = r2.slice(); b[0] = id; b[3] = albumId; if (typeof b[13] === 'number') b[13] += fo; out.tracks.push(b); }
+      }
     }
-    // a track that played keeps its object (the player and the engine hold it)
-    for (const [id, t] of tracks) { const old = this.tracks.get(id); if (old && old.path) { Object.assign(old, t, { path: old.path, codec: old.codec, sampleRate: old.sampleRate, bits: old.bits }); tracks.set(id, old); const al = albums.get(old.albumId); if (al) al.tracks[al.tracks.indexOf(t)] = old; } }
-    this.raw = buf; this.albums = albums; this.tracks = tracks;
+    this.albums = albums; this.tracks = tracks;
+    this.merged = any ? Buffer.from(JSON.stringify(out)) : null;
   }
 
   getTrack(id) { return id ? this.tracks.get(id) || null : null; }
   getAlbum(id) { return id ? this.albums.get(id) || null : null; }
 
-  /** The library.json the page reads while the PC's library is shown (the last one fetched, also without a connection). */
-  json() { return this.raw; }
+  /** The library.json the page reads while 遠端 is shown (the last one fetched, also without a connection). */
+  json() { return this.merged; }
 
-  // ───────────── talking to the PC ─────────────
-  url(p) { return this.cfg.url.replace(/\/+$/, '') + p; }
-  async req(p, opts = {}, ms = 15000) {
+  // ───────────── talking to the other computers ─────────────
+  async req(r, p, opts = {}, ms = 15000) {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), ms);
     if (opts.signal) opts.signal.addEventListener('abort', () => ac.abort(), { once: true });
     try {
       const headers = Object.assign({}, opts.headers || {});
-      if (this.cfg.token) headers['X-Miku-Token'] = this.cfg.token;
+      if (r.token) headers['X-Miku-Token'] = r.token;
       if (opts.body) headers['Content-Type'] = 'application/json';
-      const res = await fetch(this.url(p), { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined, signal: ac.signal });
-      if (res.status === 401 && this.cfg.token && !p.startsWith('/api/pair')) this.unauthorized();
+      const res = await fetch(r.url + p, { method: opts.method || 'GET', headers, body: opts.body ? JSON.stringify(opts.body) : undefined, signal: ac.signal });
+      if (res.status === 401 && r.token && !p.startsWith('/api/pair')) this.unauthorized(r);
       return res;
     } catch (e) {
-      if (ac.signal.aborted && !(opts.signal && opts.signal.aborted)) throw new Error('連不上遠端電腦（逾時）');
-      throw new Error('連不上遠端電腦：' + (e.cause && e.cause.code || e.message));
+      if (ac.signal.aborted && !(opts.signal && opts.signal.aborted)) throw new Error(`連不上「${this.label(r)}」（逾時）`);
+      throw new Error(`連不上「${this.label(r)}」：` + (e.cause && e.cause.code || e.message));
     } finally { clearTimeout(timer); }
   }
 
-  unauthorized() {
-    // the PC forgot this Mac (取消配對 there): pair again
-    this.cfg.token = ''; this.cfg.active = false; this.lastError = '另一台電腦的 MIKU 已取消這台電腦的配對，請重新配對。';
-    this.stopEvents(); this.emit('changed'); this.emit('library'); this.emit('save');
+  unauthorized(r) {
+    // the other computer forgot this one (取消配對 there): pair again
+    this.lastError = `「${this.label(r)}」已取消這台電腦的配對，請重新配對。`;
+    this.unpair(keyOf(r.url));
   }
 
   static normalize(u) {
@@ -110,38 +141,50 @@ class RemoteLibrary extends EventEmitter {
     return x.origin;
   }
 
-  /** Step 1: the PC shows a pairing code. */
+  /** Step 1: the other MIKU shows a pairing code. */
   async pairStart(u) {
     const url = RemoteLibrary.normalize(u);
-    const old = this.cfg.url;
-    this.cfg.url = url; this.cfg.token = '';
-    try {
-      const ping = await this.req('/api/ping', {}, 8000);
-      const j = await ping.json().catch(() => null);
-      if (!j || j.app !== 'MIKU') throw new Error('這個網址不是 MIKU，請確認網址和連接埠');
-      const r = await this.req('/api/pair/request', { method: 'POST', body: { name: this.deviceName() } }, 8000);
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).e || '配對要求失敗（' + r.status + '）');
-      this.pairing = true; this.lastError = '';
-      this.emit('save'); this.emit('changed');
-      return { ok: true };
-    } catch (e) { if (!this.cfg.token) this.cfg.url = old || url; throw e; }
+    if (this.cfg.remotes.some(r => r.url === url)) throw new Error('已經和這台電腦配對了');
+    const r = { url, token: '', name: '' };
+    const ping = await this.req(r, '/api/ping', {}, 8000);
+    const j = await ping.json().catch(() => null);
+    if (!j || j.app !== 'MIKU') throw new Error('這個網址不是 MIKU，請確認網址和連接埠');
+    r.name = typeof j.name === 'string' ? j.name.slice(0, 40) : '';
+    const res = await this.req(r, '/api/pair/request', { method: 'POST', body: { name: this.deviceName() } }, 8000);
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).e || '配對要求失敗（' + res.status + '）');
+    this.pairing = r; this.lastError = '';
+    this.emit('changed');
+    return { ok: true };
   }
 
-  /** Step 2: the code read off the PC's screen. */
+  /** Step 2: the code read off the other computer's screen. */
   async pairConfirm(code) {
-    const r = await this.req('/api/pair/confirm', { method: 'POST', body: { code: String(code || '').trim(), name: this.deviceName() } }, 8000);
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok || !j.token) throw new Error(j.e || '配對失敗');
-    this.cfg.token = j.token; this.cfg.active = true; this.pairing = false; this.lastError = '';
+    const r = this.pairing;
+    if (!r) throw new Error('請先取得配對碼');
+    const res = await this.req(r, '/api/pair/confirm', { method: 'POST', body: { code: String(code || '').trim(), name: this.deviceName() } }, 8000);
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok || !j.token) throw new Error(j.e || '配對失敗');
+    r.token = j.token;
+    this.cfg.remotes.push(r); this.cfg.active = true; this.pairing = null; this.lastError = '';
     this.emit('save');
-    await this.refresh();
+    await this.refresh(r);
+    this.emit('library');
     return this.info();
   }
 
-  unpair() {
-    this.stopEvents();
-    Object.assign(this.cfg, { token: '', active: false, name: '' });
-    this.pairing = false; this.online = false;
+  cancelPairing() { this.pairing = null; this.emit('changed'); }
+
+  unpair(key) {
+    const r = this.cfg.remotes.find(x => keyOf(x.url) === key);
+    if (!r) return;
+    const st = this.st(r);
+    this.stopEvents(st);
+    this.cfg.remotes = this.cfg.remotes.filter(x => x !== r);
+    if (this.cfg.only === key) this.cfg.only = '';
+    if (!this.cfg.remotes.length) this.cfg.active = false;
+    this.state.delete(key);
+    try { fs.unlinkSync(this.libFile(r)); } catch { }
+    this.rebuild();
     this.emit('save'); this.emit('changed'); this.emit('library');
   }
 
@@ -156,83 +199,113 @@ class RemoteLibrary extends EventEmitter {
     if (this.cfg.active) { this.refresh().catch(() => { }); this.startEvents(); } else this.stopEvents();
   }
 
-  /** Fetches the PC's library.json (kept on disk: the library is still listed without a connection). */
-  async refresh() {
-    if (!this.paired) return false;
-    try {
-      const r = await this.req('/media/library.json', {}, 60000);
-      if (!r.ok) throw new Error('讀取音樂庫失敗（' + r.status + '）');
-      const buf = Buffer.from(await r.arrayBuffer());
-      const same = this.raw && this.raw.equals(buf);
-      if (!same) { this.parse(buf); await fsp.writeFile(LibFile + '.tmp', buf); await fsp.rename(LibFile + '.tmp', LibFile); }
-      this.online = true; this.lastError = '';
-      this.emit('changed');
-      if (!same && this.cfg.active) this.emit('library');
-      if (this.cfg.active) this.startEvents();
-      return true;
-    } catch (e) {
-      this.online = false; this.lastError = e.message;
-      Log.error('Remote library refresh', e);
-      this.emit('changed');
-      return false;
+  /** Shows one computer's songs only ('' all of them). */
+  setOnly(key) {
+    this.cfg.only = key && this.cfg.remotes.some(r => keyOf(r.url) === key) ? key : '';
+    this.rebuild();
+    this.emit('save'); this.emit('library'); this.emit('changed');
+  }
+
+  /** Fetches the library.json of one computer (or all), kept on disk: listed without a connection too. */
+  async refresh(only) {
+    const list = only ? [only] : this.cfg.remotes.slice();
+    const results = await Promise.all(list.map(async r => {
+      const st = this.st(r);
+      try {
+        const res = await this.req(r, '/media/library.json', {}, 60000);
+        if (!res.ok) throw new Error('讀取音樂庫失敗（' + res.status + '）');
+        const buf = Buffer.from(await res.arrayBuffer());
+        const same = st.raw && st.raw.equals(buf);
+        if (!same) {
+          st.data = JSON.parse(buf.toString('utf8')); st.raw = buf;
+          await fsp.mkdir(Dir, { recursive: true });
+          await fsp.writeFile(this.libFile(r) + '.tmp', buf); await fsp.rename(this.libFile(r) + '.tmp', this.libFile(r));
+        }
+        st.online = true; st.error = '';
+        // paired by the first version (no name kept): ask its name
+        if (!r.name) { try { const j = await (await this.req(r, '/api/ping', {}, 5000)).json(); if (j && typeof j.name === 'string' && j.name) { r.name = j.name.slice(0, 40); this.emit('save'); } } catch { } }
+        return !same;
+      } catch (e) {
+        st.online = false; st.error = e.message;
+        Log.error('Remote library refresh ' + r.url, e);
+        return false;
+      }
+    }));
+    const changed = results.some(Boolean);
+    if (changed) this.rebuild();
+    this.emit('changed');
+    if (changed && this.cfg.active) this.emit('library');
+    if (this.cfg.active) this.startEvents();
+    return results.length > 0;
+  }
+
+  /** Each computer's events: its library changed (fetch it again), and whether it can be reached. */
+  startEvents() {
+    for (const r of this.cfg.remotes) {
+      const st = this.st(r);
+      if (st.events) continue;
+      const run = st.events = { stop: false, ac: null };
+      (async () => {
+        let wait = 3000;
+        while (!run.stop && this.cfg.remotes.includes(r)) {
+          try {
+            run.ac = new AbortController();
+            const res = await fetch(r.url + '/api/events', { headers: { 'X-Miku-Token': r.token, Accept: 'text/event-stream' }, signal: run.ac.signal });
+            if (res.status === 401) { this.unauthorized(r); break; }
+            if (!res.ok || !res.body) throw new Error('events ' + res.status);
+            if (!st.online) { st.online = true; st.error = ''; this.emit('changed'); this.refresh(r).catch(() => { }); }
+            wait = 3000;
+            const dec = new TextDecoder();
+            let buf = '', libTimer = null;
+            for await (const chunk of res.body) {
+              if (run.stop) break;
+              buf += dec.decode(chunk, { stream: true });
+              let i;
+              while ((i = buf.indexOf('\n\n')) >= 0) {
+                const frame = buf.slice(0, i); buf = buf.slice(i + 2);
+                const line = frame.split('\n').find(l => l.startsWith('data: '));
+                if (!line) continue;
+                try {
+                  const m = JSON.parse(line.slice(6));
+                  if (m.ev === 'library') { clearTimeout(libTimer); libTimer = setTimeout(() => this.refresh(r).catch(() => { }), 2500); }
+                } catch { }
+              }
+            }
+          } catch (e) { if (run.stop) break; }
+          if (run.stop) break;
+          if (st.online) { st.online = false; this.emit('changed'); }
+          await sleep(wait); wait = Math.min(wait * 2, 60000);
+        }
+      })();
     }
   }
-
-  /** The PC's state events: its library changed (refetch it), and whether it can be reached. */
-  startEvents() {
-    if (this.events || !this.paired) return;
-    const run = this.events = { stop: false, ac: null };
-    (async () => {
-      let wait = 3000;
-      while (!run.stop && this.paired) {
-        try {
-          run.ac = new AbortController();
-          const res = await fetch(this.url('/api/events'), { headers: { 'X-Miku-Token': this.cfg.token, Accept: 'text/event-stream' }, signal: run.ac.signal });
-          if (res.status === 401) { this.unauthorized(); break; }
-          if (!res.ok || !res.body) throw new Error('events ' + res.status);
-          if (!this.online) { this.online = true; this.lastError = ''; this.emit('changed'); this.refresh().catch(() => { }); }
-          wait = 3000;
-          const dec = new TextDecoder();
-          let buf = '', libTimer = null;
-          for await (const chunk of res.body) {
-            if (run.stop) break;
-            buf += dec.decode(chunk, { stream: true });
-            let i;
-            while ((i = buf.indexOf('\n\n')) >= 0) {
-              const frame = buf.slice(0, i); buf = buf.slice(i + 2);
-              const line = frame.split('\n').find(l => l.startsWith('data: '));
-              if (!line) continue;
-              try {
-                const m = JSON.parse(line.slice(6));
-                if (m.ev === 'library') { clearTimeout(libTimer); libTimer = setTimeout(() => this.refresh().catch(() => { }), 2500); }
-              } catch { }
-            }
-          }
-        } catch (e) { if (run.stop) break; }
-        if (run.stop) break;
-        if (this.online) { this.online = false; this.emit('changed'); }
-        await sleep(wait); wait = Math.min(wait * 2, 60000);
-      }
-    })();
+  stopEvents(one) {
+    for (const st of one ? [one] : this.state.values())
+      if (st.events) { st.events.stop = true; try { st.events.ac && st.events.ac.abort(); } catch { } st.events = null; }
   }
-  stopEvents() { if (this.events) { this.events.stop = true; try { this.events.ac && this.events.ac.abort(); } catch { } this.events = null; } }
 
   // ───────────── covers ─────────────
-  /** A cover from the PC (/art/a/…, /art/t/…, /art/r/…), cached on disk; null when it has none or can't be reached. */
+  /** A cover (/art/a/<key~id>, /art/t/<key~id>, /art/r/<name>), cached on disk; null when none or out of reach. */
   async art(p, size) {
-    const file = path.join(ArtDir, hash(p + '@' + size) + '.jpg');
-    try { return await fsp.readFile(file); } catch { }
-    if (!this.paired) return null;
+    const kind = p.slice(0, 7), rest = decodeURIComponent(p.slice(7));
+    let list;
+    if (kind === '/art/r/') list = this.cfg.remotes.filter(r => !this.cfg.only || keyOf(r.url) === this.cfg.only).map(r => [r, p]);
+    else { const r = this.remoteOf(rest); if (!r) return null; list = [[r, kind + encodeURIComponent(split(rest)[1])]]; }
     this.missing = this.missing || new Map();
-    const miss = this.missing.get(file);
-    if (miss && Date.now() - miss < 10 * 60000) return null;
-    try {
-      const r = await this.req('/media' + p + '?s=' + size, {}, 20000);
-      if (!r.ok) { this.missing.set(file, Date.now()); return null; }
-      const buf = Buffer.from(await r.arrayBuffer());
-      fsp.writeFile(file, buf).catch(() => { });
-      return buf;
-    } catch { this.missing.set(file, Date.now()); return null; }
+    for (const [r, there] of list) {
+      const file = path.join(ArtDir, hash(r.url + there + '@' + size) + '.jpg');
+      try { return await fsp.readFile(file); } catch { }
+      const miss = this.missing.get(file);
+      if (miss && Date.now() - miss < 10 * 60000) continue;
+      try {
+        const res = await this.req(r, '/media' + there + '?s=' + size, {}, 20000);
+        if (!res.ok) { this.missing.set(file, Date.now()); continue; }
+        const buf = Buffer.from(await res.arrayBuffer());
+        fsp.writeFile(file, buf).catch(() => { });
+        return buf;
+      } catch { this.missing.set(file, Date.now()); }
+    }
+    return null;
   }
 
   // ───────────── songs ─────────────
@@ -261,7 +334,8 @@ class RemoteLibrary extends EventEmitter {
    */
   streamUrl(t) {
     const q = this.quality(t);
-    return this.url('/stream/' + encodeURIComponent(t.id) + '?' + (q === 'orig' ? 'raw=1' : `q=${q}&c=${Caps}`) + '&t=' + encodeURIComponent(this.cfg.token));
+    const r = this.remoteOf(t.id);
+    return r.url + '/stream/' + encodeURIComponent(split(t.id)[1]) + '?' + (q === 'orig' ? 'raw=1' : `q=${q}&c=${Caps}`) + '&t=' + encodeURIComponent(r.token);
   }
   bindStream(t) {
     t.path = this.streamUrl(t);
@@ -274,7 +348,8 @@ class RemoteLibrary extends EventEmitter {
   isReady(t) {
     const f = this.cached(t);
     if (f) { this.bind(t, f); t.streaming = false; return true; }
-    if (this.paired && this.online) { this.bindStream(t); this.prefetch([t]); return true; }
+    const r = this.remoteOf(t.id);
+    if (r && this.st(r).online) { this.bindStream(t); this.prefetch([t]); return true; }
     return false;
   }
 
@@ -287,9 +362,11 @@ class RemoteLibrary extends EventEmitter {
     const f = this.cached(t);
     if (f) { this.bind(t, f); t.streaming = false; this.saveIndex(); }
     else {
-      if (!this.paired) throw new Error('還沒有和遠端電腦配對');
-      if (!this.online) {
-        try { const r = await this.req('/api/ping', {}, 4000); if (!r.ok) throw new Error(); this.online = true; this.emit('changed'); }
+      const r = this.remoteOf(t.id);
+      if (!r) throw new Error('這首歌所在的電腦已經取消配對');
+      const st = this.st(r);
+      if (!st.online) {
+        try { const res = await this.req(r, '/api/ping', {}, 4000); if (!res.ok) throw new Error(); st.online = true; this.emit('changed'); }
         catch { throw new Error('連不上遠端電腦，這首歌還沒下載到這台電腦'); }
       }
       this.bindStream(t);
@@ -319,7 +396,8 @@ class RemoteLibrary extends EventEmitter {
     const key = t.id + '|' + q;
     const running = this.jobs.get(key);
     if (running) return running.promise;
-    if (!this.paired) return Promise.reject(new Error('還沒有和遠端電腦配對'));
+    const remote = this.remoteOf(t.id);
+    if (!remote) return Promise.reject(new Error('這首歌所在的電腦已經取消配對'));
     // a song that just failed (no connection) is not asked for again at once by the gapless look-ahead
     this.failed = this.failed || new Map();
     if (!now && Date.now() - (this.failed.get(key) || 0) < 60000) return Promise.reject(new Error('稍後再試'));
@@ -329,7 +407,7 @@ class RemoteLibrary extends EventEmitter {
       const qs = q === 'orig' ? 'raw=1' : `q=${q}&c=${Caps}`;
       let res;
       for (let attempt = 0; ; attempt++) {
-        res = await this.req('/stream/' + encodeURIComponent(t.id) + '?' + qs, { signal: job.ac.signal }, now ? 20000 : 60000);
+        res = await this.req(remote, '/stream/' + encodeURIComponent(split(t.id)[1]) + '?' + qs, { signal: job.ac.signal }, now ? 20000 : 60000);
         if (res.status === 503 && attempt < 5) { await sleep(2000); continue; }   // the PC is encoding several songs
         break;
       }
@@ -416,7 +494,7 @@ class RemoteLibrary extends EventEmitter {
   }
 
   // ───────────── offline albums ─────────────
-  /** Keeps a whole album on this Mac (originals), one song at a time in the background. */
+  /** Keeps a whole album on this computer (originals), one song at a time in the background. */
   downloadAlbum(id) {
     const al = this.getAlbum(id);
     if (!al) throw new Error('找不到這張專輯');
@@ -444,7 +522,7 @@ class RemoteLibrary extends EventEmitter {
         try { await this.fetch(t, true, 'orig'); this.pin(t.id); this.offlineDone++; }
         catch (e) {
           this.lastError = `「${t.title}」下載失敗：${e.message}`;
-          if (!this.online && /連不上/.test(e.message)) { this.offlineQueue.length = 0; break; }
+          if (/連不上/.test(e.message)) { const r = this.remoteOf(t.id); this.offlineQueue = this.offlineQueue.filter(x => this.remoteOf(x.id) !== r); continue; }
         }
         this.offlineQueue.shift();
         this.emit('changed');
@@ -491,7 +569,12 @@ class RemoteLibrary extends EventEmitter {
     for (const a of offAlbums.values()) { const al = this.albums.get(a.id); a.count = al ? al.tracks.length : a.have; }
     const ids = new Set(Object.entries(this.files).filter(([, f]) => f.pin).map(([id]) => id));
     return {
-      url: this.cfg.url, paired: this.paired, pairing: this.pairing, active: this.active, online: this.online, error: this.lastError,
+      paired: this.paired, pairing: this.pairing ? { url: this.pairing.url, name: this.pairing.name } : null, active: this.active, online: this.online, error: this.lastError,
+      only: this.cfg.only || '',
+      remotes: this.cfg.remotes.map(r => {
+        const st = this.st(r), d = st.data;
+        return { key: keyOf(r.url), url: r.url, name: this.label(r), online: st.online, error: st.error, albums: d ? (d.albums || []).length : 0, tracks: d ? (d.tracks || []).length : 0 };
+      }),
       albums: this.albums.size, tracks: this.tracks.size, quality: this.cfg.quality || 'orig', cacheGB: this.cfg.cacheGB || 5,
       cacheBytes: cache, offlineBytes: offline, offline: [...offAlbums.values()].sort((a, b) => a.title.localeCompare(b.title)),
       offlineIds: [...ids], downloading: this.offlineQueue.length ? { done: this.offlineDone, total: this.offlineTotal, title: this.offlineQueue[0].title } : null,

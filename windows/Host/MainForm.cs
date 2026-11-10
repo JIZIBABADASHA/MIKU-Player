@@ -2048,7 +2048,9 @@ public sealed class MainForm : Form
             case "remoteLib.info": return RemoteLibInfo();
             case "remoteLib.pair": await _remoteLib.PairStart(S(a, "url")); return RemoteLibInfo();
             case "remoteLib.confirm": await _remoteLib.PairConfirm(S(a, "code")); return RemoteLibInfo();
-            case "remoteLib.unpair": _remoteLib.Unpair(); return RemoteLibInfo();
+            case "remoteLib.unpair": _remoteLib.Unpair(S(a, "key")); return RemoteLibInfo();
+            case "remoteLib.cancelPair": _remoteLib.CancelPairing(); return RemoteLibInfo();
+            case "remoteLib.only": _remoteLib.SetOnly(S(a, "key")); return RemoteLibInfo();
             case "remoteLib.active": _remoteLib.SetActive(B(a, "on")); return RemoteLibInfo();
             case "remoteLib.refresh": await _remoteLib.Refresh(); return RemoteLibInfo();
             case "remoteLib.set":

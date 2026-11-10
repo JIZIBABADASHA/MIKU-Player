@@ -46,7 +46,6 @@ public sealed class RemoteLibrary : IDisposable
     static readonly string OfflineDir = Path.Combine(Dir, "Offline");
     static readonly string CacheDir = Path.Combine(Dir, "Cache");
     static readonly string ArtDir = Path.Combine(CacheDir, "Art");
-    static readonly string LibFile = Path.Combine(Dir, "library.json");
     static readonly string IndexFile = Path.Combine(Dir, "files.json");
     static readonly HashSet<string> Lossy = new() { "MP3", "AAC", "OGG", "OPUS", "WMA" };
     const string Caps = "mp3,aac,alac,flac,wav,ogg,opus";
@@ -57,12 +56,23 @@ public sealed class RemoteLibrary : IDisposable
     static readonly HttpClient Http = new(new SocketsHttpHandler { AutomaticDecompression = System.Net.DecompressionMethods.All, PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
     { Timeout = Timeout.InfiniteTimeSpan };
 
+    /// <summary>One paired computer's state: its library (kept on disk), whether it can be reached, its event stream.</summary>
+    sealed class RemoteState
+    {
+        public byte[] Raw;
+        public bool Online;
+        public string Error = "";
+        public CancellationTokenSource Events;
+        public int Albums, Tracks;
+    }
+
     readonly Settings _s;
     readonly object _lock = new();
-    byte[] _raw;
+    byte[] _merged;
     Dictionary<string, Track> _tracks = new();
     Dictionary<string, Album> _albums = new();
     readonly Dictionary<string, BaseFormat> _base = new();
+    readonly Dictionary<string, RemoteState> _state = new();
     Dictionary<string, FileEntry> _files;
     readonly Dictionary<string, Job> _jobs = new();
     readonly Dictionary<string, DateTime> _failed = new();
@@ -72,11 +82,9 @@ public sealed class RemoteLibrary : IDisposable
     readonly List<Track> _offlineQueue = new();
     bool _offlineBusy;
     int _offlineDone, _offlineTotal;
-    CancellationTokenSource _events;
+    RemoteEntry _pairing;
     Timer _saveTimer;
 
-    public bool Online { get; private set; }
-    public bool Pairing { get; private set; }
     public string LastError { get; private set; } = "";
     public string PlayingId { get; set; }
 
@@ -93,90 +101,137 @@ public sealed class RemoteLibrary : IDisposable
     {
         _s = s;
         _s.RemoteLib ??= new RemoteLibSettings();
+        var c = _s.RemoteLib;
+        c.Remotes ??= new List<RemoteEntry>();
+        // one computer, as the first version kept it
+        if (!string.IsNullOrEmpty(c.Url) && !string.IsNullOrEmpty(c.Token) && c.Remotes.Count == 0) c.Remotes.Add(new RemoteEntry { Url = c.Url, Token = c.Token });
+        c.Url = null; c.Token = null;
         Instance = this;
         try { Directory.CreateDirectory(OfflineDir); Directory.CreateDirectory(ArtDir); } catch { }
         _files = Miku.Json.Load<Dictionary<string, FileEntry>>(IndexFile);
         foreach (var id in _files.Keys.ToList())
             if (_files[id]?.File == null || !File.Exists(_files[id].File)) _files.Remove(id);
-        try { if (File.Exists(LibFile)) Parse(File.ReadAllBytes(LibFile)); } catch (Exception ex) { Log.Error("Remote library load", ex); }
+        foreach (var r in c.Remotes.ToList())
+            try { if (File.Exists(LibFile(r))) St(r).Raw = File.ReadAllBytes(LibFile(r)); } catch (Exception ex) { Log.Error("Remote library load", ex); }
+        Rebuild();
     }
 
     RemoteLibSettings Cfg => _s.RemoteLib;
-    public bool Paired => !string.IsNullOrEmpty(Cfg.Url) && !string.IsNullOrEmpty(Cfg.Token);
-    public bool Active => Paired && Cfg.Active && _raw != null;
+    List<RemoteEntry> Remotes { get { lock (_lock) return Cfg.Remotes.ToList(); } }
+    public bool Paired => Remotes.Count > 0;
+    public bool Active { get { lock (_lock) return Cfg.Remotes.Count > 0 && Cfg.Active && _merged != null; } }
+    public bool Online { get { lock (_lock) return Cfg.Remotes.Any(r => St(r).Online); } }
     public int JobCount { get { lock (_lock) return _jobs.Count; } }
+
+    // Several computers can be paired; their songs are shown together under 遠端. Ids are "<key>~<id there>" (two
+    // computers can have the same file path, so the same id); key: a short hash of the computer's address.
+    static string KeyOf(string url) => Miku.Text.Hash(url)[..6];
+    static (string key, string id) Split(string id) { int i = id?.IndexOf('~') ?? -1; return i > 0 ? (id[..i], id[(i + 1)..]) : (null, id); }
+    RemoteState St(RemoteEntry r) { lock (_lock) { string k = KeyOf(r.Url); if (!_state.TryGetValue(k, out var st)) _state[k] = st = new RemoteState(); return st; } }
+    RemoteEntry RemoteOf(string id) { var (k, _) = Split(id); if (k == null) return null; lock (_lock) return Cfg.Remotes.FirstOrDefault(r => KeyOf(r.Url) == k); }
+    static string LibFile(RemoteEntry r) => Path.Combine(Dir, "lib-" + KeyOf(r.Url) + ".json");
+    static string Label(RemoteEntry r) => !string.IsNullOrEmpty(r.Name) ? r.Name : r.Url.Replace("http://", "").Replace("https://", "");
 
     // ───────────────────────────── the library ─────────────────────────────
 
     static string Str(JsonElement a, int i) => a.GetArrayLength() > i && a[i].ValueKind == JsonValueKind.String ? a[i].GetString() ?? "" : "";
     static double Num(JsonElement a, int i) => a.GetArrayLength() > i && a[i].ValueKind == JsonValueKind.Number ? a[i].GetDouble() : 0;
 
-    void Parse(byte[] buf)
+    /// <summary>All the computers' libraries (or only the one chosen) as one library.json: ids prefixed, folders numbered on.</summary>
+    void Rebuild()
     {
-        using var doc = JsonDocument.Parse(buf);
-        var root = doc.RootElement;
         var albums = new Dictionary<string, Album>();
         var tracks = new Dictionary<string, Track>();
-        if (root.TryGetProperty("albums", out var al))
-            foreach (var a in al.EnumerateArray())
+        var outAlbums = new List<object>(); var outTracks = new List<object>(); var outFolders = new List<string>();
+        bool any = false;
+        foreach (var r in Remotes)
+        {
+            var st = St(r);
+            if (st.Raw == null) continue;
+            string k = KeyOf(r.Url);
+            bool shown = string.IsNullOrEmpty(Cfg.Only) || Cfg.Only == k;
+            try
             {
-                // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
-                var album = new Album { Id = Str(a, 0), Title = Str(a, 1), Artist = Str(a, 2), Year = (int)Num(a, 3), Genre = Str(a, 4), Folder = Str(a, 9) };
-                albums[album.Id] = album;
+                using var doc = JsonDocument.Parse(st.Raw);
+                var root = doc.RootElement;
+                any = true;
+                int fo = outFolders.Count;
+                if (shown && root.TryGetProperty("folders", out var fl)) foreach (var f in fl.EnumerateArray()) outFolders.Add(f.GetString() ?? "");
+                int na = 0, nt = 0;
+                if (root.TryGetProperty("albums", out var al))
+                    foreach (var a in al.EnumerateArray())
+                    {
+                        // [id, title, artist, year, genre, added, hasLocalArt, loose, versionGroup, folderName]
+                        string id = k + "~" + Str(a, 0);
+                        albums[id] = new Album { Id = id, Title = Str(a, 1), Artist = Str(a, 2), Year = (int)Num(a, 3), Genre = Str(a, 4), Folder = Str(a, 9) };
+                        na++;
+                        if (!shown) continue;
+                        var row = a.EnumerateArray().Select(x => (object)x.Clone()).ToList();
+                        row[0] = id;
+                        outAlbums.Add(row);
+                    }
+                if (root.TryGetProperty("tracks", out var tr))
+                    foreach (var x in tr.EnumerateArray())
+                    {
+                        // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
+                        string id = k + "~" + Str(x, 0), albumId = k + "~" + Str(x, 3);
+                        albums.TryGetValue(albumId, out var album);
+                        Track t; lock (_lock) _tracks.TryGetValue(id, out t);   // one the player holds keeps its object
+                        t ??= new Track { Id = id };
+                        t.Title = Str(x, 1); t.Artist = Str(x, 2); t.AlbumId = albumId; t.DiscNo = Math.Max(1, (int)Num(x, 4)); t.TrackNo = (int)Num(x, 5);
+                        t.Duration = Num(x, 6); t.Year = (int)Num(x, 10); t.Composer = Str(x, 11);
+                        t.Album = album?.Title ?? ""; t.AlbumArtist = album?.Artist ?? ""; t.Genre = album?.Genre ?? "";
+                        var b = new BaseFormat(Str(x, 7), (int)Num(x, 8), (int)Num(x, 9));
+                        lock (_lock) _base[id] = b;
+                        if (string.IsNullOrEmpty(t.Path)) { t.Codec = b.Codec; t.SampleRate = b.Rate; t.Bits = b.Bits; t.Channels = 2; }
+                        tracks[id] = t;
+                        album?.Tracks.Add(t);
+                        nt++;
+                        if (!shown) continue;
+                        var row = x.EnumerateArray().Select(v => (object)v.Clone()).ToList();
+                        row[0] = id; row[3] = albumId;
+                        if (row.Count > 13 && x[13].ValueKind == JsonValueKind.Number) row[13] = x[13].GetInt32() + fo;
+                        outTracks.Add(row);
+                    }
+                st.Albums = na; st.Tracks = nt;
             }
-        if (root.TryGetProperty("tracks", out var tr))
-            foreach (var r in tr.EnumerateArray())
-            {
-                // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
-                string id = Str(r, 0);
-                albums.TryGetValue(Str(r, 3), out var album);
-                Track t;
-                lock (_lock) _tracks.TryGetValue(id, out t);   // one the player holds keeps its object
-                t ??= new Track { Id = id };
-                t.Title = Str(r, 1); t.Artist = Str(r, 2); t.AlbumId = Str(r, 3); t.DiscNo = Math.Max(1, (int)Num(r, 4)); t.TrackNo = (int)Num(r, 5);
-                t.Duration = Num(r, 6); t.Year = (int)Num(r, 10); t.Composer = Str(r, 11);
-                t.Album = album?.Title ?? ""; t.AlbumArtist = album?.Artist ?? ""; t.Genre = album?.Genre ?? "";
-                var b = new BaseFormat(Str(r, 7), (int)Num(r, 8), (int)Num(r, 9));
-                lock (_lock) _base[id] = b;
-                if (string.IsNullOrEmpty(t.Path)) { t.Codec = b.Codec; t.SampleRate = b.Rate; t.Bits = b.Bits; t.Channels = 2; }
-                tracks[id] = t;
-                album?.Tracks.Add(t);
-            }
-        lock (_lock) { _raw = buf; _albums = albums; _tracks = tracks; }
+            catch (Exception ex) { Log.Error("Remote library " + r.Url, ex); }
+        }
+        byte[] merged = any ? JsonSerializer.SerializeToUtf8Bytes(new { revision = Environment.TickCount64, albums = outAlbums, tracks = outTracks, folders = outFolders }) : null;
+        lock (_lock) { _merged = merged; _albums = albums; _tracks = tracks; }
     }
 
     public Track GetTrack(string id) { if (id == null) return null; lock (_lock) return _tracks.TryGetValue(id, out var t) ? t : null; }
     public Album GetAlbum(string id) { if (id == null) return null; lock (_lock) return _albums.TryGetValue(id, out var a) ? a : null; }
     public bool IsRemote(Track t) { if (t?.Id == null) return false; lock (_lock) return _tracks.TryGetValue(t.Id, out var x) && ReferenceEquals(x, t); }
 
-    /// <summary>The library.json the page reads while the other computer's library is shown.</summary>
-    public byte[] LibraryJson() { lock (_lock) return _raw; }
+    /// <summary>The library.json the page reads while 遠端 is shown (the last one fetched, also without a connection).</summary>
+    public byte[] LibraryJson() { lock (_lock) return _merged; }
 
-    // ───────────────────────────── talking to the other MIKU ─────────────────────────────
+    // ───────────────────────────── talking to the other computers ─────────────────────────────
 
-    string Url(string p) => Cfg.Url.TrimEnd('/') + p;
-
-    async Task<HttpResponseMessage> Req(string p, HttpMethod method = null, object body = null, int ms = 15000, CancellationToken ct = default, bool headersOnly = false)
+    async Task<HttpResponseMessage> Req(RemoteEntry r, string p, HttpMethod method = null, object body = null, int ms = 15000, CancellationToken ct = default, bool headersOnly = false)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(ms);
-        var req = new HttpRequestMessage(method ?? HttpMethod.Get, Url(p));
-        if (!string.IsNullOrEmpty(Cfg.Token)) req.Headers.Add("X-Miku-Token", Cfg.Token);
+        var req = new HttpRequestMessage(method ?? HttpMethod.Get, r.Url + p);
+        if (!string.IsNullOrEmpty(r.Token)) req.Headers.Add("X-Miku-Token", r.Token);
         if (body != null) req.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         try
         {
             var res = await Http.SendAsync(req, headersOnly ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead, timeout.Token);
-            if ((int)res.StatusCode == 401 && !string.IsNullOrEmpty(Cfg.Token) && !p.StartsWith("/api/pair")) Unauthorized();
+            if ((int)res.StatusCode == 401 && !string.IsNullOrEmpty(r.Token) && !p.StartsWith("/api/pair")) Unauthorized(r);
             return res;
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new IOException("連不上遠端電腦（逾時）"); }
-        catch (HttpRequestException ex) { throw new IOException("連不上遠端電腦：" + (ex.InnerException?.Message ?? ex.Message)); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new IOException($"連不上「{Label(r)}」（逾時）"); }
+        catch (HttpRequestException ex) { throw new IOException($"連不上「{Label(r)}」：" + (ex.InnerException?.Message ?? ex.Message)); }
     }
 
-    void Unauthorized()
+    void Unauthorized(RemoteEntry r)
     {
-        Cfg.Token = ""; Cfg.Active = false; LastError = "另一台電腦的 MIKU 已取消這台電腦的配對，請重新配對。";
-        StopEvents(); Changed?.Invoke(); LibraryChanged?.Invoke(); Save?.Invoke();
+        // the other computer forgot this one (取消配對 there): pair again
+        LastError = $"「{Label(r)}」已取消這台電腦的配對，請重新配對。";
+        Unpair(KeyOf(r.Url));
     }
 
     static string Normalize(string u)
@@ -197,47 +252,65 @@ public sealed class RemoteLibrary : IDisposable
         return fallback;
     }
 
+    static async Task<string> NameOf(HttpResponseMessage ping)
+    {
+        try { using var d = JsonDocument.Parse(await ping.Content.ReadAsStringAsync()); return d.RootElement.TryGetProperty("app", out var a) && a.GetString() == "MIKU" ? (d.RootElement.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "") : null; }
+        catch { return null; }
+    }
+
     /// <summary>Step 1: the other MIKU shows a pairing code.</summary>
     public async Task PairStart(string u)
     {
-        string url = Normalize(u), old = Cfg.Url;
-        Cfg.Url = url; Cfg.Token = "";
-        try
+        string url = Normalize(u);
+        if (Remotes.Any(r => r.Url == url)) throw new InvalidOperationException("已經和這台電腦配對了");
+        var r = new RemoteEntry { Url = url };
+        using (var ping = await Req(r, "/api/ping", ms: 8000))
         {
-            using (var ping = await Req("/api/ping", ms: 8000))
-            {
-                bool miku = false;
-                try { using var d = JsonDocument.Parse(await ping.Content.ReadAsStringAsync()); miku = d.RootElement.TryGetProperty("app", out var a) && a.GetString() == "MIKU"; } catch { }
-                if (!miku) throw new InvalidOperationException("這個網址不是 MIKU，請確認網址和連接埠");
-            }
-            using var r = await Req("/api/pair/request", HttpMethod.Post, new { name = DeviceName() }, 8000);
-            if (!r.IsSuccessStatusCode) throw new InvalidOperationException(await ErrorOf(r, $"配對要求失敗（{(int)r.StatusCode}）"));
-            Pairing = true; LastError = "";
-            Save?.Invoke(); Changed?.Invoke();
+            string name = await NameOf(ping) ?? throw new InvalidOperationException("這個網址不是 MIKU，請確認網址和連接埠");
+            r.Name = name.Length > 40 ? name[..40] : name;
         }
-        catch { if (string.IsNullOrEmpty(Cfg.Token)) Cfg.Url = string.IsNullOrEmpty(old) ? url : old; throw; }
+        using var res = await Req(r, "/api/pair/request", HttpMethod.Post, new { name = DeviceName() }, 8000);
+        if (!res.IsSuccessStatusCode) throw new InvalidOperationException(await ErrorOf(res, $"配對要求失敗（{(int)res.StatusCode}）"));
+        _pairing = r; LastError = "";
+        Changed?.Invoke();
     }
 
     /// <summary>Step 2: the code read off the other computer's screen.</summary>
     public async Task PairConfirm(string code)
     {
+        var r = _pairing ?? throw new InvalidOperationException("請先取得配對碼");
         string token = null;
-        using (var r = await Req("/api/pair/confirm", HttpMethod.Post, new { code = (code ?? "").Trim(), name = DeviceName() }, 8000))
+        using (var res = await Req(r, "/api/pair/confirm", HttpMethod.Post, new { code = (code ?? "").Trim(), name = DeviceName() }, 8000))
         {
-            if (!r.IsSuccessStatusCode) throw new InvalidOperationException(await ErrorOf(r, "配對失敗"));
-            try { using var d = JsonDocument.Parse(await r.Content.ReadAsStringAsync()); token = d.RootElement.GetProperty("token").GetString(); } catch { }
+            if (!res.IsSuccessStatusCode) throw new InvalidOperationException(await ErrorOf(res, "配對失敗"));
+            try { using var d = JsonDocument.Parse(await res.Content.ReadAsStringAsync()); token = d.RootElement.GetProperty("token").GetString(); } catch { }
         }
         if (string.IsNullOrEmpty(token)) throw new InvalidOperationException("配對失敗");
-        Cfg.Token = token; Cfg.Active = true; Pairing = false; LastError = "";
+        r.Token = token;
+        lock (_lock) { Cfg.Remotes.Add(r); Cfg.Active = true; }
+        _pairing = null; LastError = "";
         Save?.Invoke();
-        await Refresh();
+        await Refresh(r);
+        LibraryChanged?.Invoke();
     }
 
-    public void Unpair()
+    public void CancelPairing() { _pairing = null; Changed?.Invoke(); }
+
+    public void Unpair(string key)
     {
-        StopEvents();
-        Cfg.Token = ""; Cfg.Active = false;
-        Pairing = false; Online = false;
+        RemoteEntry r;
+        lock (_lock) r = Cfg.Remotes.FirstOrDefault(x => KeyOf(x.Url) == key);
+        if (r == null) return;
+        StopEvents(St(r));
+        lock (_lock)
+        {
+            Cfg.Remotes.Remove(r);
+            if (Cfg.Only == key) Cfg.Only = "";
+            if (Cfg.Remotes.Count == 0) Cfg.Active = false;
+            _state.Remove(key);
+        }
+        try { File.Delete(LibFile(r)); } catch { }
+        Rebuild();
         Save?.Invoke(); Changed?.Invoke(); LibraryChanged?.Invoke();
     }
 
@@ -248,106 +321,142 @@ public sealed class RemoteLibrary : IDisposable
         if (Cfg.Active) { _ = Refresh(); StartEvents(); } else StopEvents();
     }
 
-    /// <summary>Fetches the other computer's library.json (kept on disk: listed without a connection too).</summary>
-    public async Task<bool> Refresh()
+    /// <summary>Shows one computer's songs only ("" all of them).</summary>
+    public void SetOnly(string key)
     {
-        if (!Paired) return false;
-        try
-        {
-            byte[] buf;
-            using (var r = await Req("/media/library.json", ms: 60000))
-            {
-                if (!r.IsSuccessStatusCode) throw new IOException($"讀取音樂庫失敗（{(int)r.StatusCode}）");
-                buf = await r.Content.ReadAsByteArrayAsync();
-            }
-            bool same; lock (_lock) same = _raw != null && _raw.AsSpan().SequenceEqual(buf);
-            if (!same)
-            {
-                Parse(buf);
-                Directory.CreateDirectory(Dir);
-                File.WriteAllBytes(LibFile + ".tmp", buf);
-                File.Move(LibFile + ".tmp", LibFile, true);
-            }
-            Online = true; LastError = "";
-            Changed?.Invoke();
-            if (!same && Cfg.Active) LibraryChanged?.Invoke();
-            if (Cfg.Active) StartEvents();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Online = false; LastError = ex.Message;
-            Log.Error("Remote library refresh", ex);
-            Changed?.Invoke();
-            return false;
-        }
+        Cfg.Only = !string.IsNullOrEmpty(key) && Remotes.Any(r => KeyOf(r.Url) == key) ? key : "";
+        Rebuild();
+        Save?.Invoke(); LibraryChanged?.Invoke(); Changed?.Invoke();
     }
 
-    /// <summary>The other MIKU's events: its library changed (fetch it again), and whether it can be reached.</summary>
+    /// <summary>Fetches the library.json of one computer (or all), kept on disk: listed without a connection too.</summary>
+    public async Task<bool> Refresh(RemoteEntry only = null)
+    {
+        var list = only != null ? new List<RemoteEntry> { only } : Remotes;
+        var results = await Task.WhenAll(list.Select(async r =>
+        {
+            var st = St(r);
+            try
+            {
+                byte[] buf;
+                using (var res = await Req(r, "/media/library.json", ms: 60000))
+                {
+                    if (!res.IsSuccessStatusCode) throw new IOException($"讀取音樂庫失敗（{(int)res.StatusCode}）");
+                    buf = await res.Content.ReadAsByteArrayAsync();
+                }
+                bool same = st.Raw != null && st.Raw.AsSpan().SequenceEqual(buf);
+                if (!same)
+                {
+                    st.Raw = buf;
+                    Directory.CreateDirectory(Dir);
+                    File.WriteAllBytes(LibFile(r) + ".tmp", buf);
+                    File.Move(LibFile(r) + ".tmp", LibFile(r), true);
+                }
+                st.Online = true; st.Error = "";
+                // paired by the first version (no name kept): ask its name
+                if (string.IsNullOrEmpty(r.Name))
+                    try { using var ping = await Req(r, "/api/ping", ms: 5000); if (await NameOf(ping) is { Length: > 0 } n) { r.Name = n.Length > 40 ? n[..40] : n; Save?.Invoke(); } } catch { }
+                return !same;
+            }
+            catch (Exception ex)
+            {
+                st.Online = false; st.Error = ex.Message;
+                Log.Error("Remote library refresh " + r.Url, ex);
+                return false;
+            }
+        }));
+        bool changed = results.Any(x => x);
+        if (changed) Rebuild();
+        Changed?.Invoke();
+        if (changed && Cfg.Active) LibraryChanged?.Invoke();
+        if (Cfg.Active) StartEvents();
+        return results.Length > 0;
+    }
+
+    /// <summary>Each computer's events: its library changed (fetch it again), and whether it can be reached.</summary>
     public void StartEvents()
     {
-        if (_events != null || !Paired) return;
-        var cts = _events = new CancellationTokenSource();
-        _ = Task.Run(async () =>
+        foreach (var r in Remotes)
         {
-            int wait = 3000;
-            while (!cts.IsCancellationRequested && Paired)
+            var st = St(r);
+            CancellationTokenSource cts;
+            lock (_lock) { if (st.Events != null) continue; cts = st.Events = new CancellationTokenSource(); }
+            _ = Task.Run(async () =>
             {
-                try
+                int wait = 3000;
+                while (!cts.IsCancellationRequested && Remotes.Any(x => x.Url == r.Url))
                 {
-                    var req = new HttpRequestMessage(HttpMethod.Get, Url("/api/events"));
-                    req.Headers.Add("X-Miku-Token", Cfg.Token);
-                    req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-                    using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-                    if ((int)res.StatusCode == 401) { Unauthorized(); break; }
-                    res.EnsureSuccessStatusCode();
-                    if (!Online) { Online = true; LastError = ""; Changed?.Invoke(); _ = Refresh(); }
-                    wait = 3000;
-                    using var stream = await res.Content.ReadAsStreamAsync(cts.Token);
-                    using var reader = new StreamReader(stream, Encoding.UTF8);
-                    CancellationTokenSource debounce = null;
-                    while (!cts.IsCancellationRequested)
+                    try
                     {
-                        // the server sends a keep-alive every 15 s: nothing for a minute means the connection is gone
-                        var lineTask = reader.ReadLineAsync(cts.Token).AsTask();
-                        if (await Task.WhenAny(lineTask, Task.Delay(60000, cts.Token)) != lineTask) break;
-                        string line = await lineTask;
-                        if (line == null) break;
-                        if (!line.StartsWith("data: ") || !line.Contains("\"ev\":\"library\"")) continue;
-                        debounce?.Cancel();
-                        var d = debounce = new CancellationTokenSource();
-                        _ = Task.Delay(2500, d.Token).ContinueWith(t => { if (!t.IsCanceled) _ = Refresh(); }, TaskScheduler.Default);
+                        var req = new HttpRequestMessage(HttpMethod.Get, r.Url + "/api/events");
+                        req.Headers.Add("X-Miku-Token", r.Token);
+                        req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                        using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                        if ((int)res.StatusCode == 401) { Unauthorized(r); break; }
+                        res.EnsureSuccessStatusCode();
+                        if (!st.Online) { st.Online = true; st.Error = ""; Changed?.Invoke(); _ = Refresh(r); }
+                        wait = 3000;
+                        using var stream = await res.Content.ReadAsStreamAsync(cts.Token);
+                        using var reader = new StreamReader(stream, Encoding.UTF8);
+                        CancellationTokenSource debounce = null;
+                        while (!cts.IsCancellationRequested)
+                        {
+                            // the server sends a keep-alive every 15 s: nothing for a minute means the connection is gone
+                            var lineTask = reader.ReadLineAsync(cts.Token).AsTask();
+                            if (await Task.WhenAny(lineTask, Task.Delay(60000, cts.Token)) != lineTask) break;
+                            string line = await lineTask;
+                            if (line == null) break;
+                            if (!line.StartsWith("data: ") || !line.Contains("\"ev\":\"library\"")) continue;
+                            debounce?.Cancel();
+                            var d = debounce = new CancellationTokenSource();
+                            _ = Task.Delay(2500, d.Token).ContinueWith(x => { if (!x.IsCanceled) _ = Refresh(r); }, TaskScheduler.Default);
+                        }
                     }
+                    catch { }
+                    if (cts.IsCancellationRequested) break;
+                    if (st.Online) { st.Online = false; Changed?.Invoke(); }
+                    try { await Task.Delay(wait, cts.Token); } catch { break; }
+                    wait = Math.Min(wait * 2, 60000);
                 }
-                catch { }
-                if (cts.IsCancellationRequested) break;
-                if (Online) { Online = false; Changed?.Invoke(); }
-                try { await Task.Delay(wait, cts.Token); } catch { break; }
-                wait = Math.Min(wait * 2, 60000);
-            }
-        });
+            });
+        }
     }
 
-    void StopEvents() { try { _events?.Cancel(); } catch { } _events = null; }
+    void StopEvents(RemoteState one = null)
+    {
+        lock (_lock)
+            foreach (var st in one != null ? new[] { one } : _state.Values.ToArray())
+            {
+                try { st.Events?.Cancel(); } catch { }
+                st.Events = null;
+            }
+    }
 
     // ───────────────────────────── covers ─────────────────────────────
 
-    /// <summary>A cover from the other MIKU (/art/a/…, /art/t/…, /art/r/…), cached on disk; null when it has none or is out of reach.</summary>
+    /// <summary>A cover (/art/a/&lt;key~id&gt;, /art/t/&lt;key~id&gt;, /art/r/&lt;name&gt;), cached on disk; null when none or out of reach.</summary>
     public async Task<byte[]> Art(string p, int size)
     {
-        string file = Path.Combine(ArtDir, Miku.Text.Hash(p + "@" + size) + ".jpg");
-        try { if (File.Exists(file)) return await File.ReadAllBytesAsync(file); } catch { }
-        if (!Paired) return null;
-        lock (_lock) if (_artMiss.TryGetValue(file, out var miss) && DateTime.UtcNow - miss < TimeSpan.FromMinutes(10)) return null;
-        try
+        string kind = p[..7], rest = Uri.UnescapeDataString(p[7..]);
+        var list = new List<(RemoteEntry r, string there)>();
+        if (kind == "/art/r/") list.AddRange(Remotes.Where(r => string.IsNullOrEmpty(Cfg.Only) || KeyOf(r.Url) == Cfg.Only).Select(r => (r, p)));
+        else if (RemoteOf(rest) is RemoteEntry owner) list.Add((owner, kind + Uri.EscapeDataString(Split(rest).id)));
+        foreach (var (r, there) in list)
         {
-            using var r = await Req("/media" + p + "?s=" + size, ms: 20000);
-            if (!r.IsSuccessStatusCode) { lock (_lock) _artMiss[file] = DateTime.UtcNow; return null; }
-            var buf = await r.Content.ReadAsByteArrayAsync();
-            try { Directory.CreateDirectory(ArtDir); await File.WriteAllBytesAsync(file, buf); } catch { }
-            return buf;
+            string file = Path.Combine(ArtDir, Miku.Text.Hash(r.Url + there + "@" + size) + ".jpg");
+            try { if (File.Exists(file)) return await File.ReadAllBytesAsync(file); } catch { }
+            lock (_lock) if (_artMiss.TryGetValue(file, out var miss) && DateTime.UtcNow - miss < TimeSpan.FromMinutes(10)) continue;
+            try
+            {
+                using var res = await Req(r, "/media" + there + "?s=" + size, ms: 20000);
+                if (!res.IsSuccessStatusCode) { lock (_lock) _artMiss[file] = DateTime.UtcNow; continue; }
+                var buf = await res.Content.ReadAsByteArrayAsync();
+                try { Directory.CreateDirectory(ArtDir); await File.WriteAllBytesAsync(file, buf); } catch { }
+                return buf;
+            }
+            catch { lock (_lock) _artMiss[file] = DateTime.UtcNow; }
         }
-        catch { lock (_lock) _artMiss[file] = DateTime.UtcNow; return null; }
+        return null;
     }
 
     // ───────────────────────────── songs ─────────────────────────────
@@ -380,7 +489,8 @@ public sealed class RemoteLibrary : IDisposable
     string StreamUrl(Track t)
     {
         string q = Quality(t);
-        return Url("/stream/" + Uri.EscapeDataString(t.Id) + "?" + (q == "orig" ? "raw=1" : $"q={q}&c={Caps}") + "&t=" + Uri.EscapeDataString(Cfg.Token));
+        var r = RemoteOf(t.Id);
+        return r.Url + "/stream/" + Uri.EscapeDataString(Split(t.Id).id) + "?" + (q == "orig" ? "raw=1" : $"q={q}&c={Caps}") + "&t=" + Uri.EscapeDataString(r.Token);
     }
 
     /// <summary>Streamed straight from the other computer: MIKU's own core, a PCM format (DSD is read from a file).</summary>
@@ -400,8 +510,10 @@ public sealed class RemoteLibrary : IDisposable
     {
         var f = Cached(t);
         if (f != null) { Bind(t, f); return true; }
-        if (Paired && Online && CanStream(t)) { BindStream(t); Prefetch(new[] { t }); return true; }
-        if (Paired) Prefetch(new[] { t });
+        var r = RemoteOf(t.Id);
+        if (r == null) return false;
+        if (St(r).Online && CanStream(t)) { BindStream(t); Prefetch(new[] { t }); return true; }
+        Prefetch(new[] { t });
         return false;
     }
 
@@ -413,10 +525,11 @@ public sealed class RemoteLibrary : IDisposable
         if (f != null) Bind(t, f);
         else
         {
-            if (!Paired) throw new InvalidOperationException("還沒有和遠端電腦配對");
-            if (!Online)
+            var r = RemoteOf(t.Id) ?? throw new InvalidOperationException("這首歌所在的電腦已經取消配對");
+            var st = St(r);
+            if (!st.Online)
             {
-                try { using var r = await Req("/api/ping", ms: 4000); if (!r.IsSuccessStatusCode) throw new IOException(); Online = true; Changed?.Invoke(); }
+                try { using var res = await Req(r, "/api/ping", ms: 4000); if (!res.IsSuccessStatusCode) throw new IOException(); st.Online = true; Changed?.Invoke(); }
                 catch { throw new InvalidOperationException("連不上遠端電腦，這首歌還沒下載到這台電腦"); }
             }
             if (CanStream(t)) BindStream(t);
@@ -483,7 +596,7 @@ public sealed class RemoteLibrary : IDisposable
         lock (_lock)
         {
             if (_jobs.TryGetValue(key, out var running)) return running.Task;
-            if (!Paired) return Task.FromException<FileEntry>(new InvalidOperationException("還沒有和遠端電腦配對"));
+            if (RemoteOf(t.Id) == null) return Task.FromException<FileEntry>(new InvalidOperationException("這首歌所在的電腦已經取消配對"));
             // a song that just failed (no connection) is not asked for again at once by the look-ahead
             if (!now && _failed.TryGetValue(key, out var at) && DateTime.UtcNow - at < TimeSpan.FromMinutes(1))
                 return Task.FromException<FileEntry>(new IOException("稍後再試"));
@@ -508,7 +621,7 @@ public sealed class RemoteLibrary : IDisposable
         for (int attempt = 0; ; attempt++)
         {
             res?.Dispose();
-            res = await Req("/stream/" + Uri.EscapeDataString(t.Id) + "?" + qs, ms: now ? 20000 : 60000, ct: job.Cts.Token, headersOnly: true);
+            res = await Req(RemoteOf(t.Id) ?? throw new InvalidOperationException("這首歌所在的電腦已經取消配對"), "/stream/" + Uri.EscapeDataString(Split(t.Id).id) + "?" + qs, ms: now ? 20000 : 60000, ct: job.Cts.Token, headersOnly: true);
             if ((int)res.StatusCode == 503 && attempt < 5) { await Task.Delay(2000, job.Cts.Token); continue; }   // the other computer is encoding several songs
             break;
         }
@@ -666,7 +779,8 @@ public sealed class RemoteLibrary : IDisposable
                     catch (Exception ex)
                     {
                         LastError = $"「{t.Title}」下載失敗：{ex.Message}";
-                        if (!Online && ex is IOException) { lock (_lock) _offlineQueue.Clear(); break; }
+                        // that computer can't be reached: its other songs are left out (the others go on)
+                        if (ex is IOException && ex.Message.StartsWith("連不上")) { var r = RemoteOf(t.Id); lock (_lock) _offlineQueue.RemoveAll(x => RemoteOf(x.Id) == r); continue; }
                     }
                     lock (_lock) if (_offlineQueue.Count > 0 && _offlineQueue[0] == t) _offlineQueue.RemoveAt(0);
                     Changed?.Invoke();
@@ -722,7 +836,10 @@ public sealed class RemoteLibrary : IDisposable
                     if (k.StartsWith(current.Id + "|")) { loading = new { id = current.Id, title = current.Title, got = Interlocked.Read(ref j.Got), total = j.Total }; break; }
             return new
             {
-                url = Cfg.Url, paired = Paired, pairing = Pairing, active = Active, online = Online, error = LastError,
+                paired = Cfg.Remotes.Count > 0, pairing = _pairing == null ? null : new { url = _pairing.Url, name = _pairing.Name },
+                active = Cfg.Remotes.Count > 0 && Cfg.Active && _merged != null, online = Cfg.Remotes.Any(r => St(r).Online), error = LastError,
+                only = Cfg.Only ?? "",
+                remotes = Cfg.Remotes.Select(r => { var st = St(r); return new { key = KeyOf(r.Url), url = r.Url, name = Label(r), online = st.Online, error = st.Error, albums = st.Albums, tracks = st.Tracks }; }).ToList(),
                 albums = _albums.Count, tracks = _tracks.Count, quality = string.IsNullOrEmpty(Cfg.Quality) ? "orig" : Cfg.Quality, cacheGB = Cfg.CacheGB,
                 cacheBytes = cache, offlineBytes = offline,
                 offline = offAlbums.Select(x => new { id = x.Key, title = x.Value.title, artist = x.Value.artist, have = x.Value.have, bytes = x.Value.bytes,
@@ -739,7 +856,7 @@ public sealed class RemoteLibrary : IDisposable
 
     public void Dispose()
     {
-        StopEvents();
+        StopEvents(null);
         lock (_lock) foreach (var j in _jobs.Values) try { j.Cts.Cancel(); } catch { }
         try { Dictionary<string, FileEntry> copy; lock (_lock) copy = new(_files); Miku.Json.SaveAtomic(IndexFile, copy); } catch { }
     }

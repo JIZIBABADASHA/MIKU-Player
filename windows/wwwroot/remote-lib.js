@@ -53,15 +53,34 @@ const RemoteLib = {
       if (!label) return;
       el = h('div', { id: 'rl-src', class: 'rl-src' },
         h('button', { 'data-v': 'mac', onclick: () => this.setActive(false) }, T('本地')),
-        h('button', { 'data-v': 'pc', onclick: () => this.setActive(true) }, T('遠端')));
+        h('button', { 'data-v': 'pc', onclick: e => this.info.active && this.info.remotes.length > 1 ? this.pickRemote(e.currentTarget) : this.setActive(true) }, T('遠端')));
       label.after(el);
+    }
+    // several computers: 遠端 shows them all, or the one picked (a click on 遠端 while it is shown)
+    const only = i.active && i.only ? i.remotes.find(r => r.key === i.only) : null;
+    let tag = $('#rl-only');
+    if (!only) { if (tag) tag.remove(); }
+    else {
+      if (!tag) { tag = h('div', { id: 'rl-only', class: 'rl-only' }); el.after(tag); }
+      tag.textContent = '';
+      tag.append(h('span', null, T`只顯示：${only.name}`), h('button', { title: T('顯示全部'), html: icon('x'), onclick: () => this.setOnly('') }));
     }
     el.querySelector('[data-v="mac"]').classList.toggle('on', !i.active);
     const pc = el.querySelector('[data-v="pc"]');
     pc.classList.toggle('on', i.active);
     pc.classList.toggle('off', !i.online);
-    pc.title = i.online ? T('遠端電腦上的音樂庫') : T('遠端電腦目前連不上：只能播放已下載的歌');
+    pc.title = !i.online ? T('遠端電腦目前連不上：只能播放已下載的歌')
+      : i.remotes.length > 1 ? T`${i.remotes.length} 台電腦的音樂庫（顯示時再按一下可以只看其中一台）` : T('遠端電腦上的音樂庫');
   },
+  pickRemote(anchor) {
+    const i = this.info;
+    menu([
+      { label: T('全部遠端'), icon: i.only ? 'album' : 'check', run: () => this.setOnly('') },
+      '-',
+      ...i.remotes.map(r => ({ label: r.online ? r.name : T`${r.name}（離線）`, icon: i.only === r.key ? 'check' : 'link', run: () => this.setOnly(r.key) })),
+    ], anchor);
+  },
+  async setOnly(key) { this.update(await Host.call('remoteLib.only', { key })); },
   async setActive(on) {
     if (!!this.info.active === on) return;
     this.update(await Host.call('remoteLib.active', { on }));
@@ -98,37 +117,43 @@ const RemoteLib = {
     const gb = n => n >= 1073741824 ? (n / 1073741824).toFixed(1) + ' GB' : Math.round(n / 1048576) + ' MB';
     const err = msg => box.append(h('div', { class: 'warn' }, T.msg(msg)));
 
-    if (!i.paired) {
-      const url = h('input', { class: 'sel', placeholder: '100.x.x.x:8765', value: i.url ? i.url.replace(/^http:\/\//, '') : '', style: { width: '220px' } });
-      const code = h('input', { class: 'sel', placeholder: '0000', inputmode: 'numeric', maxlength: 4, style: { width: '90px', letterSpacing: '.2em' } });
-      const status = h('small', { class: 'muted' });
-      const ask = h('button', { class: 'btn small', onclick: async () => {
-        ask.disabled = true; status.textContent = T('連線中…');
-        try { await Host.call('remoteLib.pair', { url: url.value }); status.textContent = T('另一台電腦的 MIKU 會跳出 4 位數配對碼，請在右邊輸入。'); codeRow.style.display = ''; code.focus(); }
-        catch (e) { status.textContent = T.msg(e.message); }
-        ask.disabled = false;
-      } }, T('取得配對碼'));
-      const ok = h('button', { class: 'btn small', onclick: async () => {
-        ok.disabled = true;
-        try { const r = await Host.call('remoteLib.confirm', { code: code.value }); this.update(r); toast(T`配對完成，共 ${r.albums} 張專輯`); }
-        catch (e) { status.textContent = T.msg(e.message); ok.disabled = false; }
-      } }, T('配對'));
-      code.onkeydown = e => { if (e.key === 'Enter') ok.click(); };
-      url.onkeydown = e => { if (e.key === 'Enter') ask.click(); };
-      box.append(field(T('另一台 MIKU 的網址'), T('在另一台電腦的 MIKU 打開 設定 → 其他 → 手機遙控，抄下網址（外出用請選 100. 開頭的 Tailscale 網址）。第一次配對請在家裡的網路或 Tailscale 內進行。'),
-        h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' } }, url, ask)));
-      const codeRow = field(T('配對碼'), null, h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, code, ok));
-      codeRow.style.display = i.pairing ? '' : 'none';
-      box.append(codeRow, h('div', { class: 'hint', style: { padding: '0 22px 14px' } }, status));
-      if (i.error) err(i.error);
-      return;
-    }
+    // the computers paired, each with its state and 取消配對
+    for (const r of i.remotes) box.append(h('div', { class: 'folder' }, h('span', { html: icon('link') }),
+      h('span', { class: 'p', title: r.url }, r.name, h('small', { class: 'muted', style: { marginLeft: '8px' } },
+        r.online ? T`已連線 · ${r.albums} 張專輯 · ${r.tracks} 首` : T('目前連不上（電腦要開著、MIKU 在執行、Tailscale 已連線），已下載的歌照樣能播'))),
+      h('button', { class: 'icon-btn', title: T('取消配對'), html: icon('trash'), onclick: async () => { this.update(await Host.call('remoteLib.unpair', { key: r.key })); } })));
 
-    box.append(field(T('連線的 MIKU'), i.online ? T`已連線 · ${i.url.replace(/^http:\/\//, '')} · ${i.albums} 張專輯 · ${i.tracks} 首`
-        : T`目前連不上 ${i.url.replace(/^http:\/\//, '')}（電腦要開著、MIKU 在執行、Tailscale 已連線）。已下載的歌照樣能播。`,
+    // pairing another one (always there when none is paired; behind 新增 otherwise)
+    const form = h('div');
+    const url = h('input', { class: 'sel', placeholder: '100.x.x.x:8765', value: i.pairing ? i.pairing.url.replace(/^http:\/\//, '') : '', style: { width: '220px' } });
+    const code = h('input', { class: 'sel', placeholder: '0000', inputmode: 'numeric', maxlength: 4, style: { width: '90px', letterSpacing: '.2em' } });
+    const status = h('small', { class: 'muted' }, i.pairing ? T`請輸入「${i.pairing.name || i.pairing.url}」上跳出的 4 位數配對碼。` : '');
+    const ask = h('button', { class: 'btn small', onclick: async () => {
+      ask.disabled = true; status.textContent = T('連線中…');
+      try { await Host.call('remoteLib.pair', { url: url.value }); status.textContent = T('另一台電腦的 MIKU 會跳出 4 位數配對碼，請在右邊輸入。'); codeRow.style.display = ''; code.focus(); }
+      catch (e) { status.textContent = T.msg(e.message); }
+      ask.disabled = false;
+    } }, T('取得配對碼'));
+    const ok = h('button', { class: 'btn small', onclick: async () => {
+      ok.disabled = true;
+      try { const r = await Host.call('remoteLib.confirm', { code: code.value }); this.adding = false; this.update(r); toast(T('配對完成')); }
+      catch (e) { status.textContent = T.msg(e.message); ok.disabled = false; }
+    } }, T('配對'));
+    code.onkeydown = e => { if (e.key === 'Enter') ok.click(); };
+    url.onkeydown = e => { if (e.key === 'Enter') ask.click(); };
+    form.append(field(T('另一台 MIKU 的網址'), T('在另一台電腦的 MIKU 打開 設定 → 其他 → 手機遙控，抄下網址（外出用請選 100. 開頭的 Tailscale 網址）。第一次配對請在家裡的網路或 Tailscale 內進行。'),
+      h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' } }, url, ask)));
+    const codeRow = field(T('配對碼'), null, h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, code, ok));
+    codeRow.style.display = i.pairing ? '' : 'none';
+    form.append(codeRow, h('div', { class: 'hint', style: { padding: '0 22px 14px' } }, status));
+    if (!i.paired || this.adding || i.pairing) box.append(form);
+    else box.append(field(T('連接其他電腦'), T('可以配對好幾台電腦，它們的歌都會一起顯示在「遠端」。'),
       h('div', { style: { display: 'flex', gap: '8px' } },
-        h('button', { class: 'btn small ghost', html: icon('refresh') + T('重新整理'), onclick: async () => { this.update(await Host.call('remoteLib.refresh')); } }),
-        h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.unpair')); } }, T('取消配對')))));
+        h('button', { class: 'btn small ghost', html: icon('plus') + T('新增'), onclick: () => { this.adding = true; this.drawSettings(); } }),
+        h('button', { class: 'btn small ghost', html: icon('refresh') + T('重新整理'), onclick: async () => { this.update(await Host.call('remoteLib.refresh')); } }))));
+    if (i.error) err(i.error);
+    if (!i.paired) return;
+
     box.append(field(T('顯示遠端的音樂庫'), T('開啟時，專輯、演出者、曲目和資料夾顯示另一台電腦上的歌；也可以用側邊欄「音樂庫」下面的切換。'),
       sw(i.active, v => this.setActive(v))));
     box.append(field(T('播放音質'), T('原始檔：和另一台電腦上的檔案完全一樣（無損、Hi-Res、DSD 都保留）。省流量：由另一台電腦用 FFmpeg 轉成 MP3 再傳過來，適合手機網路分享；本來就是 MP3 / AAC 的歌照原樣傳。'),
@@ -143,7 +168,6 @@ const RemoteLib = {
     for (const a of i.offline) box.append(h('div', { class: 'folder' }, h('span', { html: icon('album') }),
       h('span', { class: 'p', title: a.title }, `${a.title} · ${a.artist}`, h('small', { class: 'muted', style: { marginLeft: '8px' } }, a.have < a.count ? T`${a.have} / ${a.count} 首 · ${gb(a.bytes)}` : gb(a.bytes))),
       h('button', { class: 'icon-btn', title: T('移除離線下載'), html: icon('trash'), onclick: async () => { this.update(await Host.call('remoteLib.removeOffline', { id: a.id })); } })));
-    if (i.error && !i.online) err(i.error);
   },
 };
 
@@ -152,8 +176,13 @@ document.head.append(h('style', null, `
 .rl-src button { flex: 1; font-size: 12px; padding: 4px 6px; border-radius: 7px; color: var(--text-2); white-space: nowrap; }
 .rl-src button:hover { color: var(--text-hi); }
 .rl-src button.on { background: var(--teal, #39c5bb); color: #fff; font-weight: 600; }
+.rl-only { display: flex; align-items: center; gap: 4px; margin: -2px 12px 6px; font-size: 11.5px; color: var(--text-3); }
+.rl-only span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rl-only button { width: 18px; height: 18px; display: grid; place-items: center; color: var(--text-3); border-radius: 50%; }
+.rl-only button:hover { color: var(--text-hi); background: var(--surface-2); }
+.rl-only .i { width: 12px; height: 12px; }
 .rl-src button.off::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%; background: #e0a030; vertical-align: middle; }
-@media (max-width: 1180px) { .rl-src { display: none; } }
+@media (max-width: 1180px) { .rl-src, .rl-only { display: none; } }
 `));
 
 document.addEventListener('DOMContentLoaded', () => {
