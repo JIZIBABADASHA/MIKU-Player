@@ -78,6 +78,8 @@ public sealed class RemoteLibrary : IDisposable
     readonly Dictionary<string, DateTime> _failed = new();
     readonly Dictionary<string, DateTime> _artMiss = new();
     readonly List<Track> _pre = new();
+    /// <summary>Songs of an offline download not yet pinned: Trim leaves them.</summary>
+    readonly HashSet<string> _keep = new();
     bool _preBusy;
     readonly List<Track> _offlineQueue = new();
     bool _offlineBusy;
@@ -537,6 +539,7 @@ public sealed class RemoteLibrary : IDisposable
             else Bind(t, await Fetch(t, true));   // a module's core reads the file itself: the whole file first
         }
         SaveIndex();
+        if (NoCache) Trim();   // 不暫存: the song played before (a DSD file copied to play it) goes now
         Prefetch(next.Where(n => n != null && IsRemote(n)));
     }
 
@@ -565,6 +568,7 @@ public sealed class RemoteLibrary : IDisposable
     /// <summary>Copies the given songs into the cache one after another (the song playing keeps most of the connection).</summary>
     public void Prefetch(IEnumerable<Track> list)
     {
+        if (NoCache) return;   // 不暫存: songs are only streamed, nothing is kept
         lock (_lock)
         {
             var add = list.Where(n => !_pre.Contains(n)).ToList();
@@ -698,12 +702,15 @@ public sealed class RemoteLibrary : IDisposable
     }
 
     /// <summary>Keeps the cache of played songs under its size (oldest first; offline albums and the playing song stay).</summary>
+    /// <summary>暫存空間 set to 不暫存: songs are streamed and not kept (offline albums still are).</summary>
+    bool NoCache => Cfg.CacheGB <= 0;
+
     public void Trim()
     {
-        long limit = (long)(Math.Max(0.5, Cfg.CacheGB) * 1024 * 1024 * 1024);
+        long limit = NoCache ? 0 : (long)(Math.Max(0.5, Cfg.CacheGB) * 1024 * 1024 * 1024);
         lock (_lock)
         {
-            var list = _files.Where(x => !x.Value.Pin).OrderBy(x => x.Value.Used).ToList();
+            var list = _files.Where(x => !x.Value.Pin && !_keep.Contains(x.Key)).OrderBy(x => x.Value.Used).ToList();
             long total = list.Sum(x => x.Value.Size);
             foreach (var (id, f) in list)
             {
@@ -775,6 +782,7 @@ public sealed class RemoteLibrary : IDisposable
                 {
                     Track t;
                     lock (_lock) { if (_offlineQueue.Count == 0) break; t = _offlineQueue[0]; }
+                    lock (_lock) _keep.Add(t.Id);   // not cleared by Trim before it is pinned
                     try { await Fetch(t, true, "orig"); Pin(t.Id); lock (_lock) _offlineDone++; }
                     catch (Exception ex)
                     {
@@ -782,6 +790,7 @@ public sealed class RemoteLibrary : IDisposable
                         // that computer can't be reached: its other songs are left out (the others go on)
                         if (ex is IOException && ex.Message.StartsWith("連不上")) { var r = RemoteOf(t.Id); lock (_lock) _offlineQueue.RemoveAll(x => RemoteOf(x.Id) == r); continue; }
                     }
+                    finally { lock (_lock) _keep.Remove(t.Id); }
                     lock (_lock) if (_offlineQueue.Count > 0 && _offlineQueue[0] == t) _offlineQueue.RemoveAt(0);
                     Changed?.Invoke();
                 }
@@ -852,7 +861,7 @@ public sealed class RemoteLibrary : IDisposable
     }
 
     public void SetQuality(string q) { if (q is "orig" or "320" or "192" or "128") Cfg.Quality = q; Save?.Invoke(); Changed?.Invoke(); }
-    public void SetCacheGB(double gb) { Cfg.CacheGB = Math.Clamp(gb, 1, 500); Save?.Invoke(); Trim(); Changed?.Invoke(); }
+    public void SetCacheGB(double gb) { Cfg.CacheGB = gb <= 0 ? 0 : Math.Clamp(gb, 1, 500); Save?.Invoke(); Trim(); Changed?.Invoke(); }
 
     public void Dispose()
     {

@@ -158,10 +158,12 @@ const RemoteLib = {
       sw(i.active, v => this.setActive(v))));
     box.append(field(T('播放音質'), T('原始檔：和另一台電腦上的檔案完全一樣（無損、Hi-Res、DSD 都保留）。省流量：由另一台電腦用 FFmpeg 轉成 MP3 再傳過來，適合手機網路分享；本來就是 MP3 / AAC 的歌照原樣傳。'),
       select([['orig', T('原始檔')], ['320', T('省流量 · 320 kbps')], ['192', T('更省 · 192 kbps')]], i.quality, async v => this.update(await Host.call('remoteLib.set', { quality: v })))));
-    box.append(field(T('暫存空間'), T`聽過的歌會暫存在這台電腦，再聽就不用重新下載，超過上限時先清掉最久沒聽的。目前使用 ${gb(i.cacheBytes)}。`,
+    const noCache = +i.cacheGB === 0;
+    box.append(field(T('暫存空間'), noCache ? T('不暫存：歌一律直接串流，聽完不留在這台電腦（離線下載的專輯照樣保留）。')
+        : T`聽過的歌會暫存在這台電腦，再聽就不用重新下載，超過上限時先清掉最久沒聽的。目前使用 ${gb(i.cacheBytes)}。`,
       h('div', { style: { display: 'flex', gap: '8px' } },
-        select([[2, '2 GB'], [5, '5 GB'], [10, '10 GB'], [20, '20 GB'], [50, '50 GB']], i.cacheGB, async v => this.update(await Host.call('remoteLib.set', { cacheGB: +v }))),
-        h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.clearCache')); toast(T('已清除暫存')); } }, T('清除')))));
+        select([[0, T('不暫存（完全串流）')], [2, '2 GB'], [5, '5 GB'], [10, '10 GB'], [20, '20 GB'], [50, '50 GB']], i.cacheGB, async v => this.update(await Host.call('remoteLib.set', { cacheGB: +v }))),
+        noCache && !i.cacheBytes ? null : h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.clearCache')); toast(T('已清除暫存')); } }, T('清除')))));
     const dl = i.downloading;
     box.append(field(T('離線下載'), dl ? T`正在下載「${dl.title}」（${dl.done + 1} / ${dl.total}）`
         : i.offline.length ? T`${i.offline.length} 張專輯 · ${gb(i.offlineBytes)}，沒有網路也能聽。` : T('在專輯上按右鍵（或 ⋯ 按鈕）選「下載到這台電腦」，出門沒有網路也能聽。下載的是原始檔。'), null));

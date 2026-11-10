@@ -1105,7 +1105,7 @@ async function handleRpc(m, a) {
     case 'remoteLib.refresh': await remoteLib.refresh(); return remoteDto();
     case 'remoteLib.set':
       if (['orig', '320', '192', '128'].includes(a.quality)) S.remoteLib.quality = a.quality;
-      if (typeof a.cacheGB === 'number') { S.remoteLib.cacheGB = clamp(a.cacheGB, 1, 500); remoteLib.trim(); }
+      if (typeof a.cacheGB === 'number') { S.remoteLib.cacheGB = a.cacheGB <= 0 ? 0 : clamp(a.cacheGB, 1, 500); remoteLib.trim(); }
       saveSoon(); return remoteDto();
     case 'remoteLib.clearCache': remoteLib.clearCache(); return remoteDto();
     case 'remoteLib.download': return remoteLib.downloadAlbum(a.id);

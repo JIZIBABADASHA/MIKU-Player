@@ -376,6 +376,7 @@ class RemoteLibrary extends EventEmitter {
 
   /** Copies the given songs into the cache, one after another (the song playing keeps most of the connection). */
   prefetch(list) {
+    if (this.noCache()) return;   // 不暫存: songs are only streamed, nothing is kept
     this.pre = (this.pre || []).filter(x => !list.includes(x));
     this.pre.unshift(...list.filter(n => !this.cached(n)));
     this.pre.length = Math.min(this.pre.length, 4);
@@ -469,9 +470,12 @@ class RemoteLibrary extends EventEmitter {
   saveIndex() { clearTimeout(this.saveTimer); this.saveTimer = setTimeout(() => { try { Json.saveAtomic(IndexFile, this.files); } catch (e) { Log.error('Remote index', e); } }, 1000); }
 
   /** Keeps the cache of played songs under its size (the oldest go first; offline albums and the playing song stay). */
+  /** 暫存空間 set to 不暫存: songs are streamed and not kept (offline albums still are). */
+  noCache() { return Number(this.cfg.cacheGB) === 0; }
+
   trim() {
-    const limit = Math.max(0.5, Number(this.cfg.cacheGB) || 5) * 1024 ** 3;
-    const list = Object.entries(this.files).filter(([, f]) => !f.pin).sort((a, b) => a[1].used - b[1].used);
+    const limit = this.noCache() ? 0 : Math.max(0.5, Number(this.cfg.cacheGB) || 5) * 1024 ** 3;
+    const list = Object.entries(this.files).filter(([id, f]) => !f.pin && !(this.keep && this.keep.has(id))).sort((a, b) => a[1].used - b[1].used);
     let total = list.reduce((n, [, f]) => n + (f.size || 0), 0);
     for (const [id, f] of list) {
       if (total <= limit) break;
@@ -519,8 +523,10 @@ class RemoteLibrary extends EventEmitter {
     try {
       while (this.offlineQueue.length) {
         const t = this.offlineQueue[0];
-        try { await this.fetch(t, true, 'orig'); this.pin(t.id); this.offlineDone++; }
+        (this.keep = this.keep || new Set()).add(t.id);   // not cleared by trim before it is pinned
+        try { await this.fetch(t, true, 'orig'); this.pin(t.id); this.keep.delete(t.id); this.offlineDone++; }
         catch (e) {
+          this.keep.delete(t.id);
           this.lastError = `「${t.title}」下載失敗：${e.message}`;
           if (/連不上/.test(e.message)) { const r = this.remoteOf(t.id); this.offlineQueue = this.offlineQueue.filter(x => this.remoteOf(x.id) !== r); continue; }
         }
@@ -575,7 +581,7 @@ class RemoteLibrary extends EventEmitter {
         const st = this.st(r), d = st.data;
         return { key: keyOf(r.url), url: r.url, name: this.label(r), online: st.online, error: st.error, albums: d ? (d.albums || []).length : 0, tracks: d ? (d.tracks || []).length : 0 };
       }),
-      albums: this.albums.size, tracks: this.tracks.size, quality: this.cfg.quality || 'orig', cacheGB: this.cfg.cacheGB || 5,
+      albums: this.albums.size, tracks: this.tracks.size, quality: this.cfg.quality || 'orig', cacheGB: this.cfg.cacheGB ?? 5,
       cacheBytes: cache, offlineBytes: offline, offline: [...offAlbums.values()].sort((a, b) => a.title.localeCompare(b.title)),
       offlineIds: [...ids], downloading: this.offlineQueue.length ? { done: this.offlineDone, total: this.offlineTotal, title: this.offlineQueue[0].title } : null,
     };
