@@ -28,6 +28,7 @@ public sealed class MainForm : Form
     readonly Settings _s;
     readonly MusicLibrary _lib;
     readonly CdService _cd;
+    readonly RemoteLibrary _remoteLib;
     readonly ArtworkService _art;
     readonly LyricsService _lyrics;
     readonly MetadataService _meta = new();
@@ -449,6 +450,12 @@ public sealed class MainForm : Form
         _cd = new CdService(_s);
         _cd.Changed += () => { var d = _cd.Disc; Post("cd", _cd.Info()); if (d != null) Post("art", new { kind = "a", id = d.Album.Id }); _player?.Validate(); };
         _cd.RipProgress += p => Post("cdRip", p);
+        // 遠端音樂庫 (Library/RemoteLibrary.cs): another computer's MIKU library, listed here and played by this engine
+        _remoteLib = new RemoteLibrary(_s);
+        _remoteLib.Save += SaveSoon;
+        _remoteLib.LibraryChanged += () => { _player?.Validate(); Post("library", new { revision = -Environment.TickCount }); };
+        _remoteLib.Changed += () => PostRemoteLib();
+        _remoteLib.OfflineDone += () => PostRemoteLib();
         _art = new ArtworkService(_lib, _s);
         ArtworkService.DropOldThumbs();
         _lyrics = new LyricsService(_s);
@@ -482,6 +489,8 @@ public sealed class MainForm : Form
             int interval = _engine.IsPlaying ? 200 : 1000;
             if (_tick.Interval != interval) _tick.Interval = interval;
             if (shown || remote) Post("state", State(), tick: true);
+            // a song of the other computer being copied before it plays: its progress (remote-lib.js)
+            if (shown && _remoteLib.JobCount > 0 && ++_remoteLibTick % 3 == 0) PostRemoteLib();
         };
         _debugDir = Path.Combine(AppPaths.AppDir, "debug");
         if (Directory.Exists(_debugDir))
@@ -495,6 +504,7 @@ public sealed class MainForm : Form
 
         Load += async (_, _) => { RestoreWindow(); await InitWebView(); };
         Shown += (_, _) => StartRemote();
+        Shown += (_, _) => { if (_remoteLib.Paired) _ = Task.Run(async () => { if (await _remoteLib.Refresh() && _s.RemoteLib.Active) _remoteLib.StartEvents(); }); };
         Shown += (_, _) => _update.Start();
     }
 
@@ -723,6 +733,7 @@ public sealed class MainForm : Form
         SaveSettings();
         for (int i = 1; i <= 4; i++) UnregisterHotKey(Handle, i);
         try { _remote?.Dispose(); } catch { }
+        try { _remoteLib.Dispose(); } catch { }
         _update.Stop();
         _ext.StopAll();
         try { _engine.Dispose(); } catch { }
@@ -931,16 +942,21 @@ public sealed class MainForm : Form
     }
 
     /// <summary>library.json and artwork, shared by the desktop page and the phone remote.</summary>
-    async Task<(byte[] data, string type, string cache)> MediaAsync(string path, System.Collections.Specialized.NameValueCollection query)
+    /// <param name="own">this computer's own library and covers whatever the page shows (for the phone remote and other MIKUs)</param>
+    async Task<(byte[] data, string type, string cache)> MediaAsync(string path, System.Collections.Specialized.NameValueCollection query, bool own = false)
     {
         int size = int.TryParse(query?["s"], out var sz) ? Math.Clamp(sz, 16, 2000) : 600;
         byte[] data = null; string type = "image/jpeg"; string cache = "max-age=86400";
         if (path == "/library.json")
         {
-            data = await Task.Run(() => _lib.ExportJson());
+            data = !own && _remoteLib.Active ? _remoteLib.LibraryJson() : await Task.Run(() => _lib.ExportJson());
             type = "application/json; charset=utf-8"; cache = "no-store";
         }
         else if (path.StartsWith("/art/a/cd-")) data = _cd.CoverImage(size);
+        // covers of the other computer's library come from there (kept on disk)
+        else if (!own && path.StartsWith("/art/a/") && RemoteAlbum(Uri.UnescapeDataString(path[7..]))) data = await _remoteLib.Art(path, size);
+        else if (!own && path.StartsWith("/art/t/") && RemoteTrack(Uri.UnescapeDataString(path[7..]))) data = await _remoteLib.Art(path, size);
+        else if (!own && path.StartsWith("/art/r/") && _remoteLib.Active) data = await _remoteLib.Art(path, size) ?? await _art.ArtistAsync(Uri.UnescapeDataString(path[7..]), size);
         else if (path.StartsWith("/art/a/")) data = await _art.AlbumAsync(Uri.UnescapeDataString(path[7..]), size);
         else if (path.StartsWith("/art/t/")) data = await _art.TrackAsync(Uri.UnescapeDataString(path[7..]), size);
         else if (path.StartsWith("/art/r/")) data = await _art.ArtistAsync(Uri.UnescapeDataString(path[7..]), size);
@@ -979,6 +995,19 @@ public sealed class MainForm : Form
         }
     }
 
+    // ───────────────────────────── 遠端音樂庫 ─────────────────────────────
+
+    int _remoteLibTick;
+    bool RemoteTrack(string id) => !_lib.OwnsTrack(id) && _remoteLib.GetTrack(id) != null;
+    bool RemoteAlbum(string id) => !_lib.OwnsAlbum(id) && _remoteLib.GetAlbum(id) != null;
+    /// <summary>A song or album of the other computer: its files are there, so tags, covers and files are changed there.</summary>
+    void RemoteOnly(string id)
+    {
+        if (id != null && (RemoteTrack(id) || RemoteAlbum(id))) throw new InvalidOperationException("這首歌在另一台電腦上，請在那台電腦的 MIKU 裡修改。");
+    }
+    object RemoteLibInfo() => _remoteLib.Info(_player?.Current, _engine?.IsLoaded == true);
+    void PostRemoteLib() { try { Post("remoteLib", RemoteLibInfo()); } catch (Exception ex) { Log.Error("Remote library post", ex); } }
+
     // ───────────────────────────── phone remote ─────────────────────────────
 
     RemoteServer _remote;
@@ -993,10 +1022,10 @@ public sealed class MainForm : Form
 
     void StartRemote()
     {
-        _remote ??= new RemoteServer(RemoteRpc, (p, q) => OnUi(() => MediaAsync(p, q)),
+        _remote ??= new RemoteServer(RemoteRpc, (p, q) => OnUi(() => MediaAsync(p, q, own: true)),
             (name, code) => Post("remotePair", new { name, code }),
             name => { Post("remotePaired", new { name }); Post("remoteChanged", RemoteInfo()); });
-        _remote.TrackResolver ??= id => _lib.GetTrack(id);   // 「在手機上聽」 streams
+        _remote.TrackResolver ??= id => _lib.OwnsTrack(id) ? _lib.GetTrack(id) : null;   // 「在手機上聽」 and other MIKUs: this computer's own files
         _remote.Stop();
         if (_s.RemoteEnabled) _remote.Start(Math.Clamp(_s.RemotePort, 1024, 65535));
         Post("remoteChanged", RemoteInfo());
@@ -1761,6 +1790,7 @@ public sealed class MainForm : Form
             case "album.reread":
             {
                 string id = S(a, "id");
+                RemoteOnly(id);
                 var (newId, count) = await Task.Run(() => _lib.RereadAlbum(id));   // thumbnails: ArtworkService (TracksRead)
                 return new { albumId = newId, tracks = count };
             }
@@ -1847,7 +1877,7 @@ public sealed class MainForm : Form
             }
             case "search.clear": _s.SearchHistory.Clear(); SaveSoon(); return null;
             // tag editor (tagedit.js): the album's tags, online album data, writing the files
-            case "tags.load": return TagsDto(S(a, "id"));
+            case "tags.load": RemoteOnly(S(a, "id")); return TagsDto(S(a, "id"));
             case "tags.search":
             {
                 var al = _lib.GetAlbum(S(a, "id"));
@@ -1855,7 +1885,7 @@ public sealed class MainForm : Form
                 return await _meta.Search(S(a, "album"), S(a, "artist"), al, src.Count > 0 ? src : null);
             }
             case "tags.release": return await _meta.Get(S(a, "source"), S(a, "id"), S(a, "country"));
-            case "tags.save": return await SaveTags(a);
+            case "tags.save": RemoteOnly(S(a, "id")); return await SaveTags(a);
             // 轉換格式 / CUE 分軌 (Library/Converter.cs, Library/Cue.cs)
             case "convert.info": return await Task.Run(() => AudioConverter.Info("資源回收筒"));
             case "convert.pickFolder":
@@ -1865,7 +1895,7 @@ public sealed class MainForm : Form
                 if (!string.IsNullOrEmpty(start) && Directory.Exists(start)) dlg.InitialDirectory = start;
                 return dlg.ShowDialog(this) == DialogResult.OK ? dlg.SelectedPath : null;
             }
-            case "convert.start": return await ConvertJob(a, null);
+            case "convert.start": foreach (var rlId in L(a, "ids")) RemoteOnly(rlId); return await ConvertJob(a, null);
             case "convert.cancel": _convertJob?.Cancel(); return null;
             case "convert.open":
             {
@@ -1966,6 +1996,12 @@ public sealed class MainForm : Form
             case "reveal":
             {
                 var t = _lib.GetTrack(S(a, "id"));
+                if (t != null && _remoteLib.IsRemote(t))
+                {
+                    if (File.Exists(t.Path)) Process.Start("explorer.exe", $"/select,\"{t.Path}\"");
+                    else throw new InvalidOperationException("這首歌的檔案在另一台電腦上。");
+                    return null;
+                }
                 // 音樂庫 → 資料夾: open a folder of the library itself (only one holding that track)
                 string dir = S(a, "dir");
                 if (t != null && !string.IsNullOrEmpty(dir) && Directory.Exists(dir)
@@ -2008,6 +2044,20 @@ public sealed class MainForm : Form
                 SetFullScreen(a.ValueKind == JsonValueKind.Object && a.TryGetProperty("on", out var fsOn) ? fsOn.ValueKind == JsonValueKind.True : !_fullScreen);
                 return _fullScreen;
             case "remote.info": return RemoteInfo();
+            // 遠端音樂庫 (remote-lib.js)
+            case "remoteLib.info": return RemoteLibInfo();
+            case "remoteLib.pair": await _remoteLib.PairStart(S(a, "url")); return RemoteLibInfo();
+            case "remoteLib.confirm": await _remoteLib.PairConfirm(S(a, "code")); return RemoteLibInfo();
+            case "remoteLib.unpair": _remoteLib.Unpair(); return RemoteLibInfo();
+            case "remoteLib.active": _remoteLib.SetActive(B(a, "on")); return RemoteLibInfo();
+            case "remoteLib.refresh": await _remoteLib.Refresh(); return RemoteLibInfo();
+            case "remoteLib.set":
+                if (S(a, "quality") is string rlQuality) _remoteLib.SetQuality(rlQuality);
+                if (a.TryGetProperty("cacheGB", out var rlGb) && rlGb.ValueKind == JsonValueKind.Number) _remoteLib.SetCacheGB(rlGb.GetDouble());
+                return RemoteLibInfo();
+            case "remoteLib.clearCache": _remoteLib.ClearCache(); return RemoteLibInfo();
+            case "remoteLib.download": return new { queued = _remoteLib.DownloadAlbum(S(a, "id")) };
+            case "remoteLib.removeOffline": _remoteLib.RemoveAlbum(S(a, "id")); return RemoteLibInfo();
             case "remote.revoke": _remote?.Revoke(S(a, "id")); return RemoteInfo();
             case "quit": BeginInvoke(new Action(Close)); return null;
             // MIKU's updates and extension modules (Host/Updater.cs)
@@ -2196,7 +2246,7 @@ public sealed class MainForm : Form
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-            if (pi == null || !pi.CanWrite || pi.Name is nameof(Settings.Queue) or nameof(Settings.QueueContinuedFrom) or nameof(Settings.Folders) or nameof(Settings.Favorites) or nameof(Settings.Recent) or nameof(Settings.SearchHistory)) continue;
+            if (pi == null || !pi.CanWrite || pi.Name is nameof(Settings.RemoteLib) or nameof(Settings.Queue) or nameof(Settings.QueueContinuedFrom) or nameof(Settings.Folders) or nameof(Settings.Favorites) or nameof(Settings.Recent) or nameof(Settings.SearchHistory)) continue;
             var value = prop.Value.Deserialize(pi.PropertyType, Json.Options);
             var old = pi.GetValue(_s);
             if (Equals(old, value)) continue;

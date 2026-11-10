@@ -56,8 +56,12 @@ public sealed class MusicLibrary
     public MusicLibrary(Settings settings) { _settings = settings; }
 
     // an audio CD's tracks and album are not in the library: CdService knows them (Library/Cd.cs)
-    public Track GetTrack(string id) { lock (_lock) if (id != null && _byId.TryGetValue(id, out var t)) return t; return id != null && id.StartsWith("cd-") ? CdService.Instance?.GetTrack(id) : null; }
-    public Album GetAlbum(string id) { lock (_lock) if (id != null && _albums.TryGetValue(id, out var a)) return a; return id != null && id.StartsWith("cd-") ? CdService.Instance?.GetAlbum(id) : null; }
+    // and the other computer's library (遠端音樂庫) is RemoteLibrary's (Library/RemoteLibrary.cs)
+    public Track GetTrack(string id) { lock (_lock) if (id != null && _byId.TryGetValue(id, out var t)) return t; return id != null && id.StartsWith("cd-") ? CdService.Instance?.GetTrack(id) : RemoteLibrary.Instance?.GetTrack(id); }
+    public Album GetAlbum(string id) { lock (_lock) if (id != null && _albums.TryGetValue(id, out var a)) return a; return id != null && id.StartsWith("cd-") ? CdService.Instance?.GetAlbum(id) : RemoteLibrary.Instance?.GetAlbum(id); }
+    /// <summary>The track / album is this computer's own (not a CD's, not the other computer's).</summary>
+    public bool OwnsTrack(string id) { lock (_lock) return id != null && _byId.ContainsKey(id); }
+    public bool OwnsAlbum(string id) { lock (_lock) return id != null && _albums.ContainsKey(id); }
     public List<Album> Albums { get { lock (_lock) return _albums.Values.ToList(); } }
     public int Count { get { lock (_lock) return _byId.Count; } }
     public List<Track> AllTracks { get { lock (_lock) return _byId.Values.ToList(); } }

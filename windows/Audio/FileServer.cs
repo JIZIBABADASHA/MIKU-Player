@@ -30,6 +30,8 @@ public static class FileServer
     /// <summary>The URL FFmpeg reads <paramref name="path"/> from; the path itself when the server can't start.</summary>
     public static string Url(string path)
     {
+        // a song of the other computer's library (遠端音樂庫) streamed from there: FFmpeg reads that address itself
+        if (path != null && (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))) return path;
         if (!EnsureStarted()) return path;
         string token = _pathToToken.GetOrAdd(path, p =>
         {

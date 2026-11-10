@@ -1,5 +1,5 @@
 'use strict';
-/* macOS build: 遠端音樂庫. The library of MIKU on another computer (e.g. a Windows PC at home) (main/remote-library.js): pairing and options in
+/* 遠端音樂庫 (Windows and Mac). The library of MIKU on another computer (e.g. a Windows PC at home) (Library/RemoteLibrary.cs, mac main/remote-library.js): pairing and options in
  * 設定 → 曲庫, a 這台電腦 / 遠端 switch under 音樂庫 in the sidebar, 離線下載 in an album's menu, and the progress
  * of a song being copied over before it plays. */
 const RemoteLib = {
@@ -8,7 +8,7 @@ const RemoteLib = {
   async init() {
     Host.on('remoteLib', i => this.update(i));
     try { this.update(await Host.call('remoteLib.info')); } catch (e) { console.error('[remoteLib]', e); }
-    // an album of the PC: keep it on this Mac / remove it again
+    // an album of the other computer: keep it on this one / remove it again
     (MikuExt.menus.album = MikuExt.menus.album || []).push(al => {
       const i = this.info;
       if (!i || !i.paired || !this.isRemote(al)) return [];
@@ -139,7 +139,7 @@ const RemoteLib = {
         h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.clearCache')); toast(T('已清除暫存')); } }, T('清除')))));
     const dl = i.downloading;
     box.append(field(T('離線下載'), dl ? T`正在下載「${dl.title}」（${dl.done + 1} / ${dl.total}）`
-        : i.offline.length ? T`${i.offline.length} 張專輯 · ${gb(i.offlineBytes)}，沒有網路也能聽。` : T('在專輯上按右鍵（或 ⋯）選「下載到這台電腦」，出門沒有網路也能聽。下載的是原始檔。'), null));
+        : i.offline.length ? T`${i.offline.length} 張專輯 · ${gb(i.offlineBytes)}，沒有網路也能聽。` : T('在專輯上按右鍵（或 ⋯ 按鈕）選「下載到這台電腦」，出門沒有網路也能聽。下載的是原始檔。'), null));
     for (const a of i.offline) box.append(h('div', { class: 'folder' }, h('span', { html: icon('album') }),
       h('span', { class: 'p', title: a.title }, `${a.title} · ${a.artist}`, h('small', { class: 'muted', style: { marginLeft: '8px' } }, a.have < a.count ? T`${a.have} / ${a.count} 首 · ${gb(a.bytes)}` : gb(a.bytes))),
       h('button', { class: 'icon-btn', title: T('移除離線下載'), html: icon('trash'), onclick: async () => { this.update(await Host.call('remoteLib.removeOffline', { id: a.id })); } })));

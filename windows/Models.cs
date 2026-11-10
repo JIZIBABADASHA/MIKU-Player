@@ -247,8 +247,21 @@ public sealed class Settings
     // Phone remote (LAN web server)
     public bool RemoteEnabled { get; set; } = true;
     public int RemotePort { get; set; } = 8765;
+    /// <summary>遠端音樂庫: another computer's MIKU whose library this one shows and plays (Library/RemoteLibrary.cs).</summary>
+    public RemoteLibSettings RemoteLib { get; set; } = new();
     // Window
     public int[] Window { get; set; }
     public int WindowDpi { get; set; } // DPI associated with the saved physical size; 0 for older settings
     public bool Maximized { get; set; }
+}
+
+/// <summary>Settings.RemoteLib: the other computer's MIKU this one reads the library of (遠端音樂庫).</summary>
+public sealed class RemoteLibSettings
+{
+    public string Url { get; set; } = "";
+    public string Token { get; set; } = "";
+    public bool Active { get; set; }
+    /// <summary>orig | 320 | 192 | 128</summary>
+    public string Quality { get; set; } = "orig";
+    public double CacheGB { get; set; } = 5;
 }
