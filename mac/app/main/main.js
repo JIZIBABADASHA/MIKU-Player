@@ -114,7 +114,7 @@ function remoteDto() {
 /** A song or album of the Windows PC: its files are there, so tags, covers and files are changed in MIKU on Windows. */
 const remoteOnly = id => {
   if ((id && remoteLib.getTrack(id) && !lib.byId.has(id)) || (id && remoteLib.getAlbum(id) && !lib.albums.has(id)))
-    throw new Error('這是 Windows 電腦上的歌，請在 Windows 的 MIKU 裡修改。');
+    throw new Error('這首歌在另一台電腦上，請在那台電腦的 MIKU 裡修改。');
 };
 let lyricsJob = null, fpJob = null, tagsBusy = false;
 let artSearch = null, artSearchId = null;
@@ -779,15 +779,16 @@ function moveTrackIds(moved) {
 
 function openExternal(u) { if (u && /^https?:\/\//.test(u)) shell.openExternal(u).catch(() => { }); }
 
-async function mediaAsync(p, query) {
+/** own: this Mac's own library and covers whatever the page shows (what the phone remote and other MIKUs are sent). */
+async function mediaAsync(p, query, own = false) {
   const size = clamp(parseInt(query && query.get('s'), 10) || 600, 16, 2000);
   let data = null, type = 'image/jpeg', cache = 'max-age=86400';
-  if (p === '/library.json') { data = remoteLib.active ? remoteLib.json() : lib.exportJson(); type = 'application/json; charset=utf-8'; cache = 'no-store'; }
+  if (p === '/library.json') { data = remoteLib.active && !own ? remoteLib.json() : lib.exportJson(); type = 'application/json; charset=utf-8'; cache = 'no-store'; }
   else if (p.startsWith('/art/a/cd-')) data = cd.coverImage(size);
   // covers of the Windows PC's library come from there (kept on disk)
-  else if ((p.startsWith('/art/a/') && remoteLib.getAlbum(decodeURIComponent(p.slice(7))) && !lib.albums.has(decodeURIComponent(p.slice(7))))
-    || (p.startsWith('/art/t/') && remoteLib.getTrack(decodeURIComponent(p.slice(7))) && !lib.byId.has(decodeURIComponent(p.slice(7))))) data = await remoteLib.art(p, size);
-  else if (p.startsWith('/art/r/') && remoteLib.active) data = await remoteLib.art(p, size) || await art.artistAsync(decodeURIComponent(p.slice(7)), size);
+  else if (!own && (p.startsWith('/art/a/') && remoteLib.getAlbum(decodeURIComponent(p.slice(7))) && !lib.albums.has(decodeURIComponent(p.slice(7))))
+    || (!own && p.startsWith('/art/t/') && remoteLib.getTrack(decodeURIComponent(p.slice(7))) && !lib.byId.has(decodeURIComponent(p.slice(7))))) data = await remoteLib.art(p, size);
+  else if (!own && p.startsWith('/art/r/') && remoteLib.active) data = await remoteLib.art(p, size) || await art.artistAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/a/')) data = await art.albumAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/t/')) data = await art.trackAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/r/')) data = await art.artistAsync(decodeURIComponent(p.slice(7)), size);
@@ -1065,7 +1066,7 @@ async function handleRpc(m, a) {
     }
     case 'reveal': {
       const t = lib.getTrack(a.id);
-      if (t && t.remote) { if (t.path && fs.existsSync(t.path)) shell.showItemInFolder(t.path); else throw new Error('這首歌的檔案在 Windows 電腦上。'); return null; }
+      if (t && t.remote) { if (t.path && fs.existsSync(t.path)) shell.showItemInFolder(t.path); else throw new Error('這首歌的檔案在另一台電腦上。'); return null; }
       // 音樂庫 → 資料夾: open a folder of the library itself (only one holding that track)
       const dir = typeof a.dir === 'string' ? a.dir.replace(/\/+$/, '') : '';
       if (t && dir && t.path.toLowerCase().startsWith(dir.toLowerCase() + path.sep) && fs.existsSync(dir)) { shell.openPath(dir); return null; }
@@ -1151,10 +1152,10 @@ async function remoteRpc(m, a) {
   return handleRpc(m, a);
 }
 async function startRemote() {
-  if (!remote) remote = new RemoteServer(remoteRpc, mediaAsync,
+  if (!remote) remote = new RemoteServer(remoteRpc, (p, q) => mediaAsync(p, q, true),
     (name, code) => post('remotePair', { name, code }),
     name => { post('remotePaired', { name }); post('remoteChanged', remoteInfo()); });
-  remote.trackResolver = id => lib.getTrack(id);   // 「在手機上聽」 streams
+  remote.trackResolver = id => lib.byId.get(id) || null;   // 「在手機上聽」 and other MIKUs: this Mac's own files
   remote.stop();
   if (S.remoteEnabled) await remote.start(clamp(S.remotePort || 8765, 1024, 65535));
   post('remoteChanged', remoteInfo());

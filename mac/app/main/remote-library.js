@@ -90,20 +90,20 @@ class RemoteLibrary extends EventEmitter {
       if (res.status === 401 && this.cfg.token && !p.startsWith('/api/pair')) this.unauthorized();
       return res;
     } catch (e) {
-      if (ac.signal.aborted && !(opts.signal && opts.signal.aborted)) throw new Error('連不上 Windows 電腦（逾時）');
-      throw new Error('連不上 Windows 電腦：' + (e.cause && e.cause.code || e.message));
+      if (ac.signal.aborted && !(opts.signal && opts.signal.aborted)) throw new Error('連不上 遠端電腦（逾時）');
+      throw new Error('連不上 遠端電腦：' + (e.cause && e.cause.code || e.message));
     } finally { clearTimeout(timer); }
   }
 
   unauthorized() {
     // the PC forgot this Mac (取消配對 there): pair again
-    this.cfg.token = ''; this.cfg.active = false; this.lastError = 'Windows 電腦上已取消這台 Mac 的配對，請重新配對。';
+    this.cfg.token = ''; this.cfg.active = false; this.lastError = '另一台電腦的 MIKU 已取消這台電腦的配對，請重新配對。';
     this.stopEvents(); this.emit('changed'); this.emit('library'); this.emit('save');
   }
 
   static normalize(u) {
     u = String(u || '').trim();
-    if (!u) throw new Error('請輸入 Windows 電腦的網址');
+    if (!u) throw new Error('請輸入另一台 MIKU 的網址');
     if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
     const x = new URL(u);
     if (!x.port) x.port = '8765';
@@ -277,7 +277,7 @@ class RemoteLibrary extends EventEmitter {
     const key = t.id + '|' + q;
     const running = this.jobs.get(key);
     if (running) return running.promise;
-    if (!this.paired) return Promise.reject(new Error('還沒有和 Windows 電腦配對'));
+    if (!this.paired) return Promise.reject(new Error('還沒有和 遠端電腦配對'));
     // a song that just failed (no connection) is not asked for again at once by the gapless look-ahead
     this.failed = this.failed || new Map();
     if (!now && Date.now() - (this.failed.get(key) || 0) < 60000) return Promise.reject(new Error('稍後再試'));
@@ -291,7 +291,7 @@ class RemoteLibrary extends EventEmitter {
         if (res.status === 503 && attempt < 5) { await sleep(2000); continue; }   // the PC is encoding several songs
         break;
       }
-      if (res.status === 404) throw new Error('Windows 電腦上找不到這首歌（檔案可能已移動或刪除）');
+      if (res.status === 404) throw new Error('遠端電腦上找不到這首歌（檔案可能已移動或刪除）');
       if (res.status === 415) throw new Error(await res.text().catch(() => '無法轉換這首歌'));
       if (!res.ok || !res.body) throw new Error('下載失敗（' + res.status + '）');
       const ext = (res.headers.get('x-miku-ext') || ExtOfType[(res.headers.get('content-type') || '').split(';')[0]] || '.bin').replace(/[^.\w]/g, '');
@@ -311,7 +311,7 @@ class RemoteLibrary extends EventEmitter {
           }
         } finally { clearInterval(watch); }
         await new Promise((ok, bad) => out.end(e => e ? bad(e) : ok()));
-      } catch (e) { out.destroy(); await fsp.unlink(tmp).catch(() => { }); throw job.ac.signal.aborted ? new Error('下載中斷：Windows 電腦沒有回應') : e; }
+      } catch (e) { out.destroy(); await fsp.unlink(tmp).catch(() => { }); throw job.ac.signal.aborted ? new Error('下載中斷：遠端電腦沒有回應') : e; }
       if (job.total && job.got < job.total) { await fsp.unlink(tmp).catch(() => { }); throw new Error('下載不完整，請再試一次'); }
       await fsp.rename(tmp, file);
       const old = this.files[t.id];

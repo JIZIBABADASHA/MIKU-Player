@@ -230,6 +230,8 @@ RemoteServer.prototype.stream = async function (req, res, id, q) {
   const kbps = { 128: 128, 192: 192, 256: 256, 320: 320 }[q.get('q')] || 0;   // 0: original
   const caps = new Set((q.get('c') || '').split(',').filter(Boolean));
   const ss = Math.max(0, parseFloat(q.get('ss')) || 0);
+  // raw=1: another MIKU (its 遠端音樂庫) copies the file as it is and plays it with its own engine
+  if (q.get('raw') === '1') return this.sendFile(req, res, t.path, 'application/octet-stream', { 'X-Miku-Ext': path.extname(t.path).toLowerCase() });
   const d = directFormat(t);
   const lossy = ['MP3', 'AAC', 'OGG', 'OPUS', 'WMA'].includes(t.codec);
   // a lossy file the phone can play always goes as it is (encoding it again only loses more); the page makes the
@@ -238,11 +240,11 @@ RemoteServer.prototype.stream = async function (req, res, id, q) {
   return this.transcode(req, res, t, kbps || 320, ss);
 };
 
-RemoteServer.prototype.sendFile = async function (req, res, file, mime) {
+RemoteServer.prototype.sendFile = async function (req, res, file, mime, extra = null) {
   let size;
   try { size = (await fs.promises.stat(file)).size; } catch { return this.send(req, res, 404, 'text/plain', 'not found', { 'Cache-Control': 'no-store' }); }
   let start = 0, end = size - 1, status = 200;
-  const headers = { 'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, no-store' };
+  const headers = { 'Content-Type': mime, 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, no-store', ...(extra || {}) };
   const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
   if (m) {
     if (m[1] === '' && m[2] !== '') start = Math.max(0, size - parseInt(m[2], 10));
