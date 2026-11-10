@@ -90,6 +90,9 @@ player.cd = cd;
 // 遠端音樂庫 (remote-library.js): the library of MIKU on the Windows PC, listed here and played by this Mac's engine
 const remoteLib = new RemoteLibrary(S);
 player.remote = remoteLib;
+// a module's playback core (Daphne) reads files only: songs of the other computer are copied here before they play
+remoteLib.canStream = () => engine.coreId === 'miku' && engine.wantedCore === 'miku';
+engine.beforeCoreLoad = async t => { if (t.remote && t.streaming && !remoteLib.streamable()) await remoteLib.prepare(t); };
 {
   const getTrack = lib.getTrack.bind(lib), getAlbum = lib.getAlbum.bind(lib);
   lib.getTrack = id => getTrack(id) || (id && id.startsWith('cd-') ? cd.getTrack(id) : remoteLib.getTrack(id));

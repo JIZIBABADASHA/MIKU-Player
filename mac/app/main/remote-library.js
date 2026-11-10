@@ -349,9 +349,17 @@ class RemoteLibrary extends EventEmitter {
     const f = this.cached(t);
     if (f) { this.bind(t, f); t.streaming = false; return true; }
     const r = this.remoteOf(t.id);
-    if (r && this.st(r).online) { this.bindStream(t); this.prefetch([t]); return true; }
+    if (r && this.st(r).online && this.streamable()) { this.bindStream(t); this.prefetch([t]); return true; }
+    if (r && this.st(r).online) this.prefetch([t]);   // a module's core: ready once the whole file is here
     return false;
   }
+
+  /**
+   * Whether the playing core reads a song from its address as it streams in. MIKU's own (FFmpeg with HTTP) does; a
+   * module's core (Daphne) opens files only (its FFmpeg has no network, its own decoders read the file), so it gets the
+   * whole file first, as on Windows. main.js sets canStream.
+   */
+  streamable() { return !this.canStream || this.canStream(); }
 
   /**
    * Before a song of the other computer plays: from the cache when it is there, else streamed straight away (the
@@ -369,7 +377,8 @@ class RemoteLibrary extends EventEmitter {
         try { const res = await this.req(r, '/api/ping', {}, 4000); if (!res.ok) throw new Error(); st.online = true; this.emit('changed'); }
         catch { throw new Error('連不上遠端電腦，這首歌還沒下載到這台電腦'); }
       }
-      this.bindStream(t);
+      if (this.streamable()) this.bindStream(t);
+      else { this.bind(t, await this.fetch(t, true)); t.streaming = false; }
     }
     this.prefetch(next.filter(n => n && n.remote));
   }
