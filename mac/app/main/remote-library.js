@@ -17,6 +17,7 @@ const CacheDir = path.join(app.getPath('cache'), 'MIKU', 'Remote');   // songs p
 const ArtDir = path.join(CacheDir, 'Art');
 const IndexFile = path.join(Dir, 'files.json');
 const Lossy = new Set(['MP3', 'AAC', 'OGG', 'OPUS', 'WMA']);
+const DsdCodecs = new Set(['DSF', 'DFF']);
 // what this Mac's engine (FFmpeg) plays as it is when a smaller copy is asked for: a lossy file is never encoded again
 const Caps = 'mp3,aac,alac,flac,wav,ogg,opus';
 const ExtOfType = { 'audio/mpeg': '.mp3', 'audio/aac': '.aac', 'audio/mp4': '.m4a', 'audio/flac': '.flac', 'audio/wav': '.wav', 'audio/ogg': '.ogg' };
@@ -350,7 +351,14 @@ class RemoteLibrary extends EventEmitter {
     if (f) { this.bind(t, f); t.streaming = false; return true; }
     const r = this.remoteOf(t.id);
     if (r && this.st(r).online && this.streamable()) { this.bindStream(t); this.prefetch([t]); return true; }
-    if (r && this.st(r).online) this.prefetch([t]);   // a module's core: ready once the whole file is here
+    if (r && this.st(r).online) {
+      // a module's core reads the file as it is copied here (once its first part is there), DSD once it is whole
+      const job = this.jobs.get(t.id + '|' + this.quality(t));
+      if (job && job.file && job.total && job.got >= Math.min(job.total, 1 << 20) && !DsdCodecs.has(t.base.codec)) {
+        this.bindGrowing(t, job); return true;
+      }
+      this.prefetch([t]);
+    }
     return false;
   }
 
@@ -378,9 +386,35 @@ class RemoteLibrary extends EventEmitter {
         catch { throw new Error('連不上遠端電腦，這首歌還沒下載到這台電腦'); }
       }
       if (this.streamable()) this.bindStream(t);
-      else { this.bind(t, await this.fetch(t, true)); t.streaming = false; }
+      else await this.playWhileCopying(t);
+
     }
     this.prefetch(next.filter(n => n && n.remote));
+  }
+
+  /**
+   * A module's core (Daphne) reads files, not addresses: the song is copied into the cache and played from that file
+   * as it grows, once its first 1 MB is there. The file's whole size is in <file>.growing while it is written (Daphne's
+   * FileBytes waits for the bytes not there yet). DSD (read by Daphne without FileBytes) and a copy of unknown size
+   * play once complete.
+   */
+  async playWhileCopying(t) {
+    const task = this.fetch(t, true);
+    const job = this.jobs.get(t.id + '|' + this.quality(t));
+    const growing = !DsdCodecs.has(t.base.codec);
+    const until = Date.now() + 60000;
+    for (;;) {
+      const done = await Promise.race([task.then(f => ({ f }), e => ({ e })), sleep(50).then(() => null)]);
+      if (done) { if (done.e) throw done.e; this.bind(t, done.f); t.streaming = false; return; }
+      if (growing && job && job.file && job.total && job.got >= Math.min(job.total, 1 << 20)) break;
+      if (!growing || (job && job.total === 0 && job.file)) continue;   // whole file first
+      if (Date.now() > until) throw new Error('遠端電腦回應太慢');
+    }
+    this.bindGrowing(t, job);
+  }
+  bindGrowing(t, job) {
+    this.bind(t, { file: job.file, q: job.q });
+    t.streaming = false;
   }
 
   /** Copies the given songs into the cache, one after another (the song playing keeps most of the connection). */
@@ -411,7 +445,7 @@ class RemoteLibrary extends EventEmitter {
     // a song that just failed (no connection) is not asked for again at once by the gapless look-ahead
     this.failed = this.failed || new Map();
     if (!now && Date.now() - (this.failed.get(key) || 0) < 60000) return Promise.reject(new Error('稍後再試'));
-    const job = { got: 0, total: 0, ac: new AbortController(), title: t.title };
+    const job = { got: 0, total: 0, ac: new AbortController(), title: t.title, q, file: null };
     job.promise = (async () => {
       await fsp.mkdir(CacheDir, { recursive: true });
       const qs = q === 'orig' ? 'raw=1' : `q=${q}&c=${Caps}`;
@@ -427,8 +461,12 @@ class RemoteLibrary extends EventEmitter {
       const ext = (res.headers.get('x-miku-ext') || ExtOfType[(res.headers.get('content-type') || '').split(';')[0]] || '.bin').replace(/[^.\w]/g, '');
       job.total = parseInt(res.headers.get('content-length'), 10) || 0;
       const file = path.join(CacheDir, t.id.replace(/[^\w-]/g, '') + (q === 'orig' ? '' : '-' + q) + ext);
-      const tmp = file + '.part';
+      // written in place, readable meanwhile: a song can play from it while it comes (playWhileCopying); its whole size
+      // is in <file>.growing until it is complete. It is in the cache's index only once complete.
+      const grow = file + '.growing', tmp = file;
+      if (job.total) await fsp.writeFile(grow, String(job.total));
       const out = fs.createWriteStream(tmp);
+      job.file = file;
       try {
         // a stalled connection (the PC went to sleep) must not hang the player forever
         let last = Date.now();
@@ -441,9 +479,9 @@ class RemoteLibrary extends EventEmitter {
           }
         } finally { clearInterval(watch); }
         await new Promise((ok, bad) => out.end(e => e ? bad(e) : ok()));
-      } catch (e) { out.destroy(); await fsp.unlink(tmp).catch(() => { }); throw job.ac.signal.aborted ? new Error('下載中斷：遠端電腦沒有回應') : e; }
+      } catch (e) { out.destroy(); await fsp.unlink(grow).catch(() => { }); await fsp.unlink(tmp).catch(() => { }); throw job.ac.signal.aborted ? new Error('下載中斷：遠端電腦沒有回應') : e; }
+      await fsp.unlink(grow).catch(() => { });
       if (job.total && job.got < job.total) { await fsp.unlink(tmp).catch(() => { }); throw new Error('下載不完整，請再試一次'); }
-      await fsp.rename(tmp, file);
       const old = this.files[t.id];
       // a song kept offline stays as it is (the copy just made is not needed)
       if (old && old.pin && old.file !== file) { await fsp.unlink(file).catch(() => { }); return old; }
