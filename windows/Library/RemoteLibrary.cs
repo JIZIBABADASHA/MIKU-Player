@@ -36,6 +36,7 @@ public sealed class RemoteLibrary : IDisposable
     {
         public Task<FileEntry> Task;
         public long Got, Total;
+        public volatile string File;   // where it is written (known once the other computer answered)
         public readonly CancellationTokenSource Cts = new();
     }
 
@@ -419,10 +420,33 @@ public sealed class RemoteLibrary : IDisposable
                 catch { throw new InvalidOperationException("連不上遠端電腦，這首歌還沒下載到這台電腦"); }
             }
             if (CanStream(t)) BindStream(t);
-            else Bind(t, await Fetch(t, true));
+            else if ((_s.AudioCore ?? "miku") == "miku") await PlayWhileCopying(t);
+            else Bind(t, await Fetch(t, true));   // a module's core reads the file itself: the whole file first
         }
         SaveIndex();
         Prefetch(next.Where(n => n != null && IsRemote(n)));
+    }
+
+    /// <summary>
+    /// DSD on MIKU's own core (its header and DoP data are read from a file): copied into the cache, and played from
+    /// that file as it grows (GrowingFiles) once its first part is there.
+    /// </summary>
+    async Task PlayWhileCopying(Track t)
+    {
+        Job job;
+        var task = Fetch(t, true, "orig");
+        lock (_lock) _jobs.TryGetValue(t.Id + "|orig", out job);
+        var until = DateTime.UtcNow.AddSeconds(60);
+        while (!task.IsCompleted)
+        {
+            if (job != null && job.File != null && job.Total > 0 && Interlocked.Read(ref job.Got) >= Math.Min(job.Total, 1 << 20)) break;
+            if (DateTime.UtcNow > until) throw new IOException("遠端電腦回應太慢");
+            await Task.Delay(50);
+        }
+        if (task.IsCompleted) { Bind(t, await task); return; }
+        t.Path = job.File;
+        var b = Base(t);
+        t.Codec = b.Codec; t.SampleRate = b.Rate; t.Bits = b.Bits; t.Channels = 2;
     }
 
     /// <summary>Copies the given songs into the cache one after another (the song playing keeps most of the connection).</summary>
@@ -498,11 +522,15 @@ public sealed class RemoteLibrary : IDisposable
             ext = new string((ext ?? ".bin").Where(c => c == '.' || char.IsLetterOrDigit(c)).ToArray());
             job.Total = res.Content.Headers.ContentLength ?? 0;
             string safe = new string(t.Id.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
-            string file = Path.Combine(CacheDir, safe + (q == "orig" ? "" : "-" + q) + ext), tmp = file + ".part";
+            string file = Path.Combine(CacheDir, safe + (q == "orig" ? "" : "-" + q) + ext);
+            // written in place, readable meanwhile: a song can play from it while it comes (PlayWhileCopying); it is
+            // in the cache's index only once complete
+            if (job.Total > 0) GrowingFiles.Start(file, job.Total);
+            job.File = file;
             try
             {
                 using var src = await res.Content.ReadAsStreamAsync(job.Cts.Token);
-                using (var dst = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, true))
+                using (var dst = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete, 1 << 16, true))
                 {
                     var buf = new byte[1 << 16];
                     while (true)
@@ -515,13 +543,14 @@ public sealed class RemoteLibrary : IDisposable
                         catch (OperationCanceledException) when (!job.Cts.IsCancellationRequested) { throw new IOException("下載中斷：遠端電腦沒有回應"); }
                         if (n <= 0) break;
                         await dst.WriteAsync(buf.AsMemory(0, n), job.Cts.Token);
-                        Interlocked.Add(ref job.Got, n);
+                        await dst.FlushAsync(job.Cts.Token);
+                        GrowingFiles.Progress(file, Interlocked.Add(ref job.Got, n));
                     }
                 }
                 if (job.Total > 0 && job.Got < job.Total) throw new IOException("下載不完整，請再試一次");
-                File.Move(tmp, file, true);
             }
-            catch { try { File.Delete(tmp); } catch { } throw; }
+            catch { GrowingFiles.End(file); try { File.Delete(file); } catch { } throw; }
+            GrowingFiles.End(file);
             FileEntry f;
             lock (_lock)
             {

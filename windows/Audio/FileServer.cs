@@ -105,7 +105,9 @@ public static class FileServer
                     catch { await Reply(net, "404 Not Found", 0, null, true); return; }
                     using (fs)
                     {
-                        long size = fs.Length, start = 0, end = size - 1;
+                        // a file still being copied from another computer (遠端音樂庫): its whole length, read as it comes
+                        long growing = GrowingFiles.Total(path);
+                        long size = growing > 0 ? growing : fs.Length, start = 0, end = size - 1;
                         bool partial = false;
                         var m = range == null ? null : RangeRx.Match(range);
                         if (m != null && m.Success)
@@ -122,6 +124,7 @@ public static class FileServer
                         fs.Position = start;
                         while (len > 0)
                         {
+                            if (growing > 0) await GrowingFiles.WaitAsync(path, fs.Position + Math.Min(buf.Length, len));
                             int n = await fs.ReadAsync(buf.AsMemory(0, (int)Math.Min(buf.Length, len)));
                             if (n <= 0) return;   // file got shorter: the length sent is wrong now, end the connection
                             await net.WriteAsync(buf.AsMemory(0, n));
@@ -182,6 +185,50 @@ public static class FileServer
                 if (n <= 0) return null;
                 _end += n;
             }
+        }
+    }
+}
+
+/// <summary>
+/// Files being written while they play (遠端音樂庫: a DSD song copied from another computer). Readers learn the whole
+/// length and wait for the bytes they need instead of meeting the end of the file early.
+/// </summary>
+public static class GrowingFiles
+{
+    sealed class Entry { public long Total, Got; public bool Ended; }
+    static readonly ConcurrentDictionary<string, Entry> _files = new(StringComparer.OrdinalIgnoreCase);
+
+    public static void Start(string path, long total) => _files[path] = new Entry { Total = total };
+    public static void Progress(string path, long got) { if (_files.TryGetValue(path, out var e)) System.Threading.Interlocked.Exchange(ref e.Got, got); }
+    /// <summary>Written to the end, or given up (the reader then meets the end of what is there).</summary>
+    public static void End(string path) { if (_files.TryRemove(path, out var e)) e.Ended = true; }
+    /// <summary>The length the file will have, or 0 when it is not being written.</summary>
+    public static long Total(string path) => _files.TryGetValue(path, out var e) ? e.Total : 0;
+    public static long Got(string path) => _files.TryGetValue(path, out var e) ? System.Threading.Interlocked.Read(ref e.Got) : -1;
+
+    /// <summary>Waits until the file holds <paramref name="end"/> bytes, it is complete, or nothing came for 30 s.</summary>
+    public static void Wait(string path, long end)
+    {
+        long last = -1; var since = DateTime.UtcNow;
+        while (_files.TryGetValue(path, out var e) && !e.Ended)
+        {
+            long got = System.Threading.Interlocked.Read(ref e.Got);
+            if (got >= Math.Min(end, e.Total)) return;
+            if (got != last) { last = got; since = DateTime.UtcNow; }
+            else if (DateTime.UtcNow - since > TimeSpan.FromSeconds(30)) return;
+            System.Threading.Thread.Sleep(40);
+        }
+    }
+    public static async Task WaitAsync(string path, long end)
+    {
+        long last = -1; var since = DateTime.UtcNow;
+        while (_files.TryGetValue(path, out var e) && !e.Ended)
+        {
+            long got = System.Threading.Interlocked.Read(ref e.Got);
+            if (got >= Math.Min(end, e.Total)) return;
+            if (got != last) { last = got; since = DateTime.UtcNow; }
+            else if (DateTime.UtcNow - since > TimeSpan.FromSeconds(30)) return;
+            await Task.Delay(40);
         }
     }
 }

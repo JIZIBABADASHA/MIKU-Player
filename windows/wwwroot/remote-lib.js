@@ -52,7 +52,7 @@ const RemoteLib = {
       const label = [...document.querySelectorAll('#nav .nav-label')].find(x => !x.id);   // 音樂庫
       if (!label) return;
       el = h('div', { id: 'rl-src', class: 'rl-src' },
-        h('button', { 'data-v': 'mac', onclick: () => this.setActive(false) }, T('這台電腦')),
+        h('button', { 'data-v': 'mac', onclick: () => this.setActive(false) }, T('本地')),
         h('button', { 'data-v': 'pc', onclick: () => this.setActive(true) }, T('遠端')));
       label.after(el);
     }
@@ -65,7 +65,7 @@ const RemoteLib = {
   async setActive(on) {
     if (!!this.info.active === on) return;
     this.update(await Host.call('remoteLib.active', { on }));
-    toast(on ? (this.info.online ? T('正在顯示遠端電腦上的音樂庫') : T('遠端電腦目前連不上，只能播放已下載到這台電腦的歌')) : T('正在顯示這台電腦的音樂庫'));
+    toast(on ? (this.info.online ? T('正在顯示遠端電腦上的音樂庫') : T('遠端電腦目前連不上，只能播放已下載到這台電腦的歌')) : T('正在顯示本地的音樂庫'));
   },
 
   /* ── a song being copied over before it plays ── */
