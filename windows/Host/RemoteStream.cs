@@ -76,6 +76,10 @@ public sealed partial class RemoteServer
         int kbps = q?["q"] switch { "128" => 128, "192" => 192, "256" => 256, "320" => 320, _ => 0 };   // 0: original
         var caps = new HashSet<string>((q?["c"] ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries), StringComparer.OrdinalIgnoreCase);
         double.TryParse(q?["ss"], NumberStyles.Float, CultureInfo.InvariantCulture, out double ss);
+        // raw=1: another MIKU (the Mac's 遠端音樂庫) copies the file as it is, whatever its format, and plays it with its
+        // own engine; X-Miku-Ext tells it what kind of file it is
+        if (q?["raw"] == "1")
+            return await SendFile(s, req, t.Path, "application/octet-stream", keep, ct, $"X-Miku-Ext: {Path.GetExtension(t.Path).ToLowerInvariant()}\r\n");
         var direct = DirectFormat(t);
         // a lossy file the phone can play always goes as it is (encoding it again only loses more); the page makes the
         // same choice from the codec alone (Local.direct in remote/app.js), so it knows whether it can seek in it
@@ -85,7 +89,7 @@ public sealed partial class RemoteServer
         return false;
     }
 
-    static async Task<bool> SendFile(NetworkStream s, Request req, string path, string mime, bool keep, CancellationToken ct)
+    static async Task<bool> SendFile(NetworkStream s, Request req, string path, string mime, bool keep, CancellationToken ct, string extra = null)
     {
         FileStream fs;
         // FileShare.Delete: the file can still be moved or deleted in Explorer while the phone plays it
@@ -122,6 +126,7 @@ public sealed partial class RemoteServer
             head.Append(partial ? "HTTP/1.1 206 Partial Content\r\n" : "HTTP/1.1 200 OK\r\n");
             head.Append($"Content-Type: {mime}\r\nContent-Length: {len}\r\nAccept-Ranges: bytes\r\nCache-Control: private, no-store\r\n");
             if (partial) head.Append($"Content-Range: bytes {start}-{end}/{size}\r\n");
+            if (extra != null) head.Append(extra);
             head.Append(keep ? "Connection: keep-alive\r\n" : "Connection: close\r\n").Append("\r\n");
             await s.WriteAsync(Utf8(head.ToString()), ct);
             if (req.Method != "HEAD")

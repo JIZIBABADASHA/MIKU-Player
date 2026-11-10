@@ -11,7 +11,7 @@ Windows side is brought over by running this again:
 A replacement whose text is no longer found stops the script: look at what changed on the Windows side and update
 the replacement below.
 
-Mac-only files (never overwritten): settings.js, mac-bridge.js, mac-navigation.js. Windows' smooth.js is skipped because macOS
+Mac-only files (never overwritten): settings.js, mac-bridge.js, mac-navigation.js, remote-lib.js (遠端音樂庫). Windows' smooth.js is skipped because macOS
 handles wheel scrolling natively. The output picker (the end of art.js, from `const shortDevice`) comes from
 wwwroot-mac/outputs.js.
 """
@@ -22,11 +22,11 @@ SRC = os.path.normpath(os.path.join(HERE, '..', '..', 'windows', 'wwwroot'))
 DST = os.path.normpath(os.path.join(HERE, '..', 'app', 'wwwroot'))
 MAC = os.path.join(HERE, 'wwwroot-mac')
 
-MAC_OWNED = {'settings.js', 'mac-bridge.js', 'mac-navigation.js'}
+MAC_OWNED = {'settings.js', 'mac-bridge.js', 'mac-navigation.js', 'remote-lib.js'}
 SKIP = {'mock.js', 'smooth.js'}  # Windows test helper and custom wheel scrolling
 
 # Mac suffixes added to the cache-busting ?v= of these scripts (whatever version the Windows side is on)
-VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1', 'settings.js': '-native-scroll1-nativeaudio2-lite1-cores1-label1-out1',
+VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1', 'settings.js': '-native-scroll1-nativeaudio2-lite1-cores1-label1-out1-rlib1',
                   'art.js': '-macaudio2', 'i18n-dict.js': '-macaudio3'}
 
 PATCHES = {
@@ -34,6 +34,7 @@ PATCHES = {
         ('<kbd>Ctrl F</kbd>', '<kbd>⌘F</kbd>'),
         ('<script src="core.js', '<script src="mac-bridge.js?v=macpower1"></script>\n<script src="mac-navigation.js?v=macswipe6"></script>\n<script src="core.js'),
         ('<script src="smooth.js?v=20261004s16-lite1"></script>\n', ''),
+        ('<script src="art.js', '<script src="remote-lib.js?v=1"></script>\n<script src="art.js'),
     ],
     'core.js': [
         ("const MEDIA = 'https://media.miku';", "const MEDIA = 'miku-media://media';"),

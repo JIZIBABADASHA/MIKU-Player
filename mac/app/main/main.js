@@ -25,6 +25,7 @@ const { LyricsService } = require('./lyrics');
 const { AudioEngine } = require('./audio');
 const { Player } = require('./player');
 const { RemoteServer } = require('./remote');
+const { RemoteLibrary } = require('./remote-library');
 const ff = require('./ffmpeg');
 const TagWriter = require('./tagwriter');
 const Metadata = require('./metadata');
@@ -86,11 +87,35 @@ const fp = new FingerprintService(S);
 const { CdService } = require('./cd');
 const cd = new CdService(S, resize);
 player.cd = cd;
+// 遠端音樂庫 (remote-library.js): the library of MIKU on the Windows PC, listed here and played by this Mac's engine
+const remoteLib = new RemoteLibrary(S);
+player.remote = remoteLib;
 {
   const getTrack = lib.getTrack.bind(lib), getAlbum = lib.getAlbum.bind(lib);
-  lib.getTrack = id => getTrack(id) || (id && id.startsWith('cd-') ? cd.getTrack(id) : null);
-  lib.getAlbum = id => getAlbum(id) || (id && id.startsWith('cd-') ? cd.getAlbum(id) : null);
+  lib.getTrack = id => getTrack(id) || (id && id.startsWith('cd-') ? cd.getTrack(id) : remoteLib.getTrack(id));
+  lib.getAlbum = id => getAlbum(id) || (id && id.startsWith('cd-') ? cd.getAlbum(id) : remoteLib.getAlbum(id));
 }
+remoteLib.on('save', () => saveSoon());
+remoteLib.on('library', () => { player.validate(); post('library', { revision: 'remote-' + Date.now() }); });
+{
+  let timer = null;
+  const send = () => { timer = null; post('remoteLib', remoteDto()); };
+  remoteLib.on('changed', () => { if (!timer) timer = setTimeout(send, 150); });
+  remoteLib.on('progress', () => { if (!timer) timer = setTimeout(send, 150); });
+  // while a song is being copied over, its progress (the page shows it in the player bar)
+  setInterval(() => { if (remoteLib.jobs.size) post('remoteLib', remoteDto()); }, 700);
+}
+function remoteDto() {
+  const i = remoteLib.info();
+  const t = player.current;
+  i.loading = t && t.remote && !engine.isLoaded ? Object.assign({ id: t.id, title: t.title }, remoteLib.progress(t.id) || {}) : null;
+  return i;
+}
+/** A song or album of the Windows PC: its files are there, so tags, covers and files are changed in MIKU on Windows. */
+const remoteOnly = id => {
+  if ((id && remoteLib.getTrack(id) && !lib.byId.has(id)) || (id && remoteLib.getAlbum(id) && !lib.albums.has(id)))
+    throw new Error('這是 Windows 電腦上的歌，請在 Windows 的 MIKU 裡修改。');
+};
 let lyricsJob = null, fpJob = null, tagsBusy = false;
 let artSearch = null, artSearchId = null;
 async function searchArt(a, artist) {
@@ -757,8 +782,12 @@ function openExternal(u) { if (u && /^https?:\/\//.test(u)) shell.openExternal(u
 async function mediaAsync(p, query) {
   const size = clamp(parseInt(query && query.get('s'), 10) || 600, 16, 2000);
   let data = null, type = 'image/jpeg', cache = 'max-age=86400';
-  if (p === '/library.json') { data = lib.exportJson(); type = 'application/json; charset=utf-8'; cache = 'no-store'; }
+  if (p === '/library.json') { data = remoteLib.active ? remoteLib.json() : lib.exportJson(); type = 'application/json; charset=utf-8'; cache = 'no-store'; }
   else if (p.startsWith('/art/a/cd-')) data = cd.coverImage(size);
+  // covers of the Windows PC's library come from there (kept on disk)
+  else if ((p.startsWith('/art/a/') && remoteLib.getAlbum(decodeURIComponent(p.slice(7))) && !lib.albums.has(decodeURIComponent(p.slice(7))))
+    || (p.startsWith('/art/t/') && remoteLib.getTrack(decodeURIComponent(p.slice(7))) && !lib.byId.has(decodeURIComponent(p.slice(7))))) data = await remoteLib.art(p, size);
+  else if (p.startsWith('/art/r/') && remoteLib.active) data = await remoteLib.art(p, size) || await art.artistAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/a/')) data = await art.albumAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/t/')) data = await art.trackAsync(decodeURIComponent(p.slice(7)), size);
   else if (p.startsWith('/art/r/')) data = await art.artistAsync(decodeURIComponent(p.slice(7)), size);
@@ -781,7 +810,7 @@ async function devicesDto() {
   return { devices: list, caps, asio: [], nativeAvailable: engine.nativeAvailable };
 }
 
-const Protected = new Set(['queue', 'queueContinuedFrom', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
+const Protected = new Set(['remoteLib', 'queue', 'queueContinuedFrom', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
 async function applySettings(patch) {
   let device = false, output = false, dsp = false, volume = false, rg = false, rem = false, dsdRate = false;
   for (const [k, v] of Object.entries(patch || {})) {
@@ -934,17 +963,17 @@ async function handleRpc(m, a) {
       return null;
     }
     case 'lyrics.cancel': if (lyricsJob) lyricsJob.abort(); return null;
-    case 'album.reread': return lib.rereadAlbum(a.id);
-    case 'tags.load': return tagsDto(a.id);
+    case 'album.reread': remoteOnly(a.id); return lib.rereadAlbum(a.id);
+    case 'tags.load': remoteOnly(a.id); return tagsDto(a.id);
     case 'tags.search': return Metadata.search(a.album, a.artist, lib.getAlbum(a.id), L(a, 'sources'));
     case 'tags.release': return Metadata.get(a.source, a.id, a.country);
-    case 'tags.save': return saveTags(a);
+    case 'tags.save': remoteOnly(a.id); return saveTags(a);
     case 'convert.info': return Converter.info('垃圾桶');
     case 'convert.pickFolder': {
       const r = await dialog.showOpenDialog(win, { title: tr('選擇轉換後的檔案要放的資料夾'), properties: ['openDirectory', 'createDirectory'], buttonLabel: tr('選擇'), defaultPath: a.dir && fs.existsSync(a.dir) ? a.dir : undefined });
       return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
     }
-    case 'convert.start': return convertJobRun(a, null);
+    case 'convert.start': for (const id of L(a, 'ids')) remoteOnly(id); return convertJobRun(a, null);
     case 'convert.cancel': if (convertJob) convertJob.abort(); return null;
     case 'convert.open': if (a.path && fs.existsSync(a.path)) await shell.openPath(a.path); return null;
     case 'cd.info': return cd.info();
@@ -1036,6 +1065,7 @@ async function handleRpc(m, a) {
     }
     case 'reveal': {
       const t = lib.getTrack(a.id);
+      if (t && t.remote) { if (t.path && fs.existsSync(t.path)) shell.showItemInFolder(t.path); else throw new Error('這首歌的檔案在 Windows 電腦上。'); return null; }
       // 音樂庫 → 資料夾: open a folder of the library itself (only one holding that track)
       const dir = typeof a.dir === 'string' ? a.dir.replace(/\/+$/, '') : '';
       if (t && dir && t.path.toLowerCase().startsWith(dir.toLowerCase() + path.sep) && fs.existsSync(dir)) { shell.openPath(dir); return null; }
@@ -1064,6 +1094,19 @@ async function handleRpc(m, a) {
       return null;
     case 'devtools': win.webContents.openDevTools({ mode: 'detach' }); return null;
     case 'remote.info': return remoteInfo();
+    case 'remoteLib.info': return remoteDto();
+    case 'remoteLib.pair': return remoteLib.pairStart(a.url);
+    case 'remoteLib.confirm': return remoteLib.pairConfirm(a.code);
+    case 'remoteLib.unpair': remoteLib.unpair(); return remoteDto();
+    case 'remoteLib.active': remoteLib.setActive(a.on === true); return remoteDto();
+    case 'remoteLib.refresh': await remoteLib.refresh(); return remoteDto();
+    case 'remoteLib.set':
+      if (['orig', '320', '192', '128'].includes(a.quality)) S.remoteLib.quality = a.quality;
+      if (typeof a.cacheGB === 'number') { S.remoteLib.cacheGB = clamp(a.cacheGB, 1, 500); remoteLib.trim(); }
+      saveSoon(); return remoteDto();
+    case 'remoteLib.clearCache': remoteLib.clearCache(); return remoteDto();
+    case 'remoteLib.download': return remoteLib.downloadAlbum(a.id);
+    case 'remoteLib.removeOffline': remoteLib.removeAlbum(a.id); return remoteDto();
     case 'remote.revoke': if (remote) remote.revoke(a.id); return remoteInfo();
     case 'quit': setTimeout(() => app.quit(), 10); return null;
     // MIKU's updates and extension modules (updater.js)
@@ -1429,6 +1472,7 @@ app.on('before-quit', e => {
   if (artSearch) artSearch.abort();
   try { player.stopped(); player.saveState(); saveWindow(); saveSettings(); } catch (e) { Log.error('Quit', e); }
   try { remote && remote.stop(); } catch { }
+  try { remoteLib.dispose(); } catch { }
   updater.stop();
   try { liveRelay && liveRelay.kill(); } catch { }
   Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });
@@ -1451,5 +1495,6 @@ app.whenReady().then(async () => {
   createWindow();
   engine.start();
   startRemote().catch(e => Log.error('Remote', e));
+  if (remoteLib.paired) remoteLib.refresh().then(() => { if (remoteLib.cfg.active) remoteLib.startEvents(); }).catch(() => { });
   updater.start();
 });
