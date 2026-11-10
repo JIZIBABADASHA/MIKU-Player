@@ -1208,6 +1208,14 @@ function registerProtocols() {
           const file = await ff.transcode(t, S.dsdPcmRate || 176400);
           return serveFile(file, req, 'audio/flac');
         }
+        // a song of the other computer's library not in the cache yet (遠端音樂庫): passed on from there, ranges and all
+        if (/^https?:\/\//.test(t.path)) {
+          const range = req.headers.get('range');
+          const r = await fetch(t.path, { headers: range ? { Range: range } : {} });
+          const headers = { ...cors, 'Content-Type': AudioTypes['.' + String(t.base && t.base.codec || '').toLowerCase()] || r.headers.get('content-type') || 'application/octet-stream', 'Cache-Control': 'no-store' };
+          for (const k of ['content-length', 'content-range', 'accept-ranges']) if (r.headers.get(k)) headers[k] = r.headers.get(k);
+          return new Response(r.body, { status: r.status, headers });
+        }
         return serveFile(t.path, req, AudioTypes[path.extname(t.path).toLowerCase()] || 'application/octet-stream');
       }
       const { data, type, cache } = await mediaAsync(p, u.searchParams);

@@ -90,8 +90,8 @@ class RemoteLibrary extends EventEmitter {
       if (res.status === 401 && this.cfg.token && !p.startsWith('/api/pair')) this.unauthorized();
       return res;
     } catch (e) {
-      if (ac.signal.aborted && !(opts.signal && opts.signal.aborted)) throw new Error('連不上 遠端電腦（逾時）');
-      throw new Error('連不上 遠端電腦：' + (e.cause && e.cause.code || e.message));
+      if (ac.signal.aborted && !(opts.signal && opts.signal.aborted)) throw new Error('連不上遠端電腦（逾時）');
+      throw new Error('連不上遠端電腦：' + (e.cause && e.cause.code || e.message));
     } finally { clearTimeout(timer); }
   }
 
@@ -255,21 +255,63 @@ class RemoteLibrary extends EventEmitter {
     f.used = Date.now();
   }
 
-  /** Ready to play now (also gapless): its file is in the cache. Starts copying it otherwise. */
+  /**
+   * The address the engine's FFmpeg reads a song from while it is not in the cache: the file as it is (it seeks in
+   * it with HTTP ranges, so playback starts at once and every format plays bit-perfect), or the smaller copy.
+   */
+  streamUrl(t) {
+    const q = this.quality(t);
+    return this.url('/stream/' + encodeURIComponent(t.id) + '?' + (q === 'orig' ? 'raw=1' : `q=${q}&c=${Caps}`) + '&t=' + encodeURIComponent(this.cfg.token));
+  }
+  bindStream(t) {
+    t.path = this.streamUrl(t);
+    if (this.quality(t) === 'orig') Object.assign(t, t.base);
+    else Object.assign(t, { codec: 'MP3', bits: 0, channels: 2 });
+    t.streaming = true;
+  }
+
+  /** Ready to play now (also gapless): in the cache, or streamed while the other computer can be reached. */
   isReady(t) {
     const f = this.cached(t);
-    if (f) { this.bind(t, f); return true; }
-    if (this.paired) this.fetch(t).catch(() => { });
+    if (f) { this.bind(t, f); t.streaming = false; return true; }
+    if (this.paired && this.online) { this.bindStream(t); this.prefetch([t]); return true; }
     return false;
   }
 
-  /** Before a track of the PC plays: copy it here (and start the next ones the player gives). */
+  /**
+   * Before a song of the other computer plays: from the cache when it is there, else streamed straight away (the
+   * engine plays it as it comes). The next songs of the queue are copied into the cache meanwhile, one at a time.
+   */
   async prepare(t, next = []) {
     this.playingId = t.id;
-    const f = this.cached(t) || await this.fetch(t, true);
-    this.bind(t, f);
-    this.saveIndex();
-    for (const n of next) if (n && n.remote && !this.cached(n)) this.fetch(n).catch(() => { });
+    const f = this.cached(t);
+    if (f) { this.bind(t, f); t.streaming = false; this.saveIndex(); }
+    else {
+      if (!this.paired) throw new Error('還沒有和遠端電腦配對');
+      if (!this.online) {
+        try { const r = await this.req('/api/ping', {}, 4000); if (!r.ok) throw new Error(); this.online = true; this.emit('changed'); }
+        catch { throw new Error('連不上遠端電腦，這首歌還沒下載到這台電腦'); }
+      }
+      this.bindStream(t);
+    }
+    this.prefetch(next.filter(n => n && n.remote));
+  }
+
+  /** Copies the given songs into the cache, one after another (the song playing keeps most of the connection). */
+  prefetch(list) {
+    this.pre = (this.pre || []).filter(x => !list.includes(x));
+    this.pre.unshift(...list.filter(n => !this.cached(n)));
+    this.pre.length = Math.min(this.pre.length, 4);
+    if (this.preBusy) return;
+    this.preBusy = true;
+    (async () => {
+      try {
+        while (this.pre.length) {
+          const n = this.pre.shift();
+          if (!this.cached(n)) await this.fetch(n).catch(() => { });
+        }
+      } finally { this.preBusy = false; }
+    })();
   }
 
   /** Copies one track into the cache; several asks for the same track share one copy. q: 'orig' or the kbps. */
@@ -277,7 +319,7 @@ class RemoteLibrary extends EventEmitter {
     const key = t.id + '|' + q;
     const running = this.jobs.get(key);
     if (running) return running.promise;
-    if (!this.paired) return Promise.reject(new Error('還沒有和 遠端電腦配對'));
+    if (!this.paired) return Promise.reject(new Error('還沒有和遠端電腦配對'));
     // a song that just failed (no connection) is not asked for again at once by the gapless look-ahead
     this.failed = this.failed || new Map();
     if (!now && Date.now() - (this.failed.get(key) || 0) < 60000) return Promise.reject(new Error('稍後再試'));
