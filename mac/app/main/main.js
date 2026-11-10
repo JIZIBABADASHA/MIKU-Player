@@ -1111,6 +1111,7 @@ async function startRemote() {
   if (!remote) remote = new RemoteServer(remoteRpc, mediaAsync,
     (name, code) => post('remotePair', { name, code }),
     name => { post('remotePaired', { name }); post('remoteChanged', remoteInfo()); });
+  remote.trackResolver = id => lib.getTrack(id);   // 「在手機上聽」 streams
   remote.stop();
   if (S.remoteEnabled) await remote.start(clamp(S.remotePort || 8765, 1024, 65535));
   post('remoteChanged', remoteInfo());

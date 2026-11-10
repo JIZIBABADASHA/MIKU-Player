@@ -243,4 +243,4 @@ function cueForAlbum(al) {
   return best;
 }
 
-module.exports = { ext, options, info, convert, safeName, parseCue, cueForAlbum };
+module.exports = { ext, options, info, convert, safeName, parseCue, cueForAlbum, getEncoders };
