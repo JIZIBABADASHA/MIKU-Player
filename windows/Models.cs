@@ -265,6 +265,8 @@ public sealed class RemoteLibSettings
     /// <summary>orig | 320 | 192 | 128</summary>
     public string Quality { get; set; } = "orig";
     public double CacheGB { get; set; } = 5;
+    /// <summary>Folder offline albums are kept in; "" for MIKU's own.</summary>
+    public string OfflineDir { get; set; } = "";
     /// <summary>Older settings held a single remote here; moved into Remotes on load.</summary>
     public string Url { get; set; }
     public string Token { get; set; }

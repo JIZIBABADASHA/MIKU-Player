@@ -164,6 +164,12 @@ const RemoteLib = {
       h('div', { style: { display: 'flex', gap: '8px' } },
         select([[0, T('不暫存（完全串流）')], [2, '2 GB'], [5, '5 GB'], [10, '10 GB'], [20, '20 GB'], [50, '50 GB']], i.cacheGB, async v => this.update(await Host.call('remoteLib.set', { cacheGB: +v }))),
         noCache && !i.cacheBytes ? null : h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.clearCache')); toast(T('已清除暫存')); } }, T('清除')))));
+    if (i.offlineDir) box.append(field(T('離線下載位置'), i.moving ? T('正在把已下載的專輯搬到新的資料夾…')
+        : T`下載的專輯放在「${i.offlineDir}」，每張一個資料夾（演出者 - 專輯）。換位置時，已下載的會一起搬過去。`,
+      h('div', { style: { display: 'flex', gap: '8px' } },
+        h('button', { class: 'btn small ghost', onclick: () => Host.call('remoteLib.openOffline') }, T('打開')),
+        i.offlineCustom ? h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.offlineDir', { reset: true })); } }, T('預設')) : null,
+        h('button', { class: 'btn small', disabled: i.moving || null, onclick: async () => { this.update(await Host.call('remoteLib.offlineDir')); } }, T('更改…')))));
     const dl = i.downloading;
     box.append(field(T('離線下載'), dl ? T`正在下載「${dl.title}」（${dl.done + 1} / ${dl.total}）`
         : i.offline.length ? T`${i.offline.length} 張專輯 · ${gb(i.offlineBytes)}，沒有網路也能聽。` : T('在專輯上按右鍵（或 ⋯ 按鈕）選「下載到這台電腦」，出門沒有網路也能聽。下載的是原始檔。'), null));

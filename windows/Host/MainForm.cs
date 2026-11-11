@@ -2058,6 +2058,22 @@ public sealed class MainForm : Form
                 if (a.TryGetProperty("cacheGB", out var rlGb) && rlGb.ValueKind == JsonValueKind.Number) _remoteLib.SetCacheGB(rlGb.GetDouble());
                 return RemoteLibInfo();
             case "remoteLib.clearCache": _remoteLib.ClearCache(); return RemoteLibInfo();
+            case "remoteLib.offlineDir":
+            {
+                // 離線下載 → 位置: a folder chosen here, or MIKU's own again (reset)
+                if (B(a, "reset")) { await _remoteLib.SetOfflineDir(""); return RemoteLibInfo(); }
+                string chosen;
+                using (var dlg = new FolderBrowserDialog { Description = Tr("選擇離線下載要放的資料夾", "选择离线下载要放的文件夹", "Choose a folder for offline downloads", "オフライン保存先フォルダーを選択"), UseDescriptionForTitle = true, ShowNewFolderButton = true })
+                {
+                    if (Directory.Exists(_remoteLib.OfflineRoot)) dlg.InitialDirectory = _remoteLib.OfflineRoot;
+                    chosen = dlg.ShowDialog(this) == DialogResult.OK ? dlg.SelectedPath : null;
+                }
+                if (chosen != null) await _remoteLib.SetOfflineDir(chosen);
+                return RemoteLibInfo();
+            }
+            case "remoteLib.openOffline":
+                try { Directory.CreateDirectory(_remoteLib.OfflineRoot); System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + _remoteLib.OfflineRoot + "\"") { UseShellExecute = true }); } catch { }
+                return null;
             case "remoteLib.download": return new { queued = _remoteLib.DownloadAlbum(S(a, "id")) };
             case "remoteLib.removeOffline": _remoteLib.RemoveAlbum(S(a, "id")); return RemoteLibInfo();
             case "remote.revoke": _remote?.Revoke(S(a, "id")); return RemoteInfo();
