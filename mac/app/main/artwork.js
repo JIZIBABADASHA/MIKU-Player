@@ -122,8 +122,11 @@ function searchArtist(s) {
   const part = first.split(Joiners).map(p => p.trim()).find(p => p) || first;
   return part.replace(/^[【\[(]+|[】\])]+$/g, '').trim();
 }
-/** Version of the album picture rules (core.js ART_RULES). 2: the embedded picture wins over a folder picture. */
-const Rules = 2;
+/**
+ * Version of the album picture rules (core.js ART_RULES). 2: the embedded picture wins over a folder picture.
+ * 3: thumbnail names carry a stamp of their source files, so a cover changed behind the app's back is made again.
+ */
+const Rules = 3;
 const artistId = name => hash('artist|' + norm(name));
 
 /** Pixel size from the first bytes of a JPEG / PNG / WebP, or null. */
@@ -183,13 +186,39 @@ class ArtworkService extends EventEmitter {
   overridePath(id) { return path.join(AppPaths.Override, 'a_' + id + '.jpg'); }
   online(name) { return path.join(AppPaths.OnlineArt, name + '.jpg'); }
 
-  albumAsync(albumId, size) { return this.cached('a_' + albumId, size, () => this.albumSource(albumId)); }
+  albumAsync(albumId, size) { return this.cached('a_' + albumId, size, () => this.albumSource(albumId), () => this.albumFiles(albumId)); }
   trackAsync(trackId, size) {
     const t = this.lib.getTrack(trackId);
     if (!t) return Promise.resolve(null);
     const a = this.lib.getAlbum(t.albumId);
     if (a && (!a.loose || exists(this.overridePath(a.id)))) return this.albumAsync(a.id, size);
-    return this.cached('t_' + trackId, size, () => this.trackSource(t));
+    return this.cached('t_' + trackId, size, () => this.trackSource(t), () => this.trackFiles(t));
+  }
+
+  /**
+   * Every file albumSource / trackSource may take the picture from. A thumbnail is only reused while none of them
+   * changed: a cover.jpg added to the folder, a file replaced by another version with the same name, or a picture
+   * fetched online earlier would otherwise keep showing the old cover at the sizes made before (the album grid),
+   * while a size made later (the album page) shows the new one.
+   */
+  albumFiles(albumId) {
+    const a = this.lib.getAlbum(albumId);
+    if (!a) return [];
+    const files = [this.overridePath(albumId), ...a.tracks.filter(t => t.hasPic).slice(0, 3).map(t => t.path), a.artPath, this.online('a_' + albumId)];
+    if (a.loose && a.tracks.length) files.push(this.online('t_' + a.tracks[0].id));
+    return files;
+  }
+  trackFiles(t) {
+    const a = this.lib.getAlbum(t.albumId);
+    return [this.overridePath(t.albumId), t.hasPic ? t.path : null, a && a.artPath, this.online('t_' + t.id)];
+  }
+  /** Short stamp of the files' paths, sizes and times; it changes as soon as any of them does. */
+  async stamp(files) {
+    const parts = await Promise.all(files.map(async f => {
+      if (!f) return '-';
+      try { const st = await fs.promises.stat(f); return `${f}|${st.size}|${Math.round(st.mtimeMs)}`; } catch { return f + '|'; }
+    }));
+    return hash(parts.join('\n')).slice(0, 10);
   }
 
   async albumSource(albumId) {
@@ -218,10 +247,11 @@ class ArtworkService extends EventEmitter {
     return null;
   }
 
-  async cached(key, size, source) {
+  async cached(key, size, source, files) {
     size = Math.min(2400, Math.max(32, size <= 0 ? 600 : size));
     size = Sizes.find(s => s >= size);
-    const thumb = path.join(AppPaths.Thumbs, `${key}_${size}.jpg`);
+    const tag = files ? await this.stamp(files()) : '';
+    const thumb = path.join(AppPaths.Thumbs, tag ? `${key}_${tag}_${size}.jpg` : `${key}_${size}.jpg`);
     try { return await fs.promises.readFile(thumb); } catch { }
     if (!this.inflight.has(thumb)) {
       const p = (async () => {

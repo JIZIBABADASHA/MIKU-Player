@@ -111,14 +111,18 @@ function toast(msg, opts = {}) {
 /* ═════════════════════════════ artwork ═════════════════════════════ */
 const ArtVer = {};
 /** ArtworkService.Rules: a picture cached by WebView2 under older rules isn't used. */
-const ART_RULES = 2;
-/** Changes counted in ArtVer start again at every start, while WebView2 keeps pictures cached for a day: make each start's URLs its own. */
+const ART_RULES = 3;
+/**
+ * Changes counted in ArtVer start again at every start, while the web view keeps pictures cached for a day: make each
+ * start's URLs its own, also before anything changed. Otherwise a cover changed in an earlier session (or while the app
+ * was closed) keeps showing the old picture wherever that size was cached, e.g. the album grid, until the day is over.
+ */
 const ART_BOOT = Date.now().toString(36);
 function artUrl(kind, id, size) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const s = Math.round(size * dpr);
   const v = ArtVer[kind + id] || 0;
-  return `${MEDIA}/art/${kind}/${encodeURIComponent(id)}?s=${s}&r=${ART_RULES}${v ? `&v=${ART_BOOT}.${v}` : ''}`;
+  return `${MEDIA}/art/${kind}/${encodeURIComponent(id)}?s=${s}&r=${ART_RULES}&v=${ART_BOOT}.${v}`;
 }
 /** Fills `box` with a placeholder and lazily fades the real image in on top. */
 function fillArt(box, kind, id, size, label, opts = {}) {
