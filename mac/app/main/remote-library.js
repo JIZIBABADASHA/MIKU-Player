@@ -24,13 +24,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // Several computers can be paired; their songs are shown together under 遠端. Ids are "<key>~<id there>" (two
 // computers can have the same file path, so the same id); key: a short hash of the computer's address.
 const keyOf = url => hash(url).slice(0, 6);
+// a file or folder name made from a title (offline albums are kept as Artist - Album / 01 Title.ext)
+const safeName = s => String(s || '').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_').replace(/\s+/g, ' ').trim().slice(0, 100).replace(/[. ]+$/, '') || '_';
 const split = id => { const i = id ? id.indexOf('~') : -1; return i > 0 ? [id.slice(0, i), id.slice(i + 1)] : [null, id]; };
 
 class RemoteLibrary extends EventEmitter {
   constructor(s) {
     super();
     this.s = s;
-    const d = { remotes: [], active: false, only: '', quality: 'orig', cacheGB: 5 };
+    const d = { remotes: [], active: false, only: '', quality: 'orig', cacheGB: 5, offlineDir: '' };
     const c = s.remoteLib = Object.assign(d, s.remoteLib && typeof s.remoteLib === 'object' ? s.remoteLib : {});
     // one computer, as the first version kept it
     if (c.url && c.token && !c.remotes.length) c.remotes.push({ url: c.url, token: c.token, name: c.name || '' });
@@ -455,10 +457,56 @@ class RemoteLibrary extends EventEmitter {
   pin(id) {
     const f = this.files[id];
     if (!f || f.pin) return;
-    const dest = path.join(OfflineDir, path.basename(f.file));
-    try { fs.renameSync(f.file, dest); f.file = dest; f.pin = true; }
-    catch { try { fs.copyFileSync(f.file, dest); fs.unlinkSync(f.file); f.file = dest; f.pin = true; } catch (e) { Log.error('Remote pin', e); } }
+    const dest = this.offlinePath(id, f.file);
+    if (this.moveFile(f.file, dest)) { f.file = dest; f.pin = true; }
     this.saveIndex();
+  }
+
+  /** The folder offline albums go to: the one chosen in 設定, else MIKU's own. */
+  get offlineRoot() { const d = this.cfg.offlineDir; return d && path.isAbsolute(d) ? d : OfflineDir; }
+
+  /** Where a song kept offline goes: <folder>/<Artist - Album>/<01 Title>.ext, a name that is not taken yet. */
+  offlinePath(id, from) {
+    const t = this.getTrack(id), ext = path.extname(from);
+    if (!t) return path.join(this.offlineRoot, path.basename(from));
+    const dir = path.join(this.offlineRoot, safeName(`${t.albumArtist || t.artist} - ${t.album || t.title}`));
+    const base = safeName(`${t.discNo > 1 ? t.discNo + '-' : ''}${t.trackNo ? String(t.trackNo).padStart(2, '0') + ' ' : ''}${t.title}`);
+    let p = path.join(dir, base + ext);
+    for (let i = 2; fs.existsSync(p) && path.resolve(p) !== path.resolve(from); i++) p = path.join(dir, `${base} (${i})${ext}`);
+    return p;
+  }
+
+  /** Moves a file (also to another disk); true when it is there. */
+  moveFile(from, dest) {
+    if (path.resolve(from) === path.resolve(dest)) return true;
+    try { fs.mkdirSync(path.dirname(dest), { recursive: true }); } catch { }
+    try { fs.renameSync(from, dest); return true; }
+    catch { try { fs.copyFileSync(from, dest); fs.unlinkSync(from); return true; } catch (e) { Log.error('Remote move', e); return false; } }
+  }
+
+  /** Removes a folder an offline album was in once it is empty (never the offline folder itself). */
+  dropEmpty(dir) {
+    const roots = [OfflineDir, this.offlineRoot].map(d => path.resolve(d));
+    if (roots.includes(path.resolve(dir))) return;
+    try { if (!fs.readdirSync(dir).filter(n => n !== '.DS_Store').length) fs.rmSync(dir, { recursive: true }); } catch { }
+  }
+
+  /** 離線下載 → 位置: the albums kept so far move along to the new folder ('' = MIKU's own). */
+  async setOfflineDir(dir) {
+    dir = dir && path.isAbsolute(dir) ? dir : '';
+    if ((this.cfg.offlineDir || '') === dir) return;
+    this.cfg.offlineDir = dir;
+    this.emit('save');
+    try { fs.mkdirSync(this.offlineRoot, { recursive: true }); } catch { }
+    this.moving = true; this.emit('changed');
+    try {
+      for (const [id, f] of Object.entries(this.files)) {
+        if (!f.pin || id === this.playingId) continue;
+        const dest = this.offlinePath(id, f.file), old = f.file;
+        await new Promise(r => setImmediate(r));
+        if (path.resolve(dest) !== path.resolve(old) && this.moveFile(old, dest)) { f.file = dest; this.dropEmpty(path.dirname(old)); }
+      }
+    } finally { this.moving = false; this.saveIndex(); this.emit('changed'); }
   }
 
   /** How far the track that is about to play has come (shown while it loads). */
@@ -548,6 +596,7 @@ class RemoteLibrary extends EventEmitter {
       if (!f || !f.pin) continue;
       if (tid === this.playingId) { f.pin = false; continue; }
       try { fs.unlinkSync(f.file); } catch { }
+      this.dropEmpty(path.dirname(f.file));
       delete this.files[tid];
     }
     this.saveIndex(); this.emit('changed');
@@ -582,7 +631,7 @@ class RemoteLibrary extends EventEmitter {
         return { key: keyOf(r.url), url: r.url, name: this.label(r), online: st.online, error: st.error, albums: d ? (d.albums || []).length : 0, tracks: d ? (d.tracks || []).length : 0 };
       }),
       albums: this.albums.size, tracks: this.tracks.size, quality: this.cfg.quality || 'orig', cacheGB: this.cfg.cacheGB ?? 5,
-      cacheBytes: cache, offlineBytes: offline, offline: [...offAlbums.values()].sort((a, b) => a.title.localeCompare(b.title)),
+      cacheBytes: cache, offlineBytes: offline, offlineDir: this.offlineRoot, offlineCustom: !!this.cfg.offlineDir, moving: !!this.moving, offline: [...offAlbums.values()].sort((a, b) => a.title.localeCompare(b.title)),
       offlineIds: [...ids], downloading: this.offlineQueue.length ? { done: this.offlineDone, total: this.offlineTotal, title: this.offlineQueue[0].title } : null,
     };
   }

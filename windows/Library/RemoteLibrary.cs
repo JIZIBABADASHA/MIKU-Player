@@ -741,14 +741,88 @@ public sealed class RemoteLibrary : IDisposable
 
     void Pin(string id)
     {
-        lock (_lock)
-        {
-            if (!_files.TryGetValue(id, out var f) || f.Pin) return;
-            string dest = Path.Combine(OfflineDir, Path.GetFileName(f.File));
-            try { File.Move(f.File, dest, true); f.File = dest; f.Pin = true; }
-            catch (Exception ex) { Log.Error("Remote pin", ex); }
-        }
+        FileEntry f;
+        lock (_lock) if (!_files.TryGetValue(id, out f) || f.Pin) return;
+        string dest = OfflinePath(id, f.File);
+        if (MoveFile(f.File, dest)) lock (_lock) { f.File = dest; f.Pin = true; }
         SaveIndex();
+    }
+
+    /// <summary>The folder offline albums go to: the one chosen in 設定, else MIKU's own.</summary>
+    public string OfflineRoot => !string.IsNullOrEmpty(Cfg.OfflineDir) && Path.IsPathFullyQualified(Cfg.OfflineDir) ? Cfg.OfflineDir : OfflineDir;
+    public bool Moving { get; private set; }
+
+    /// <summary>A file or folder name made from a title.</summary>
+    static string SafeName(string s)
+    {
+        var bad = Path.GetInvalidFileNameChars();
+        var b = new StringBuilder();
+        foreach (char c in s ?? "") b.Append(bad.Contains(c) || c < ' ' ? '_' : c);
+        string r = System.Text.RegularExpressions.Regex.Replace(b.ToString(), @"\s+", " ").Trim();
+        if (r.Length > 100) r = r[..100];
+        r = r.TrimEnd('.', ' ');
+        return r.Length == 0 ? "_" : r;
+    }
+
+    /// <summary>Where a song kept offline goes: folder\Artist - Album\01 Title.ext, under a name not taken yet.</summary>
+    string OfflinePath(string id, string from)
+    {
+        var t = GetTrack(id);
+        string ext = Path.GetExtension(from);
+        if (t == null) return Path.Combine(OfflineRoot, Path.GetFileName(from));
+        string artist = string.IsNullOrEmpty(t.AlbumArtist) ? t.Artist : t.AlbumArtist;
+        string dir = Path.Combine(OfflineRoot, SafeName($"{artist} - {(string.IsNullOrEmpty(t.Album) ? t.Title : t.Album)}"));
+        string name = SafeName((t.DiscNo > 1 ? t.DiscNo + "-" : "") + (t.TrackNo > 0 ? t.TrackNo.ToString("00") + " " : "") + t.Title);
+        string p = Path.Combine(dir, name + ext);
+        for (int i = 2; File.Exists(p) && !string.Equals(Path.GetFullPath(p), Path.GetFullPath(from), StringComparison.OrdinalIgnoreCase); i++)
+            p = Path.Combine(dir, $"{name} ({i}){ext}");
+        return p;
+    }
+
+    /// <summary>Moves a file (also to another drive); true when it is there.</summary>
+    static bool MoveFile(string from, string dest)
+    {
+        if (string.Equals(Path.GetFullPath(from), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase)) return true;
+        try { Directory.CreateDirectory(Path.GetDirectoryName(dest)); File.Move(from, dest, true); return true; }
+        catch (Exception ex) { Log.Error("Remote move", ex); return false; }
+    }
+
+    /// <summary>Removes the folder an offline album was in once it is empty (never the offline folder itself).</summary>
+    void DropEmpty(string dir)
+    {
+        try
+        {
+            string d = Path.GetFullPath(dir).TrimEnd('\\');
+            if (d.Equals(Path.GetFullPath(OfflineDir).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) || d.Equals(Path.GetFullPath(OfflineRoot).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) return;
+            if (Directory.Exists(d) && !Directory.EnumerateFileSystemEntries(d).Any(x => !Path.GetFileName(x).Equals("desktop.ini", StringComparison.OrdinalIgnoreCase))) Directory.Delete(d, true);
+        }
+        catch { }
+    }
+
+    /// <summary>離線下載 → 位置: the albums kept so far move along to the new folder ("" = MIKU's own).</summary>
+    public async Task SetOfflineDir(string dir)
+    {
+        dir = !string.IsNullOrEmpty(dir) && Path.IsPathFullyQualified(dir) ? dir : "";
+        if ((Cfg.OfflineDir ?? "") == dir) return;
+        Cfg.OfflineDir = dir;
+        Save?.Invoke();
+        try { Directory.CreateDirectory(OfflineRoot); } catch { }
+        Moving = true; Changed?.Invoke();
+        try
+        {
+            await Task.Run(() =>
+            {
+                List<KeyValuePair<string, FileEntry>> list;
+                lock (_lock) list = _files.Where(x => x.Value.Pin && x.Key != PlayingId).ToList();
+                foreach (var (id, f) in list)
+                {
+                    string old = f.File, dest = OfflinePath(id, old);
+                    if (string.Equals(Path.GetFullPath(dest), Path.GetFullPath(old), StringComparison.OrdinalIgnoreCase)) continue;
+                    if (MoveFile(old, dest)) { lock (_lock) f.File = dest; DropEmpty(Path.GetDirectoryName(old)); }
+                }
+            });
+        }
+        finally { Moving = false; SaveIndex(); Changed?.Invoke(); }
     }
 
     /// <summary>Keeps a whole album on this computer (originals), one song at a time in the background.</summary>
@@ -815,6 +889,7 @@ public sealed class RemoteLibrary : IDisposable
                 if (!_files.TryGetValue(tid, out var f) || !f.Pin) continue;
                 if (tid == PlayingId) { f.Pin = false; continue; }
                 try { File.Delete(f.File); } catch { }
+                DropEmpty(Path.GetDirectoryName(f.File));
                 _files.Remove(tid);
             }
         }
@@ -850,7 +925,7 @@ public sealed class RemoteLibrary : IDisposable
                 only = Cfg.Only ?? "",
                 remotes = Cfg.Remotes.Select(r => { var st = St(r); return new { key = KeyOf(r.Url), url = r.Url, name = Label(r), online = st.Online, error = st.Error, albums = st.Albums, tracks = st.Tracks }; }).ToList(),
                 albums = _albums.Count, tracks = _tracks.Count, quality = string.IsNullOrEmpty(Cfg.Quality) ? "orig" : Cfg.Quality, cacheGB = Cfg.CacheGB,
-                cacheBytes = cache, offlineBytes = offline,
+                cacheBytes = cache, offlineBytes = offline, offlineDir = OfflineRoot, offlineCustom = !string.IsNullOrEmpty(Cfg.OfflineDir), moving = Moving,
                 offline = offAlbums.Select(x => new { id = x.Key, title = x.Value.title, artist = x.Value.artist, have = x.Value.have, bytes = x.Value.bytes,
                     count = _albums.TryGetValue(x.Key, out var al) ? al.Tracks.Count : x.Value.have }).OrderBy(x => x.title, StringComparer.CurrentCulture).ToList(),
                 offlineIds = _files.Where(x => x.Value.Pin).Select(x => x.Key).ToList(),

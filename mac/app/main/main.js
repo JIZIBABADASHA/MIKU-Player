@@ -1108,6 +1108,15 @@ async function handleRpc(m, a) {
       if (typeof a.cacheGB === 'number') { S.remoteLib.cacheGB = a.cacheGB <= 0 ? 0 : clamp(a.cacheGB, 1, 500); remoteLib.trim(); }
       saveSoon(); return remoteDto();
     case 'remoteLib.clearCache': remoteLib.clearCache(); return remoteDto();
+    case 'remoteLib.offlineDir': {
+      // 離線下載 → 位置: a folder chosen here, or MIKU's own again (reset)
+      if (a.reset) { await remoteLib.setOfflineDir(''); return remoteDto(); }
+      const cur = remoteLib.offlineRoot;
+      const r = await dialog.showOpenDialog(win, { title: tr('選擇離線下載要放的資料夾'), properties: ['openDirectory', 'createDirectory'], buttonLabel: tr('選擇'), defaultPath: fs.existsSync(cur) ? cur : undefined });
+      if (!r.canceled && r.filePaths.length) await remoteLib.setOfflineDir(r.filePaths[0]);
+      return remoteDto();
+    }
+    case 'remoteLib.openOffline': { const d = remoteLib.offlineRoot; try { fs.mkdirSync(d, { recursive: true }); } catch { } await shell.openPath(d); return null; }
     case 'remoteLib.download': return remoteLib.downloadAlbum(a.id);
     case 'remoteLib.removeOffline': remoteLib.removeAlbum(a.id); return remoteDto();
     case 'remote.revoke': if (remote) remote.revoke(a.id); return remoteInfo();
@@ -1427,6 +1436,11 @@ const NATIVE_TEXT = {
     "添加",
     "Add",
     "追加"
+  ],
+  "選擇離線下載要放的資料夾": [
+    "选择离线下载要放的文件夹",
+    "Choose a folder for offline downloads",
+    "オフライン保存先フォルダーを選択"
   ],
   "選擇轉換後的檔案要放的資料夾": [
     "选择转换后的文件要放的文件夹",
