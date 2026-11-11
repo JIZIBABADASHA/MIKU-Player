@@ -90,7 +90,7 @@ const Folders = {
       { label: T('加入播放佇列'), icon: 'queue', run: () => { const l = list(); Host.call('queue.add', { ids: l.map(t => t.id) }); toast(T`已加入 ${l.length} 首`); } },
       '-',
       // opens the folder itself ("reveal" with dir)
-      first && { label: window.mikuHost ? T('在 Finder 中顯示') : T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: first.id, dir: n.path }) },
+      first && !isRemoteId(first.id) && { label: window.mikuHost ? T('在 Finder 中顯示') : T('在檔案總管中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: first.id, dir: n.path }) },
     ], anchor);
   },
   openBrowse(n) {

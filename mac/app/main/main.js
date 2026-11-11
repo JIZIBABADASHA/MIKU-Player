@@ -102,6 +102,10 @@ remoteLib.on('library', () => { player.validate(); post('library', { revision: '
   const send = () => { timer = null; post('remoteLib', remoteDto()); };
   remoteLib.on('changed', () => { if (!timer) timer = setTimeout(send, 150); });
   remoteLib.on('progress', () => { if (!timer) timer = setTimeout(send, 150); });
+  remoteLib.on('art', id => {
+    post('art', { kind: 'album', id });
+    for (const t of (remoteLib.getAlbum(id) || {}).tracks || []) post('art', { kind: 'track', id: t.id });
+  });
   // while a song is being copied over, its progress (the page shows it in the player bar)
   setInterval(() => { if (remoteLib.jobs.size) post('remoteLib', remoteDto()); }, 700);
 }
@@ -848,6 +852,9 @@ const N = (a, n, d = 0) => typeof a[n] === 'number' ? a[n] : d;
 
 async function handleRpc(m, a) {
   if (m.startsWith('ext.')) return m === 'ext.list' ? exts.list() : exts.rpc(m, a);
+  // a remote album's cover: shown and changed on the computer it is on
+  if (['art.info', 'art.setUrl', 'art.setData', 'art.clear', 'art.confirm', 'art.reject', 'art.retry'].includes(m) && a && a.id && remoteLib.getAlbum(a.id) && !lib.albums.has(a.id))
+    return remoteLib.albumRpc(m, a.id, a);
   switch (m) {
     // A short sound from the page (the logo's secret) while the DAC is held in exclusive mode: nothing else in the
     // system can sound on it then, so the engine mixes it into its own output. 48 kHz mono 16-bit, base64.
@@ -1142,7 +1149,9 @@ async function handleRpc(m, a) {
 
 // ───────────── phone remote ─────────────
 const RemoteAllowed = new Set(['state', 'queue', 'play', 'toggle', 'next', 'prev', 'seek', 'volume', 'shuffle', 'repeat',
-  'queue.add', 'queue.remove', 'queue.move', 'queue.jump', 'queue.clear', 'track', 'lyrics', 'lyricsLive']);
+  'queue.add', 'queue.remove', 'queue.move', 'queue.jump', 'queue.clear', 'track', 'lyrics', 'lyricsLive',
+  // another MIKU showing this Mac's library (遠端音樂庫): an album's cover is changed here
+  'art.info', 'art.setUrl', 'art.setData', 'art.clear', 'art.confirm', 'art.reject', 'art.retry']);
 function remoteInfo() {
   return {
     enabled: S.remoteEnabled, port: S.remotePort, running: !!(remote && remote.running), error: remote ? remote.lastError : null,

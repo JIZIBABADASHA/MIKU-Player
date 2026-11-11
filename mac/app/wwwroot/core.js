@@ -181,6 +181,9 @@ function liveArt(box, url, size, label) {
   box.append(img);
 }
 /** A track's picture as [kind, id]: a loose track (no album tag) has its own, any other its album's. */
+/** A song or album of another computer's library (遠端音樂庫): its id is "<computer>~<id there>". Only what works
+ * there is offered for it (play, queue, favourites, its cover); editing tags, converting, showing the file are not. */
+const isRemoteId = id => typeof id === 'string' && id.includes('~');
 const trackArt = t => t.album?.loose ? ['t', t.id] : ['a', t.albumId];
 /** An album's picture as [kind, id]: a folder of loose tracks shows its first track's. */
 const albumArt = al => al.loose && al.tracks[0] ? ['t', al.tracks[0].id] : ['a', al.id];
@@ -490,8 +493,10 @@ const MikuExt = {
   /** The modules' items for a context menu (addMenu): kind 'track' (t, list) or 'album' (al); after a separator. */
   menuItems(kind, ...args) {
     const items = [];
+    // a remote song or album: only items made for it (remoteOk); a module's own ones read files on this computer
+    const remote = isRemoteId(args[0]?.id);
     for (const fn of this.menus[kind] || []) {
-      try { for (const it of fn(...args) || []) if (it && it.label && it.run) items.push(it); }
+      try { for (const it of fn(...args) || []) if (it && it.label && it.run && (!remote || it.remoteOk)) items.push(it); }
       catch (e) { console.error('[ext] menu', e); }
     }
     return items.length ? ['-', ...items] : [];
@@ -1188,9 +1193,9 @@ function trackMenu(t, anchor, list) {
     { label: App.favs.has(t.id) ? T('從最愛移除') : T('加入我的最愛'), icon: 'heart', run: () => App.toggleFav(t.id) },
     { label: T('前往專輯'), icon: 'album', run: () => go('#/album/' + t.albumId) },
     ...artistItems(t.artists?.length ? t.artists : [t.artist]),
-    '-',
-    { label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
-    { label: T('在 Finder 中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: t.id }) },
+    ...(isRemoteId(t.id) ? [] : ['-',
+      { label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: null, tracks: [t] }) },
+      { label: T('在 Finder 中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: t.id }) }]),
   ], anchor);
 }
 
@@ -1216,7 +1221,8 @@ async function albumMenu(al, anchor, onPage) {
   // 「按 CUE 標記切開…」 only when the album's folder has a CUE sheet for its big file. The menu does not wait for that
   // (a busy disk can take a while, and a menu that comes late comes as the click does): an answer within 80 ms is in
   // it, a later one adds the item to it then
-  const cuePromise = Convert.cueFor(al);
+  const remote = isRemoteId(al.id);
+  const cuePromise = remote ? Promise.resolve(null) : Convert.cueFor(al);
   const cue = await Promise.race([cuePromise, new Promise(r => setTimeout(() => r(undefined), 80))]);
   const cueItem = c => ({ label: T`按 CUE 標記切開（${c.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue: c }) });
   const box = menu([
@@ -1229,12 +1235,14 @@ async function albumMenu(al, anchor, onPage) {
     ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
     // one entry: the cover view shows the picture and leads on to 更換封面 / 寫入音樂檔案
     { label: T('封面…'), icon: 'image', run: () => CoverView.open(al) },
-    { label: T('編輯標籤…'), icon: 'list', run: () => TagEditor.open(al) },
-    { key: 'convert', label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
-    cue && cueItem(cue),
-    { label: T('在 Finder 中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
-    '-',
-    { label: T('重新讀取專輯資訊'), icon: 'refresh', run: () => rereadAlbum(al) },
+    // a remote album: its cover can be changed (on the computer it is on); the rest works on files here
+    ...(remote ? [] : [
+      { label: T('編輯標籤…'), icon: 'list', run: () => TagEditor.open(al) },
+      { key: 'convert', label: T('轉換格式…'), icon: 'refresh', run: () => Convert.open({ album: al, tracks: al.tracks }) },
+      cue && cueItem(cue),
+      { label: T('在 Finder 中顯示'), icon: 'folder', run: () => Host.call('reveal', { id: al.tracks[0]?.id }) },
+      '-',
+      { label: T('重新讀取專輯資訊'), icon: 'refresh', run: () => rereadAlbum(al) }]),
   ], anchor);
   if (cue === undefined) cuePromise.then(c => { if (c && box.isConnected) box.querySelector('[data-key="convert"]')?.after(menuButton(cueItem(c))); });
 }
@@ -1983,17 +1991,31 @@ const Queue = {
       try { fn(el, App.queue.source || null); } catch (e) { console.error('[ext] queue', id, e); }
       if (el.childNodes.length) body.append(el);
     }
+    // a song the page's library doesn't hold (the queue still has songs of 本地 while 遠端 is shown, or the other way
+    // round): its title and artist are asked for
+    const meta = this._meta || (this._meta = new Map());
+    const stub = id => {
+      let m = meta.get(id);
+      if (m) return m;
+      meta.set(id, m = { id, title: '…', artist: '', stub: true });
+      Host.call('track', { id }).then(r => {
+        m.title = r ? (r.title || r.Title || '') : T('（找不到這首歌）');
+        m.artist = r ? (r.artist || r.Artist || '') : '';
+      }).catch(() => { m.title = T('（找不到這首歌）'); }).then(() => {
+        for (const el of document.querySelectorAll(`.qrow[data-id="${CSS.escape(id)}"]`)) { el.querySelector('.t').textContent = m.title; el.querySelector('.a').textContent = m.artist; }
+      });
+      return m;
+    };
     const row = (id, i) => {
-      const t = Lib.trackById.get(id);
-      if (!t) return null;
-      const r = h('div', { class: 'qrow' + (i === index ? ' cur' : '') + (i < index ? ' past' : ''), draggable: 'true', 'data-i': i },
-        artBox('thumb', ...trackArt(t), 48, t.album?.title),
+      const t = Lib.trackById.get(id) || stub(id);
+      const r = h('div', { class: 'qrow' + (i === index ? ' cur' : '') + (i < index ? ' past' : ''), draggable: 'true', 'data-i': i, 'data-id': id },
+        artBox('thumb', ...(t.stub ? ['t', id] : trackArt(t)), 48, t.album?.title),
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't' }, t.title), h('div', { class: 'a' }, t.artist)),
         (i > index && MikuExt.queueRow(App.queue, id, i)) ||
           h('button', { class: 'icon-btn x', title: T('移除'), html: icon('x'), onclick: e => { e.stopPropagation(); Host.call('queue.remove', { i }); } }));
       // one click plays the row (a button in it, × or a module's, does its own thing); the track playing: on if paused
       r.onclick = e => { if (e.target.closest('button')) return; if (i !== index) Host.call('queue.jump', { i }); else if (!App.state.playing) Host.call('toggle'); };
-      r.oncontextmenu = e => { e.preventDefault(); trackMenu(t, { x: e.clientX, y: e.clientY }); };
+      r.oncontextmenu = e => { e.preventDefault(); if (!t.stub) trackMenu(t, { x: e.clientX, y: e.clientY }); };
       r.ondragstart = e => { e.dataTransfer.setData('text/plain', i); r.classList.add('dragging'); };
       r.ondragend = () => r.classList.remove('dragging');
       r.ondragover = e => { e.preventDefault(); r.classList.add('drop-above'); };

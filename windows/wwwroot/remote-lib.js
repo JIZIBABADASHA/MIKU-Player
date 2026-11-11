@@ -14,8 +14,8 @@ const RemoteLib = {
       if (!i || !i.paired || !this.isRemote(al)) return [];
       const ids = new Set(i.offlineIds), have = al.tracks.filter(t => ids.has(t.id)).length;
       const items = [];
-      if (have < al.tracks.length) items.push({ label: have ? T`下載其餘 ${al.tracks.length - have} 首到這台電腦` : T('下載到這台電腦（離線聽）'), icon: 'down', run: () => this.download(al) });
-      if (have) items.push({ label: T('移除離線下載'), icon: 'trash', run: () => this.remove(al) });
+      if (have < al.tracks.length) items.push({ remoteOk: true, label: have ? T`下載其餘 ${al.tracks.length - have} 首到這台電腦` : T('下載到這台電腦（離線聽）'), icon: 'down', run: () => this.download(al) });
+      if (have) items.push({ remoteOk: true, label: T('移除離線下載'), icon: 'trash', run: () => this.remove(al) });
       return items;
     });
   },

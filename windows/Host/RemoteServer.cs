@@ -441,7 +441,7 @@ public sealed partial class RemoteServer : IDisposable
         async Task<bool> Fill(CancellationToken ct)
         {
             if (_start > 0) { Buffer.BlockCopy(_buf, _start, _buf, 0, _end - _start); _end -= _start; _start = 0; }
-            if (_end == _buf.Length) { if (_buf.Length >= 2 << 20) throw new IOException("request too large"); Array.Resize(ref _buf, _buf.Length * 2); }
+            if (_end == _buf.Length) { if (_buf.Length >= 32 << 20) throw new IOException("request too large"); Array.Resize(ref _buf, _buf.Length * 2); }
             int n = await _s.ReadAsync(_buf.AsMemory(_end), ct);
             if (n <= 0) return false;
             _end += n;
@@ -481,7 +481,7 @@ public sealed partial class RemoteServer : IDisposable
             }
             if (int.TryParse(req.Header("Content-Length"), out int len) && len > 0)
             {
-                if (len > 1 << 20) throw new IOException("body too large");
+                if (len > 16 << 20) throw new IOException("body too large");   // a cover picture sent by another MIKU fits
                 while (_end - _start < len) if (!await Fill(ct)) return null;
                 req.Body = _buf.AsSpan(_start, len).ToArray();
                 _start += len;

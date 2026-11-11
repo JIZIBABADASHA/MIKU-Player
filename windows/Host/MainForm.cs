@@ -456,6 +456,11 @@ public sealed class MainForm : Form
         _remoteLib.LibraryChanged += () => { _player?.Validate(); Post("library", new { revision = -Environment.TickCount }); };
         _remoteLib.Changed += () => PostRemoteLib();
         _remoteLib.OfflineDone += () => PostRemoteLib();
+        _remoteLib.ArtChanged += id =>
+        {
+            Post("art", new { kind = "album", id });
+            foreach (var t in _remoteLib.GetAlbum(id)?.Tracks ?? new List<Track>()) Post("art", new { kind = "track", id = t.Id });
+        };
         _art = new ArtworkService(_lib, _s);
         ArtworkService.DropOldThumbs();
         _lyrics = new LyricsService(_s);
@@ -1018,6 +1023,8 @@ public sealed class MainForm : Form
     {
         "state", "queue", "play", "toggle", "next", "prev", "seek", "volume", "shuffle", "repeat",
         "queue.add", "queue.remove", "queue.move", "queue.jump", "queue.clear", "track", "lyrics", "lyricsLive",
+        // another MIKU showing this one's library (遠端音樂庫): an album's cover is changed here
+        "art.info", "art.setUrl", "art.setData", "art.clear", "art.confirm", "art.reject", "art.retry",
     };
 
     void StartRemote()
@@ -1648,6 +1655,9 @@ public sealed class MainForm : Form
     async Task<object> HandleRpc(string m, JsonElement a)
     {
         if (m.StartsWith("ext.", StringComparison.Ordinal)) return m == "ext.list" ? _ext.List() : await _ext.Rpc(m, a);
+        // a remote album's cover: shown and changed on the computer it is on
+        if ((m is "art.info" or "art.setUrl" or "art.setData" or "art.clear" or "art.confirm" or "art.reject" or "art.retry") && RemoteAlbum(S(a, "id")))
+            return await _remoteLib.AlbumRpc(m, S(a, "id"), a);
         switch (m)
         {
             case "ready":

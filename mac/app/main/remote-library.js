@@ -288,6 +288,26 @@ class RemoteLibrary extends EventEmitter {
 
   // ───────────── covers ─────────────
   /** A cover (/art/a/<key~id>, /art/t/<key~id>, /art/r/<name>), cached on disk; null when none or out of reach. */
+  /**
+   * The cover of a remote album is changed on the computer it is on (封面… → 更換封面 / 還原), so that one, this one
+   * and the phones all show the same picture: the call goes to that MIKU (its /api/rpc) with its own id.
+   */
+  async albumRpc(m, id, a) {
+    const r = this.remoteOf(id);
+    if (!r) throw new Error('這張專輯所在的電腦已經取消配對');
+    const res = await this.req(r, '/api/rpc', { method: 'POST', body: { m, a: Object.assign({}, a, { id: split(id)[1] }) } }, m === 'art.setUrl' ? 60000 : 20000);
+    if (res.status === 401) throw new Error(`「${this.label(r)}」已取消這台電腦的配對，請重新配對。`);
+    if (!res.ok) throw new Error(`「${this.label(r)}」回應錯誤（${res.status}）`);
+    const j = await res.json();
+    if (typeof j.e === 'string') throw new Error(/^遙控不支援/.test(j.e) ? `「${this.label(r)}」的 MIKU 版本太舊，請先更新那台的 MIKU` : j.e);
+    if (['art.setUrl', 'art.setData', 'art.clear', 'art.reject', 'art.retry'].includes(m)) {
+      this.artVer = this.artVer || new Map();
+      this.artVer.set(keyOf(r.url), (this.artVer.get(keyOf(r.url)) || 0) + 1);   // its covers are asked for again
+      this.emit('art', id);
+    }
+    return j.r === undefined ? null : j.r;
+  }
+
   async art(p, size) {
     const kind = p.slice(0, 7), rest = decodeURIComponent(p.slice(7));
     let list;
@@ -295,12 +315,13 @@ class RemoteLibrary extends EventEmitter {
     else { const r = this.remoteOf(rest); if (!r) return null; list = [[r, kind + encodeURIComponent(split(rest)[1])]]; }
     this.missing = this.missing || new Map();
     for (const [r, there] of list) {
-      const file = path.join(ArtDir, hash(r.url + there + '@' + size) + '.jpg');
+      const ver = (this.artVer && this.artVer.get(keyOf(r.url))) || 0;   // a cover changed there: asked for again
+      const file = path.join(ArtDir, hash(r.url + there + '@' + size + (ver ? '#' + ver : '')) + '.jpg');
       try { return await fsp.readFile(file); } catch { }
       const miss = this.missing.get(file);
       if (miss && Date.now() - miss < 10 * 60000) continue;
       try {
-        const res = await this.req(r, '/media' + there + '?s=' + size, {}, 20000);
+        const res = await this.req(r, '/media' + there + '?s=' + size + (ver ? '&v=' + ver : ''), {}, 20000);
         if (!res.ok) { this.missing.set(file, Date.now()); continue; }
         const buf = Buffer.from(await res.arrayBuffer());
         fsp.writeFile(file, buf).catch(() => { });

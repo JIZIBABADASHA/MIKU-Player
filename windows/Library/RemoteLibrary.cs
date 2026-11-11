@@ -436,6 +436,36 @@ public sealed class RemoteLibrary : IDisposable
 
     // ───────────────────────────── covers ─────────────────────────────
 
+    readonly Dictionary<string, int> _artVer = new();
+
+    /// <summary>
+    /// The cover of a remote album is changed on the computer it is on (封面… → 更換封面 / 還原), so that one, this
+    /// one and the phones all show the same picture: the call goes to that MIKU (its /api/rpc) with its own id.
+    /// </summary>
+    public async Task<JsonElement> AlbumRpc(string m, string id, JsonElement a)
+    {
+        var r = RemoteOf(id) ?? throw new InvalidOperationException("這張專輯所在的電腦已經取消配對");
+        var args = new Dictionary<string, object>();
+        if (a.ValueKind == JsonValueKind.Object) foreach (var p in a.EnumerateObject()) args[p.Name] = p.Value;
+        args["id"] = Split(id).id;
+        using var res = await Req(r, "/api/rpc", HttpMethod.Post, new { m, a = args }, m == "art.setUrl" ? 60000 : 20000);
+        if ((int)res.StatusCode == 401) throw new InvalidOperationException($"「{Label(r)}」已取消這台電腦的配對，請重新配對。");
+        if (!res.IsSuccessStatusCode) throw new IOException($"「{Label(r)}」回應錯誤（{(int)res.StatusCode}）");
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        if (root.TryGetProperty("e", out var e) && e.ValueKind == JsonValueKind.String)
+            throw new InvalidOperationException(e.GetString().StartsWith("遙控不支援") ? $"「{Label(r)}」的 MIKU 版本太舊，請先更新那台的 MIKU" : e.GetString());
+        if (m is "art.setUrl" or "art.setData" or "art.clear" or "art.reject" or "art.retry")
+        {
+            lock (_lock) _artVer[KeyOf(r.Url)] = (_artVer.TryGetValue(KeyOf(r.Url), out var v) ? v : 0) + 1;
+            ArtChanged?.Invoke(id);
+        }
+        return root.TryGetProperty("r", out var rv) ? rv.Clone() : default;
+    }
+
+    /// <summary>A remote album's cover changed (from here): the page shows it again.</summary>
+    public event Action<string> ArtChanged;
+
     /// <summary>A cover (/art/a/&lt;key~id&gt;, /art/t/&lt;key~id&gt;, /art/r/&lt;name&gt;), cached on disk; null when none or out of reach.</summary>
     public async Task<byte[]> Art(string p, int size)
     {
@@ -445,12 +475,13 @@ public sealed class RemoteLibrary : IDisposable
         else if (RemoteOf(rest) is RemoteEntry owner) list.Add((owner, kind + Uri.EscapeDataString(Split(rest).id)));
         foreach (var (r, there) in list)
         {
-            string file = Path.Combine(ArtDir, Miku.Text.Hash(r.Url + there + "@" + size) + ".jpg");
+            int ver; lock (_lock) _artVer.TryGetValue(KeyOf(r.Url), out ver);   // a cover changed there: asked for again
+            string file = Path.Combine(ArtDir, Miku.Text.Hash(r.Url + there + "@" + size + (ver > 0 ? "#" + ver : "")) + ".jpg");
             try { if (File.Exists(file)) return await File.ReadAllBytesAsync(file); } catch { }
             lock (_lock) if (_artMiss.TryGetValue(file, out var miss) && DateTime.UtcNow - miss < TimeSpan.FromMinutes(10)) continue;
             try
             {
-                using var res = await Req(r, "/media" + there + "?s=" + size, ms: 20000);
+                using var res = await Req(r, "/media" + there + "?s=" + size + (ver > 0 ? "&v=" + ver : ""), ms: 20000);
                 if (!res.IsSuccessStatusCode) { lock (_lock) _artMiss[file] = DateTime.UtcNow; continue; }
                 var buf = await res.Content.ReadAsByteArrayAsync();
                 try { Directory.CreateDirectory(ArtDir); await File.WriteAllBytesAsync(file, buf); } catch { }
