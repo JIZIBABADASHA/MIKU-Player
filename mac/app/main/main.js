@@ -656,7 +656,7 @@ async function convertJobRun(a, cue) {
         const name = cue && cue.title ? cue.title : !al ? j.src.album : al.loose ? path.basename(al.folder) : al.title;
         folder = path.join(dir, Converter.safeName(name && name.trim() ? name : '未知專輯'));
         outFolders.add(folder);
-        if (!cue && al && new Set(al.tracks.map(t => t.discNo)).size > 1) folder = path.join(folder, 'Disc ' + j.src.discNo);
+        if (!cue && al && new Set(al.tracks.map(t => t.disc || t.discNo)).size > 1) folder = path.join(folder, 'Disc ' + (j.src.disc || j.src.discNo));
       }
       let target = path.join(folder, stem + ext);
       for (let n = 2; exists(target) || reserved.has(target.toLowerCase()); n++) target = path.join(folder, `${stem} (${n})${ext}`);

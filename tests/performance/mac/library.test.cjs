@@ -69,3 +69,31 @@ test('a 150,000-track loose folder builds without exceeding JavaScript argument 
   assert.equal(album.year, 2000);
   assert.equal(album.added, tracks.length - 1);
 });
+
+test('discs tagged as albums of their own ("[Disc 1]", "[Disc 2]") are one album, ordered by disc then track', () => {
+  const sib = (disc, no) => track(`d${disc}-${no}`, {
+    path: path.join('music', 'collection', `さざめきの街角 [Disc ${disc}]`, `${no}.flac`),
+    album: `さざめきの街角 [Disc ${disc}]`, albumArtist: 'Various Artists', discNo: 1, trackNo: no,
+  });
+  const lib = build([sib(2, 1), sib(1, 2), sib(2, 2), sib(1, 1)]);
+  const albums = lib.albumList();
+  assert.equal(albums.length, 1);
+  assert.equal(albums[0].title, 'さざめきの街角');
+  assert.deepEqual(albums[0].tracks.map(t => t.id), ['d1-1', 'd1-2', 'd2-1', 'd2-2']);
+  const exported = JSON.parse(lib.exportJson().toString());
+  assert.deepEqual(exported.tracks.map(r => r[4]), [1, 1, 2, 2]);
+  // the disc found from the title is not saved with the track
+  assert.equal(JSON.parse(JSON.stringify(albums[0].tracks[0])).disc, undefined);
+
+  const same = build([
+    track('a', { album: 'Album (CD2)', trackNo: 1, discNo: 0 }), track('b', { album: 'Album (CD1)', trackNo: 1, discNo: 0 }),
+    track('c', { album: 'Album - Disc 1', trackNo: 2 }),
+  ]).albumList();
+  assert.equal(same.length, 1);
+  assert.equal(same[0].title, 'Album');
+  assert.deepEqual(same[0].tracks.map(t => t.id), ['b', 'c', 'a']);
+
+  // a real disc number tag wins over the title; titles that merely contain "CD" stay as they are
+  assert.equal(build([track('x', { album: 'Best CD Hits' })]).albumList()[0].title, 'Best CD Hits');
+  assert.equal(build([track('y', { album: 'Live [Disc 1]', discNo: 2 })]).albumList()[0].tracks[0].disc, 0);
+});

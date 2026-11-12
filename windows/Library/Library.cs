@@ -38,6 +38,8 @@ public sealed class MusicLibrary
     };
     static readonly string[] ArtNames = { "cover", "folder", "front", "albumart", "album", "artwork", "jacket", "albumartsmall" };
     static readonly Regex DiscFolder = new(@"^(cd|disc|disk|dvd)\s*[-_.]?\s*\d+\b.*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    // "さざめきの街角 [Disc 2]", "Album (CD1)", "Album 【DISC 2】", "Album - Disc 2", "Album CD 2", "Album Disc 1 of 2"
+    static readonly Regex DiscSuffix = new(@"^(?<t>.*?\S)\s*(?:[\[(（【〔［<]\s*(?:disc|disk|cd|dvd)\s*[-_.#]?\s*(?<n>[0-9]{1,2})(?:\s*(?:of|/)\s*[0-9]{1,2})?\s*[\])）】〕］>]|[-–—:~～／/,]?\s+(?:disc|disk|cd)\s*[-_.#]?\s*(?<n>[0-9]{1,2})(?:\s*(?:of|/)\s*[0-9]{1,2})?)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     readonly Settings _settings;
     readonly object _lock = new();
@@ -87,6 +89,14 @@ public sealed class MusicLibrary
 
     // ───────────────────────────── grouping ─────────────────────────────
 
+    /// <summary>An album title without its "[Disc 2]" (each disc of a set tagged as an album of its own), and that disc's number; 0 when it names no disc.</summary>
+    public static (string Title, int Disc) SplitDisc(string album)
+    {
+        string s = album?.Trim() ?? "";
+        var m = DiscSuffix.Match(s);
+        return m.Success && int.TryParse(m.Groups["n"].Value, out int n) && n > 0 ? (m.Groups["t"].Value.TrimEnd(' ', '-', '–', '—', ':', '~', '～', '／', '/', ','), n) : (s, 0);
+    }
+
     static string AlbumFolder(string path)
     {
         string dir = Path.GetDirectoryName(path) ?? "";
@@ -108,14 +118,14 @@ public sealed class MusicLibrary
             .Where(t => t?.Path != null && !string.IsNullOrWhiteSpace(t.Album))
             .Select(t => (t, dir: Path.GetDirectoryName(t.Path) ?? ""))
             .Where(x => string.Equals(AlbumFolder(x.t.Path), x.dir, StringComparison.OrdinalIgnoreCase))   // not a "Disc 2" folder already
-            .GroupBy(x => (Path.GetDirectoryName(x.dir) ?? "").ToLowerInvariant() + "|" + Text.Norm(x.t.Album) + "|" + Text.Norm(x.t.AlbumArtist ?? ""));
+            .GroupBy(x => (Path.GetDirectoryName(x.dir) ?? "").ToLowerInvariant() + "|" + Text.Norm(SplitDisc(x.t.Album).Title) + "|" + Text.Norm(x.t.AlbumArtist ?? ""));
         foreach (var g in candidates)
         {
             var folders = g.GroupBy(x => x.dir, StringComparer.OrdinalIgnoreCase).ToList();
             if (folders.Count < 2) continue;
             string parent = Path.GetDirectoryName(folders[0].Key);
             if (string.IsNullOrEmpty(parent)) continue;
-            var discs = folders.SelectMany(f => f.Select(x => x.t.DiscNo).Distinct()).ToList();
+            var discs = folders.SelectMany(f => f.Select(x => x.t.Disc).Distinct()).ToList();
             if (discs.Distinct().Count() != discs.Count) continue;   // a disc number in two folders: separate albums
             foreach (var f in folders) merge[f.Key] = parent;
         }
@@ -192,6 +202,14 @@ public sealed class MusicLibrary
     {
         var albums = new Dictionary<string, Album>();
         var byId = new Dictionary<string, Track>();
+        // each disc of a set tagged as its own album ("さざめきの街角 [Disc 1]", "[Disc 2]"): one album, its discs told
+        // apart by the title when the disc number tags don't (both 1, or none)
+        foreach (var t in tracks)
+            if (t != null)
+            {
+                int d = SplitDisc(t.Album).Disc;
+                t.Disc = d > 0 && t.DiscNo <= 1 ? d : 0;
+            }
         var discSiblings = DiscSiblings(tracks);
         foreach (var t in tracks)
         {
@@ -201,7 +219,7 @@ public sealed class MusicLibrary
             string folder = AlbumFolder(t.Path);
             if (discSiblings.TryGetValue(folder, out var parentFolder)) folder = parentFolder;
             bool loose = string.IsNullOrWhiteSpace(t.Album);
-            string title = loose ? Path.GetFileName(folder) : t.Album.Trim();
+            string title = loose ? Path.GetFileName(folder) : SplitDisc(t.Album).Title;
             string key = folder.ToLowerInvariant() + "|" + Text.Norm(title);
             string id = Text.Hash(key);
             if (!albums.TryGetValue(id, out var a))
@@ -218,7 +236,7 @@ public sealed class MusicLibrary
         {
             a.Tracks.Sort((x, y) =>
             {
-                int c = x.DiscNo.CompareTo(y.DiscNo);
+                int c = x.Disc.CompareTo(y.Disc);
                 if (c != 0) return c;
                 c = x.TrackNo.CompareTo(y.TrackNo);
                 return c != 0 ? c : string.Compare(Path.GetFileName(x.Path), Path.GetFileName(y.Path), StringComparison.OrdinalIgnoreCase);
@@ -690,7 +708,7 @@ public sealed class MusicLibrary
                     // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
                     w.WriteStartArray();
                     w.WriteStringValue(t.Id); w.WriteStringValue(t.Title); w.WriteStringValue(t.Artist); w.WriteStringValue(a.Id);
-                    w.WriteNumberValue(t.DiscNo); w.WriteNumberValue(t.TrackNo); w.WriteNumberValue(Math.Round(t.Duration, 2));
+                    w.WriteNumberValue(t.Disc); w.WriteNumberValue(t.TrackNo); w.WriteNumberValue(Math.Round(t.Duration, 2));
                     w.WriteStringValue(t.Codec); w.WriteNumberValue(t.SampleRate); w.WriteNumberValue(t.Bits); w.WriteNumberValue(t.Year);
                     w.WriteStringValue(t.Composer ?? "");
                     w.WriteNumberValue(t.Added / (double)TimeSpan.TicksPerSecond);
