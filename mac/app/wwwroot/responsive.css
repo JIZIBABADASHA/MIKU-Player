@@ -235,6 +235,9 @@
 /* 上方按鈕跟歌曲資訊還是疊到時（fit.js 偵測）：先藏 歌詞來源／歌詞不對？／翻譯／歌詞，只留收起鍵 */
 #np .np-top .src, #np .np-top .ly-pick-wrap, #np .np-top .pill { transition: opacity .2s; }
 #np.top-crowded .np-top .src, #np.top-crowded .np-top .ly-pick-wrap, #np.top-crowded .np-top .pill { opacity: 0; visibility: hidden; pointer-events: none; }
+/* 打開正在播放五秒後，右上角的歌詞按鈕淡出（nowplaying.js 加 top-idle）；滑鼠移到上方那一列才再出現 */
+#np .np-top .src, #np .np-top .ly-pick-wrap, #np .np-top .pill { transition: opacity .4s, visibility .4s; }
+#np.top-idle .np-top .src, #np.top-idle .np-top .ly-pick-wrap, #np.top-idle .np-top .pill { opacity: 0; visibility: hidden; pointer-events: none; }
 
 /* ───── 11. 玻璃主題：正在播放打開後，把後面的側欄／主頁藏起來，不會從玻璃面板周圍的縫隙露出來（例如設定鈕） ───── */
 :root[data-theme="glass"].np-settled:has(#np.on) #sidebar,

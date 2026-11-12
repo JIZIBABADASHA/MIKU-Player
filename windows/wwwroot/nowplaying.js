@@ -60,6 +60,23 @@ const NowPlaying = {
       this._back = setTimeout(() => this.unscroll(), 2650);
     }, { passive: false });
     new ResizeObserver(() => { if (this.open) this.measure(); }).observe(box);
+    // the top-right lyrics buttons show for 5 s after Now Playing opens, then fade; hovering the top bar brings them back
+    const top = $('#np .np-top');
+    top.addEventListener('mouseenter', () => this.wakeTop(false));
+    top.addEventListener('mouseleave', () => this.wakeTop(true));
+    top.addEventListener('focusin', () => this.wakeTop(false));
+  },
+  /** Shows the top-right buttons; with `idle`, hides them again after 5 s (not while the lyric picker is open or the mouse is over them). */
+  wakeTop(idle) {
+    clearTimeout(this._topIdle);
+    $('#np').classList.remove('top-idle');
+    if (!idle) return;
+    this._topIdle = setTimeout(() => {
+      const top = $('#np .np-top');
+      if (!this.open) return;
+      if (top.matches(':hover') || !$('#ly-pick').hidden) return this.wakeTop(true);   // still in use: wait another 5 s
+      $('#np').classList.add('top-idle');
+    }, 5000);
   },
 
   show() {
@@ -73,12 +90,14 @@ const NowPlaying = {
     YT.sync();
     this.applyLayout();
     this.paint();
+    this.wakeTop(true);
     requestAnimationFrame(() => { this.measure(); App.frame(); });   // the page's own progress bar and lyrics, now
   },
   hide(fromPop) {
     if (!this.open) return;
     this.open = false;
     $('#np').classList.remove('on');
+    clearTimeout(this._topIdle);
     if (!fromPop) OverlayHistory.closed(this._close);
     setTimeout(() => YT.sync(), 500);
   },
