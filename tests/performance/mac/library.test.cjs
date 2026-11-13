@@ -97,3 +97,26 @@ test('discs tagged as albums of their own ("[Disc 1]", "[Disc 2]") are one album
   assert.equal(build([track('x', { album: 'Best CD Hits' })]).albumList()[0].title, 'Best CD Hits');
   assert.equal(build([track('y', { album: 'Live [Disc 1]', discNo: 2 })]).albumList()[0].tracks[0].disc, 0);
 });
+
+test('a disc in a subfolder with another album artist ("潜潜話" + "初回限定盤 オフボーカル") is one album; versions stay versions', () => {
+  const root = path.join('music', 'ずっと真夜中でいいのに', '潛潛話');
+  const vocal = [1, 2, 3].map(n => track(`v${n}`, { path: path.join(root, `0${n}.flac`), album: '潜潜話', albumArtist: 'ZUTOMAYO', discNo: 1, trackNo: n, duration: 200 + n }));
+  const inst = [1, 2, 3].map(n => track(`i${n}`, { path: path.join(root, '初回限定盤 オフボーカル', `0${n} (Instrumental).flac`), title: `t${n} (Instrumental)`, album: '潜潜話', albumArtist: 'ずっと真夜中でいいのに。', discNo: 2, trackNo: n, duration: 200 + n }));
+  const one = build([...inst, ...vocal]).albumList();
+  assert.equal(one.length, 1);
+  assert.equal(one[0].folder, root);
+  assert.deepEqual(one[0].tracks.map(t => t.id), ['v1', 'v2', 'v3', 'i1', 'i2', 'i3']);
+
+  // the instrumentals tagged disc 1 too, and fewer of them: numbered after the vocal disc
+  const root2 = path.join('music', 'z', '虚仮の一念海馬に託す');
+  const v2 = [1, 2, 3, 4].map(n => track(`v${n}`, { path: path.join(root2, `0${n}.flac`), album: '虚仮の一念海馬に託す', discNo: 1, trackNo: n }));
+  const i2 = [3, 4].map(n => track(`i${n}`, { path: path.join(root2, '初回限定盤 Disc 1 オフボーカル', `0${n}.flac`), title: `t${n} (Instrumental)`, album: '虚仮の一念海馬に託す', discNo: 1, trackNo: n }));
+  const lib = build([...i2, ...v2]);
+  assert.equal(lib.albumList().length, 1);
+  assert.deepEqual(lib.albumList()[0].tracks.map(t => [t.id, t.disc || t.discNo]), [['v1', 1], ['v2', 1], ['v3', 1], ['v4', 1], ['i3', 2], ['i4', 2]]);
+
+  // the same album twice (FLAC and DSD folders, both disc 1, same songs) stays two versions
+  const flac = [1, 2].map(n => track(`f${n}`, { path: path.join('music', 'x', 'Album', 'FLAC', `${n}.flac`), discNo: 1, trackNo: n }));
+  const dsd = [1, 2].map(n => track(`d${n}`, { path: path.join('music', 'x', 'Album', 'DSD', `${n}.dsf`), discNo: 1, trackNo: n, codec: 'DSF' }));
+  assert.equal(build([...flac, ...dsd]).albumList().length, 2);
+});

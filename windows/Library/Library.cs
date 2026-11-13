@@ -38,6 +38,7 @@ public sealed class MusicLibrary
     };
     static readonly string[] ArtNames = { "cover", "folder", "front", "albumart", "album", "artwork", "jacket", "albumartsmall" };
     static readonly Regex DiscFolder = new(@"^(cd|disc|disk|dvd)\s*[-_.]?\s*\d+\b.*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    static readonly Regex DiscFolderNo = new(@"^(?:cd|disc|disk|dvd)\s*[-_.]?\s*([0-9]{1,2})\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     // "さざめきの街角 [Disc 2]", "Album (CD1)", "Album 【DISC 2】", "Album - Disc 2", "Album CD 2", "Album Disc 1 of 2"
     static readonly Regex DiscSuffix = new(@"^(?<t>.*?\S)\s*(?:[\[(（【〔［<]\s*(?:disc|disk|cd|dvd)\s*[-_.#]?\s*(?<n>[0-9]{1,2})(?:\s*(?:of|/)\s*[0-9]{1,2})?\s*[\])）】〕］>]|[-–—:~～／/,]?\s+(?:disc|disk|cd)\s*[-_.#]?\s*(?<n>[0-9]{1,2})(?:\s*(?:of|/)\s*[0-9]{1,2})?)\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -105,29 +106,87 @@ public sealed class MusicLibrary
         return dir;
     }
 
+    // a disc of instrumentals / karaoke that comes with an album ("初回限定盤 オフボーカル", "Off Vocal")
+    static readonly Regex OffVocal = new(@"instrumental|\binst\b|off[\s_-]*vocal|オフ[・\s]*ボーカル|オフヴォーカル|カラオケ|karaoke|伴奏|backing\s*track", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>Folders near each other: at most two levels below a common folder, which isn't a drive root.</summary>
+    static bool Near(string x, string y)
+    {
+        var p = x.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        var q = y.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        int c = 0;
+        while (c < p.Length && c < q.Length && string.Equals(p[c], q[c], StringComparison.OrdinalIgnoreCase)) c++;
+        return c >= 2 && p.Length - c <= 2 && q.Length - c <= 2;
+    }
+
+    static string CommonFolder(IEnumerable<string> dirs)
+    {
+        string[] common = null;
+        foreach (var d in dirs)
+        {
+            var parts = d.Split(Path.DirectorySeparatorChar);
+            if (common == null) { common = parts; continue; }
+            int c = 0;
+            while (c < common.Length && c < parts.Length && string.Equals(common[c], parts[c], StringComparison.OrdinalIgnoreCase)) c++;
+            common = common[..c];
+        }
+        return common == null ? "" : string.Join(Path.DirectorySeparatorChar, common);
+    }
+
+    static string DiscKey(string folder, string album) => folder.ToLowerInvariant() + "|" + Text.Norm(SplitDisc(album).Title);
+
     /// <summary>
-    /// Discs of one album in sibling folders whose names don't say "Disc 2" ("Selection Story Disc" and
-    /// "Secret Story Disc"), found from the tags: folders under the same parent holding the same album title and
-    /// album artist, each with its own disc numbers (none shared, so two sibling folders that are both disc 1 stay two
-    /// albums). Returns folder → the parent folder to group them under.
+    /// Discs of one album in folders of their own whose names don't say "Disc 2" ("Selection Story Disc" and
+    /// "Secret Story Disc", "潜潜話" and "初回限定盤 オフボーカル"): the same album title in folders near each other
+    /// (siblings, or at most two levels below a common folder), and either each with its own disc numbers (none
+    /// shared, so the same album twice, in FLAC and DSD, stays two versions), or one of them a disc of instrumentals
+    /// ("(Instrumental)", "オフボーカル") of at most as many songs as the other. The album artist may be written otherwise
+    /// ("ずっと真夜中でいいのに。" / "ZUTOMAYO"). A disc whose number another one already has is numbered after them,
+    /// the instrumentals last. Returns folder|title → the folder to group them under.
     /// </summary>
     static Dictionary<string, string> DiscSiblings(List<Track> tracks)
     {
-        var merge = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var candidates = tracks
+        var merge = new Dictionary<string, string>(StringComparer.Ordinal);
+        var units = tracks
             .Where(t => t?.Path != null && !string.IsNullOrWhiteSpace(t.Album))
-            .Select(t => (t, dir: Path.GetDirectoryName(t.Path) ?? ""))
-            .Where(x => string.Equals(AlbumFolder(x.t.Path), x.dir, StringComparison.OrdinalIgnoreCase))   // not a "Disc 2" folder already
-            .GroupBy(x => (Path.GetDirectoryName(x.dir) ?? "").ToLowerInvariant() + "|" + Text.Norm(SplitDisc(x.t.Album).Title) + "|" + Text.Norm(x.t.AlbumArtist ?? ""));
-        foreach (var g in candidates)
+            .GroupBy(t => DiscKey(AlbumFolder(t.Path), t.Album))
+            .Select(g => (key: g.Key, folder: AlbumFolder(g.First().Path), title: Text.Norm(SplitDisc(g.First().Album).Title), tracks: g.ToList()))
+            .ToList();
+        foreach (var bucket in units.GroupBy(u => u.title).Where(b => b.Count() > 1))
         {
-            var folders = g.GroupBy(x => x.dir, StringComparer.OrdinalIgnoreCase).ToList();
-            if (folders.Count < 2) continue;
-            string parent = Path.GetDirectoryName(folders[0].Key);
-            if (string.IsNullOrEmpty(parent)) continue;
-            var discs = folders.SelectMany(f => f.Select(x => x.t.Disc).Distinct()).ToList();
-            if (discs.Distinct().Count() != discs.Count) continue;   // a disc number in two folders: separate albums
-            foreach (var f in folders) merge[f.Key] = parent;
+            var list = bucket.ToList();
+            var discs = list.Select(u => u.tracks.Select(t => t.Disc).ToHashSet()).ToList();
+            var inst = list.Select(u => OffVocal.IsMatch(Path.GetFileName(u.folder)) || u.tracks.All(t => OffVocal.IsMatch(t.Title ?? ""))).ToList();
+            var vocal = list.Select(u => !u.tracks.Any(t => OffVocal.IsMatch(t.Title ?? ""))).ToList();
+            var parent = Enumerable.Range(0, list.Count).ToArray();
+            int Find(int i) { while (parent[i] != i) i = parent[i] = parent[parent[i]]; return i; }
+            for (int i = 0; i < list.Count; i++)
+                for (int j = i + 1; j < list.Count; j++)
+                {
+                    if (!Near(list[i].folder, list[j].folder)) continue;
+                    bool ownDiscs = !discs[i].Overlaps(discs[j]);
+                    bool offVocal = (inst[i] && vocal[j] && list[i].tracks.Count <= list[j].tracks.Count) || (inst[j] && vocal[i] && list[j].tracks.Count <= list[i].tracks.Count);
+                    if (ownDiscs || offVocal) parent[Find(i)] = Find(j);
+                }
+            foreach (var set in Enumerable.Range(0, list.Count).GroupBy(Find).Where(g => g.Count() > 1))
+            {
+                // the vocal discs first, by their disc numbers, then the folder name
+                var order = set.OrderBy(i => inst[i] ? 1 : 0).ThenBy(i => discs[i].Min()).ThenBy(i => list[i].folder, StringComparer.OrdinalIgnoreCase).ToList();
+                var used = new HashSet<int>();
+                foreach (int i in order)
+                {
+                    if (used.Overlaps(discs[i]))
+                    {
+                        int shift = used.Max() + 1 - discs[i].Min();
+                        foreach (var t in list[i].tracks) t.Disc += shift;
+                        discs[i] = list[i].tracks.Select(t => t.Disc).ToHashSet();
+                    }
+                    used.UnionWith(discs[i]);
+                }
+                string common = CommonFolder(set.Select(i => list[i].folder));
+                if (string.IsNullOrEmpty(common)) continue;
+                foreach (int i in set) merge[list[i].key] = common;
+            }
         }
         return merge;
     }
@@ -150,14 +209,6 @@ public sealed class MusicLibrary
             var parent = list.ToDictionary(a => a, a => a);
             Album Find(Album a) { while (parent[a] != a) a = parent[a] = parent[parent[a]]; return a; }
             static bool Compilation(string artist) => artist is "Various Artists" or "未知演出者" || string.IsNullOrWhiteSpace(artist);
-            static bool Near(string x, string y)
-            {
-                var p = x.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-                var q = y.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-                int c = 0;
-                while (c < p.Length && c < q.Length && string.Equals(p[c], q[c], StringComparison.OrdinalIgnoreCase)) c++;
-                return c >= 2 && p.Length - c <= 2 && q.Length - c <= 2;
-            }
             // the same recordings: at least half of the smaller one's tracks have a counterpart in the other, each used
             // once: the same (or containing) title and a length within 2 s (remasters here differ by up to 2.0 s; two
             // different "TOKYO" 2.5 s apart must not match), or a
@@ -208,6 +259,12 @@ public sealed class MusicLibrary
             if (t != null)
             {
                 int d = SplitDisc(t.Album).Disc;
+                // or by the folder: "CD2", "Disc 2"
+                if (d == 0 && t.Path != null)
+                {
+                    var m = DiscFolderNo.Match(Path.GetFileName(Path.GetDirectoryName(t.Path) ?? ""));
+                    if (m.Success) int.TryParse(m.Groups[1].Value, out d);
+                }
                 t.Disc = d > 0 && t.DiscNo <= 1 ? d : 0;
             }
         var discSiblings = DiscSiblings(tracks);
@@ -217,7 +274,7 @@ public sealed class MusicLibrary
             t.Id ??= Text.Hash(t.Path.ToLowerInvariant());
             byId[t.Id] = t;
             string folder = AlbumFolder(t.Path);
-            if (discSiblings.TryGetValue(folder, out var parentFolder)) folder = parentFolder;
+            if (!string.IsNullOrWhiteSpace(t.Album) && discSiblings.TryGetValue(DiscKey(folder, t.Album), out var parentFolder)) folder = parentFolder;
             bool loose = string.IsNullOrWhiteSpace(t.Album);
             string title = loose ? Path.GetFileName(folder) : SplitDisc(t.Album).Title;
             string key = folder.ToLowerInvariant() + "|" + Text.Norm(title);
