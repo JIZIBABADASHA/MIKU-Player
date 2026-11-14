@@ -54,7 +54,7 @@ public sealed class ArtworkService
 
     // ───────────────────────────── album / track art ─────────────────────────────
 
-    public Task<byte[]> AlbumAsync(string albumId, int size) => Cached("a_" + albumId, size, () => AlbumSource(albumId));
+    public Task<byte[]> AlbumAsync(string albumId, int size) => Cached("a_" + albumId, size, () => AlbumSource(albumId), () => AlbumFiles(albumId));
 
     public Task<byte[]> TrackAsync(string trackId, int size)
     {
@@ -63,15 +63,53 @@ public sealed class ArtworkService
         var album = _lib.GetAlbum(t.AlbumId);
         // Loose tracks (no album tag) each have their own picture, unless the user picked one for the folder.
         if (album != null && (!album.Loose || File.Exists(OverridePath(album.Id)))) return AlbumAsync(album.Id, size);
-        return Cached("t_" + trackId, size, () => TrackSource(t));
+        return Cached("t_" + trackId, size, () => TrackSource(t), () => TrackFiles(t));
+    }
+
+    /// <summary>
+    /// Every file <see cref="AlbumSource"/> may take the picture from. A thumbnail is only reused while none of them
+    /// changed: a cover.jpg added to the folder, a file replaced by another version with the same name, or a picture
+    /// fetched online earlier would otherwise keep showing the old cover at the sizes made before (the album grid),
+    /// while a size made later (the album page) shows the new one.
+    /// </summary>
+    IEnumerable<string> AlbumFiles(string albumId)
+    {
+        var a = _lib.GetAlbum(albumId);
+        if (a == null) yield break;
+        yield return OverridePath(albumId);
+        foreach (var t in a.Tracks.Where(t => t.HasPic).Take(3)) yield return t.Path;
+        yield return a.ArtPath;
+        yield return Path.Combine(AppPaths.OnlineArt, "a_" + albumId + ".jpg");
+        if (a.Loose && a.Tracks.Count > 0) yield return Path.Combine(AppPaths.OnlineArt, "t_" + a.Tracks[0].Id + ".jpg");
+    }
+
+    IEnumerable<string> TrackFiles(Track t)
+    {
+        yield return OverridePath(t.AlbumId);
+        yield return t.HasPic ? t.Path : null;
+        yield return _lib.GetAlbum(t.AlbumId)?.ArtPath;
+        yield return Path.Combine(AppPaths.OnlineArt, "t_" + t.Id + ".jpg");
+    }
+
+    /// <summary>Short stamp of the files' paths, sizes and times; it changes as soon as any of them does.</summary>
+    static string Stamp(IEnumerable<string> files)
+    {
+        var parts = files.Select(f =>
+        {
+            if (f == null) return "-";
+            try { var fi = new FileInfo(f); return fi.Exists ? $"{f}|{fi.Length}|{fi.LastWriteTimeUtc.Ticks}" : f + "|"; }
+            catch { return f + "|"; }
+        });
+        return Text.Hash(string.Join("\n", parts))[..10];
     }
 
     /// <summary>
     /// Version of the album picture rules; thumbnails made with other rules are dropped at start
     /// (<see cref="DropOldThumbs"/>) and the UI's picture URLs carry it (core.js ART_RULES).
     /// 2: the embedded picture wins over a picture file in the folder.
+    /// 3: thumbnail names carry a stamp of their source files, so a cover changed behind the app's back is made again.
     /// </summary>
-    public const int Rules = 2;
+    public const int Rules = 3;
 
     /// <summary>Delete the cached thumbnails once after <see cref="Rules"/> changed: they are made again when needed.</summary>
     public static void DropOldThumbs()
@@ -126,12 +164,14 @@ public sealed class ArtworkService
 
     static readonly int[] ThumbSizes = { 64, 128, 256, 384, 512, 768, 1024, 1600, 2400 };
 
-    async Task<byte[]> Cached(string key, int size, Func<byte[]> source)
+    async Task<byte[]> Cached(string key, int size, Func<byte[]> source, Func<IEnumerable<string>> files = null)
     {
         size = Math.Clamp(size <= 0 ? 600 : size, 32, 2400);
         // snap to a few sizes so the cache stays small
         size = Array.Find(ThumbSizes, s => s >= size);
-        string thumb = Path.Combine(AppPaths.Thumbs, $"{key}_{size}.jpg");
+        // stat the source files off the caller's thread: a library on a network drive must not hold up the window
+        string tag = files != null ? await Task.Run(() => Stamp(files())) : null;
+        string thumb = Path.Combine(AppPaths.Thumbs, tag != null ? $"{key}_{tag}_{size}.jpg" : $"{key}_{size}.jpg");
         if (File.Exists(thumb)) { try { return await File.ReadAllBytesAsync(thumb); } catch { } }
         return await RunOnce(_inflight, thumb, async () =>
         {
