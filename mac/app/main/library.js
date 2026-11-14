@@ -11,6 +11,8 @@ const Extensions = new Set(['.flac', '.wav', '.mp3', '.m4a', '.aac', '.alac', '.
   '.wma', '.ape', '.wv', '.dsf', '.dff', '.tak', '.tta', '.mka', '.mp2', '.caf']);
 const ArtNames = ['cover', 'folder', 'front', 'albumart', 'album', 'artwork', 'jacket', 'albumartsmall'];
 const DiscFolder = /^(cd|disc|disk|dvd)\s*[-_.]?\s*\d+\b.*$/i;
+// "さざめきの街角 [Disc 2]", "Album (CD1)", "Album 【DISC 2】", "Album - Disc 2", "Album CD 2", "Album Disc 1 of 2"
+const DiscSuffix = /^(.*?\S)\s*(?:[\[(（【〔［<]\s*(?:disc|disk|cd|dvd)\s*[-_.#]?\s*([0-9]{1,2})(?:\s*(?:of|\/)\s*[0-9]{1,2})?\s*[\])）】〕］>]|[-–—:~～／\/,]?\s+(?:disc|disk|cd)\s*[-_.#]?\s*([0-9]{1,2})(?:\s*(?:of|\/)\s*[0-9]{1,2})?)\s*$/i;
 const LeadingNumber = /^\s*(\d{1,3})\s*[-_. ]\s*(.+)$/;
 const ImageExt = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 // Reuse ICU's collation setup across every filename comparison in a library rebuild.
@@ -27,36 +29,100 @@ function codecFromExt(ext) {
   })[ext] || ext.replace('.', '').toUpperCase();
 }
 
+/** An album title without its "[Disc 2]" (each disc of a set tagged as an album of its own), and that disc's number; 0 when it names no disc. (Library.cs SplitDisc) */
+function splitDisc(album) {
+  const s = (album || '').trim();
+  const m = DiscSuffix.exec(s);
+  const n = m ? parseInt(m[2] || m[3], 10) : 0;
+  return n > 0 ? { title: m[1].replace(/[\s\-–—:~～／\/,]+$/, ''), disc: n } : { title: s, disc: 0 };
+}
+
+/** The disc a track is on within its album: the disc number tag, or the title's "[Disc 2]" when the tags don't tell the discs apart. */
+const discOf = t => t.disc || t.discNo;
+
 function albumFolder(p) {
   let dir = path.dirname(p);
   if (DiscFolder.test(path.basename(dir))) dir = path.dirname(dir);
   return dir;
 }
 
+// a disc of instrumentals / karaoke that comes with an album ("初回限定盤 オフボーカル", "Off Vocal")
+const OffVocal = /instrumental|\binst\b|off[\s_-]*vocal|オフ[・\s]*ボーカル|オフヴォーカル|カラオケ|karaoke|伴奏|backing\s*track/i;
+const DiscFolderNo = /^(?:cd|disc|disk|dvd)\s*[-_.]?\s*([0-9]{1,2})\b/i;
+
+/** Folders near each other: at most two levels below a common folder, which isn't the root. */
+function near(x, y) {
+  const p = x.split(path.sep).filter(Boolean), q = y.split(path.sep).filter(Boolean);
+  let c = 0;
+  while (c < p.length && c < q.length && lc(p[c]) === lc(q[c])) c++;
+  return c >= 2 && p.length - c <= 2 && q.length - c <= 2;
+}
+
+function commonFolder(dirs) {
+  let common = null;
+  for (const d of dirs) {
+    const parts = d.split(path.sep);
+    if (!common) { common = parts; continue; }
+    let c = 0;
+    while (c < common.length && c < parts.length && lc(common[c]) === lc(parts[c])) c++;
+    common = common.slice(0, c);
+  }
+  return common ? common.join(path.sep) : '';
+}
+
+const discKey = (folder, album) => lc(folder) + '|' + norm(splitDisc(album).title);
+
 /**
- * Discs of one album in sibling folders whose names don't say "Disc 2", found from the tags: folders under the same
- * parent holding the same album title and album artist, each with its own disc numbers (none shared). Returns
- * folder (lower case) → the parent folder to group them under. (Library.cs DiscSiblings)
+ * Discs of one album in folders of their own whose names don't say "Disc 2" ("潜潜話" and "初回限定盤 オフボーカル"):
+ * the same album title in folders near each other, and either each with its own disc numbers (none shared), or one of
+ * them a disc of instrumentals of at most as many songs as the other. The album artist may be written otherwise.
+ * A disc whose number another one already has is numbered after them, the instrumentals last. Returns
+ * folder|title → the folder to group them under. (Library.cs DiscSiblings)
  */
 function discSiblings(tracks) {
-  const merge = new Map(), groups = new Map();
+  const merge = new Map(), units = new Map();
   for (const t of tracks) {
     if (!t || !t.path || !t.album || !t.album.trim()) continue;
-    const dir = path.dirname(t.path);
-    if (lc(albumFolder(t.path)) !== lc(dir)) continue;   // a "Disc 2" folder already
-    const key = lc(path.dirname(dir)) + '|' + norm(t.album) + '|' + norm(t.albumArtist || '');
-    let g = groups.get(key); if (!g) groups.set(key, g = new Map());
-    let f = g.get(lc(dir)); if (!f) g.set(lc(dir), f = { dir, discs: new Set() });
-    f.discs.add(t.discNo);
+    const folder = albumFolder(t.path), key = discKey(folder, t.album);
+    let u = units.get(key);
+    if (!u) units.set(key, u = { key, folder, title: norm(splitDisc(t.album).title), tracks: [] });
+    u.tracks.push(t);
   }
-  for (const g of groups.values()) {
-    if (g.size < 2) continue;
-    const folders = [...g.values()];
-    const parent = path.dirname(folders[0].dir);
-    if (!parent || parent === '/' ) continue;
-    const discs = folders.flatMap(f => [...f.discs]);
-    if (new Set(discs).size !== discs.length) continue;   // a disc number in two folders: separate albums
-    for (const f of folders) merge.set(lc(f.dir), parent);
+  const buckets = new Map();
+  for (const u of units.values()) (buckets.get(u.title) || buckets.set(u.title, []).get(u.title)).push(u);
+  for (const list of buckets.values()) {
+    if (list.length < 2) continue;
+    const discs = list.map(u => new Set(u.tracks.map(discOf)));
+    const inst = list.map(u => OffVocal.test(path.basename(u.folder)) || u.tracks.every(t => OffVocal.test(t.title || '')));
+    const vocal = list.map(u => !u.tracks.some(t => OffVocal.test(t.title || '')));
+    const parent = list.map((_, i) => i);
+    const find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
+    for (let i = 0; i < list.length; i++)
+      for (let j = i + 1; j < list.length; j++) {
+        if (!near(list[i].folder, list[j].folder)) continue;
+        const ownDiscs = ![...discs[i]].some(d => discs[j].has(d));
+        const offVocal = (inst[i] && vocal[j] && list[i].tracks.length <= list[j].tracks.length) || (inst[j] && vocal[i] && list[j].tracks.length <= list[i].tracks.length);
+        if (ownDiscs || offVocal) parent[find(i)] = find(j);
+      }
+    const sets = new Map();
+    list.forEach((_, i) => { const r = find(i); (sets.get(r) || sets.set(r, []).get(r)).push(i); });
+    for (const set of sets.values()) {
+      if (set.length < 2) continue;
+      // the vocal discs first, by their disc numbers, then the folder name
+      const order = set.slice().sort((a, b) => ((inst[a] ? 1 : 0) - (inst[b] ? 1 : 0)) || (Math.min(...discs[a]) - Math.min(...discs[b])) || fileNames.compare(list[a].folder, list[b].folder));
+      const used = new Set();
+      for (const i of order) {
+        if ([...discs[i]].some(d => used.has(d))) {
+          const shift = Math.max(...used) + 1 - Math.min(...discs[i]);
+          for (const t of list[i].tracks) t.disc = discOf(t) + shift;
+          discs[i] = new Set(list[i].tracks.map(discOf));
+        }
+        for (const d of discs[i]) used.add(d);
+      }
+      const common = commonFolder(set.map(i => list[i].folder));
+      if (!common || common === path.sep) continue;
+      for (const i of set) merge.set(list[i].key, common);
+    }
   }
   return merge;
 }
@@ -69,12 +135,6 @@ function groupVersions(all) {
   const buckets = new Map();
   for (const a of all) { a.versionGroup = null; if (a.loose) continue; const k = norm(a.title); (buckets.get(k) || buckets.set(k, []).get(k)).push(a); }
   const compilation = s => s === 'Various Artists' || s === '未知演出者' || !s || !s.trim();
-  const near = (x, y) => {
-    const p = x.split(path.sep).filter(Boolean), q = y.split(path.sep).filter(Boolean);
-    let c = 0;
-    while (c < p.length && c < q.length && lc(p[c]) === lc(q[c])) c++;
-    return c >= 2 && p.length - c <= 2 && q.length - c <= 2;
-  };
   const sameTitle = (a, b) => { const p = norm(a, true), q = norm(b, true); return p.length > 0 && q.length > 0 && (p === q || (Math.min(p.length, q.length) >= 2 && (p.includes(q) || q.includes(p)))); };
   const sameMusic = (x, y) => {
     const [small, large] = x.tracks.length <= y.tracks.length ? [x, y] : [y, x];
@@ -167,15 +227,25 @@ class MusicLibrary extends EventEmitter {
 
   build(tracks, folderArt) {
     const albums = new Map(), albumsByKey = new Map(), byId = new Map();
+    // each disc of a set tagged as its own album ("さざめきの街角 [Disc 1]", "[Disc 2]"): one album, its discs told apart
+    // by the title when the disc number tags don't (both 1, or none). Not saved with the library (not enumerable).
+    for (const t of tracks) {
+      if (!t) continue;
+      let d = splitDisc(t.album).disc;
+      // or by the folder: "CD2", "Disc 2"
+      if (!d && t.path) { const m = DiscFolderNo.exec(path.basename(path.dirname(t.path))); if (m) d = parseInt(m[1], 10) || 0; }
+      Object.defineProperty(t, 'disc', { value: d > 0 && (t.discNo || 0) <= 1 ? d : 0, writable: true, configurable: true, enumerable: false });
+    }
     const siblings = discSiblings(tracks);
     for (const t of tracks) {
       if (!t || !t.path) continue;
       t.id = t.id || hash(t.path.toLowerCase());
       byId.set(t.id, t);
       let folder = albumFolder(t.path);
-      if (siblings.has(lc(folder))) folder = siblings.get(lc(folder));
+      const sk = t.album && t.album.trim() ? discKey(folder, t.album) : null;
+      if (sk && siblings.has(sk)) folder = siblings.get(sk);
       const loose = !t.album || !t.album.trim();
-      const title = loose ? path.basename(folder) : t.album.trim();
+      const title = loose ? path.basename(folder) : splitDisc(t.album).title;
       const key = folder.toLowerCase() + '|' + norm(title);
       let a = albumsByKey.get(key);
       if (!a) {
@@ -190,7 +260,7 @@ class MusicLibrary extends EventEmitter {
     for (const a of albums.values()) perFolder.set(lc(a.folder), (perFolder.get(lc(a.folder)) || 0) + 1);
     const fa = new Map(Object.entries(folderArt).map(([k, v]) => [lc(k), v]));
     for (const a of albums.values()) {
-      a.tracks.sort((x, y) => (x.discNo - y.discNo) || (x.trackNo - y.trackNo) || fileNames.compare(path.basename(x.path), path.basename(y.path)));
+      a.tracks.sort((x, y) => (discOf(x) - discOf(y)) || (x.trackNo - y.trackNo) || fileNames.compare(path.basename(x.path), path.basename(y.path)));
       const albumArtists = new Map(), trackArtists = new Map(), artists = new Map();
       let year, added = -Infinity, genre = '';
       for (const t of a.tracks) {
@@ -435,7 +505,7 @@ class MusicLibrary extends EventEmitter {
         let fi = folderIx.get(dir);
         if (fi === undefined) { fi = folders.length; folders.push(dir); folderIx.set(dir, fi); }
         // [id, title, artist, albumId, disc, no, duration, codec, rate, bits, year, composer, added, folder]
-        tracks.push([t.id, t.title, t.artist, a.id, t.discNo, t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '', t.added / 1e7, fi]);
+        tracks.push([t.id, t.title, t.artist, a.id, discOf(t), t.trackNo, Math.round(t.duration * 100) / 100, t.codec, t.sampleRate, t.bits, t.year, t.composer || '', t.added / 1e7, fi]);
       }
     }
     const data = Buffer.from(JSON.stringify({ revision: this.revision, albums, tracks, folders }));

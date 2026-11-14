@@ -1308,7 +1308,7 @@ public sealed class MainForm : Form
                     string name = cue != null && cue.Title.Length > 0 ? cue.Title : al == null ? j.Src.Album : al.Loose ? Path.GetFileName(al.Folder) : al.Title;
                     folder = Path.Combine(dir, AudioConverter.SafeName(string.IsNullOrWhiteSpace(name) ? "未知專輯" : name));
                     outFolders.Add(folder);
-                    if (cue == null && al != null && al.Tracks.Select(t => t.DiscNo).Distinct().Count() > 1) folder = Path.Combine(folder, "Disc " + j.Src.DiscNo);
+                    if (cue == null && al != null && al.Tracks.Select(t => t.Disc).Distinct().Count() > 1) folder = Path.Combine(folder, "Disc " + j.Src.Disc);
                 }
                 string target = Path.Combine(folder, stem + ext);
                 for (int n = 2; File.Exists(target) || !reserved.Add(target); n++) target = Path.Combine(folder, $"{stem} ({n}){ext}");
