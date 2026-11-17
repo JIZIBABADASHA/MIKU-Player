@@ -69,3 +69,54 @@ test('a 150,000-track loose folder builds without exceeding JavaScript argument 
   assert.equal(album.year, 2000);
   assert.equal(album.added, tracks.length - 1);
 });
+
+test('discs tagged as albums of their own ("[Disc 1]", "[Disc 2]") are one album, ordered by disc then track', () => {
+  const sib = (disc, no) => track(`d${disc}-${no}`, {
+    path: path.join('music', 'collection', `さざめきの街角 [Disc ${disc}]`, `${no}.flac`),
+    album: `さざめきの街角 [Disc ${disc}]`, albumArtist: 'Various Artists', discNo: 1, trackNo: no,
+  });
+  const lib = build([sib(2, 1), sib(1, 2), sib(2, 2), sib(1, 1)]);
+  const albums = lib.albumList();
+  assert.equal(albums.length, 1);
+  assert.equal(albums[0].title, 'さざめきの街角');
+  assert.deepEqual(albums[0].tracks.map(t => t.id), ['d1-1', 'd1-2', 'd2-1', 'd2-2']);
+  const exported = JSON.parse(lib.exportJson().toString());
+  assert.deepEqual(exported.tracks.map(r => r[4]), [1, 1, 2, 2]);
+  // the disc found from the title is not saved with the track
+  assert.equal(JSON.parse(JSON.stringify(albums[0].tracks[0])).disc, undefined);
+
+  const same = build([
+    track('a', { album: 'Album (CD2)', trackNo: 1, discNo: 0 }), track('b', { album: 'Album (CD1)', trackNo: 1, discNo: 0 }),
+    track('c', { album: 'Album - Disc 1', trackNo: 2 }),
+  ]).albumList();
+  assert.equal(same.length, 1);
+  assert.equal(same[0].title, 'Album');
+  assert.deepEqual(same[0].tracks.map(t => t.id), ['b', 'c', 'a']);
+
+  // a real disc number tag wins over the title; titles that merely contain "CD" stay as they are
+  assert.equal(build([track('x', { album: 'Best CD Hits' })]).albumList()[0].title, 'Best CD Hits');
+  assert.equal(build([track('y', { album: 'Live [Disc 1]', discNo: 2 })]).albumList()[0].tracks[0].disc, 0);
+});
+
+test('a disc in a subfolder with another album artist ("潜潜話" + "初回限定盤 オフボーカル") is one album; versions stay versions', () => {
+  const root = path.join('music', 'ずっと真夜中でいいのに', '潛潛話');
+  const vocal = [1, 2, 3].map(n => track(`v${n}`, { path: path.join(root, `0${n}.flac`), album: '潜潜話', albumArtist: 'ZUTOMAYO', discNo: 1, trackNo: n, duration: 200 + n }));
+  const inst = [1, 2, 3].map(n => track(`i${n}`, { path: path.join(root, '初回限定盤 オフボーカル', `0${n} (Instrumental).flac`), title: `t${n} (Instrumental)`, album: '潜潜話', albumArtist: 'ずっと真夜中でいいのに。', discNo: 2, trackNo: n, duration: 200 + n }));
+  const one = build([...inst, ...vocal]).albumList();
+  assert.equal(one.length, 1);
+  assert.equal(one[0].folder, root);
+  assert.deepEqual(one[0].tracks.map(t => t.id), ['v1', 'v2', 'v3', 'i1', 'i2', 'i3']);
+
+  // the instrumentals tagged disc 1 too, and fewer of them: numbered after the vocal disc
+  const root2 = path.join('music', 'z', '虚仮の一念海馬に託す');
+  const v2 = [1, 2, 3, 4].map(n => track(`v${n}`, { path: path.join(root2, `0${n}.flac`), album: '虚仮の一念海馬に託す', discNo: 1, trackNo: n }));
+  const i2 = [3, 4].map(n => track(`i${n}`, { path: path.join(root2, '初回限定盤 Disc 1 オフボーカル', `0${n}.flac`), title: `t${n} (Instrumental)`, album: '虚仮の一念海馬に託す', discNo: 1, trackNo: n }));
+  const lib = build([...i2, ...v2]);
+  assert.equal(lib.albumList().length, 1);
+  assert.deepEqual(lib.albumList()[0].tracks.map(t => [t.id, t.disc || t.discNo]), [['v1', 1], ['v2', 1], ['v3', 1], ['v4', 1], ['i3', 2], ['i4', 2]]);
+
+  // the same album twice (FLAC and DSD folders, both disc 1, same songs) stays two versions
+  const flac = [1, 2].map(n => track(`f${n}`, { path: path.join('music', 'x', 'Album', 'FLAC', `${n}.flac`), discNo: 1, trackNo: n }));
+  const dsd = [1, 2].map(n => track(`d${n}`, { path: path.join('music', 'x', 'Album', 'DSD', `${n}.dsf`), discNo: 1, trackNo: n, codec: 'DSF' }));
+  assert.equal(build([...flac, ...dsd]).albumList().length, 2);
+});

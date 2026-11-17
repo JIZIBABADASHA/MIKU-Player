@@ -397,6 +397,28 @@ const Views = {
       artist: (a, b) => coll.compare(a.artist, b.artist) || (a.year - b.year) || coll.compare(a.title, b.title),
       title: (a, b) => coll.compare(a.title, b.title),
       year: (a, b) => (b.year || 0) - (a.year || 0) || coll.compare(a.artist, b.artist),
+      // like 音樂庫 → 資料夾 (tree): folder by folder from the outermost down, a folder's own album before its subfolders'
+      folder: (a, b) => {
+        const x = albumDir(a), y = albumDir(b);
+        for (let i = 0; i < Math.min(x.segs.length, y.segs.length); i++) { const c = coll.compare(x.segs[i], y.segs[i]); if (c) return c; }
+        return (x.segs.length - y.segs.length) || coll.compare(a.title, b.title);
+      },
+    };
+    // an album's folder: the folder all its tracks are under (a multi-disc album in Disc1 / Disc2 → their parent)
+    const dirCache = new Map();
+    const albumDir = al => {
+      let d = dirCache.get(al);
+      if (d) return d;
+      const paths = [...new Set(al.tracks.map(t => t.dir).filter(Boolean))].map(p => p.split(/[\\/]+/).filter(Boolean));
+      let segs = paths[0] || [];
+      for (const p of paths.slice(1)) { let i = 0; while (i < segs.length && i < p.length && coll.compare(segs[i], p[i]) === 0) i++; segs = segs.slice(0, i); }
+      // the scroll bubble: the first folder under the library folder it is in (D:\MUSIC\Aimer\… → Aimer)
+      const full = segs.join('/').toLowerCase();
+      const root = (App.settings.folders || []).map(r => r.split(/[\\/]+/).filter(Boolean)).filter(r => r.length <= segs.length && full.startsWith(r.join('/').toLowerCase()))
+        .sort((p, q) => q.length - p.length)[0];
+      const top = segs[root ? root.length : 0] || segs[segs.length - 1] || '—';
+      dirCache.set(al, d = { segs, top });
+      return d;
     };
     let cleanup;
     const host = h('div');
@@ -410,14 +432,14 @@ const Views = {
       const firstChar = s => { const c = [...(s || '').trim()][0] || '#'; return /[a-z]/i.test(c) ? c.toUpperCase() : c; };
       const labels = {
         added: a => { const d = new Date((a.added - 62135596800) * 1000); return isNaN(d) ? '' : `${d.getFullYear()} / ${d.getMonth() + 1}`; },
-        artist: a => firstChar(a.artist), title: a => firstChar(a.title), year: a => a.year || '—',
+        artist: a => firstChar(a.artist), title: a => firstChar(a.title), year: a => a.year || '—', folder: a => albumDir(a).top,
       };
       cleanup = vgrid(host, list, { render: albumCard, label: labels[sort] });
     };
     const dir = sortDir('albumSortDir', () => sort, () => draw());
     const head = pageHead(T('專輯', 'nav'), '', [
       seg([['all', T('全部')], ['hires', 'Hi-Res'], ['dsd', 'DSD']], filter, v => { filter = v; setUiPref('albumFilter', v); draw(); }),
-      seg([['added', T('最近加入')], ['artist', T('演出者')], ['title', T('名稱')], ['year', T('年份')]], sort, v => { sort = v; setUiPref('albumSort', v); dir.paint(); draw(); }),
+      seg([['added', T('最近加入')], ['artist', T('演出者')], ['title', T('名稱')], ['year', T('年份')], ['folder', T('資料夾')]], sort, v => { sort = v; setUiPref('albumSort', v); dir.paint(); draw(); }),
       dir.el,
       colsControl('album'),
     ]);

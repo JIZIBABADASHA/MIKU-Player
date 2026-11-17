@@ -18,6 +18,10 @@ public sealed class Track
     public int Year { get; set; }
     public int TrackNo { get; set; }
     public int DiscNo { get; set; }
+    /// <summary>The disc this track is on within its album: the disc number tag, or the "[Disc 2]" in its album title
+    /// when the tag doesn't tell the discs apart (each disc tagged 1, or not at all). Set when the library is grouped.</summary>
+    [JsonIgnore] public int Disc { get => _disc > 0 ? _disc : DiscNo; set => _disc = value; }
+    int _disc;
     public double Duration { get; set; }
     public int SampleRate { get; set; }
     public int Bits { get; set; }
