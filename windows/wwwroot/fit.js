@@ -24,7 +24,7 @@
     new MutationObserver(() => { now(); later(350); later(750); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     // Now Playing's own classes (on, nolyrics, paused…) — ignoring our own top-crowded toggle, so this never feeds itself
-    const key = () => np.className.replace(/\btop-crowded\b/, '').replace(/\bpaused\b/, '').trim();
+    const key = () => np.className.replace(/\btop-crowded\b|\btop-idle\b/g, '').replace(/\bpaused\b/, '').trim();
     let last = key();
     new MutationObserver(() => { const k = key(); if (k === last) return; last = k; now(); later(750); })
       .observe(np, { attributes: true, attributeFilter: ['class'] });
