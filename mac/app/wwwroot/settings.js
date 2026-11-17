@@ -102,7 +102,7 @@ const Settings = {
         const value = exclusive && s.dsdMode === 'dop' ? 'dop' : 'pcm';
         dsdSect.append(field(T('DSD 播放方式'), (opts.find(o => o[0] === value) || opts[0])[2],
           select(opts.map(o => [o[0], o[1]]), value, async v => { await this.set({ dsdMode: v }); Router.render(false, 'none'); })));
-        if (core.maxDsd) dsdSect.append(field(T('DAC 最高 DSD'), T('DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇'),
+        if (core.maxDsd) dsdSect.append(field(T('DAC 最高 DSD 取樣倍率'), T('超過這個倍率的 DSD 會轉成 PCM 播放。請依 DAC 實際支援的設定，驅動程式回報的不一定準。'),
           select([[0, T('不限制')], [64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], [64, 128, 256, 512].includes(s.maxDsd) ? s.maxDsd : 0, v => this.set({ maxDsd: +v }))));
       }
       if (core.dsdPcmRate !== false) dsdSect.append(field(T('DSD 轉 PCM 取樣率'), T('DSF / DFF 會用 FFmpeg 轉成這個取樣率的 PCM 後播放（Mac 版不支援 DoP 直送）。'), select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
@@ -114,10 +114,10 @@ const Settings = {
         select([['digital', T('數位音量')], ['fixed', T('固定 0 dB')]], s.volumeMode === 'hardware' ? 'digital' : s.volumeMode, v => this.set({ volumeMode: v }))));
       // with a module that measures loudness: "track" / "album" use its measurements first, and "source" levels only its channels
       const lm = App.loudness;
-      const rgOpts = [['off', T('關閉')], ['track', T('依曲目')], ['album', T('依專輯')]];
+      const rgOpts = [['off', T('關閉', 'off')], ['track', T('依曲目')], ['album', T('依專輯')]];
       if (lm) rgOpts.push(['source', T`在播放 ${lm} 時開啟`]);
       vol.append(field('ReplayGain', lm
-        ? T`讓曲目音量一致，使用 ${lm} 量測的響度（還沒量測時用標籤）。依專輯：整張專輯都量完後依推算的專輯響度調整，保留專輯內的大小聲差異。「在播放 ${lm} 時開啟」：只在播放 ${lm} 頻道時依曲目調整。`
+        ? T`讓每首歌的音量一致，使用 ${lm} 量測的響度（還沒量測的用標籤）。依專輯：保留同一張專輯內的大小聲差異。「在播放 ${lm} 時開啟」：只在播放 ${lm} 頻道時調整。`
         : T('依標籤中的增益值讓曲目音量一致。'), [
         select(rgOpts, s.replayGain === 'source' && !lm ? 'off' : s.replayGain, v => this.set({ replayGain: v })),
       ]));
