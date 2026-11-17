@@ -47,7 +47,7 @@ const Settings = {
       // everything that changes the samples off in one step: DSP, ReplayGain, upsampling (MIKU's and a module core's own),
       // digital volume. ASIO stays ASIO; a DAC's hardware volume does not touch the samples and stays as it is
       out.append(field('Bit-perfect', T('套用後會先停止播放，關閉 DSP、ReplayGain 與升頻，音量設為固定 0 dB（已使用 DAC 硬體音量時維持不變）。再次播放前請先調低 DAC 音量。'),
-        h('button', { class: 'btn small ghost', onclick: async () => {
+        h('button', { class: 'btn small bp-apply', html: icon('check') + T('套用 Bit-perfect 設定'), onclick: async () => {
           await Host.call('stop');
           const cur = App.settings;
           await this.set({ outputMode: cur.outputMode === 'asio' ? 'asio' : 'exclusive', upsampling: 'off', muted: false, replayGain: 'off',
@@ -59,7 +59,7 @@ const Settings = {
             catch (e) { console.error('[ext] bitPerfect', e); }
           }
           Router.render(); toast(T('已套用 Bit-perfect 設定；請用 DAC 調整音量'));
-        } }, T('套用 Bit-perfect 設定'))));
+        } })));
       const devHost = h('div');
       out.append(devHost);
       const redrawDevices = async () => {
