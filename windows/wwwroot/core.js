@@ -261,6 +261,16 @@ const splitNames = s => {
   for (const x of (s || '').split(';')) { const v = x.trim(), k = v.toLowerCase(); if (v && !seen.has(k)) { seen.add(k); out.push(v); } }
   return out;
 };
+/** Each artist credited in an artist text ("ryo feat. 初音ミク", "A & ryo", "A／ryo", "ryo x Mili", "ryo (supercell)"),
+ *  so an artist page can match a name exactly instead of a piece of a longer one ("xxxxryoxxxx", "Tokyo"). */
+const creditNames = s => {
+  const out = new Set();
+  for (const part of splitNames(s)) {
+    out.add(norm(part));
+    for (const p of part.split(/\s*(?:[(（\[【)）\]】]|;|,|、|&|＆|×|\/|／|\s[xX]\s|\bfeat\.?(?=\s)|\bft\.|\bwith\b)\s*/i)) { const v = norm(p.trim()); if (v) out.add(v); }
+  }
+  return out;
+};
 /** Several values shown as one text. */
 const joinNames = names => names.join(' / ');
 const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
@@ -363,7 +373,8 @@ const Lib = {
     const own = this.artistMap.get(name)?.albums || [];
     const nn = norm(name);
     const mine = new Set(own);
-    const appears = this.albums.filter(a => !mine.has(a) && a.tracks.some(t => t.na.includes(nn)));
+    // matched against each credited name, not a piece of the text (ryo's page must not get "xxxxryoxxxx")
+    const appears = nn ? this.albums.filter(a => !mine.has(a) && a.tracks.some(t => (t.cr || (t.cr = creditNames(t.artist))).has(nn))) : [];
     return { own: own.slice().sort((a, b) => (b.year || 0) - (a.year || 0)), appears };
   },
 };
@@ -1172,8 +1183,12 @@ const Popover = {
 };
 
 /** One item of a menu (its key, when given, marks it for items added later: albumMenu's CUE item). */
+// selected (true / false): one of a choice (the album's versions): the chosen one is marked in the accent colour, the
+// others have no icon, only its place, so their text lines up
 const menuButton = it => h('button', { 'data-key': it.key || null, onclick: () => { Popover.close(); it.run(); },
-  html: icon(it.icon || 'note') + `<span>${esc(it.label)}</span>` });
+  class: it.selected ? 'is-selected' : null,
+  ...(it.selected === undefined ? {} : { role: 'menuitemradio', 'aria-checked': it.selected ? 'true' : 'false' }),
+  html: (it.selected === false ? '<span class="i i-blank"></span>' : icon(it.icon || 'note')) + `<span>${esc(it.label)}</span>` });
 
 /** A menu of items ('-' a line); it comes in fading only (menu-pop): items that moved under the pointer as it came in lost the click. */
 function menu(items, anchor, opts = {}) {
@@ -1209,7 +1224,7 @@ function versionMenu(al, anchor) {
   const artists = new Set(vs.map(v => v.artist));
   menu(vs.map(v => ({
     label: [qualityLabel(v), T`${v.tracks.length} 首`, v.folder, artists.size > 1 ? v.artist : ''].filter(Boolean).join(' · '),
-    icon: v === al ? 'check' : 'album',
+    icon: 'check', selected: v === al,
     run: () => { if (v !== al) go('#/album/' + v.id); },
   })), anchor);
 }

@@ -25,6 +25,14 @@ const fmtTime = s => {
 };
 const fmtLong = s => { const m = Math.round(s / 60); return m >= 60 ? `${Math.floor(m / 60)} 小時 ${m % 60} 分鐘` : `${m} 分鐘`; };
 const norm = s => String(s || '').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, '');
+const creditNames = s => {
+  const out = new Set();
+  for (const part of String(s || '').split(';')) {
+    if (norm(part)) out.add(norm(part));
+    for (const p of part.split(/\s*(?:[(（\[【)）\]】]|;|,|、|&|＆|×|\/|／|\s[xX]\s|\bfeat\.?(?=\s)|\bft\.|\bwith\b)\s*/i)) { const v = norm(p); if (v) out.add(v); }
+  }
+  return out;
+};
 const khz = r => (r / 1000).toFixed(1).replace(/\.0$/, '');
 const debounce = (f, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 const collator = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
@@ -177,7 +185,8 @@ const Lib = {
   artistAlbums(name) {
     const own = (this.artistMap.get(name)?.albums || []).slice().sort((a, b) => (b.year || 0) - (a.year || 0));
     const nn = norm(name);
-    const appears = nn ? this.albums.filter(a => !own.includes(a) && a.tracks.some(t => norm(t.artist).includes(nn))) : [];
+    // each credited name must be the artist ("ryo feat. 初音ミク", "A & ryo"), not just contain it ("xxxxryoxxxx")
+    const appears = nn ? this.albums.filter(a => !own.includes(a) && a.tracks.some(t => (t.cr || (t.cr = creditNames(t.artist))).has(nn))) : [];
     return { own, appears };
   },
 };

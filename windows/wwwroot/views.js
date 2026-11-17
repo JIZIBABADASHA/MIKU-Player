@@ -323,16 +323,108 @@ function randomOrder(list) {
   for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return list;
 }
-// Search only displays a fixed number of results; stop as soon as that prefix is complete.
-function searchMatches(items, terms, limit) {
-  const matches = [];
-  for (const item of items) {
-    if (terms.every(term => item.s.includes(term))) {
-      matches.push(item);
-      if (matches.length >= limit) break;
+// Search ranks what matches by how well it matches: the whole name first, then a name or word that starts with what was
+// typed, then the same in the artist (and for tracks, in the album), and only last a match inside a word ("ray" in "prayer").
+const SEARCH_FIELDS = {
+  artist: a => [[a.name, 1]],
+  album: a => [[a.title, 1], [a.artist, 0.65]],
+  track: t => [[t.title ?? t.name, 1], [t.artist, 0.65], [t.album && t.album.title, 0.4]],
+};
+const searchNorm = s => { s = (s || '').toLowerCase(); return /^[\x00-\x7f]*$/.test(s) ? s : s.normalize('NFKC'); };
+const searchWordChar = /[\p{L}\p{N}]/u;
+// in Chinese / Japanese / Korean there are no spaces between words: any match counts as the start of one
+const searchCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+function searchScore(text, term) {
+  if (!text) return 0;
+  if (text === term) return 100;
+  let i = text.indexOf(term);
+  if (i < 0) return 0;
+  const endsWord = k => k >= text.length || !searchWordChar.test(text[k]);
+  // a whole word ("Blue Ray") beats the start of a longer word ("Raymond"), which beats a match inside one ("Prayer")
+  if (i === 0 && endsWord(term.length)) return 90;
+  const cjk = searchCjk.test(term[0]);
+  let best = i === 0 ? 75 : 20;
+  for (; i >= 0 && best < 80; i = text.indexOf(term, i + 1)) {
+    if (i === 0 || cjk || !searchWordChar.test(text[i - 1])) best = Math.max(best, endsWord(i + term.length) ? 80 : i === 0 ? 75 : 60);
+  }
+  return best;
+}
+function searchMatches(items, terms, limit, fields = SEARCH_FIELDS.track, typed = terms) {
+  if (!terms.length || !limit) return items.slice(0, limit);
+  const phrase = terms.length > 1 ? terms.join(' ') : null;
+  const ranked = [];
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    if (!terms.every(term => item.s.includes(term))) continue;
+    const texts = fields(item);
+    const name = String(texts[0][0] || '');
+    for (const f of texts) f[0] = searchNorm(f[0]);
+    let score = 0;
+    for (const term of phrase ? [...terms, phrase] : terms) {
+      // several words typed in the same order as a name ("blue bird") also count as a phrase
+      let best = 0;
+      for (const [text, weight] of texts) { const v = searchScore(text, term) * weight; if (v > best) best = v; }
+      score += best;
+    }
+    // a name that has every word typed always comes before a match found only in the artist or album
+    const named = terms.every(term => texts[0][0].includes(term));
+    // how the name matches: the whole word ("feel"), then the start of a longer word ("feeling"), then inside one
+    const tier = named ? Math.min(...terms.map(term => { const v = searchScore(texts[0][0], term); return v >= 80 ? 3 : v >= 60 ? 2 : 1; })) : 0;
+    // the same kind of match: the name has it exactly as typed ("feel") before in another case ("FEEL", "Feel")
+    const cased = named && typed.every(word => name.includes(word));
+    ranked.push({ item, named, tier, cased, score, len: texts[0][0].length, index });
+  }
+  // equally good matches: the shorter name (the closer match) first, then the library's order
+  ranked.sort((a, b) => b.named - a.named || b.tier - a.tier || b.cased - a.cased || b.score - a.score || a.len - b.len || a.index - b.index);
+  return ranked.slice(0, limit).map(r => r.item);
+}
+// The artists list only has album artists; search also finds artists who only appear on tracks (a compilation's
+// "FEEL SO BAD"), with the albums those tracks are on.
+let searchArtistCache = null;
+function searchArtists() {
+  if (searchArtistCache && searchArtistCache.tracks === Lib.tracks && searchArtistCache.artists === Lib.artists) return searchArtistCache.list;
+  const extra = new Map();
+  for (const t of Lib.tracks) {
+    for (const name of (t.artists && t.artists.length ? t.artists : [t.artist])) {
+      if (!realArtist(name) || Lib.artistMap.has(name)) continue;
+      let ar = extra.get(name);
+      if (!ar) extra.set(name, ar = { name, albums: [], s: norm(name) });
+      if (t.album && !ar.albums.includes(t.album)) ar.albums.push(t.album);
     }
   }
-  return matches;
+  const list = Lib.artists.concat([...extra.values()]);
+  searchArtistCache = { tracks: Lib.tracks, artists: Lib.artists, list };
+  return list;
+}
+// Marks what was searched for in the names shown (lightly: bold, with a thin accent underline), so it's clear why each
+// result is there.
+function searchHighlight(root, terms) {
+  for (const el of root.querySelectorAll('.card .t1, .card .t2, .row .tt > div, .row .al a')) {
+    for (const node of [...el.childNodes]) {
+      if (node.nodeType !== 3) continue;
+      const text = node.data, low = text.normalize('NFKC').toLowerCase();
+      if (low.length !== text.length) continue;
+      const spans = [];
+      for (const term of terms) for (let i = low.indexOf(term); i >= 0; i = low.indexOf(term, i + term.length)) spans.push([i, i + term.length]);
+      if (!spans.length) continue;
+      spans.sort((a, b) => a[0] - b[0]);
+      const frag = document.createDocumentFragment();
+      let at = 0;
+      for (const [a, b] of spans) {
+        if (b <= at) continue;
+        const from = Math.max(a, at);
+        if (from > at) frag.append(text.slice(at, from));
+        const m = document.createElement('mark');
+        m.className = 'hit';
+        m.style.cssText = 'background:none;color:inherit;font-weight:700;text-decoration:underline 2px var(--teal);text-underline-offset:3px';
+        m.textContent = text.slice(from, b);
+        frag.append(m);
+        at = b;
+      }
+      frag.append(text.slice(at));
+      node.replaceWith(frag);
+    }
+  }
 }
 const Views = {
   markPlaying(root = document) {
@@ -627,9 +719,10 @@ const Views = {
     view.addEventListener('click', keep, true);
     const cleanup = () => view.removeEventListener('click', keep, true);
     const terms = norm(q).split(/\s+/).filter(Boolean);
-    const artists = searchMatches(Lib.artists, terms, 10);
-    const albums = searchMatches(Lib.albums, terms, 18);
-    const tracks = searchMatches(Lib.tracks, terms, 80);
+    const typed = q.normalize('NFKC').split(/\s+/).filter(Boolean);
+    const artists = searchMatches(searchArtists(), terms, 10, SEARCH_FIELDS.artist, typed);
+    const albums = searchMatches(Lib.albums, terms, 18, SEARCH_FIELDS.album, typed);
+    const tracks = searchMatches(Lib.tracks, terms, 80, SEARCH_FIELDS.track, typed);
     view.append(pageHead(T`「${q}」`, `${artists.length + albums.length + tracks.length ? '' : T('沒有符合的結果')}`));
     if (artists.length) {
       view.append(h('div', { class: 'rail-head' }, h('h2', null, T('演出者', 'nav'))));
@@ -649,6 +742,7 @@ const Views = {
       tracks.forEach((t, i) => host.append(trackRow(t, i, tracks, { art: true })));
       view.append(host);
     }
+    searchHighlight(view, terms);
     return cleanup;
   },
 

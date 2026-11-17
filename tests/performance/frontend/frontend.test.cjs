@@ -42,19 +42,24 @@ function frontend(platform) {
 }
 
 for (const platform of ['windows', 'mac/app']) {
-  test(`${platform}: bounded search preserves matching order and limits`, () => {
+  test(`${platform}: search ranks the name as typed, then other cases, then longer words, then artist/album-only`, () => {
     const { searchMatches } = frontend(platform);
-    const tracks = Array.from({ length: 1000 }, (_, id) => ({ id, s: `${id % 2 ? 'miku' : 'luka'} ${id % 3 ? 'live' : 'studio'} 初音 ${id}` }));
-    for (const terms of [[], ['miku'], ['miku', 'studio'], ['初音', 'live'], ['missing']]) {
-      for (const limit of [10, 18, 80]) {
-        const expected = tracks.filter(t => terms.every(term => t.s.includes(term))).slice(0, limit);
-        assert.deepEqual(Array.from(searchMatches(tracks, terms, limit)), expected);
-      }
+    const norm = s => s.normalize('NFKC').toLowerCase();
+    const track = (id, title, artist, album) => ({ id, title, artist, album: { title: album }, s: norm(`${title} ${artist} ${album}`) });
+    const tracks = Array.from({ length: 300 }, (_, id) => track(id, `${id % 2 ? 'miku' : 'luka'} ${id % 3 ? 'live' : 'studio'} ${id}`, 'x', '初音'));
+    for (const terms of [['miku'], ['miku', 'studio'], ['初音', 'live']]) {
+      const found = Array.from(searchMatches(tracks, terms, 18));
+      assert.equal(found.length, 18);
+      assert.ok(found.every(t => terms.every(term => t.s.includes(term))));
     }
-    let reads = 0;
-    const large = Array.from({ length: 100000 }, (_, id) => ({ id, get s() { reads++; return 'miku'; } }));
-    assert.equal(searchMatches(large, ['miku'], 80).length, 80);
-    assert.equal(reads, 80, 'a common search should not scan the remaining 99,920 tracks');
+    assert.equal(searchMatches(tracks, [], 10).length, 10);
+    assert.deepEqual(Array.from(searchMatches(tracks, ['missing'], 80)), []);
+    const feel = [track(1, 'Bari Bari Saikyou no. 1', 'FEEL SO BAD', 'Jump'), track(2, 'Quiet Feelings', 'x', 'y'), track(3, "Lovin' Feelin'", 'x', 'y'),
+      track(4, 'I Feel Fine', 'x', 'y'), track(5, 'Feel so good', 'x', 'y'), track(6, 'FEEL ME', 'x', 'y'),
+      track(7, 'feel my soul', 'x', 'y'), track(8, 'I feel it', 'x', 'y'), track(9, 'Feels', 'x', 'y')];
+    // the whole word as typed, then in another case (titles that start with it first), then longer words, then artist-only
+    assert.deepEqual(Array.from(searchMatches(feel, ['feel'], 80), t => t.id), [7, 8, 6, 5, 4, 9, 2, 3, 1]);
+    assert.deepEqual(Array.from(searchMatches(feel, ['feel'], 80, undefined, ['FEEL']), t => t.id).slice(0, 4), [6, 5, 7, 8]);
   });
 
   test(`${platform}: scrolling within mounted rows avoids reconciliation; boundary/resize updates still render`, () => {
