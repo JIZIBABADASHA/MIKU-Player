@@ -446,6 +446,8 @@ public sealed class DopSource : PcmSource
         int total = 0;
         while (total < count)
         {
+            // a song still being copied from another computer (遠端音樂庫): wait for the bytes
+            GrowingFiles.Wait(Track.Path, _fs.Position + count - total);
             int n = _fs.Read(buf, total, count - total);
             if (n <= 0) break;
             total += n;

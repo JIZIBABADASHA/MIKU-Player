@@ -104,6 +104,8 @@ public sealed class Player
             var t = _lib.GetTrack(_queue[n]);
             // a CD track not yet all in the cache isn't opened ahead of time: it starts when it is its turn (Load waits for it)
             if (t != null && t.Codec == "CD" && CdService.Instance?.IsReady(t) != true) return null;
+            // a song of the other computer's library: from the cache, or streamed while that computer can be reached
+            if (t != null && RemoteLibrary.Instance?.IsRemote(t) == true && !RemoteLibrary.Instance.IsReady(t)) return null;
             return t;
         }
     }
@@ -171,6 +173,15 @@ public sealed class Player
             // an audio CD: the track is read into the cache first (playback starts once enough of it is there)
             try { await CdService.Instance.Prepare(t); }
             catch (Exception ex) { Error?.Invoke(ex.Message); NowChanged?.Invoke(); return; }
+        }
+        if (RemoteLibrary.Instance?.IsRemote(t) == true)
+        {
+            // a song of the other computer's library (遠端音樂庫): streamed or from the cache; the next two are copied meanwhile
+            var next = new List<Track>();
+            lock (_lock) for (int k = 1; k <= 2; k++) if (_index + k < _queue.Count) next.Add(_lib.GetTrack(_queue[_index + k]));
+            try { await RemoteLibrary.Instance.Prepare(t, next); }
+            catch (Exception ex) { if (Current != t) return; Error?.Invoke($"無法播放「{t.Title}」：{ex.Message}"); NowChanged?.Invoke(); return; }
+            if (Current != t) return;   // something else was chosen meanwhile
         }
         await Engine.LoadAsync(t, pos, play);
         // loaded paused (previous / next while paused): a module going on with the queue is still asked if this is its

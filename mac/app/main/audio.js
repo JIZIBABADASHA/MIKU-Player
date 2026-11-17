@@ -39,8 +39,11 @@ class AudioEngine extends EventEmitter {
         this.create();
         // the live track (YouTube Music) only plays on a core that takes it; the host routes the page again (main.js)
         if (track && track.id === 'yt-live' && !this.backend.supportsLive) this.emit('changed');
-        else if (track) await this.backend.load(track, pos, play);
-        else this.emit('changed');
+        else if (track) {
+          // a song streamed from another computer: a module's core needs it copied here first (main.js)
+          if (this.beforeCoreLoad) { try { await this.beforeCoreLoad(track); } catch (e) { this.emit('failed', `無法播放「${track.title}」：${e.message}`); this.emit('changed'); return; } }
+          await this.backend.load(track, pos, play);
+        } else this.emit('changed');
       } else if (old.applyOutput) await old.applyOutput();
       else if (track) await old.load(track, pos, play);
       else this.emit('changed');

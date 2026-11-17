@@ -35,6 +35,7 @@ class Player extends EventEmitter {
     if (n >= this.queue.length) { if (this.s.repeat !== 'all') return null; n = 0; }
     const t = this.lib.getTrack(this.queue[n]);
     // a CD track not yet copied off the disc can't be preloaded for gapless
+    if (t && t.remote && this.remote && !this.remote.isReady(t)) return null;   // a song of the PC not copied here yet (being fetched now)
     return t && t.codec === 'CD' && this.cd && !this.cd.isReady(t) ? null : t;
   }
   onGapless(t) {
@@ -75,6 +76,16 @@ class Player extends EventEmitter {
       try { await this.cd.prepare(t); }
       catch (e) { this.engine.stop(); this.engine.emit('failed', `無法播放「${t.title}」：${e.message}`); this.changedNow(); return; }
       if (this.current !== t) return;   // something else was chosen meanwhile
+    }
+    if (t.remote && this.remote) {
+      // a song of the Windows PC's library (遠端音樂庫): copied here first, the next two while it plays
+      const next = [1, 2].map(k => this.index + k < this.queue.length ? this.lib.getTrack(this.queue[this.index + k]) : null);
+      try { await this.remote.prepare(t, next); }
+      catch (e) {
+        if (this.current !== t) return;
+        this.engine.stop(); this.engine.emit('failed', `無法播放「${t.title}」：${e.message}`); this.changedNow(); return;
+      }
+      if (this.current !== t) return;
     }
     await this.engine.load(t, pos, play);
     // loaded paused (previous / next while paused): a module going on with the queue is still asked if this is its last

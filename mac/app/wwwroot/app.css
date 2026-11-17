@@ -486,6 +486,11 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .menu button:hover { background: rgba(var(--ink), .08); }
 .menu button svg.i { width: 18px; height: 18px; color: var(--text-2); }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 5px 4px; }
+/* the chosen one of a choice (album versions): accent tint, thin accent edge, accent check, bolder text; others: no icon */
+.menu button.is-selected { background: rgba(var(--teal-rgb), .16); box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .45); font-weight: 600; }
+.menu button.is-selected:hover { background: rgba(var(--teal-rgb), .24); }
+.menu button.is-selected svg.i { color: var(--teal); stroke-width: 2.4; }
+.menu button .i-blank { display: inline-block; flex: none; width: 18px; height: 18px; }
 
 .sigpop { width: 360px; padding: 18px 18px 14px; }
 .sigpop h3 { margin: 0 0 2px; font-size: 15px; display: flex; align-items: center; gap: 9px; }
