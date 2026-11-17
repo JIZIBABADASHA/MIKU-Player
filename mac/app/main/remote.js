@@ -90,7 +90,7 @@ class RemoteServer {
 
   async body(req) {
     const chunks = []; let n = 0;
-    for await (const c of req) { n += c.length; if (n > 1 << 20) throw new Error('body too large'); chunks.push(c); }
+    for await (const c of req) { n += c.length; if (n > 16 << 20) throw new Error('body too large'); chunks.push(c); }   // 16 MB: a cover picture sent by another MIKU fits
     return Buffer.concat(chunks);
   }
 

@@ -228,13 +228,13 @@ const CoverView = {
         src.textContent = { override: T('自訂封面（只在 MIKU）'), embedded: T('音樂檔內嵌封面'), folder: T('資料夾裡的圖片'), online: T('自動從網路找到'), none: T('沒有封面') }[i.source] || '';
         if (i.dims) dims.textContent = ' · ' + i.dims;
         // a picture that isn't in the music files yet: offer to embed it
-        if (['override', 'online', 'folder'].includes(i.source)) { embed.style.display = ''; embed.title = T('把這張封面嵌入專輯的每個音樂檔，其他播放器也看得到'); }
+        if (['override', 'online', 'folder'].includes(i.source) && !isRemoteId(al.id)) { embed.style.display = ''; embed.title = T('把這張封面嵌入專輯的每個音樂檔，其他播放器也看得到'); }
       }).catch(() => { });
-      btns.append(embed,
+      btns.append(...[embed,
         // opened from here, the back button comes back here
         h('button', { class: 'btn small primary', html: icon('image') + T('更換封面'), onclick: () => { this.close(); ArtPicker.open(al); ArtPicker.back = () => this.open(al); } }),
-        h('button', { class: 'btn small', html: icon('list') + T('編輯標籤'), onclick: () => { this.close(); TagEditor.back = { id: al.id, fn: () => this.open(al) }; TagEditor.open(al); } }),
-        h('button', { class: 'btn small ghost', onclick: () => this.close() }, T('關閉')));
+        isRemoteId(al.id) ? null : h('button', { class: 'btn small', html: icon('list') + T('編輯標籤'), onclick: () => { this.close(); TagEditor.back = { id: al.id, fn: () => this.open(al) }; TagEditor.open(al); } }),
+        h('button', { class: 'btn small ghost', onclick: () => this.close() }, T('關閉'))].filter(Boolean));
     });
   },
   /** Writes the picture the album shows now into its files (tags.save with cover "current"); asks once first. */
