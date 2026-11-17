@@ -2183,7 +2183,9 @@ const Router = {
     const cleanupView = fn(view, r.arg) || null;
     const cleanupRails = typeof attachRailNav === 'function' ? attachRailNav(view) : null;
     r.cleanup = () => { cleanupView && cleanupView(); cleanupRails && cleanupRails(); ArtSharp.release(view); };
-    const y = keepScroll && same ? this.scrolls[r.key] : (this.scrolls[r.key] || 0);
+    // an album page always opens at its top: bringing back where it was left half-scrolled made the cover fly
+    // into a hero that was partly off screen. Lists and grids still come back where they were.
+    const y = keepScroll && same ? this.scrolls[r.key] : r.name === 'album' ? 0 : (this.scrolls[r.key] || 0);
     content.scrollTop = y || 0;
     content.dispatchEvent(new Event('scroll'));
     requestAnimationFrame(() => { Motion.quiet = PageEffects.reduced('page'); });
