@@ -169,10 +169,10 @@ const Settings = {
       dsdSect.append(dsdHost);
       // 最高 DSD: drivers may accept rates their DAC cannot play (no error reaches the player), so the cores' step-down
       // on a refused rate cannot catch it
-      dsdSect.append(field(T('DAC 最高 DSD'), T('DSD 不會以高於此倍率送出：超過的 DSD 檔會轉成 PCM 播放，轉成 DSD 時也不會超過。驅動程式宣稱的上限不一定可靠，請依 DAC 實際支援的格式選擇'),
+      dsdSect.append(field(T('DAC 最高 DSD 取樣倍率'), T('超過這個倍率的 DSD 會轉成 PCM 播放。請依 DAC 實際支援的設定，驅動程式回報的不一定準。'),
         select([[0, T('不限制')], [64, 'DSD64'], [128, 'DSD128'], [256, 'DSD256'], [512, 'DSD512']], [64, 128, 256, 512].includes(s.maxDsd) ? s.maxDsd : 0, v => this.set({ maxDsd: +v }))));
       // DSD → PCM rate: the MIKU core's own setting; a core that picks the rate itself has no field
-      if (core.dsdPcmRate !== false) dsdSect.append(field(T('DSD 轉 PCM 取樣率'), T('DSD 播放方式選 PCM，或 DAC 不支援 DSD 直送時，DSD 會先轉成這個取樣率的 PCM，再套用升頻設定'), select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
+      if (core.dsdPcmRate !== false) dsdSect.append(field(T('DSD 轉 PCM 取樣率'), T('DSD 轉成 PCM 時用的取樣率，之後仍會套用升頻設定。'), select([[88200, '88.2 kHz'], [176400, '176.4 kHz'], [352800, '352.8 kHz']], s.dsdPcmRate, v => this.set({ dsdPcmRate: +v }))));
       ext('dsd', dsdSect);   // the chosen core's own DSD settings (a module's)
       // WASAPI shared: Windows' mixer always converts to the system format, so upsampling and DSD settings do nothing there
       const sharedSect = section(T('升頻與 DSD'), T('共享模式由 Windows 混音器轉成系統格式輸出，升頻與 DSD 設定不會作用；要使用這些設定請改用獨佔模式或 ASIO。'));
@@ -189,10 +189,10 @@ const Settings = {
         select([['digital', T('數位音量')], ['hardware', T('DAC 硬體音量')], ['fixed', T('固定 0 dB（不調整數位增益）')]], s.volumeMode, v => this.set({ volumeMode: v }))));
       // with a module that measures loudness: "track" uses its measurements first, and "source" levels only its channels
       const lm = App.loudness;
-      const rgOpts = [['off', T('關閉')], ['track', T('依曲目')], ['album', T('依專輯')]];
+      const rgOpts = [['off', T('關閉', 'off')], ['track', T('依曲目')], ['album', T('依專輯')]];
       if (lm) rgOpts.push(['source', T`在播放 ${lm} 時開啟`]);
       vol.append(field('ReplayGain', lm
-        ? T`讓曲目音量一致，使用 ${lm} 量測的響度（還沒量測時用標籤）。依專輯：整張專輯都量完後依推算的專輯響度調整，保留專輯內的大小聲差異。「在播放 ${lm} 時開啟」：只在播放 ${lm} 頻道時依曲目調整。`
+        ? T`讓每首歌的音量一致，使用 ${lm} 量測的響度（還沒量測的用標籤）。依專輯：保留同一張專輯內的大小聲差異。「在播放 ${lm} 時開啟」：只在播放 ${lm} 頻道時調整。`
         : T('依標籤中的增益值讓曲目音量一致。'), [
         select(rgOpts, s.replayGain === 'source' && !lm ? 'off' : s.replayGain, v => this.set({ replayGain: v })),
       ]));
