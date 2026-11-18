@@ -115,6 +115,12 @@ const NowPlaying = {
   },
 
   trackChanged(t) {
+    // the same song drawn again (its cover arrived or changed, the library was read again, an album re-read): only its
+    // cover and text are painted again. Clearing and fetching its lyrics again made them vanish and come back, the list
+    // starting over from the top, while the song simply went on playing.
+    const key = t ? (t.live ? 'yt-live|' + t.title : t.id) : null;
+    if (key && key === this._lyFor && this.ly) { this.paint(); return; }
+    this._lyFor = key;
     this.ly = null;
     this.cands = null; $('#ly-pick').hidden = true; $('#np-cand').style.display = 'none';
     this.active = -2;
@@ -410,6 +416,12 @@ const NowPlaying = {
     // binary search for the last line that started
     let lo = 0, hi = L.length - 1, idx = -1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (L[mid].t <= p + 0.15) { idx = mid; lo = mid + 1; } else hi = mid - 1; }
+    // The engine reports where the sound card has got to five times a second, in steps, and every report resets the clock
+    // this counts on from (App.setState); a report a little behind the page's own count put the position back a few
+    // hundredths of a second. Right at a line change that marked the previous line again, then this one again, over and
+    // over: the whole list jumped up and down and the blur flashed. Going back a line now takes a real step back (a
+    // seek, a click on a line, or the position more than 0.6 s before this line's start).
+    if (idx === this.active - 1 && this.active >= 0 && p + 0.15 > L[this.active].t - 0.6) idx = this.active;
     if (performance.now() >= this.manualUntil && this.manualOffset) { this.manualOffset = 0; this.layoutLines(); }
     if (idx !== this.active && !(performance.now() < this._hold)) { this.active = idx; this.layoutLines(); }
     // word-by-word fill for enhanced LRC
