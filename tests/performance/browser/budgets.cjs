@@ -43,7 +43,9 @@ const STEADY = {
   'paused: now playing, line lyrics': PAUSED,
   'playing: minimized': NOTHING,                                                       // minimized: as if nothing played
   'playing: home, glass theme': PLAYING,
-  'playing: now playing, glass theme': NOW_PLAYING,
+  // Glass's now-playing panel leaves a 12 px margin where the background orbs still show: they keep their 24 fps step
+  // clock (effects.js IdleFx), one interval tick per step. Drawn at the display's rate instead they cost the GPU far more.
+  'playing: now playing, glass theme': { ...NOW_PLAYING, intervalsPerSec: 25.5 },
   'playing: home, vinyl theme': { ...PLAYING, stylesPerSec: 60 },                      // + the mini cover's spin (see README)
   'playing: now playing, vinyl theme': NOW_PLAYING,
   'playing: home, lightweight page': NO_BADGE_LOOPS,
