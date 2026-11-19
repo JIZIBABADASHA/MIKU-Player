@@ -36,7 +36,7 @@ async function launchBrowser(opts = {}) {
  * settings, viewport, dpr, extensions [{ id, dir }] (a module's folder holding web/manifest.json), rpc (extra host RPCs).
  */
 async function openApp(browser, opts = {}) {
-  const platform = opts.platform || 'windows';
+  const platform = opts.platform || process.env.MIKU_PERF_PLATFORM || 'windows';
   const wwwroot = path.join(ROOT, platform === 'mac' ? 'mac/app/wwwroot' : 'windows/wwwroot');
   const lib = opts.library || makeLibrary({ albums: opts.albums || 600, trackDur: opts.trackDur || 0, seed: opts.seed || 7 });
   const context = await browser.newContext({ viewport: opts.viewport || { width: 1440, height: 900 }, deviceScaleFactor: opts.dpr || 1, locale: 'zh-TW' });

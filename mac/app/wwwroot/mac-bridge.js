@@ -26,12 +26,8 @@
     syncVisibility();
   });
   document.addEventListener('visibilitychange', syncVisibility);
-  document.addEventListener('DOMContentLoaded', () => {
-    // the progress loop runs only while playing: (re)start it when the play / pause class changes
-    const observer = new MutationObserver(() => { if (typeof App !== 'undefined') App.frame(); });
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    syncVisibility();
-  }, { once: true });
+  // (The progress loop restarts itself when play / pause changes: App.setState ends with App.kick().)
+  document.addEventListener('DOMContentLoaded', syncVisibility, { once: true });
   // mouse back / forward buttons
   window.addEventListener('mouseup', e => {
     if (e.button === 3) { e.preventDefault(); history.back(); }

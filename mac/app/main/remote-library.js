@@ -670,14 +670,6 @@ class RemoteLibrary extends EventEmitter {
     this.saveIndex(); this.emit('changed');
   }
 
-  /** How much of an album is kept offline: 'all', 'some' or ''. */
-  albumState(id) {
-    const al = this.getAlbum(id);
-    if (!al || !al.tracks.length) return '';
-    const n = al.tracks.filter(t => this.files[t.id] && this.files[t.id].pin).length;
-    return n === al.tracks.length ? 'all' : n ? 'some' : '';
-  }
-
   // ───────────── for the page ─────────────
   info() {
     let cache = 0, offline = 0;

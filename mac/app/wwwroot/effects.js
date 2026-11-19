@@ -96,8 +96,12 @@ const IdleFx = {
   decorations: '.sig, .sigpop, .np-bg, #theme-bg, .ly-dots, .np-mini .art, .np-cover, .eq',
   /* The player bar's signal badge loops for as long as music plays, and almost all of it is painted (glows, foils, a
      turning conic gradient): drawn at the display's rate it kept ~10 % of a core busy (more on a 120–160 Hz screen).
-     Its loops are slow (seconds per cycle), so they are stepped at 24 fps instead. The open card (.sigpop) stays smooth. */
-  stepped: '#bar .sig', fps: 24,
+     Its loops are slow (seconds per cycle), so they are stepped at 24 fps instead. The open card (.sigpop) stays smooth.
+     Glass's three blurred light orbs (#theme-bg) drift a few pixels a second (46–64 s a cycle, under 0.2 px a step at
+     24 fps), but drawn at the display's rate each frame blurred and blended three window-sized layers again: on a 120 Hz
+     Mac that kept the GPU process at about 55 % of a core while music played. They share the badge's clock, so the
+     two together make 24 frames a second. */
+  stepped: '#bar .sig, #theme-bg', fps: 24,
   frozen: new Set(), steps: new Map(), stepTimer: 0, windowVisible: true, queued: false,
   get hidden() { return document.hidden || !this.windowVisible; },
   /** The now-playing page is open all the way: the library behind it is covered. */
@@ -142,14 +146,14 @@ const IdleFx = {
     if (this.steps.size && !this.stepTimer) {
       this.stepTimer = setInterval(() => {
         const now = performance.now();
-        for (const [a, t0] of this.steps) {
-          // The badge changed class and CSS cancelled the loop: setting a time would bring its look back. A cancelled
-          // animation has no current time. (Asked for its playState instead, a CSS animation first brings the whole
-          // page's style up to date: with a time set just before, that was a style pass per animation, every step,
-          // 100–170 a second for a badge of four to seven loops. Reading the time costs nothing.)
-          if (a.currentTime === null) { this.steps.delete(a); continue; }
-          try { a.currentTime = now - t0; } catch (e) { this.steps.delete(a); }
-        }
+        // The badge changed class and CSS cancelled the loop: setting a time would bring its look back. A cancelled
+        // animation has no current time. (Asked for its playState instead, a CSS animation first brings the whole
+        // page's style up to date: with a time set just before, that was a style pass per animation, every step,
+        // 100–170 a second for a badge of four to seven loops.) Every time is read before any is set: in Electron's
+        // Chromium (the Mac build) reading one after another's was set brought the style up to date as well, about
+        // 125 style passes a second for four loops; read first, a step is one pass.
+        for (const a of this.steps.keys()) if (a.currentTime === null) this.steps.delete(a);
+        for (const [a, t0] of this.steps) { try { a.currentTime = now - t0; } catch (e) { this.steps.delete(a); } }
         if (!this.steps.size) this.clock();
       }, 1000 / this.fps);
     } else if (!this.steps.size && this.stepTimer) { clearInterval(this.stepTimer); this.stepTimer = 0; }

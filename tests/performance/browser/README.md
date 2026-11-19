@@ -27,7 +27,8 @@ node soak.cjs --minutes 120              # a long run; fails when something keep
 | `lib/probe.js` | Counts timers, animation frames and observers inside the page, with the line that asked for each. |
 | `lib/trace.cjs` | Reads a Chromium trace of one action: main-thread time by kind, frames shown and dropped. |
 
-Useful switches: `MIKU_PERF_ONLY="rail|scroll"` runs only the tests whose name matches. `MIKU_TEST_ROOT=<another
+Useful switches: `MIKU_PERF_ONLY="rail|scroll"` runs only the tests whose name matches. `MIKU_PERF_PLATFORM=mac` runs
+every test on the Mac page (`mac/app/wwwroot`: its bridge, its two-finger swipes, no `smooth.js`). `MIKU_TEST_ROOT=<another
 checkout>` measures that checkout's page with these tests (how the "before" columns below were made).
 `MIKU_EXT_MOODWAVE=<folder>` adds the MoodWave module where `Extensions/MoodWave` is not checked out.
 `MIKU_PERF_CPU_SCALE=2` widens the CPU ceilings on a slow machine; the counts never need it. `MIKU_TEST_HEADED=1`

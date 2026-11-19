@@ -201,6 +201,33 @@ check('signal badge: its loops are stepped, follow the badge, and stop wherever 
   } finally { await app.close(); }
 });
 
+/* ── Glass's light orbs: three blurred, blended, window-sized layers; drawn at the display's rate they kept a 120 Hz
+   Mac's GPU process at about half a core. They are stepped on the badge's clock, and freeze while paused. ── */
+check('glass theme: the background orbs are stepped with the badge, never at the display\'s rate, and freeze while paused', async () => {
+  const app = await openApp(browser, { albums: 300, signal: 'hires', ui: { theme: 'glass' } });
+  try {
+    const { page } = app;
+    await app.play(); await sleep(3000);
+    const orbs = () => page.evaluate(() => {
+      const list = document.getAnimations().filter(a => a.effect && a.effect.target instanceof Element && a.effect.target.closest('#theme-bg'));
+      return { n: list.length, running: list.filter(a => a.playState === 'running').length, stepped: list.filter(a => IdleFx.steps.has(a)).length, times: list.map(a => a.currentTime) };
+    });
+    let o = await orbs();
+    assert.ok(o.n >= 3, `the orbs are still there and still move (${o.n} loops)`);
+    assert.equal(o.running, 0, 'an orb runs at the display\'s rate');
+    assert.equal(o.stepped, o.n, 'every orb is stepped');
+    await sleep(500);
+    assert.ok((await orbs()).times.some((t, i) => t !== o.times[i]), 'the stepped orbs do not move');
+    await app.pause(); await sleep(400);
+    o = await orbs();
+    assert.equal(o.stepped, 0, 'paused: the orbs are still being stepped');
+    assert.equal(o.running, 0, 'paused: an orb still runs');
+    await app.play(); await sleep(600);
+    assert.equal((await orbs()).stepped, o.n, 'playing again: the orbs are stepped again');
+    assert.deepEqual(app.consoleErrors, []);
+  } finally { await app.close(); }
+});
+
 /* ── compositor layers: each one is memory, and is gone through again for every frame the page draws ── */
 for (const theme of ['miku', 'glass', 'vinyl']) {
   check(`layers (${theme} theme): album cards at rest are not layers of their own`, async t => {

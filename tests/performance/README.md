@@ -15,6 +15,19 @@ The page's own cost (CPU, memory, timers, compositor layers, growth over long ru
 Chromium by the tests in [`browser/`](browser/README.md): `node --test tests/performance/browser/resource.test.cjs`
 holds it to budgets, and `node tests/performance/browser/soak.cjs --minutes 120` is the long run.
 
+The real Mac app (Electron: main process, page, GPU process, the playback core's helpers) is measured from outside by
+[`mac/app-soak.cjs`](mac/app-soak.cjs): it starts a built MIKU.app on a throw-away copy of your profile (muted, offline),
+plays and uses it for as long as asked, and fails when a process keeps growing or costs more at rest than its ceilings.
+[`mac/app-shots.cjs`](mac/app-shots.cjs) takes screenshots of the same states with every animation held still, to compare
+two builds pixel by pixel.
+
+```bash
+node tests/performance/mac/app-soak.cjs --minutes 60                 # mac/build/work/root-<arch>/MIKU.app
+node tests/performance/mac/app-soak.cjs --app /Applications/MIKU.app --rounds 30 --json after.json
+node tests/performance/mac/app-soak.cjs --compare before.json after.json
+node tests/performance/mac/app-shots.cjs --app <MIKU.app> --out shots-after && node tests/performance/mac/app-shots.cjs --diff shots-before shots-after
+```
+
 The Windows checks use a temporary profile, a fake audio engine for queue checks,
 and loopback TCP connections for real HTTP range/keep-alive tests. A restricted
 environment must permit those local TCP connections. No audio output is started.
