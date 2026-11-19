@@ -30,7 +30,9 @@ const PORT = +arg('port', 9339), JSON_OUT = arg('json', null), SOURCE = arg('pro
 // at rest, playing, window shown (per cent of one core; resident MB). Wide on purpose: they catch an app that got
 // several times dearer. The growth limits are the strict part.
 const CEIL = {
-  restCpu: { main: 6, renderer: 30, gpu: 30, helpers: 40 },
+  // (process CPU swings by ±10 points between runs on a Mac doing other things: the style-pass ceilings below are the
+  // sharp test for per-frame work, these catch what they cannot see, e.g. Glass's orbs at 120 Hz cost the GPU ~60 %)
+  restCpu: { main: 6, renderer: 30, gpu: 50, helpers: 40 },
   pausedCpu: { main: 2, renderer: 3, gpu: 3 },
   // the page's own style passes a second at rest: the progress bar (~10) and the badge's and Glass orbs' shared 24 fps
   // clock. Per-frame work (120 a second on this Mac's screen) shows up far above these.
@@ -182,9 +184,11 @@ function judge(out) {
   }
   for (const [where, lim] of Object.entries(CEIL.restStyles)) { const v = out.rest[where]?.page?.stylesPerSec || 0; if (v > lim) out.problems.push(`${where}: ${v} style passes a second (limit ${lim})`); }
   for (const [k, lim] of Object.entries(CEIL.pausedCpu)) if ((out.rest.paused?.cpu[k] || 0) > lim) out.problems.push(`paused: ${k} at ${out.rest.paused.cpu[k]} % (limit ${lim})`);
-  // the page costs the same after the rounds as before them
-  const before = out.rest.home?.cpu.renderer || 0, after = out.rest.homeAfter?.cpu.renderer || 0;
-  if (after > before * 1.5 + 3) out.problems.push(`the page costs more after the rounds: renderer ${before} → ${after} % at rest`);
+  // the page does the same work after the rounds as before them (its own counters: process CPU is too noisy for this)
+  for (const k of ['stylesPerSec', 'layoutsPerSec']) {
+    const before = out.rest.home?.page?.[k] || 0, after = out.rest.homeAfter?.page?.[k] || 0;
+    if (after > before * 1.3 + 3) out.problems.push(`the page works more after the rounds: ${k} ${before} → ${after} at rest`);
+  }
   if (out.pageErrors?.length) out.problems.push('page errors: ' + out.pageErrors.join(' | '));
 }
 function log(s) { console.log(`round ${String(s.round).padStart(4)}: heap ${s.heapMB} MB, nodes ${s.nodes}, listeners ${s.listeners}, RSS ${Object.entries(s.rss).map(([k, v]) => k + ' ' + v).join(', ')}`); }
@@ -235,4 +239,4 @@ async function waitFor(cdp, expr, ms) {
 async function metrics(cdp) { const { metrics } = await cdp.send('Performance.getMetrics'); return Object.fromEntries(metrics.map(x => [x.name, x.value])); }
 
 if (require.main === module) main().catch(e => { console.error(e.stack || e); process.exit(1); });
-module.exports = { makeProfile, connect, ev, waitFor, metrics, procs, rest, sleep, PORT, APP };
+module.exports = { round, makeProfile, connect, ev, waitFor, metrics, procs, rest, sleep, PORT, APP };
