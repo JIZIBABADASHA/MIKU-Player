@@ -101,14 +101,17 @@ const Keys = {
     const rows = h('div');
     sect.append(rows);
     let stop = null;
-    // 進入 / 離開全螢幕: label follows the current state (html.fullscreen, set by App.syncFullscreen)
+    // 進入 / 離開全螢幕: the label follows the state the host reports (App.syncFullscreen has run by then: it
+    // subscribed first). The subscription ends with the settings page (Views.settings). It used to be an observer on
+    // <html>'s classes for each drawn button, let go only when those classes next changed after the button was gone:
+    // until then it held the whole page it was drawn for, and on the Mac, where they seldom change, every visit stayed.
+    let fs = null;
+    const fsSync = () => { if (fs) fs.textContent = App.fullscreen ? T('離開全螢幕') : T('進入全螢幕'); };
+    Host.on('fullscreen', fsSync);
     const fsBtn = () => {
-      const b = h('button', { class: 'btn small', onclick: () => App.fullscreen ? Host.call('fullscreen', { on: false }) : Host.call('fullscreen') });
-      const sync = () => { b.textContent = App.fullscreen ? T('離開全螢幕') : T('進入全螢幕'); };
-      sync();
-      const mo = new MutationObserver(() => { if (!b.isConnected) return mo.disconnect(); sync(); });
-      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-      return b;
+      fs = h('button', { class: 'btn small', onclick: () => App.fullscreen ? Host.call('fullscreen', { on: false }) : Host.call('fullscreen') });
+      fsSync();
+      return fs;
     };
     const draw = () => {
       rows.replaceChildren(...this.ACTIONS.map(a => {

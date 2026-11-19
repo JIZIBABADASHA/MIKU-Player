@@ -12,8 +12,9 @@ const Host = (() => {
       if (!p) return;
       pending.delete(msg.id);
       msg.e ? p.reject(new Error(T.msg(msg.e))) : p.resolve(msg.r);
-    } else if (msg.ev) (listeners[msg.ev] || []).forEach(f => { try { f(msg.d); } catch (e) { console.error(e); } });
+    } else if (msg.ev) (listeners[msg.ev] || []).slice().forEach(f => { try { f(msg.d); } catch (e) { console.error(e); } });
   }
+  let scope = null;   // the listeners being collected (Host.collect)
   if (wv) wv.addEventListener('message', e => deliver(e.data));
   return {
     real: !!wv,
@@ -25,7 +26,26 @@ const Host = (() => {
         wv.postMessage(JSON.stringify({ id, m, a }));
       });
     },
-    on(ev, f) { (listeners[ev] = listeners[ev] || []).push(f); },
+    /** Listens to a host event. Returns a function that stops listening. */
+    on(ev, f) {
+      const list = listeners[ev] = listeners[ev] || [];
+      list.push(f);
+      const off = () => { const i = list.indexOf(f); if (i >= 0) list.splice(i, 1); };
+      if (scope) scope.push(off);
+      return off;
+    },
+    /**
+     * Runs `draw` and returns what stops every listener added while it ran. A page that listens while it is drawn
+     * (設定: the cover and lyrics jobs, the phone remote, updates, a module's own rows) stops listening when it is left:
+     * each visit used to add its listeners for good, and each of them kept that visit's whole page in memory.
+     */
+    collect(draw) {
+      const outer = scope, mine = scope = [];
+      try { draw(); } finally { scope = outer; }
+      return () => { for (const off of mine.splice(0)) off(); };
+    },
+    /** How many listeners there are (tests/performance/browser: it must not grow with use). */
+    listenerCount() { let n = 0; for (const ev in listeners) n += listeners[ev].length; return n; },
     emit: deliver,
   };
 })();
@@ -127,19 +147,7 @@ function artUrl(kind, id, size) {
 /** Fills `box` with a placeholder and lazily fades the real image in on top. */
 function fillArt(box, kind, id, size, label, opts = {}) {
   const src = id ? artUrl(kind, id, size) : null;
-  // refreshing a box that already shows a picture: load the new one off-screen, then swap (no flash)
-  const current = box.querySelector('img.ok');
-  if (opts.swap && current && src) {
-    const next = new Image();
-    next.decoding = 'async';
-    // swap only once the new picture is decoded, otherwise the box shows one empty frame (a visible flash)
-    next.onload = () => (next.decode ? next.decode().catch(() => {}) : Promise.resolve()).then(() => {
-      if (!current.isConnected) return;
-      next.className = 'ok'; next.style.transition = 'none'; current.replaceWith(next);
-    });
-    next.src = src;
-    return;
-  }
+  if (opts.swap && src && swapArt(box, src)) return;
   box.textContent = '';
   const hue = hashHue(label || id || '');
   box.style.background = `linear-gradient(135deg, hsl(${hue} var(--ph-s1) var(--ph-l1)), hsl(${(hue + 40) % 360} var(--ph-s2) var(--ph-l2)))`;
@@ -153,14 +161,41 @@ function fillArt(box, kind, id, size, label, opts = {}) {
   img.loading = box.classList.contains('art') ? 'lazy' : 'eager';
   img.dataset.kind = kind; img.dataset.id = id; img.dataset.size = size;
   const t0 = performance.now();
+  // The handlers are let go once one of them has run: they hold the placeholder (taken out of the page on load), which
+  // otherwise stayed in memory for as long as its picture was shown, one for every cover on screen.
   img.onload = () => {
+    img.onload = img.onerror = null;
     // cached pictures appear instantly; only slow loads fade in
     if (performance.now() - t0 < 120) img.style.transition = 'none';
     img.classList.add('ok'); ph.remove(); box.style.background = '';
   };
-  img.onerror = () => img.remove();
+  img.onerror = () => { img.onload = img.onerror = null; img.remove(); };
   img.src = src;
   box.append(img);
+}
+/**
+ * Refreshing a box that already shows a picture: the new one is loaded off-screen, then swapped in (no flash). False
+ * when the box shows none. (A function of its own: the handlers made in one call share their variables, and inside
+ * fillArt the picture being replaced was held by the next picture's load handler, which was held by the one after
+ * it: every cover the player bar had shown since the start stayed in memory, one more for each track played.)
+ */
+function swapArt(box, src) {
+  let current = box.querySelector('img.ok');
+  if (!current) return false;
+  const next = new Image();
+  next.decoding = 'async';
+  const done = () => { next.onload = next.onerror = null; const was = current; current = null; return was; };
+  // swap only once the new picture is decoded, otherwise the box shows one empty frame (a visible flash)
+  next.onload = () => {
+    const was = done();
+    (next.decode ? next.decode().catch(() => {}) : Promise.resolve()).then(() => {
+      if (!was.isConnected) return;
+      next.className = 'ok'; next.style.transition = 'none'; was.replaceWith(next);
+    });
+  };
+  next.onerror = done;
+  next.src = src;
+  return true;
 }
 Host.on('art', ({ kind, id }) => {
   const k = kind === 'album' ? 'a' : kind === 'track' ? 't' : 'r';
@@ -925,9 +960,15 @@ const App = {
     this.frameRaf = this.frameTimer = 0;
     // Paused progress is redrawn by state/seek events; a hidden page needs no visual loop at all.
     if (document.hidden || this.uiVisible === false) return;
-    const el = this.frameEls || (this.frameEls = {
-      seek: $('#b-seek'), npSeek: $('#np-seek'), pos: $('#b-pos'), dur: $('#b-dur'), npPos: $('#np-pos'), npDur: $('#np-dur'),
-    });
+    if (!this.frameEls) {
+      this.frameEls = { seek: $('#b-seek'), npSeek: $('#np-seek'), pos: $('#b-pos'), dur: $('#b-dur'), npPos: $('#np-pos'), npDur: $('#np-dur') };
+      // The bars' widths are kept by an observer. Read here (offsetWidth), right after the sliders were moved, each
+      // read laid the page out again: once per state report, five times a second for as long as music played.
+      const widths = this.seekWidths = new Map();
+      const ro = new ResizeObserver(es => { for (const e of es) widths.set(e.target, e.contentRect.width); });
+      ro.observe(this.frameEls.seek); ro.observe(this.frameEls.npSeek);
+    }
+    const el = this.frameEls;
     const s = this.state, pos = this.pos, dur = s.dur || 0;
     const x = dur > 0 ? pos / dur : 0;
     if (!this.seeking) { setSlider(el.seek, x); if (NowPlaying.open) setSlider(el.npSeek, x); }
@@ -944,7 +985,7 @@ const App = {
     // compositor and the GPU process awake 60–120 times a second for changes nobody can see.)
     let wait = NowPlaying.nextTick(pos);
     if (wait <= 0) { this.frameRaf = requestAnimationFrame(() => this.frame()); return; }
-    const bar = NowPlaying.open ? el.npSeek : el.seek, w = bar.offsetWidth;
+    const w = this.seekWidths.get(NowPlaying.open ? el.npSeek : el.seek) || 0;
     if (dur > 0 && w > 0) wait = Math.min(wait, dur / (w * 2));
     wait = Math.min(wait, sec + 1 - pos + .005);
     this.frameTimer = setTimeout(() => this.frame(), Math.max(33, Math.min(500, wait * 1000)));

@@ -8,7 +8,8 @@
     let raf = 0;
     const check = () => {
       raf = 0;
-      if (!np.classList.contains('on')) { np.classList.remove('top-crowded'); return; }
+      // (removed only when it is there: writing a class, even an unchanged one, wakes every observer of #np's class)
+      if (!np.classList.contains('on')) { if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
       // hidden buttons (visibility: hidden) keep their layout box, so they can be measured without un-hiding them
       const pills = [...top.querySelectorAll('.src, .ly-pick-wrap > .pill, #np-trans, #np-lyr')]
         .filter(e => e.offsetParent).map(e => e.getBoundingClientRect());
@@ -20,8 +21,12 @@
     const later = (ms) => { setTimeout(() => { if (!raf) raf = requestAnimationFrame(check); }, ms); };
     const now = () => { if (!raf) raf = requestAnimationFrame(check); };
     addEventListener('resize', () => { now(); later(700); });
-    // bar shown/hidden, Now Playing opened, lyrics toggled: check right away and again after the slide finishes
-    new MutationObserver(() => { now(); later(350); later(750); })
+    // bar shown/hidden, Now Playing opened, lyrics toggled: check right away and again after the slide finishes.
+    // Only for a class that moves things: is-scrolling comes and goes with every scroll and moves nothing (it started
+    // three measurements of this page per scroll event, for a page that is usually not even open).
+    const rootKey = () => document.documentElement.className.replace(/\bis-scrolling\b/, '').replace(/\s+/g, ' ').trim();
+    let lastRoot = rootKey();
+    new MutationObserver(() => { const k = rootKey(); if (k === lastRoot) return; lastRoot = k; if (!np.classList.contains('on')) return; now(); later(350); later(750); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     // Now Playing's own classes (on, nolyrics, paused…) — ignoring our own top-crowded toggle, so this never feeds itself
     const key = () => np.className.replace(/\btop-crowded\b|\btop-idle\b/g, '').replace(/\bpaused\b/, '').trim();

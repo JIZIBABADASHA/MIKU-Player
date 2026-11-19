@@ -131,6 +131,9 @@
 
 /* 正在播放：明亮水色、六角格紋 */
 :root[data-theme="miku"] .np-bg .layer.b.on { opacity: 0; }
+/* (not shown in this theme: it must not keep turning either. An animated layer, even one that is fully transparent,
+   makes the whole window be drawn again for every frame of the screen, for as long as the page is open.) */
+:root[data-theme="miku"] .np-bg .layer.b { animation: none; }
 :root[data-theme="miku"] .np-cover { border-radius: 18px; box-shadow: 0 0 0 5px rgba(255,255,255,.85), 0 40px 80px -20px rgba(16,72,78,.45); }
 :root[data-theme="miku"] .np-title { font-weight: 750; }
 :root[data-theme="miku"] .np-badges .badge { background: rgba(255,255,255,.75); color: #45585c; }
@@ -375,7 +378,11 @@
 :root[data-theme="glass"] .slider .fill, :root[data-theme="glass"] .slider:hover .fill { background: linear-gradient(90deg, #8be3ff, #c9b8ff, #ff8fcf); }
 :root[data-theme="glass"] .card .art { border-radius: 18px; box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 10px 30px rgba(4,6,20,.35); }
 :root[data-theme="glass"] .card:hover .art { box-shadow: 0 0 0 1px rgba(255,255,255,.4), 0 20px 44px rgba(4,6,20,.5); }
-:root[data-theme="glass"] .card .play { background: rgba(255,255,255,.85); color: #0b1022; backdrop-filter: blur(10px); }
+/* The blur behind the button is there only while the button shows (and until it has faded out again: the delay). A
+   backdrop blur makes its element a compositor layer whether it is seen or not, and the picture under it another:
+   on every card's hidden button that was two extra layers per album, some 250 on the home page. */
+:root[data-theme="glass"] .card .play { background: rgba(255,255,255,.85); color: #0b1022; transition: opacity .25s var(--ease), transform .3s var(--spring), backdrop-filter 0s linear .3s; }
+:root[data-theme="glass"] .card:hover .play { backdrop-filter: blur(10px); transition: opacity .25s var(--ease), transform .3s var(--spring), backdrop-filter 0s; }
 :root[data-theme="glass"] .sect, :root[data-theme="glass"] .dsp-card { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(24px) saturate(1.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); border-radius: 22px; }
 :root[data-theme="glass"] .drawer, :root[data-theme="glass"] .pop, :root[data-theme="glass"] .modal, :root[data-theme="glass"] .toast { backdrop-filter: blur(40px) saturate(1.8); border-color: rgba(255,255,255,.2); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 30px 80px rgba(4,6,20,.5); }
 :root[data-theme="glass"] .drawer { border-radius: 24px; top: 12px; right: 12px; bottom: calc(var(--bar) + 36px); }
@@ -482,6 +489,7 @@
 :root[data-theme="flat"] .np-cover { border-radius: 0; box-shadow: 0 30px 60px rgba(0,0,0,.18); }
 :root[data-theme="flat"] .np-badges .badge { background: rgba(0,0,0,.08); color: #333; }
 :root[data-theme="flat"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="flat"] .np-bg .layer.b { animation: none; }   /* (not shown: not turning either, see MIKU) */
 :root[data-theme="flat"] .ly-line { font-weight: 800; letter-spacing: -.02em; }
 :root[data-theme="flat"] .pill { border-radius: 2px; }
 :root[data-theme="flat"] .np-top .icon-btn { border-radius: 2px; }
@@ -645,6 +653,7 @@
 :root[data-theme="washi"] .np-cover { border-radius: 2px; border: 10px solid #fffbf3; box-shadow: 0 2px 6px rgba(80,55,30,.2), 0 18px 30px -14px rgba(80,55,30,.34); }  /* kept short: a long drop shadow lay over the title below and greyed it */
 :root[data-theme="washi"] #np .np-title { -webkit-text-stroke: .35px currentColor; text-shadow: 0 1px 0 rgba(255, 251, 243, .55); }  /* the Mincho's thin strokes read grey at this size */
 :root[data-theme="washi"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="washi"] .np-bg .layer.b { animation: none; }   /* (not shown: not turning either, see MIKU) */
 :root[data-theme="washi"] .np-badges .badge { background: rgba(70,50,30,.08); color: #5a4f45; }
 :root[data-theme="washi"] .np-ctrl .icon-btn.on { color: #c4432c; }
 :root[data-theme="washi"] .pill.on { background: #2f4b80; }
@@ -757,15 +766,19 @@
     conic-gradient(from 30deg, rgba(255,255,255,.10), transparent 12%, transparent 45%, rgba(255,255,255,.08) 55%, transparent 68%),
     radial-gradient(circle, #1a1612 0 30%, #0d0b09 70%);
   box-shadow: none;                                            /* inside the sleeve: no shadow of its own */
-  transform: translate3d(0,0,0) rotate(0deg); transition: transform .8s cubic-bezier(.25,.8,.25,1), box-shadow .5s ease;
-  will-change: transform; backface-visibility: hidden; }
+  transform: translate(0,0) rotate(0deg); transition: transform .8s cubic-bezier(.25,.8,.25,1), box-shadow .5s ease; }
+/* A layer of its own only while it is out of the sleeve (hovered, pulled) or sliding back in (the transition makes it
+   one by itself). Kept one for good (will-change, a 3D transform, backface-visibility), every record at rest was a
+   compositor layer and so was the sleeve drawn over it: two per album, some 240 on the home page, all gone through
+   again for every frame the page draws. */
+:root[data-theme="vinyl"] .card:not(.artist):hover::before, :root[data-theme="vinyl"] .card.vpull:not(.artist)::before { will-change: transform; }
 :root[data-theme="vinyl"] .card:not(.artist):hover { z-index: 2; }
 /* clicked: the record is pulled out of the sleeve before it flies to the turntable */
 :root[data-theme="vinyl"] .card.vpull { z-index: 3; }
-:root[data-theme="vinyl"] .card.vpull:not(.artist)::before, :root[data-theme="vinyl"] .card.vpull:not(.artist):hover::before { transform: translate3d(72%,0,0) rotate(320deg); box-shadow: 0 8px 20px rgba(22,38,30,.35);
+:root[data-theme="vinyl"] .card.vpull:not(.artist)::before, :root[data-theme="vinyl"] .card.vpull:not(.artist):hover::before { transform: translate(72%,0) rotate(320deg); box-shadow: 0 8px 20px rgba(22,38,30,.35);
   transition: transform .34s cubic-bezier(.3,.6,.3,1), box-shadow .3s ease; }
 :root[data-theme="vinyl"] .card.flip-dest::before { visibility: hidden; transition: none; }
-:root[data-theme="vinyl"] .card:not(.artist):hover::before { transform: translate3d(34%,0,0) rotate(180deg); box-shadow: 0 8px 20px rgba(22,38,30,.35); }
+:root[data-theme="vinyl"] .card:not(.artist):hover::before { transform: translate(34%,0) rotate(180deg); box-shadow: 0 8px 20px rgba(22,38,30,.35); }
 :root[data-theme="vinyl"] .card .art { border-radius: 4px; box-shadow: 0 10px 22px rgba(22,38,30,.25), inset 0 0 0 1px rgba(0,0,0,.04); transition: transform .6s cubic-bezier(.25,.8,.25,1), box-shadow .6s ease; }
 :root[data-theme="vinyl"] .card:not(.artist):hover .art { transform: translateX(-4%) rotate(-1.5deg); box-shadow: 0 18px 34px rgba(22,38,30,.35); }
 /* sleeve edge wear + light sweep */

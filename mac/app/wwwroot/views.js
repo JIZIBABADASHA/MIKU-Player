@@ -266,7 +266,14 @@ function sizeRail(r) {
 }
 
 /* Horizontal rails: ‹ › buttons in the header (the scrollbar is hidden and a mouse wheel scrolls the page),
-   plus a soft fade on the edge that still has more cards. Attached to every .rail after a view renders. */
+   plus a soft fade on the edge that still has more cards. Attached to every .rail after a view renders.
+
+   A click turns the rail by one page of whole cards, to a fixed stop: the same click always travels the same
+   distance at the same pace, and the card that was half out of view lands flush with the edge. The stop is worked
+   out from where the rail is heading, not from where the glide happens to be, so two quick clicks turn two pages
+   (measured from mid-glide, the second click added less than a page and each landed somewhere else). The covers of
+   the next page are fetched before it comes into view, so the first glide over a page is as smooth as the later ones
+   (they used to load, decode and fade in while it was moving). */
 function attachRailNav(root) {
   const cleanups = [];
   root.querySelectorAll('.seg').forEach(b => { if (b._colsCleanup) cleanups.push(b._colsCleanup); });
@@ -278,24 +285,72 @@ function attachRailNav(root) {
     if (!head || !head.classList.contains('rail-head')) continue;
     const prev = h('button', { class: 'round-btn rail-btn', title: T('向左'), html: icon('left') });
     const next = h('button', { class: 'round-btn rail-btn', title: T('向右'), html: icon('right') });
-    const step = dir => r.scrollBy({ left: dir * Math.max(200, r.clientWidth * 0.85), behavior: PageEffects.reduced('scroll') ? 'instant' : 'smooth' });
+    let target = null, settleT = 0, warmT = 0;   // target: where the glide in progress is heading (null at rest)
+    /** The distance from one card to the next, and how many whole cards fit in the rail. */
+    const grid = () => {
+      const a = r.children[0], b = r.children[1];
+      if (!a) return null;
+      const ra = a.getBoundingClientRect();
+      const pitch = b ? b.getBoundingClientRect().left - ra.left : ra.width;
+      if (!(pitch > 0)) return null;
+      const pad = ra.left - r.getBoundingClientRect().left + r.scrollLeft;   // the rail's own left padding
+      return { pitch, fit: Math.max(1, Math.floor((r.clientWidth - pad + (pitch - ra.width) + 1) / pitch)) };
+    };
+    const step = dir => {
+      const g = grid(), max = r.scrollWidth - r.clientWidth;
+      if (!g || max <= 0) return;
+      const from = target != null ? target : r.scrollLeft, page = g.fit * g.pitch;
+      // the next page stop in that direction (stops: every `fit` cards from the start, and the end)
+      let to = dir > 0 ? (Math.floor(from / page + .02) + 1) * page : (Math.ceil(from / page - .02) - 1) * page;
+      if (Math.abs(to - from) < page * .5) to += dir * page;                  // a stop that is almost here: the one after it
+      to = Math.max(0, Math.min(max, to));
+      if (max - to < g.pitch * .5) to = max;                                  // (no stop a sliver before the end)
+      if (Math.abs(to - from) < 1) return;
+      target = to;
+      warm(to);
+      r.scrollTo({ left: to, behavior: PageEffects.reduced('scroll') ? 'instant' : 'smooth' });
+    };
     prev.onclick = () => step(-1);
     next.onclick = () => step(1);
     const nav = h('div', { class: 'rail-nav' }, prev, next);
     head.append(nav);
-    const sync = () => {
-      const max = r.scrollWidth - r.clientWidth;
-      const atStart = r.scrollLeft <= 2, atEnd = r.scrollLeft >= max - 2;
-      nav.style.visibility = max > 4 ? '' : 'hidden';
-      prev.disabled = atStart; next.disabled = atEnd;
-      r.classList.toggle('more-l', !atStart && max > 4);
-      r.classList.toggle('more-r', !atEnd && max > 4);
+    /** Covers within a page of `left` (default: of where the rail is) load now instead of when they scroll into view. */
+    const warm = (left = r.scrollLeft) => {
+      const w = r.clientWidth, x0 = r.getBoundingClientRect().left - r.scrollLeft;
+      for (const img of r.querySelectorAll('img[loading="lazy"]')) {
+        const b = img.parentNode.getBoundingClientRect(), x = b.left - x0;   // the cover's place along the rail
+        if (x + b.width > left - w && x < left + 2 * w) img.loading = 'eager';
+      }
     };
-    r.addEventListener('scroll', sync, { passive: true });
-    const ro = new ResizeObserver(sync);
+    const warmSoon = () => { clearTimeout(warmT); warmT = setTimeout(() => { if (r.isConnected) warm(); }, 120); };
+    let shown = null, more = '';
+    const sync = () => {
+      const max = r.scrollWidth - r.clientWidth, left = r.scrollLeft;
+      const atStart = left <= 2, atEnd = left >= max - 2, any = max > 4;
+      // written only when they change: this runs for every scroll event
+      if (shown !== any) { shown = any; nav.style.visibility = any ? '' : 'hidden'; }
+      if (prev.disabled !== atStart) prev.disabled = atStart;
+      if (next.disabled !== atEnd) next.disabled = atEnd;
+      const m = (!atStart && any ? 'l' : '') + (!atEnd && any ? 'r' : '');
+      if (m !== more) { more = m; r.classList.toggle('more-l', m.includes('l')); r.classList.toggle('more-r', m.includes('r')); }
+    };
+    // the glide is over (or the rail was moved by hand): the next click starts from where it is
+    const settled = () => { clearTimeout(settleT); settleT = 0; target = null; warmSoon(); };
+    const onScroll = () => { sync(); clearTimeout(settleT); settleT = setTimeout(settled, 160); };
+    r.addEventListener('scroll', onScroll, { passive: true });
+    r.addEventListener('scrollend', settled, { passive: true });
+    // about to be used: the pointer is on the rail or its heading
+    const intent = () => warm();
+    r.addEventListener('pointerenter', intent, { passive: true });
+    head.addEventListener('pointerenter', intent, { passive: true });
+    const ro = new ResizeObserver(() => { target = null; sync(); });
     ro.observe(r);
     const raf = requestAnimationFrame(sync);
-    cleanups.push(() => { r.removeEventListener('scroll', sync); ro.disconnect(); cancelAnimationFrame(raf); });
+    cleanups.push(() => {
+      r.removeEventListener('scroll', onScroll); r.removeEventListener('scrollend', settled);
+      r.removeEventListener('pointerenter', intent); head.removeEventListener('pointerenter', intent);
+      ro.disconnect(); cancelAnimationFrame(raf); clearTimeout(settleT); clearTimeout(warmT);
+    });
   }
   return () => cleanups.forEach(cleanup => cleanup());
 }
@@ -746,7 +801,8 @@ const Views = {
     return cleanup;
   },
 
-  settings(view, tab) { return Settings.render(view, tab); },
+  // (the page's host listeners end when it is left: Host.collect)
+  settings(view, tab) { let cleanup; const off = Host.collect(() => { cleanup = Settings.render(view, tab); }); return () => { off(); cleanup && cleanup(); }; },
 
   ytmusic(view) {
     const nav = to => Host.call('yt.nav', { to });

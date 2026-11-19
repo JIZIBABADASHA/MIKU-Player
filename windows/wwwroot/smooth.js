@@ -88,15 +88,20 @@
     html.is-scrolling #topbar.solid { backdrop-filter: none; background: rgba(var(--bg-rgb), .94); }
   `;
   document.head.appendChild(st);
-  let idle = 0;
-  const unlock = () => { clearTimeout(idle); document.documentElement.classList.remove('is-scrolling'); };
+  // The class is written only when it changes. A scroll event comes every frame, and writing a class that is already
+  // there still counts as a change of the attribute: every observer of <html>'s class ran again, each frame of every
+  // scroll (and re-measured the page: hundreds of forced layouts a second while scrolling).
+  let idle = 0, locked = false, last = 0;
+  const unlock = () => { clearTimeout(idle); idle = 0; if (locked) { locked = false; document.documentElement.classList.remove('is-scrolling'); } };
   // the moment the mouse moves or clicks, cards are clickable again (no waiting for the glide to finish)
   // pressing the mouse stops the glide on the spot, so the album under the cursor is the one that gets clicked
   addEventListener('pointerdown', () => { stopAll(); unlock(); }, { capture: true, passive: true });
+  // one timer for a whole scroll (not one cancelled and made again per event): it looks at when the last event came
+  const settle = () => { const left = 90 - (performance.now() - last); if (left > 1) idle = setTimeout(settle, left); else unlock(); };
   const scrolling = () => {
-    document.documentElement.classList.add('is-scrolling');
-    clearTimeout(idle);
-    idle = setTimeout(unlock, 90);
+    last = performance.now();
+    if (!locked) { locked = true; document.documentElement.classList.add('is-scrolling'); }
+    if (!idle) idle = setTimeout(settle, 90);
   };
   addEventListener('scroll', scrolling, { capture: true, passive: true });
   console.log("[MIKU] smooth wheel on");

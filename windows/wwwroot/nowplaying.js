@@ -254,17 +254,22 @@ const NowPlaying = {
       cover.dataset.cur = kind + id;
       cover.dataset.v = String(ArtVer[kind + id] || 0);
       const current = () => cover.dataset.cur === kind + id;
-      const old = cover.querySelector('img.ok');
+      // The previous cover, and these handlers, are let go as soon as they have done their work. Kept, each cover's
+      // load handler held the cover before it, which held the one before that: every album played since the start
+      // stayed in memory at full size, for as long as the app ran.
+      let old = cover.querySelector('img.ok');
       const img = new Image();
       img.decoding = 'async';
       img.onload = () => {
+        img.onload = img.onerror = null;
         img.classList.add('ok');
         cover.querySelectorAll('.ph').forEach(p => p.remove());
-        if (old) setTimeout(() => old.remove(), 700);
+        const was = old; old = null;
+        if (was) setTimeout(() => was.remove(), 700);
       };
       // no picture for this album: its placeholder replaces whatever is shown (also the previous album's cover), unless
       // another track has been painted meanwhile
-      img.onerror = () => { if (current()) fillArt(cover, kind, null, 0, t.album?.title); else img.remove(); };
+      img.onerror = () => { img.onload = img.onerror = null; old = null; if (current()) fillArt(cover, kind, null, 0, t.album?.title); else img.remove(); };
       img.src = t.live ? bigYtImg(t.img, 1200) : artUrl(kind, id, 900);
       cover.append(img);
       // background: small image, heavy blur — cheap and smooth
@@ -272,6 +277,7 @@ const NowPlaying = {
       const small = new Image();
       let bgDone = false;
       small.onload = () => {
+        small.onload = small.onerror = null;
         bgDone = true;
         if (!current()) return;
         for (const l of [bgA, bgB]) { l.classList.remove('on'); }
@@ -282,7 +288,7 @@ const NowPlaying = {
         }, 260);
       };
       const bgPlaceholder = () => { const hue = hashHue(t.album?.title || t.title); bgA.style.backgroundImage = `linear-gradient(135deg, hsl(${hue} 50% 30%), hsl(${(hue + 60) % 360} 50% 18%))`; bgA.classList.add('on'); bgB.classList.remove('on'); };
-      small.onerror = () => { bgDone = true; if (current()) bgPlaceholder(); };
+      small.onerror = () => { small.onload = small.onerror = null; bgDone = true; if (current()) bgPlaceholder(); };
       small.src = t.live ? bigYtImg(t.img, 120) : artUrl(kind, id, 64);
       // another album whose picture is not there at once (still being read from the files or looked up online): show its
       // placeholder rather than keep the previous album's cover; the picture fades in over it when it comes

@@ -265,8 +265,10 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .card:hover .art { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); }
 .card .art img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .45s var(--ease); }
 .card .art img.ok { opacity: 1; }
+/* (z-index: above the cover, which is raised to 1 over the flying cover's stand-in at the end of this file; without
+   it the button was drawn, and clicked, underneath every cover that had loaded) */
 .card .play {
-  position: absolute; right: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 50%;
+  position: absolute; right: 10px; bottom: 10px; z-index: 2; width: 44px; height: 44px; border-radius: 50%;
   background: var(--teal); color: var(--on-accent); display: grid; place-items: center;
   opacity: 0; transform: translateY(8px) scale(.9); transition: opacity .25s var(--ease), transform .3s var(--spring);
   box-shadow: 0 8px 22px rgba(var(--shadow-rgb), calc(.4 * var(--sh)));
@@ -1729,12 +1731,14 @@ a.link:hover { text-decoration: underline; }
 
 /* ───────────── motion & interaction ───────────── */
 #view.enter { animation: none; }
-#view.enter-fwd { animation: viewFwd .26s var(--ease) both; }
-#view.enter-back { animation: viewBack .26s var(--ease) both; }
-#view.enter-fade { animation: viewFwd .26s var(--ease) both; }
+/* (backwards, not both: they end at the element's own opacity, and an entrance that stays applied after it has ended
+   keeps its element a compositor layer of its own for as long as the page is open: 50 card layers on the home page) */
+#view.enter-fwd { animation: viewFwd .26s var(--ease) backwards; }
+#view.enter-back { animation: viewBack .26s var(--ease) backwards; }
+#view.enter-fade { animation: viewFwd .26s var(--ease) backwards; }
 @keyframes viewFwd { from { opacity: 0; } to { opacity: 1; } }
 @keyframes viewBack { from { opacity: 0; } to { opacity: 1; } }
-.stagger { animation: rise .5s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 22ms); }
+.stagger { animation: rise .5s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 22ms); }
 @keyframes rise { from { opacity: 0; } to { opacity: 1; } }
 .card.pop-in { animation: cardIn .35s var(--ease) both; animation-delay: calc(var(--i, 0) * 12ms); }
 @keyframes cardIn { from { opacity: 0; } to { opacity: 1; } }
@@ -1928,7 +1932,7 @@ a.link:hover { text-decoration: underline; }
 
 .flip-under { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .hero .cover img:not(.flip-under), .card .art img:not(.flip-under) { position: relative; z-index: 1; }
-#view.enter-flip > :not(.hero), #view.enter-flip .hero > :not(.cover) { animation: viewFwd .26s var(--ease) both; }
+#view.enter-flip > :not(.hero), #view.enter-flip .hero > :not(.cover) { animation: viewFwd .26s var(--ease) backwards; }
 /* hero glow: fade out softly instead of being cut off by a hard line, and never clip a flying cover */
 .hero-bg { -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); pointer-events: none; z-index: 0; }
 .flip-fly .t1, .flip-fly .t2 { display: none; }

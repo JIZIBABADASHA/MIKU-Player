@@ -100,6 +100,8 @@ const IdleFx = {
   stepped: '#bar .sig', fps: 24,
   frozen: new Set(), steps: new Map(), stepTimer: 0, windowVisible: true, queued: false,
   get hidden() { return document.hidden || !this.windowVisible; },
+  /** The now-playing page is open all the way: the library behind it is covered. */
+  get covers() { const np = document.getElementById('np'); return !!np && np.classList.contains('on') && document.documentElement.classList.contains('np-settled'); },
   /** Batched: several triggers in one task cost one pass. */
   sync() {
     if (this.queued) return;
@@ -109,6 +111,10 @@ const IdleFx = {
   run() {
     if (!document.getAnimations) return;
     const hidden = this.hidden, paused = !!document.body && document.body.classList.contains('paused');
+    // The now-playing page, once it has opened all the way, covers the library behind it, and the player bar too
+    // unless the bar was called back up (bar-peek): what loops there is not seen, and is not drawn (the bar's badge
+    // alone cost 24 frames a second of the whole page, behind a page that hid it).
+    const covered = this.covers, barGone = covered && !document.documentElement.classList.contains('bar-peek');
     const animations = new Set(document.getAnimations());
     for (const a of this.frozen) if (!animations.has(a)) this.frozen.delete(a);
     for (const a of this.steps.keys()) if (!animations.has(a)) this.steps.delete(a);
@@ -117,7 +123,8 @@ const IdleFx = {
       const el = a.effect.target;
       if (!(el instanceof Element)) continue;
       const np = el.closest('#np');
-      const idle = hidden || (paused && el.closest(this.decorations)) || (np && !np.classList.contains('on'));
+      const idle = hidden || (paused && el.closest(this.decorations)) || (np && !np.classList.contains('on'))
+        || (barGone && el.closest('#bar')) || (covered && el.closest('#main, #sidebar'));
       if (idle) {
         if (this.steps.delete(a)) this.frozen.add(a);   // already paused: it just stops being stepped
         else if (a.playState === 'running') { a.pause(); this.frozen.add(a); }
@@ -136,8 +143,11 @@ const IdleFx = {
       this.stepTimer = setInterval(() => {
         const now = performance.now();
         for (const [a, t0] of this.steps) {
-          // the badge changed class and CSS cancelled the loop: setting a time would bring its look back
-          if (a.playState === 'idle') { this.steps.delete(a); continue; }
+          // The badge changed class and CSS cancelled the loop: setting a time would bring its look back. A cancelled
+          // animation has no current time. (Asked for its playState instead, a CSS animation first brings the whole
+          // page's style up to date: with a time set just before, that was a style pass per animation, every step,
+          // 100–170 a second for a badge of four to seven loops. Reading the time costs nothing.)
+          if (a.currentTime === null) { this.steps.delete(a); continue; }
           try { a.currentTime = now - t0; } catch (e) { this.steps.delete(a); }
         }
         if (!this.steps.size) this.clock();
@@ -148,11 +158,20 @@ const IdleFx = {
   setWindowVisible(visible) { this.windowVisible = visible !== false; this.sync(); },
   init() {
     document.addEventListener('visibilitychange', () => this.sync());
-    document.addEventListener('animationstart', () => this.sync());
+    // A loop that starts is looked at only where one can be frozen or stepped: a decoration, the now-playing page, or
+    // anything at all while the window is hidden. (Every card of a page that fades in starts an animation too: each of
+    // them listed all the page's animations again.)
+    const watched = this.decorations + ', #np';
+    document.addEventListener('animationstart', e => { if (this.hidden || this.covers || (e.target.closest && e.target.closest(watched))) this.sync(); });
     const watch = () => {
-      const observer = new MutationObserver(() => this.sync());
+      // only when what is looked at changes: paused / playing, the now-playing page open / closed (their classes are
+      // written far more often than that, and a class written again unchanged still wakes an observer)
+      const np = document.getElementById('np'), root = document.documentElement;
+      const key = () => document.body.classList.contains('paused') + '|' + !!(np && np.classList.contains('on')) + '|' + root.classList.contains('np-settled') + '|' + root.classList.contains('bar-peek');
+      let last = key();
+      const observer = new MutationObserver(() => { const k = key(); if (k === last) return; last = k; this.sync(); });
       observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-      const np = document.getElementById('np');
+      observer.observe(root, { attributes: true, attributeFilter: ['class'] });
       if (np) observer.observe(np, { attributes: true, attributeFilter: ['class'] });
       this.sync();
     };
