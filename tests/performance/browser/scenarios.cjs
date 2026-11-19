@@ -152,7 +152,7 @@ async function useRound(app, n) {
 }
 
 /**
- * Rounds of use, read after a full collection every `every` rounds. Returns the samples and how much each count
+ * Rounds of use, read after a full collection every `every` rounds (on the album grid, with the same track playing). Returns the samples and how much each count
  * moved per round over the second half (the first rounds fill caches that are meant to be kept).
  */
 async function soak(app, { rounds = 40, every = 5, minutes = 0, log = null } = {}) {
@@ -162,7 +162,16 @@ async function soak(app, { rounds = 40, every = 5, minutes = 0, log = null } = {
   for (let n = 1; until ? Date.now() < until : n <= rounds; n++) {
     await useRound(app, n);
     if (n % every === 0) {
-      await sleep(1300);                                // past the delayed work a round leaves behind
+      // read on the same page every time, once the covers it shows have arrived: a cover still loading is a placeholder
+      // and an observer more, and a round ends on home, whose rails are shuffled at every visit. Read as they came, the
+      // counts moved by ±50 nodes between samples, which the growth per round was judged against.
+      app.host.jump(0, 30); await sleep(400);           // the same track each time (its lyrics, cover and queue row)
+      await app.go('#/albums', 300);
+      await app.page.waitForFunction(() => [...document.querySelectorAll('#view img')].every(i => {
+        const r = i.getBoundingClientRect();
+        return i.complete || r.bottom < 0 || r.top > innerHeight;
+      }), null, { timeout: 4000 }).catch(() => {});
+      await sleep(1300);                                // past the delayed work a round leaves behind (and the fade-ins)
       const h = { round: n, ...(await app.held()), hostListeners: await app.page.evaluate(() => typeof Host.listenerCount === 'function' ? Host.listenerCount() : -1) };
       samples.push(h);
       if (log) log(h);
@@ -170,7 +179,14 @@ async function soak(app, { rounds = 40, every = 5, minutes = 0, log = null } = {
   }
   const idle = await app.measure(5000);
   const half = samples.slice(Math.floor(samples.length / 2));
-  const slope = k => half.length > 1 ? +((half[half.length - 1][k] - half[0][k]) / (half[half.length - 1].round - half[0].round)).toFixed(3) : 0;
+  // least squares over every sample of the second half, not its first and last only: one sample a little high or low
+  // at either end no longer reads as growth (or hides it)
+  const slope = k => {
+    if (half.length < 2) return 0;
+    const n = half.length, mx = half.reduce((a, h) => a + h.round, 0) / n, my = half.reduce((a, h) => a + h[k], 0) / n;
+    const sxy = half.reduce((a, h) => a + (h.round - mx) * (h[k] - my), 0), sxx = half.reduce((a, h) => a + (h.round - mx) ** 2, 0);
+    return +(sxy / sxx).toFixed(3);
+  };
   return { rounds: samples.length ? samples[samples.length - 1].round : 0, first: samples[0], last: samples[samples.length - 1],
     perRound: Object.fromEntries([...HELD, 'hostListeners'].map(k => [k, slope(k)])), idleAfter: pick(idle, STEADY), samples, errors: idle.errors };
 }
