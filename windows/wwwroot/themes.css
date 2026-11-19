@@ -385,7 +385,6 @@
 :root[data-theme="glass"] .card:hover .play { backdrop-filter: blur(10px); transition: opacity .25s var(--ease), transform .3s var(--spring), backdrop-filter 0s; }
 :root[data-theme="glass"] .sect, :root[data-theme="glass"] .dsp-card { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(24px) saturate(1.5); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); border-radius: 22px; }
 :root[data-theme="glass"] .drawer, :root[data-theme="glass"] .pop, :root[data-theme="glass"] .modal, :root[data-theme="glass"] .toast { backdrop-filter: blur(40px) saturate(1.8); border-color: rgba(255,255,255,.2); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 30px 80px rgba(4,6,20,.5); }
-:root[data-theme="glass"] .drawer { border-radius: 24px; top: 12px; right: 12px; bottom: calc(var(--bar) + 36px); }
 :root[data-theme="glass"] select.sel, :root[data-theme="glass"] input.inp { background-color: rgba(255,255,255,.08); }
 :root[data-theme="glass"] select.sel option { background: #1d2342; }
 :root[data-theme="glass"] .thead { background: transparent; backdrop-filter: blur(24px) saturate(1.4); -webkit-mask-image: linear-gradient(180deg, #000 80%, transparent); border-bottom: 1px solid rgba(255,255,255,.12); color: rgba(235,240,255,.6); }
@@ -461,7 +460,7 @@
 :root[data-theme="flat"] .card .t2 { color: #6b6b66; }
 :root[data-theme="flat"] .ph { color: rgba(0,0,0,.35); }
 :root[data-theme="flat"] .page-head h1 { font-weight: 800; font-size: 34px; letter-spacing: -.03em; }
-:root[data-theme="flat"] .rail-head h2 { font-weight: 800; letter-spacing: -.02em; }
+:root[data-theme="flat"] .rail-head h2 { letter-spacing: -.02em; }
 :root[data-theme="flat"] .rail-head { border-top: 1px solid #e2e2dd; margin: 22px 36px 0; padding: 14px 0 12px; }
 :root[data-theme="flat"] .hero { margin-top: -64px; }
 :root[data-theme="flat"] .hero .cover { border-radius: 0; box-shadow: none; }
@@ -709,7 +708,7 @@
 .tp-screen[data-theme="glass"] .tp-main { background: rgba(12,16,38,.28); }
 .tp-screen[data-theme="glass"] .tp-side { background: rgba(16,21,48,.42); }
 
-:root[data-theme="flat"] .result-sec h2, :root[data-theme="flat"] .rail-head h2 { font-weight: 700; }
+:root[data-theme="flat"] .rail-head h2 { font-weight: 700; }
 
 
 /* ═════════════════════════════ VINYL 黑膠 ═════════════════════════════
@@ -747,7 +746,7 @@
 :root[data-theme="vinyl"] .brand, :root[data-theme="vinyl"] #sidebar .logo { --brand-ink: #eef2e8; --brand-track: #3a4a40; }
 :root[data-theme="vinyl"] .page-head h1, :root[data-theme="vinyl"] .hero h1 { font-family: var(--font-display); font-weight: 700; letter-spacing: -.01em; }
 :root[data-theme="vinyl"] .nav-label { color: var(--teal); letter-spacing: .22em; font-size: 10.5px; }
-:root[data-theme="vinyl"] .nav-pill { border-radius: 10px; background: rgba(240,166,74,.12); }
+:root[data-theme="vinyl"] .nav-pill { border-radius: 10px; }
 :root[data-theme="vinyl"] .nav-pill::before { background: var(--teal); }
 :root[data-theme="vinyl"] #sidebar { border-right: 0; }
 :root[data-theme="vinyl"] #bar { border-top: 1px solid rgba(28,44,36,.10); }

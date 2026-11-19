@@ -30,7 +30,6 @@ const TagEditor = {
 
   /* ───────── shell ───────── */
   build() {
-    const s = this.s;
     const scrim = h('div', { class: 'modal-scrim te-scrim' });
     const modal = h('div', { class: 'modal te' });
     scrim.append(modal);

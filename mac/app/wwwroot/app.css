@@ -43,7 +43,6 @@
   --brand-ink: #f2f4f8;
   --brand-track: #2c3039;
   --radius: 14px;
-  --radius-s: 9px;
   --ease: cubic-bezier(.22, .8, .24, 1);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --spring: cubic-bezier(.34, 1.36, .5, 1);
@@ -123,10 +122,9 @@ svg.i.fill { fill: currentColor; stroke: none; }
   flex: none; height: 38px; padding: 0 12px; border-radius: 10px;
   color: var(--text-2); text-decoration: none; font-weight: 500;
   transition: background .18s var(--ease), color .18s var(--ease);
-  position: relative;
 }
 .nav a:hover { background: rgba(var(--ink), .04); color: var(--text); }
-.nav a.on { color: var(--text); background: rgba(var(--ink), .06); }
+.nav a.on { color: var(--text); }
 .nav a.on::before {
   content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px;
   background: var(--teal);
@@ -212,8 +210,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 /* always its own backdrop root: a page drawn without the enter animation (e.g. refreshed after 重新讀取專輯資訊) would
    otherwise let the sticky table header's backdrop blur (Glass) sample the whole window and turn dark */
 #view { will-change: opacity; }
-#view.enter { animation: viewIn .38s var(--ease-out) both; }
-@keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .pad { padding: 0 36px; }
 
 .page-head { display: flex; align-items: flex-end; gap: 16px; padding: 22px 36px 20px; }
@@ -222,7 +218,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .page-head .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 
 .seg { display: inline-flex; background: rgba(var(--ink), .05); border-radius: 10px; padding: 3px; gap: 2px; }
-.seg button { height: 30px; padding: 0 13px; border-radius: 8px; color: var(--text-2); font-size: 13px; transition: background .18s, color .18s; white-space: nowrap; }
+.seg button { height: 30px; padding: 0 13px; border-radius: 8px; color: var(--text-2); font-size: 13px; white-space: nowrap; }
 .seg button:hover { color: var(--text); }
 .seg button.on { background: rgba(var(--teal-rgb), .2); color: var(--text); font-weight: 600; box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .5); }   /* the chosen one must read at a glance */
 /* sort direction beside a sort selector (views.js sortDir) */
@@ -263,7 +259,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 }
 .card .art { position: relative; border-radius: 10px; overflow: hidden; background: var(--surface-2); aspect-ratio: 1; box-shadow: 0 1px 0 rgba(var(--ink), .04) inset; transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out); }
 .card:hover .art { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); }
-.card .art img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .45s var(--ease); }
+.card .art img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; }
 .card .art img.ok { opacity: 1; }
 /* (z-index: above the cover, which is raised to 1 over the flying cover's stand-in at the end of this file; without
    it the button was drawn, and clicked, underneath every cover that had loaded) */
@@ -333,10 +329,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 }
 .thead { height: 38px; color: var(--text-3); font-size: 12.5px; letter-spacing: .04em; border-bottom: 1px solid var(--line); margin-bottom: 6px; position: sticky; top: 64px; background: var(--bg); z-index: 5; }
 .row { height: 68px; border-radius: 12px; cursor: pointer; transition: background .18s var(--ease), transform .18s var(--ease); }
-.row:hover { background: rgba(var(--ink), .045); }
 .row.sel { background: rgba(var(--ink), .07); }
-.row .n { color: var(--text-2); font-size: 14px; text-align: center; position: relative; height: 20px; display: flex; justify-content: center; align-items: center; }
-.row .n:has(.thumb) { height: 40px; }
+.row .n { color: var(--text-2); font-size: 14px; text-align: center; position: relative; display: flex; justify-content: center; align-items: center; }
 .row .n .pi { display: none; position: absolute; inset: 0; place-items: center; color: var(--text); }
 .row:hover .n span { visibility: hidden; }
 .row:hover .n .pi { display: grid; }
@@ -353,7 +347,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .row.playing .tt div:first-child { color: var(--teal); font-weight: 600; }
 .row.playing .n span { visibility: hidden; }
 .row.playing .n .eq { display: flex; }
-.row.with-art { grid-template-columns: 44px minmax(0, 4fr) minmax(0, 3fr) 120px 64px 40px; }
 .row .thumb { width: 38px; height: 38px; border-radius: 6px; overflow: hidden; background: var(--surface-2); position: relative; justify-self: center; }
 .row .thumb img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .3s; }
 .row .thumb img.ok { opacity: 1; }
@@ -424,14 +417,14 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 /* while it is pointed at, the slider (and its time tip) is above its neighbours: the tip was drawn under the play button */
 .slider:hover, .slider.drag { z-index: 30; }
 
-.right-tools { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.right-tools { display: flex; align-items: center; justify-content: flex-end; }
 .sig {
-  position: relative; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border-radius: 15px;
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border-radius: 15px;
   font-size: 12px; color: var(--text-2); background: rgba(var(--ink), .045); margin-right: 6px; white-space: nowrap;
   transition: background .15s, color .15s;
 }
 .sig:hover { background: rgba(var(--ink), .09); color: var(--text); }
-.sig .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
+.sig .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .q-bitperfect { --q: var(--teal); }
 .q-enhanced { --q: var(--pink); }
 .q-high { --q: var(--amber); }
@@ -517,9 +510,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 /* the signal path drawn in sections (a module's core: SignalInfo.Custom) and its collapsed technical details */
 .sigpop .sig-sect { margin: 12px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
 .sigpop .sig-sect::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
-.sigpop .sig-details { margin-top: 10px; font-size: 12px; color: var(--text-3); }
-.sigpop .sig-details summary { cursor: pointer; user-select: none; }
-.sigpop .sig-details > div { margin-top: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; line-height: 1.5; word-break: break-word; }
 /* the shared layout (core.js SigPath): one line per stage; a stage with details, or whose line does not fit, folds, its arrow
    after the label, and opens on a click. A pin (the decoder) stays under the summary. */
 .sigpop .stage.sp-row { grid-template-columns: 18px minmax(0, 1fr); }
@@ -552,7 +542,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 @property --rar-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 @keyframes rar-spin { to { --rar-a: 360deg; } }
 @keyframes rar-hue { to { filter: hue-rotate(360deg); } }
-@keyframes rar-pan { from { background-position: 0% 50%; } to { background-position: 200% 50%; } }
 
 /* ── the badge: a mini card ── */
 /* Each special badge (Hi-Res, DSD, upsampling, DSP, lossy) also names itself under #bar with a heavier selector, so a
@@ -704,7 +693,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .sigpop > .hires .lead { color: rgba(247, 232, 200, .6); }
 .sigpop > .dsd .lead { color: rgba(222, 226, 255, .62); }
 /* the path: a metal rail with light running down it, gems that catch the light one after another */
-.sigpop > :is(.hires, .dsd) > :is(.stage, .sig-sect, .note, .sig-details) { animation: rar-row .28s cubic-bezier(.2, .8, .3, 1) both; }
+.sigpop > :is(.hires, .dsd) > :is(.stage, .sig-sect, .note) { animation: rar-row .28s cubic-bezier(.2, .8, .3, 1) both; }
 .sigpop > :is(.hires, .dsd) .stage::before { width: 2px; left: 8px; top: 18px; border-radius: 1px; animation: rar-rail 2.4s linear infinite; }
 .sigpop > .hires .stage::before { background: linear-gradient(180deg, transparent, rgba(255, 246, 215, .95), transparent) 0 -40px / 100% 40px no-repeat, linear-gradient(180deg, #d9a845, #6e4e17); box-shadow: 0 0 6px rgba(255, 190, 70, .45); }
 .sigpop > .dsd .stage::before { background: linear-gradient(180deg, transparent, rgba(255, 255, 255, .95), transparent) 0 -40px / 100% 40px no-repeat, linear-gradient(180deg, #9ad8ff, #d0a6ff, #ff9ad5); box-shadow: 0 0 6px rgba(180, 170, 255, .5); }
@@ -721,7 +710,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .sigpop > .hires .sig-sect { color: #e9c66f; }
 .sigpop > .dsd .sig-sect { color: #c9c2ff; }
 .sigpop > :is(.hires, .dsd) .sig-sect::after { border-top: 0; height: 1px; background: linear-gradient(90deg, currentColor, transparent); opacity: .6; }
-.sigpop > :is(.hires, .dsd) .sig-details { color: rgba(240, 232, 215, .55); }
 .sigpop > :is(.hires, .dsd) > :nth-child(3) { animation-delay: 0.08s; }
 .sigpop > :is(.hires, .dsd) > :nth-child(3) .d { animation-delay: 0.00s; }
 .sigpop > :is(.hires, .dsd) > :nth-child(4) { animation-delay: 0.11s; }
@@ -827,7 +815,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .sigpop > .q-low .stage .v { color: #fff0f1; }
 .sigpop > .q-low .sig-sect { color: #ff6b78; }
 .sigpop > .q-low .sig-sect::after { border-top-color: rgba(255, 80, 95, .35); }
-.sigpop > .q-low .sig-details { color: rgba(255, 210, 214, .55); }
 @media (prefers-reduced-motion: reduce) {
   :root:root .sig.q-low, :root:root .sig.q-low::before, :root:root .sig.q-low .dot, :root:root .pop.sigpop:has(> .q-low), :root:root .pop.sigpop:has(> .q-low)::before,
   .sigpop > .q-low::before, .sigpop > .q-low::after, .sigpop > .q-low h3, .sigpop > .q-low h3 .dot { animation: none !important; }
@@ -837,17 +824,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
    The signal is being processed, so the badge and its pop-up turn into a slimy, wobbling, glitching mess:
    a green / purple swirl that churns, slime dripping off the edges, bubbles rising, the text jittering with
    green / purple ghosts. Any theme. */
-@keyframes dsp-churn { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-@keyframes dsp-wobble { 0%, 100% { transform: skewX(0) scale(1, 1); } 20% { transform: skewX(-4deg) scale(1.03, .96); } 45% { transform: skewX(3deg) scale(.97, 1.04); } 70% { transform: skewX(-2deg) scale(1.02, .98); } }
-@keyframes dsp-ghost {
-  0%, 100% { text-shadow: 1.5px 0 0 rgba(140, 255, 40, .85), -1.5px 0 0 rgba(170, 60, 255, .85); }
-  25% { text-shadow: -2px 1px 0 rgba(140, 255, 40, .85), 2px -1px 0 rgba(170, 60, 255, .85); }
-  50% { text-shadow: 1px -1px 0 rgba(140, 255, 40, .85), -1px 1px 0 rgba(170, 60, 255, .85); }
-  75% { text-shadow: -1px 0 0 rgba(140, 255, 40, .85), 2.5px 0 0 rgba(170, 60, 255, .85); }
-}
-@keyframes dsp-drip { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
-@keyframes dsp-bubble { from { background-position: 0 100%, 0 100%, 0 100%; } to { background-position: 0 -40px, 0 -70px, 0 -55px; } }
-@keyframes dsp-glitch { 0%, 92%, 100% { clip-path: none; transform: none; } 93% { clip-path: inset(10% 0 55% 0); transform: translateX(-3px); } 95% { clip-path: inset(60% 0 8% 0); transform: translateX(3px); } 97% { clip-path: inset(30% 0 30% 0); transform: translateX(-1px); } }
 /* the badge: a lump of rotting sludge, oozing goo off the bottom nonstop and giving off stink lines.
    Deliberately dull and murky, no neon, no flicker: everything moves slowly and continuously. */
 @keyframes dsp-sludge { 0%, 100% { background-position: 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
@@ -1177,7 +1153,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
   --sb-beads: rgba(170, 128, 52, .7); --sb-line: rgba(170, 128, 52, .6); --sb-vig: rgba(150, 110, 40, .38); --sb-emb: rgba(110, 76, 22, .55);
   --sb-node: linear-gradient(135deg, #fffdf0, #e8c472 35%, #8c6526 55%, #f2d892 80%, #fff6dc); --sb-nodebg: #f6ecd8; --sb-acc: #b8914a;
   --sb-cap: linear-gradient(180deg, #8a6220 0%, #5a3d12 45%, #3e2a0a 60%, #7a5418 100%); --sb-glint: 255, 255, 255; --sb-glint2: 230, 180, 80; --sb-glb: normal;
-  --sb-iris: conic-gradient(from 0deg, rgba(255, 236, 190, .0), rgba(255, 220, 150, .35), rgba(255, 255, 255, .0) 25%, rgba(255, 230, 170, .3) 50%, rgba(255, 255, 255, 0) 75%, rgba(255, 220, 150, .35)); --sb-light: 1;
+  --sb-iris: conic-gradient(from 0deg, rgba(255, 236, 190, .0), rgba(255, 220, 150, .35), rgba(255, 255, 255, .0) 25%, rgba(255, 230, 170, .3) 50%, rgba(255, 255, 255, 0) 75%, rgba(255, 220, 150, .35));
 }
 .sigpop[data-back="dsd"] {
   --sb-pat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg fill='%23c8c4ff' opacity='.32'%3E%3Ccircle cx='2' cy='2' r='.55'/%3E%3Ccircle cx='6' cy='2' r='.55'/%3E%3Ccircle cx='10' cy='2' r='.55'/%3E%3Ccircle cx='14' cy='2' r='.55'/%3E%3Ccircle cx='2' cy='6' r='.55'/%3E%3Ccircle cx='6' cy='6' r='.55'/%3E%3Ccircle cx='10' cy='6' r='.55'/%3E%3Ccircle cx='14' cy='6' r='.55'/%3E%3Ccircle cx='30' cy='6' r='.55'/%3E%3Ccircle cx='2' cy='10' r='.55'/%3E%3Ccircle cx='6' cy='10' r='.55'/%3E%3Ccircle cx='10' cy='10' r='.55'/%3E%3Ccircle cx='14' cy='10' r='.55'/%3E%3Ccircle cx='30' cy='10' r='.55'/%3E%3Ccircle cx='2' cy='14' r='.55'/%3E%3Ccircle cx='6' cy='14' r='.55'/%3E%3Ccircle cx='10' cy='14' r='.55'/%3E%3Ccircle cx='30' cy='14' r='.55'/%3E%3Ccircle cx='2' cy='18' r='.55'/%3E%3Ccircle cx='6' cy='18' r='.55'/%3E%3Ccircle cx='10' cy='18' r='.55'/%3E%3Ccircle cx='26' cy='18' r='.55'/%3E%3Ccircle cx='30' cy='18' r='.55'/%3E%3Ccircle cx='2' cy='22' r='.55'/%3E%3Ccircle cx='6' cy='22' r='.55'/%3E%3Ccircle cx='26' cy='22' r='.55'/%3E%3Ccircle cx='30' cy='22' r='.55'/%3E%3Ccircle cx='26' cy='26' r='.55'/%3E%3Ccircle cx='30' cy='26' r='.55'/%3E%3Ccircle cx='2' cy='30' r='.55'/%3E%3Ccircle cx='22' cy='30' r='.55'/%3E%3Ccircle cx='26' cy='30' r='.55'/%3E%3Ccircle cx='30' cy='30' r='.55'/%3E%3C/g%3E%3C/svg%3E"); --sb-pat-size: 32px 32px;
@@ -1510,7 +1486,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 }
 .drawer.on { transform: none; }
 .drawer:not(.on) { box-shadow: none; visibility: hidden; transition: transform .42s var(--ease-out), visibility 0s .42s; }
-.drawer.wide { width: min(640px, calc(100vw - 280px)); }
 .drawer-head { display: flex; align-items: center; gap: 10px; padding: 18px 18px 12px 22px; }
 .drawer-head h2 { margin: 0; font: 650 19px var(--font-display); flex: 1; }
 .drawer-body { flex: 1; overflow-y: auto; padding: 0 12px 16px; }
@@ -1537,10 +1512,10 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 #np {
   position: fixed; inset: 0 0 var(--bar) 0; z-index: 35; overflow: hidden;
   background: var(--np-base);
-  transform: translateY(100%); transition: transform .62s var(--ease-out), visibility 0s .62s;
+  transform: translateY(100%);
   visibility: hidden;
 }
-#np.on { transform: none; visibility: visible; transition: transform .62s var(--ease-out), visibility 0s; }
+#np.on { transform: none; visibility: visible; }
 .np-bg { position: absolute; inset: 0; overflow: hidden; }
 .np-bg .layer {
   position: absolute; width: 140%; height: 140%; left: -20%; top: -20%;
@@ -1555,7 +1530,6 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 @keyframes drift { from { transform: rotate(0) scale(1.15); } to { transform: rotate(360deg) scale(1.15); } }
 .np-bg::after { content: ""; position: absolute; inset: 0; background: var(--np-veil, radial-gradient(120% 90% at 30% 40%, rgba(0,0,0,.18), rgba(0,0,0,.6))); }
 .np-wrap { position: relative; z-index: 1; height: 100%; display: grid; grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.15fr); gap: 4vw; padding: 64px 6vw 24px; align-items: center; transition: grid-template-columns .6s var(--ease-out); }
-#np.nolyrics .np-wrap { grid-template-columns: 1fr 0fr; }
 #np.nolyrics .np-left { justify-self: center; }
 .np-left { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; max-width: 560px; width: 100%; justify-self: end; }
 .np-cover { width: clamp(180px, min(calc(100vh - var(--bar) - 330px), 100%), 540px); aspect-ratio: 1; border-radius: 14px; overflow: hidden; position: relative; box-shadow: 0 40px 90px rgba(0, 0, 0, .6), 0 0 0 1px rgba(var(--np-ink), .06); background: rgba(var(--np-ink), .04); transition: transform .6s var(--spring); }
@@ -1682,7 +1656,6 @@ select.sel option { background: var(--surface-2); color: var(--text); }
 .warn { margin: 12px 22px; padding: 11px 14px; border-radius: 10px; background: var(--pink-dim); color: var(--pink-text); font-size: 13px; }
 
 /* DSP */
-.dsp-top { display: flex; align-items: center; gap: 12px; padding: 0 10px 12px; }
 .dsp-card { background: rgba(var(--ink), .03); border: 1px solid var(--line); border-radius: 14px; margin: 0 10px 12px; padding: 14px 16px; transition: opacity .3s; }
 .dsp-card.off { opacity: .5; }
 .dsp-card h3 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
@@ -1722,15 +1695,11 @@ textarea.inp { width: 100%; height: 110px; padding: 10px 12px; resize: vertical;
 .sk { background: linear-gradient(90deg, var(--surface) 0, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: sk 1.4s ease-in-out infinite; border-radius: 8px; }
 @keyframes sk { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-.letter-index { position: sticky; top: 64px; }
-.result-sec h2 { font: 650 18px var(--font-display); margin: 26px 36px 10px; }
 .muted { color: var(--text-3); }
 a.link { color: var(--teal-2); cursor: pointer; }
 a.link:hover { text-decoration: underline; }
-.kbd-hint { color: var(--text-3); font-size: 12px; }
 
 /* ───────────── motion & interaction ───────────── */
-#view.enter { animation: none; }
 /* (backwards, not both: they end at the element's own opacity, and an entrance that stays applied after it has ended
    keeps its element a compositor layer of its own for as long as the page is open: 50 card layers on the home page) */
 #view.enter-fwd { animation: viewFwd .26s var(--ease) backwards; }
@@ -1778,9 +1747,6 @@ a.link:hover { text-decoration: underline; }
 .seg button:active { transform: scale(.95); }
 .chip:active { transform: scale(.95); }
 :focus-visible { outline: 2px solid rgba(var(--teal-rgb), .7); outline-offset: 2px; }
-.flip-ghost { position: fixed; z-index: 70; box-sizing: border-box; overflow: hidden; pointer-events: none; transition: left .5s cubic-bezier(.2,.8,.2,1), top .5s cubic-bezier(.2,.8,.2,1), width .5s cubic-bezier(.2,.8,.2,1), height .5s cubic-bezier(.2,.8,.2,1), border-width .5s cubic-bezier(.2,.8,.2,1), border-radius .5s, box-shadow .5s; }
-.flip-ghost img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.hero .cover.flip-hide { visibility: hidden; }
 .play-pulse { animation: pulse .35s var(--spring); }
 @keyframes pulse { 50% { transform: scale(1.12); } }
 .toast { transition: transform .3s; }
@@ -1794,8 +1760,6 @@ a.link:hover { text-decoration: underline; }
   .row .fmt, .thead .fmt { display: none; }
   #bar { grid-template-columns: minmax(160px, 1fr) minmax(260px, 520px) minmax(max-content, 1fr); gap: 14px; padding: 0 14px; }
   .sig span { display: none; }
-  .out-btn { max-width: 120px; }
-  .tool-sep { margin: 0 4px; }
   .sig { padding: 0 10px; }
   .vol { width: 128px; }
   .vol .db { display: none; }
@@ -1814,7 +1778,6 @@ a.link:hover { text-decoration: underline; }
 .outpop h3 { margin: 0 0 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .outpop .seg { width: 100%; margin-bottom: 10px; }
 .outpop .seg button { flex: 1; }
-.outpop .outhint { font-size: 12px; padding: 0 4px 8px; }
 .outrow { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 10px; border-radius: 10px; transition: background .12s; }
 .outrow:hover { background: rgba(var(--ink), .07); }
 .outrow .nm { flex: 1; min-width: 0; }
@@ -2000,7 +1963,6 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 #bar { transition: transform .45s var(--ease-out), opacity .35s; will-change: transform; }
 #np { --np-r: 0px; --np-gap: 0px; --np-cut: var(--bar);
   bottom: var(--np-gap) !important;
-  clip-path: inset(0 0 var(--np-cut) 0 round var(--np-r));
   transition: transform .62s var(--ease-out), clip-path .5s var(--ease-out), visibility 0s .62s; }
 #np.on { transition: transform .62s var(--ease-out), clip-path .85s cubic-bezier(.32,.72,0,1) .5s, visibility 0s; }
 :root:not(.bar-peek):has(#np.on) #np { --np-cut: 0px; }
@@ -2010,7 +1972,7 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 /* ===== 底部小箭頭：讓播放列浮回來 ===== */
 :root.bar-peek:has(#np.on) #bar { transform: none; opacity: 1; pointer-events: auto; transition: transform .45s var(--ease-out), opacity .3s; }
 #bar-peek {
-  all: unset; box-sizing: border-box; position: fixed; left: 50%; bottom: 14px; z-index: 60; cursor: pointer;
+  all: unset; box-sizing: border-box; position: fixed; left: 50%; z-index: 60; cursor: pointer;
   width: 46px; height: 26px; border-radius: 13px; display: grid; place-items: center;
   color: #fff; background: rgba(20, 22, 28, .45); border: 1px solid rgba(255,255,255,.22);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
@@ -2021,7 +1983,6 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 #bar-peek svg { transition: transform .35s var(--spring); }
 #bar-peek.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
 #bar-peek:hover { background: rgba(var(--teal-rgb), .55); border-color: rgba(var(--teal-rgb), .9); }
-:root.bar-peek #bar-peek { bottom: calc(var(--bar) + 10px); }
 :root.bar-peek #bar-peek svg { transform: rotate(180deg); }
 
 /* 彈出完成後，箭頭切換播放列時：頁面與播放列同步、不延遲 */
@@ -2034,14 +1995,10 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 :root:has(#np.on) #app { z-index: auto !important; }
 
 /* 內容在整個頁面置中；播放列還在時往上讓出一半位置，播放列沉下去時同步回到正中間（只用 transform，不會閃） */
-#np .np-wrap { padding-bottom: 64px; --np-lift: calc(var(--bar) / -2); transform: translateY(var(--np-lift)); transition: transform .6s cubic-bezier(.32,.72,0,1); will-change: transform; }
+#np .np-wrap { --np-lift: calc(var(--bar) / -2); transform: translateY(var(--np-lift)); will-change: transform; }
 :root[data-theme="glass"] #np .np-wrap { --np-lift: calc(var(--bar) / -2 - 6px); }
-:root:not(.bar-peek):has(#np.on) #np .np-wrap { transform: translateY(28px); transition: transform .85s cubic-bezier(.32,.72,0,1) .5s; }
+:root:not(.bar-peek):has(#np.on) #np .np-wrap { transition: transform .85s cubic-bezier(.32,.72,0,1) .5s; }
 :root.np-settled:has(#np.on) #np .np-wrap { transition: transform .6s cubic-bezier(.32,.72,0,1); }
-
-/* 播放列浮回來時，箭頭放在播放列上方，不壓到播放鍵 */
-:root.bar-peek #bar-peek { bottom: calc(var(--bar) + 20px); }
-:root[data-theme="glass"].bar-peek #bar-peek { bottom: calc(var(--bar) + 34px); }
 
 /* 返回上一頁：播放列先浮起來，接著整頁在播放列後面滑下去 */
 :root.np-closing #app { z-index: auto !important; }

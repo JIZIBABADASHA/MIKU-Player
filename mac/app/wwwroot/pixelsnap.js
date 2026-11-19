@@ -74,6 +74,11 @@
     if (!t.closest('#bar, #np') || t.closest('.np-right, .np-top, .np-bg, .sig, .slider, .eq, button')) return;
     soon();
   }, true);
+  // a play button's own animation ending (the bar's button pulses when playback starts): a pass that came while it ran
+  // left it as it was, so it is measured again now that it is at rest
+  const ended = e => { if (e.target.matches && e.target.matches(SEL)) soon(); };
+  document.addEventListener('animationend', ended, true);
+  document.addEventListener('animationcancel', ended, true);
   const start = () => {
     const ro = new ResizeObserver(() => soon());
     for (const el of document.querySelectorAll('#bar, .transport, .np-ctrl')) ro.observe(el);

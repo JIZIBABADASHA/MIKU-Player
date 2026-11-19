@@ -309,7 +309,7 @@ const LogoEgg = {
     brand.classList.add('egg-broken');
     if (this.calm() || !logo.animate) { pieces.forEach(s => { s.style.transform = s._rest; }); return; }
     this.busy = true;
-    const r = logo.getBoundingClientRect(), lx = r.left + r.width / 2, ly = r.top + r.height / 2;
+    const r = logo.getBoundingClientRect(), lx = r.left + r.width / 2;
     const app = document.getElementById('app') || document.body;
     const wait = t => new Promise(done => setTimeout(done, t));
     const shake = (amp, period) => app.animate([[0, 0], [1, -.8], [-.8, 1.1], [.7, .7], [-1, -.5], [0, 0]].map(([x, y]) => ({ transform: `translate(${x * amp}px, ${y * amp}px)` })), { duration: period, iterations: Infinity });

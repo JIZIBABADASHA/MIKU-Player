@@ -604,7 +604,6 @@ const Views = {
     }
     if (!al) { view.append(h('div', { class: 'empty' }, T('找不到這張專輯'))); return; }
     const [kind, artId] = albumArt(al);
-    const f = al.tracks[0] || {};
     const discs = new Set(al.tracks.map(t => t.disc)).size;
     const cover = artBox('cover', kind, artId, 300, al.title);
     if (!al.cd) cover.onclick = () => CoverView.open(al);

@@ -402,10 +402,9 @@ function loadExtensions() {
 const RemoteEvents = new Set(['state', 'queue', 'error', 'library', 'favs']);
 let lastTick = null, lastTickAt = 0;   // the last periodic state sent to the page
 function post(ev, d, tick = false) {
-  let json = null;
   if (remote && RemoteEvents.has(ev) && remote.hasClients && (!tick || Date.now() - remoteTickAt >= 600)) {
     if (tick) remoteTickAt = Date.now();
-    try { remote.broadcast(json = JSON.stringify({ ev, d })); } catch (e) { Log.error('Remote broadcast', e); }
+    try { remote.broadcast(JSON.stringify({ ev, d })); } catch (e) { Log.error('Remote broadcast', e); }
   }
   if (!ready || !win || win.isDestroyed()) return;
   if (tick && (!uiVisible || !win.isVisible() || win.isMinimized())) return;

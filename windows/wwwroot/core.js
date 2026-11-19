@@ -1606,7 +1606,6 @@ const SigCard = {
   },
   /** The engraved words over and under the medallion. */
   words(sg, kind) {
-    const bits = sg.sourceBits ? sg.sourceBits + '-bit · ' : '';
     const mhz = r => (r / 1e6).toFixed(4).replace(/\.?0+$/, '');
     // the source as it is: codec, bit depth (only when the file has one), rate
     const src = [String(sg.codec || '').toUpperCase(), sg.sourceBits ? sg.sourceBits + '-bit' : '', khz(sg.sourceRate) + ' kHz'].filter(Boolean).join(' · ');
@@ -2212,7 +2211,7 @@ const Router = {
     if (r.name !== 'search' && document.activeElement !== $('#q')) $('#q').value = '';
     const view = $('#view');
     view.textContent = '';
-    view.classList.remove('enter', 'enter-fwd', 'enter-back', 'enter-fade', 'enter-flip');
+    view.classList.remove('enter-fwd', 'enter-back', 'enter-fade', 'enter-flip');
     void view.offsetWidth;
     // a cover is flying: never fade the element it lands on (a fading parent is what made it flash)
     if (Flip.from && r.name === 'album' && Flip.from.id === r.arg) dir = 'flip';

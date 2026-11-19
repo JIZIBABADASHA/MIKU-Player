@@ -62,7 +62,7 @@
 :root:root.lite-page .stagger, :root:root.lite-page .card.pop-in,
 :root:root.lite-page .modal, :root:root.lite-page .modal-scrim,
 :root:root.lite-page .cv-scrim, :root:root.lite-page .cv-img,
-:root:root.lite-page .pop, :root:root.lite-page .msel-pop,
+:root:root.lite-page .pop,
 :root:root.lite-page .toast, :root:root.lite-page .sk,
 :root:root.lite-page .eq i, :root:root.lite-page .np-mini .txt.swap,
 :root:root.lite-page .play-pulse, :root:root.lite-page .ly-dots {
@@ -77,7 +77,7 @@
 :root:root.lite-page .round-btn, :root:root.lite-page .playbtn,
 :root:root.lite-page .seg button, :root:root.lite-page .switch,
 :root:root.lite-page .switch::after, :root:root.lite-page .msel,
-:root:root.lite-page .msel-panel, :root:root.lite-page .msel-chev,
+:root:root.lite-page .msel-chev,
 :root:root.lite-page .card .art, :root:root.lite-page .card .play,
 :root:root.lite-page .card .art img, :root:root.lite-page .hero .cover img {
   transition: none !important;

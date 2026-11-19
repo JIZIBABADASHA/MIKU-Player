@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -209,8 +208,6 @@ public static class Text
         if (s.StartsWith("「") && s.EndsWith("」") && s.IndexOf('「', 1) < 0) s = s[1..^1].Trim();
         return s.Length == 0 ? null : ToTraditional(s);
     }
-
-    public static string Inv(double d, string fmt = "0.###") => d.ToString(fmt, CultureInfo.InvariantCulture);
 }
 
 /// <summary>

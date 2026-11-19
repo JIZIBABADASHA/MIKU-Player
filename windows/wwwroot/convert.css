@@ -37,7 +37,6 @@
 .cdrip .cvt-v .inp.cd-year { flex: 0 0 90px; }
 .cdrip .cvt-v .inp.cd-genre { flex: 0 1 160px; }
 .cdrip .cvt-v .inp.cd-offset { flex: 0 0 110px; }
-.cdrip .cd-offset-help { line-height: 1.6; }
 .cdrip .cd-offset-error { color: var(--pink-text); }
 .cdrip .cd-offset-error:empty { display: none; }
 .cdrip .cd-head { display: flex; align-items: center; gap: 12px; margin: 14px 0 6px; font-size: 12px; color: var(--text-3); }
