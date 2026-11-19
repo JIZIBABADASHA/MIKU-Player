@@ -43,3 +43,7 @@ Thumbs.db
 
 # local build shortcut (MIKU without extensions)
 /windows/make-installer-no-ext.cmd
+
+# the page resource tests install Playwright locally
+/tests/performance/browser/node_modules/
+/tests/performance/browser/package-lock.json

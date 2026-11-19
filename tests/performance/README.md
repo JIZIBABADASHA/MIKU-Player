@@ -11,6 +11,10 @@ dotnet build tests/performance/recovery/Recovery.csproj -c Release -m:1 -p:Exten
 dotnet tests/performance/recovery/bin/Release/net8.0-windows/Recovery.dll
 ```
 
+The page's own cost (CPU, memory, timers, compositor layers, growth over long runs) is measured in a real
+Chromium by the tests in [`browser/`](browser/README.md): `node --test tests/performance/browser/resource.test.cjs`
+holds it to budgets, and `node tests/performance/browser/soak.cjs --minutes 120` is the long run.
+
 The Windows checks use a temporary profile, a fake audio engine for queue checks,
 and loopback TCP connections for real HTTP range/keep-alive tests. A restricted
 environment must permit those local TCP connections. No audio output is started.
