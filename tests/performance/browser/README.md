@@ -82,7 +82,10 @@ or two layers of its own: an entrance animation that kept its last frame, Glass'
 was not showing, Vinyl's record kept ready to slide.
 
 **Thirty rounds of use** (every page, an album, an artist, search, the queue, the signal card, now playing, three
-track changes, a rail click, wheel scrolling), read after a full collection every five rounds:
+track changes, a rail click, wheel scrolling), read after a full collection every five rounds (the "before" column as
+it was read then, on whatever page and track the round ended with; the tests now read every sample on the album grid
+with the same track playing and its covers loaded, so that a page that holds nothing more reads the same number to the
+node, round after round):
 
 | | before | after |
 | --- | --- | --- |
