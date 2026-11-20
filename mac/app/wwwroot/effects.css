@@ -65,7 +65,8 @@
 :root:root.lite-page .pop,
 :root:root.lite-page .toast, :root:root.lite-page .sk,
 :root:root.lite-page .eq i, :root:root.lite-page .np-mini .txt.swap,
-:root:root.lite-page .play-pulse, :root:root.lite-page .ly-dots {
+:root:root.lite-page .play-pulse, :root:root.lite-page .ly-dots,
+:root:root.lite-page .settings > .tab-in, :root:root.lite-page .cols-n, :root:root.lite-page .glide-new {
   animation: none !important;
 }
 :root:root.lite-page #np, :root:root.lite-page #bar, :root:root.lite-page #bar-peek,
@@ -79,10 +80,12 @@
 :root:root.lite-page .switch::after, :root:root.lite-page .msel,
 :root:root.lite-page .msel-chev,
 :root:root.lite-page .card .art, :root:root.lite-page .card .play,
-:root:root.lite-page .card .art img, :root:root.lite-page .hero .cover img {
+:root:root.lite-page .card .art img, :root:root.lite-page .hero .cover img,
+:root:root.lite-page .set-tabs button, :root:root.lite-page .rl-src button, :root:root.lite-page .chip, :root:root.lite-page .out-btn,
+:root:root.lite-page .ly-line .tr, :root:root.lite-page .rl-dl-fold, :root:root.lite-page .rl-dl-fold > div, :root:root.lite-page .rl-chev .i {
   transition: none !important;
 }
-:root:root.lite-page .ripple { display: none !important; }
+:root:root.lite-page .ripple, :root:root.lite-page .glide-pill { display: none !important; }
 
 :root.lite-ambient #theme-bg .orb, :root.lite-ambient .np-bg .layer.b {
   animation: none !important; transform: none !important;
@@ -107,3 +110,6 @@
   background: rgba(var(--bg-rgb), .97) !important;
 }
 :root.lite-scroll * { scroll-behavior: auto !important; }
+/* 頁面動畫 off: buttons stop giving press / toggle feedback (the segmented-control slide checks it in core.js Glide) */
+:root:root.lite-page .btn:active, :root:root.lite-page .set-tabs button:active, :root:root.lite-page .rl-src button:active, :root:root.lite-page .out-btn:active { transform: none; }
+:root:root.lite-page :is(#b-shuffle, #b-repeat, #b-queue, #b-dsp, #b-mute, #np-shuffle, #np-repeat, #np-lyr, #np-trans).on svg.i { animation: none; }

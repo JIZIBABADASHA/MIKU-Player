@@ -14,12 +14,14 @@ const Settings = {
     if (!tabs.some(t => t[0] === tab)) tab = tabs.some(t => t[0] === uiPref('settingsTab')) ? uiPref('settingsTab') : 'audio';
     if (uiPref('settingsTab') !== tab) setUiPref('settingsTab', tab);
     view.append(pageHead(T('設定')));
-    view.append(h('div', { class: 'set-tabs' }, ...tabs.map(([id, label]) => h('button', {
+    const bar = h('div', { class: 'set-tabs' }, ...tabs.map(([id, label]) => h('button', {
       class: id === tab ? 'on' : '',
-      onclick: () => { if (id === tab) { scrollTop($('#content')); return; } history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
-    }, label))));
+      onclick: () => { if (id === tab) { scrollTop($('#content')); return; } TabPill.leave(bar); history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
+    }, label)));
+    view.append(bar);
     const root = h('div', { class: 'settings' });
     view.append(root);
+    TabPill.mount(bar, root);   // the highlight slides to the new tab and the page eases in from its side
     const s = App.settings;
 
     const field = (title, sub, ctl) => h('div', { class: 'field' }, h('div', { class: 'lbl' }, h('b', null, title), sub ? h('small', null, sub) : null), h('div', { class: 'ctl' }, ctl));
@@ -64,7 +66,7 @@ const Settings = {
       if (!App.ffmpeg) out.append(h('div', { class: 'warn' }, T('找不到 FFmpeg：DSD、APE、AIFF、WavPack 等格式將無法播放、曲庫也無法讀取標籤。請重新安裝 MIKU，或用 Homebrew 安裝：brew install ffmpeg')));
       const devHost = h('div');
       out.append(devHost);
-      const redrawDevices = async () => {
+      const fillDevices = async () => {
         devHost.textContent = '';
         devHost.append(field(T('輸出裝置'), T('讀取中…'), h('div', { class: 'sk', style: { width: '260px', height: '36px' } })));
         const d = await Host.call('devices');
@@ -82,6 +84,12 @@ const Settings = {
         this.caps = d.caps;
       };
       // a DAC connected or removed while this page is open (outputs.js listens for the host's devicesChanged)
+      // the device list is read again (also each time the page is drawn again after a setting is saved): it keeps the
+      // height it had (or had last time) while it loads, so the settings below it don't jump up and back
+      const redrawDevices = async () => {
+        devHost.style.minHeight = (devHost.offsetHeight || Settings._devH || 0) + 'px';
+        try { await fillDevices(); } finally { devHost.style.minHeight = ''; if (devHost.isConnected && devHost.offsetHeight) Settings._devH = devHost.offsetHeight; }
+      };
       this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
       // 播放方案: MIKU's own core (FFmpeg) or a module's; shown when there is a choice

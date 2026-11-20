@@ -2242,6 +2242,12 @@ const Router = {
     NavPill.move();
     if (r.name !== 'search' && document.activeElement !== $('#q')) $('#q').value = '';
     const view = $('#view');
+    // the same page drawn again (a setting saved, a module redrawing its settings): keep the page as tall as it was
+    // while it is rebuilt, so the scroll position isn't cut short and the page doesn't jump while parts that load
+    // later (device list, module blocks) fill in
+    clearTimeout(this._holdT);
+    if (same && view.offsetHeight) { view.style.minHeight = view.offsetHeight + 'px'; this._holdT = setTimeout(() => { view.style.minHeight = ''; }, 1500); }
+    else view.style.minHeight = '';
     view.textContent = '';
     view.classList.remove('enter-fwd', 'enter-back', 'enter-fade', 'enter-flip');
     void view.offsetWidth;
@@ -2291,6 +2297,203 @@ const NavPill = {
     this.el.style.height = a.offsetHeight + 'px';   // follows the item (text size setting)
     this.el.style.right = 'auto';
     if (instant) { void this.el.offsetWidth; this.el.style.transition = ''; }
+  },
+};
+/** Every segmented control (seg() in views.js, Settings' tabs, the sidebar's 本地 / 遠端, single-choice chips, and
+ *  any element a module marks data-glide): when the chosen item changes, its highlight slides over from the old one
+ *  instead of jumping. It works from the outside, so no control needs code of its own: a click on an item remembers
+ *  where the highlight was; once the control shows another item chosen (a class toggled in place, or the control
+ *  drawn again, also after an await), a stand-in with the new item's own look (background, border, shadow, radius:
+ *  every theme) travels from the old place to the new one, then goes away and the item shows its own highlight
+ *  again. Only transform / width / height move. Off with reduced motion or 輕量化「頁面動畫」. */
+const Glide = {
+  GROUPS: '.seg, .set-tabs, .rl-src, .chips, [data-glide]',
+  BLOCKS: '.sect, .dsp-card, .settings, .pop, .outpop',
+  calm() { return matchMedia('(prefers-reduced-motion: reduce)').matches || PageEffects.reduced('page'); },
+  items(g) { return [...g.children].filter(x => (x.tagName === 'BUTTON' || x.tagName === 'A') && !x.classList.contains('glide-pill')); },
+  chosen(g) { const on = this.items(g).filter(x => x.classList.contains('on')); return on.length === 1 ? on[0] : null; },
+  rel(el, g) { const r = el.getBoundingClientRect(), gr = g.getBoundingClientRect(); return { x: r.left - gr.left - g.clientLeft, y: r.top - gr.top - g.clientTop, w: r.width, h: r.height }; },
+  key(g) { return g.className.replace(/\s*\bglide-\S+/g, '').trim(); },
+  near(a, b, d) { return Math.abs(a.left - b.left) < d && Math.abs(a.top - b.top) < d; },
+  /** The control drawn again in place of g (a page or a settings block redrawn after the setting was saved). */
+  /** What identifies a control when it is drawn again: its kind, its row's title and its items' labels (the place on
+   *  screen only breaks ties: rows above it come and go, and a redrawn block can shift). */
+  sig(g) { return { key: this.key(g), name: this.rowName(g), labels: this.items(g).map(x => x.textContent.trim()).join('|'), box: g.getBoundingClientRect() }; },
+  twin(sig) {
+    const dist = x => { const r = x.getBoundingClientRect(); return Math.abs(r.left - sig.box.left) + Math.abs(r.top - sig.box.top); };
+    const same = [...document.querySelectorAll(this.GROUPS)].filter(x => this.key(x) === sig.key && this.items(x).map(y => y.textContent.trim()).join('|') === sig.labels);
+    const named = same.filter(x => this.rowName(x) === sig.name);
+    const pool = named.length ? named : same;
+    return pool.sort((a, b) => dist(a) - dist(b))[0] || null;
+  },
+  /** The title of the settings row a control sits in ('' outside a row). */
+  rowName(el) { const f = el.closest('.field'); const b = f && f.querySelector('.lbl b'); return b ? b.textContent : ''; },
+  labels(scope) { return [...scope.querySelectorAll('.field .lbl b, h3')].map(b => b.textContent); },
+  /** Fields that were not there before the click fade and rise in (each on its own: opacity / transform only). */
+  reveal(scope, seen) {
+    let n = 0;
+    for (const b of scope.querySelectorAll('.field .lbl b, h3')) {
+      if (seen.has(b.textContent)) continue;
+      seen.add(b.textContent);
+      const el = b.closest('.field') || b.parentElement;
+      if (!el || el.classList.contains('glide-new') || n > 6) continue;
+      el.style.setProperty('--i', n++);
+      el.classList.add('glide-new');
+      el.addEventListener('animationend', function off(e) { if (e.target === el) { el.classList.remove('glide-new'); el.removeEventListener('animationend', off); } });
+    }
+  },
+  /** Plays a switch's change on a switch that already shows its new state. */
+  turn(sw, was, skip = 0) {
+    // skip: the old switch had already turned that far (ms): carry on from there instead of starting again
+    if (skip > 0) { sw.style.setProperty('--sw-skip', -skip + 'ms'); setTimeout(() => sw.style.removeProperty('--sw-skip'), 400); }
+    sw.classList.toggle('on', was);
+    sw.classList.add('sw-replay');
+    void sw.offsetWidth;
+    sw.classList.remove('sw-replay');
+    sw.classList.toggle('on', !was);
+  },
+  start() {
+    document.addEventListener('click', e => {
+      if (this.calm() || !e.target.closest) return;
+      const item = e.target.closest('button, a, .switch');
+      if (!item) return;
+      this.watchBlock(item);
+      const g = item.parentElement && item.parentElement.closest(this.GROUPS);
+      if (!g || item.parentElement !== g) return;
+      const old = this.chosen(g);
+      if (!old || old === item) return;
+      // a slide still running starts from where its stand-in is now
+      const live = g.querySelector(':scope > .glide-pill');
+      const from = live ? this.rel(live, g) : this.rel(old, g);
+      const sig = this.sig(g), idx = this.items(g).indexOf(old), t0 = performance.now();
+      // the new choice can show a while later (a setting saved first, a remote library loaded): wait up to 3 s
+      const look = () => {
+        const cur = g.isConnected ? g : this.twin(sig);
+        const on = cur && this.chosen(cur);
+        if (on && (cur !== g ? this.items(cur).indexOf(on) !== idx : on !== old)) return this.slide(cur, on, from);
+        if (performance.now() - t0 < 3000) requestAnimationFrame(look);
+      };
+      requestAnimationFrame(look);
+    }, true);
+  },
+  /** A click in a settings block (or a popover) often saves the setting and draws the whole block again, and one
+   *  setting can change others (去除錄音振鈴 → the phase row): the other controls of the block, as they were, are
+   *  remembered, and once the block has been drawn again every segmented control that now shows another choice
+   *  slides there, every switch that turned plays its turn, and fields that are new ease in. Only the elements that
+   *  changed move; until something is redrawn this costs one isConnected check a frame, for at most 3 s. */
+  watchBlock(item) {
+    const block = item.closest(this.BLOCKS);
+    if (!block) return;
+    const clickedGroup = item.parentElement && item.parentElement.closest(this.GROUPS);
+    // (name: the title of its row, to find it again when rows above it come or go)
+    const groups = [...block.querySelectorAll(this.GROUPS)].map(g => {
+      const on = this.chosen(g);
+      return { g, sig: this.sig(g), idx: on ? this.items(g).indexOf(on) : -1, from: on ? this.rel(on, g) : null };
+    });
+    const switches = [...block.querySelectorAll('.switch')].map(sw => ({ sw, name: this.rowName(sw), box: sw.getBoundingClientRect(), on: sw.classList.contains('on') }));
+    const seen = new Set(this.labels(block)), blockBox = block.getBoundingClientRect(), blockKey = block.className;
+    const t0 = performance.now();
+    const tick = () => {
+      const redrawn = !block.isConnected || groups.some(s => !s.g.isConnected) || switches.some(s => !s.sw.isConnected);
+      if (!redrawn) {
+        if (performance.now() - t0 < 3000) requestAnimationFrame(tick);
+        else this.reveal(block, seen);   // drawn in place: settings added to it later
+        return;
+      }
+      // the redrawn block: the same kind of block holding one of the same rows (it may sit a little off for a moment)
+      const scope = block.isConnected ? block : [...document.querySelectorAll(this.BLOCKS)].filter(b => b.className === blockKey)
+        .find(b => this.labels(b).some(l => seen.has(l))) || [...document.querySelectorAll(this.BLOCKS)].find(b => b.className === blockKey && this.near(b.getBoundingClientRect(), blockBox, 40));
+      const byName = (sel, name, ok) => name && scope ? [...scope.querySelectorAll(sel)].find(x => ok(x) && this.rowName(x) === name) : null;
+      for (const s of groups) {
+        if (s.g.isConnected || !s.from || s.g === clickedGroup) continue;   // the clicked one: start()'s own slide
+        const t = this.twin(s.sig), on = t && this.chosen(t);
+        if (on && this.items(t).indexOf(on) !== s.idx && !t.querySelector(':scope > .glide-pill')) this.slide(t, on, s.from);
+      }
+      const clicked = item.classList.contains('switch') ? item : null, gone = performance.now() - t0;
+      for (const s of switches) {
+        if (s.sw.isConnected) continue;
+        // found by its row's title (in the redrawn block, else anywhere), else by place
+        const t = byName('.switch', s.name, () => true) || (s.name && [...document.querySelectorAll('.switch')].find(x => this.rowName(x) === s.name))
+          || (!s.name && [...document.querySelectorAll('.switch')].find(x => this.near(x.getBoundingClientRect(), s.box, 12)));
+        if (!t || t.classList.contains('on') === s.on) continue;
+        // the clicked switch had already turned in place: carry on from where it had got to (or nothing, if it had finished)
+        const turned = s.sw === clicked && s.sw.classList.contains('on') !== s.on;
+        if (turned && gone > 330) continue;
+        this.turn(t, s.on, turned ? gone : 0);
+      }
+      if (scope) this.reveal(scope, seen);
+    };
+    requestAnimationFrame(tick);
+  },
+  slide(g, on, from) {
+    g.querySelector(':scope > .glide-pill')?.remove();
+    clearTimeout(g._glideT);
+    // the item's own highlight as it ends up: its colour may be mid-way through its own transition (that copied
+    // colour was the odd tint the stand-in showed for a moment), and a slide still running hides it
+    g.classList.remove('glide-run', 'glide-settle');
+    on.style.transition = 'none';
+    const c = getComputedStyle(on);
+    const cs = { background: c.background, boxShadow: c.boxShadow, borderRadius: c.borderRadius, borderTopWidth: c.borderTopWidth, borderTopStyle: c.borderTopStyle, borderTopColor: c.borderTopColor };
+    on.style.transition = '';
+    const to = this.rel(on, g);
+    if (Math.abs(to.x - from.x) < 1 && Math.abs(to.y - from.y) < 1 && Math.abs(to.w - from.w) < 1) return;
+    if (getComputedStyle(g).position === 'static') g.classList.add('glide-pos');
+    const pill = h('span', { class: 'glide-pill', 'aria-hidden': 'true' });
+    Object.assign(pill.style, {
+      background: cs.background, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius,
+      border: `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`,
+      width: from.w + 'px', height: from.h + 'px', transform: `translate(${from.x}px, ${from.y}px)`, transition: 'none',
+    });
+    g.prepend(pill);
+    g.classList.add('glide-run');
+    void pill.offsetWidth;
+    pill.style.transition = '';
+    Object.assign(pill.style, { width: to.w + 'px', height: to.h + 'px', transform: `translate(${to.x}px, ${to.y}px)` });
+    let over = false;
+    // the item's own highlight comes back without its colour transition (else it faded in after the stand-in had gone)
+    const done = () => {
+      over = true; clearTimeout(g._glideT); pill.remove();
+      if (g.querySelector(':scope > .glide-pill')) return;
+      g.classList.add('glide-settle'); g.classList.remove('glide-run');
+      requestAnimationFrame(() => requestAnimationFrame(() => g.classList.remove('glide-settle')));
+    };
+    pill.addEventListener('transitionend', e => { if (e.propertyName === 'transform') done(); });
+    g._glideT = setTimeout(done, 600);
+    // Many controls save their setting and then draw the whole page or block again, often while the slide is still
+    // under way: it then carries on in the redrawn control from where it had got to (one rect read a frame, on one element)
+    const sig = this.sig(g), idx = this.items(g).indexOf(on);
+    let last = from;
+    const follow = () => {
+      if (over) return;
+      if (g.isConnected) { last = this.rel(pill, g); requestAnimationFrame(follow); return; }
+      over = true;
+      const twin = this.twin(sig), now = twin && this.chosen(twin);
+      if (now && this.items(twin).indexOf(now) === idx) this.slide(twin, now, last);
+    };
+    requestAnimationFrame(follow);
+  },
+};
+Glide.start();
+
+/** Settings tabs: the page's blocks ease in from the side of the new tab (the tab highlight itself is Glide's). Each
+ *  block fades on its own: a fading parent would cut the glass theme's backdrop blur for the length of the fade. */
+const TabPill = {
+  from: null,
+  leave(bar) {
+    const on = bar && bar.querySelector('button.on');
+    this.from = on ? { i: [...bar.querySelectorAll('button')].indexOf(on), t: performance.now() } : null;
+  },
+  mount(bar, content) {
+    const from = this.from; this.from = null;
+    const i = [...bar.querySelectorAll('button')].findIndex(b => b.classList.contains('on'));
+    if (!from || performance.now() - from.t > 1000 || from.i === i || Glide.calm() || !content) return;
+    // the page's blocks once the view has built them (before the first paint): the ones that arrive later appear as usual
+    requestAnimationFrame(() => [...content.children].slice(0, 8).forEach((el, n) => {
+      el.style.setProperty('--tab-dx', (i > from.i ? 14 : -14) + 'px');
+      el.style.setProperty('--i', n);
+      el.classList.add('tab-in');
+      el.addEventListener('animationend', function done(e) { if (e.target === el) { el.classList.remove('tab-in'); el.removeEventListener('animationend', done); } });
+    }));
   },
 };
 /** The sidebar list scrolls without a scrollbar (a 14 px bar squeezed the folded 52 px column: the icons jumped

@@ -51,7 +51,8 @@ const RemoteLib = {
     if (!el) {
       const label = [...document.querySelectorAll('#nav .nav-label')].find(x => !x.id);   // 音樂庫
       if (!label) return;
-      el = h('div', { id: 'rl-src', class: 'rl-src' },
+      el = h('div', { id: 'rl-src', class: 'rl-src seg' },   // .seg: the same look as every other segmented control, in every theme
+
         h('button', { 'data-v': 'mac', onclick: () => this.setActive(false) }, T('本地')),
         h('button', { 'data-v': 'pc', onclick: e => this.info.active && this.info.remotes.length > 1 ? this.pickRemote(e.currentTarget) : this.setActive(true) }, T('遠端')));
       label.after(el);
@@ -83,6 +84,10 @@ const RemoteLib = {
   async setOnly(key) { this.update(await Host.call('remoteLib.only', { key })); },
   async setActive(on) {
     if (!!this.info.active === on) return;
+    // show the choice at once (the switch's highlight slides now); loading the other library can take a moment, and
+    // update() draws the switch again from the answer
+    const sw = $('#rl-src');
+    if (sw) for (const b of sw.querySelectorAll('button')) b.classList.toggle('on', (b.dataset.v === 'pc') === on);
     this.update(await Host.call('remoteLib.active', { on }));
     toast(on ? (this.info.online ? T('正在顯示遠端電腦上的音樂庫') : T('遠端電腦目前連不上，只能播放已下載到這台電腦的歌')) : T('正在顯示本地的音樂庫'));
   },
@@ -217,10 +222,8 @@ const RemoteLib = {
 };
 
 document.head.append(h('style', null, `
-.rl-src { display: flex; gap: 2px; margin: 0 10px 6px; padding: 2px; border-radius: 9px; background: var(--surface-2, rgba(255,255,255,.06)); }
-.rl-src button { flex: 1; font-size: 12px; padding: 4px 6px; border-radius: 7px; color: var(--text-2); white-space: nowrap; }
-.rl-src button:hover { color: var(--text-hi); }
-.rl-src button.on { background: var(--teal, #39c5bb); color: #fff; font-weight: 600; }
+.rl-src { display: flex; margin: 0 10px 6px; }
+.rl-src button { flex: 1; height: 26px; font-size: 12px; padding: 0 6px; }
 .rl-only { display: flex; align-items: center; gap: 4px; margin: -2px 12px 6px; font-size: 11.5px; color: var(--text-3); }
 .rl-only span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rl-only button { width: 18px; height: 18px; display: grid; place-items: center; color: var(--text-3); border-radius: 50%; }
@@ -229,7 +232,6 @@ document.head.append(h('style', null, `
 .rl-src button { position: relative; }
 /* the remote computer can't be reached: a small status light at the button's right edge, so the label stays centred */
 .rl-src button.off::after { content: ''; position: absolute; top: 50%; right: 8px; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #f0a63a; box-shadow: 0 0 0 2px rgba(240,166,58,.22); pointer-events: none; }
-.rl-src button.off.on::after { background: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.3); opacity: .9; }
 @media (max-width: 1180px) { .rl-src, .rl-only { display: none; } }
 /* 設定 → 曲庫 → 離線下載: the header folds the album list */
 .rl-dl-head { cursor: pointer; user-select: none; }

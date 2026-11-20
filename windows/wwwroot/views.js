@@ -5,7 +5,7 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
   const wrap = h('div', { class: 'vgrid', 'data-kind': kind });
   container.append(wrap);
   let cols = 1, cw = minW, rowH = minW + extra + gap, nodes = new Map(), raf = 0, layoutRaf = 0;
-  let laid = false;
+  let laid = false, glide = false;
   function layout() {
     const W = wrap.clientWidth;
     if (!W) return;
@@ -17,6 +17,12 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
     const newCols = fixed > 0 ? fixed : Math.max(2, Math.floor((W + gap) / (minW + gap)));
     const newCw = (W - gap * (newCols - 1)) / newCols;
     if (laid && newCols === cols && Math.abs(newCw - cw) < 0.5) return;
+    // 每排 − / + (or Ctrl + wheel): the cards on screen glide and scale to their new places (FLIP: transform only,
+    // only the few dozen cards that exist); a window resize still follows at once
+    const anim = glide && laid && newCols !== cols && !Motion.quiet && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    glide = false;
+    const was = anim ? new Map([...nodes].map(([i, n]) => [i, { x: (i % cols) * (cw + gap), y: Math.floor(i / cols) * rowH, s: cw }])) : null;
+    const scroll0 = content.scrollTop;
     cols = newCols; cw = newCw; rowH = cw + extra + gap;
     wrap.style.height = Math.ceil(items.length / cols) * rowH + 'px';
     // reposition existing cards instead of rebuilding them (no flicker)
@@ -30,8 +36,30 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
     }
     laid = true;
     if (raf) cancelAnimationFrame(raf);
+    fadeNew = anim;
     update();
+    fadeNew = false;
+    if (anim) {
+      const dy = content.scrollTop - scroll0;   // the list scrolled to keep its top album: start from where the eye saw it
+      const moving = [];
+      for (const [i, n] of nodes) {
+        const o = was.get(i);
+        if (!o) continue;
+        const to = n.style.transform;
+        n.style.transition = 'none';
+        n.style.transformOrigin = '0 0';
+        n.style.transform = `translate(${o.x}px, ${o.y + dy}px) scale(${o.s / cw})`;
+        moving.push([n, to]);
+      }
+      if (moving.length) {
+        void wrap.offsetWidth;
+        for (const [n, to] of moving) { n.style.transition = 'transform .42s cubic-bezier(.32, .72, 0, 1)'; n.style.transform = to; }
+        clearTimeout(glideT);
+        glideT = setTimeout(() => { for (const [n] of moving) { n.style.transition = ''; n.style.transformOrigin = ''; } }, 480);
+      }
+    }
   }
+  let fadeNew = false, glideT = 0;
   let firstPaint = true;
   function update() {
     raf = 0;
@@ -47,7 +75,8 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
       n.style.width = cw + 'px';
       const pos = `translate(${(i % cols) * (cw + gap)}px, ${Math.floor(i / cols) * rowH}px)`;
       n.style.transform = pos;
-      if (firstPaint && !Motion.quiet) { n.style.setProperty('--pos', pos); n.style.setProperty('--i', i - from); n.classList.add('pop-in'); n.addEventListener('animationend', () => n.classList.remove('pop-in'), { once: true }); }
+      if (fadeNew) { n.style.setProperty('--i', 0); n.classList.add('pop-in'); n.addEventListener('animationend', () => n.classList.remove('pop-in'), { once: true }); }
+      else if (firstPaint && !Motion.quiet) { n.style.setProperty('--pos', pos); n.style.setProperty('--i', i - from); n.classList.add('pop-in'); n.addEventListener('animationend', () => n.classList.remove('pop-in'), { once: true }); }
       wrap.append(n);
       nodes.set(i, n);
     }
@@ -59,7 +88,7 @@ function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kin
     if (!layoutRaf) layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; layout(); });
   });
   ro.observe(wrap);
-  const relayout = () => layout();
+  const relayout = () => { glide = true; layout(); };
   window.addEventListener('gridcols', relayout);
   layout();
   return () => { content.removeEventListener('scroll', onScroll); window.removeEventListener('gridcols', relayout); ro.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(layoutRaf); };
@@ -97,9 +126,19 @@ function setGridCols(n, kind = 'album') {
   window.dispatchEvent(new Event('gridcols'));
 }
 function colsControl(kind = 'album') {
-  const label = h('span', { class: 'num', style: { minWidth: '62px', textAlign: 'center', fontSize: '13px', color: 'var(--text-2)', lineHeight: '30px' } });
+  const label = h('span', { class: 'num cols-n', style: { minWidth: '62px', textAlign: 'center', fontSize: '13px', color: 'var(--text-2)', lineHeight: '30px' } });
   const cur = () => { const n = gridCols(kind); if (n) return n; const vg = $('.vgrid'); return vg ? Math.max(2, Math.floor((vg.clientWidth + 22) / (178 + 22))) : 6; };
-  const draw = () => label.textContent = gridCols(kind) ? T`每排 ${gridCols(kind)}` : T('自動');
+  const draw = () => {
+    const txt = gridCols(kind) ? T`每排 ${gridCols(kind)}` : T('自動');
+    if (label.textContent === txt) return;
+    const was = label.textContent;
+    label.textContent = txt;
+    // the number rolls in from the side it moved to (one span, transform / opacity only)
+    if (!was || Motion.quiet) return;
+    label.classList.remove('cols-up', 'cols-down');
+    void label.offsetWidth;
+    label.classList.add((parseInt(txt.replace(/\D/g, '')) || 0) >= (parseInt(was.replace(/\D/g, '')) || 0) ? 'cols-up' : 'cols-down');
+  };
   const box = h('div', { class: 'seg', title: T('每排顯示數量（Ctrl + 滾輪也可以調整）') },
     h('button', { onclick: () => { setGridCols(Math.max(2, cur() - 1), kind); draw(); } }, '−'),
     label,

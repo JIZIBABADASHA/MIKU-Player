@@ -14,12 +14,14 @@ const Settings = {
     if (!tabs.some(t => t[0] === tab)) tab = tabs.some(t => t[0] === uiPref('settingsTab')) ? uiPref('settingsTab') : 'audio';
     if (uiPref('settingsTab') !== tab) setUiPref('settingsTab', tab);
     view.append(pageHead(T('設定')));
-    view.append(h('div', { class: 'set-tabs' }, ...tabs.map(([id, label]) => h('button', {
+    const bar = h('div', { class: 'set-tabs' }, ...tabs.map(([id, label]) => h('button', {
       class: id === tab ? 'on' : '',
-      onclick: () => { if (id === tab) { scrollTop($('#content')); return; } history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
-    }, label))));
+      onclick: () => { if (id === tab) { scrollTop($('#content')); return; } TabPill.leave(bar); history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
+    }, label)));
+    view.append(bar);
     const root = h('div', { class: 'settings' });
     view.append(root);
+    TabPill.mount(bar, root);   // the highlight slides to the new tab and the page eases in from its side
     const s = App.settings;
 
     const field = (title, sub, ctl) => h('div', { class: 'field' }, h('div', { class: 'lbl' }, h('b', null, title), sub ? h('small', null, sub) : null), h('div', { class: 'ctl' }, ctl));
@@ -62,7 +64,7 @@ const Settings = {
         } })));
       const devHost = h('div');
       out.append(devHost);
-      const redrawDevices = async () => {
+      const fillDevices = async () => {
         devHost.textContent = '';
         devHost.append(field(T('輸出裝置'), T('讀取中…'), h('div', { class: 'sk', style: { width: '260px', height: '36px' } })));
         const d = await Host.call('devices');
@@ -91,6 +93,12 @@ const Settings = {
         refreshRates(d);
       };
       // a DAC connected or removed while this page is open (art.js listens for the host's devicesChanged)
+      // the device list is read again (also each time the page is drawn again after a setting is saved): it keeps the
+      // height it had (or had last time) while it loads, so the settings below it don't jump up and back
+      const redrawDevices = async () => {
+        devHost.style.minHeight = (devHost.offsetHeight || Settings._devH || 0) + 'px';
+        try { await fillDevices(); } finally { devHost.style.minHeight = ''; if (devHost.isConnected && devHost.offsetHeight) Settings._devH = devHost.offsetHeight; }
+      };
       this.redrawDevices = () => { if (devHost.isConnected) redrawDevices(); else this.redrawDevices = null; };
       redrawDevices();
       const bufField = field(T('緩衝大小'), T('較大的緩衝更穩定；較小的緩衝反應更快。'), (() => {

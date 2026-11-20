@@ -1637,6 +1637,22 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .set-tabs button { height: 34px; padding: 0 20px; border-radius: 9px; color: var(--text-2); font-size: 14px; font-weight: 600; transition: background .18s, color .18s; }
 .set-tabs button:hover { color: var(--text); }
 .set-tabs button.on { background: rgba(var(--ink), .1); color: var(--text); }
+/* page of the new tab eases in from its side (core.js TabPill) */
+.settings > .tab-in { animation: tabIn .32s cubic-bezier(.22, .8, .3, 1) backwards; animation-delay: calc(var(--i, 0) * 28ms); }
+@keyframes tabIn { from { opacity: 0; transform: translateX(var(--tab-dx, 14px)); } }
+@media (prefers-reduced-motion: reduce) { .settings > .tab-in { animation: none; } }
+/* segmented controls: the highlight slides to the chosen item (core.js Glide). While the stand-in travels, the
+   chosen item's own highlight is hidden and the items' text sits above it */
+.glide-pos { position: relative; }
+.glide-pill { position: absolute; left: 0; top: 0; z-index: 0; box-sizing: border-box; pointer-events: none;
+  transition: transform .34s cubic-bezier(.32, .72, 0, 1), width .34s cubic-bezier(.32, .72, 0, 1), height .34s cubic-bezier(.32, .72, 0, 1); }
+.glide-run > :is(button, a) { position: relative; z-index: 1; }
+/* settings that appear once a choice is made ease in below it */
+.glide-new { animation: glideNew .3s cubic-bezier(.22, .8, .3, 1) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+@keyframes glideNew { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .glide-new { animation: none; } }
+.glide-settle > :is(button, a).on { transition: none !important; }
+.glide-run > :is(button, a).on { background: transparent !important; box-shadow: none !important; border-color: transparent !important; transition: none !important; }
 .field { display: flex; align-items: center; gap: 20px; padding: 14px 22px; border-top: 1px solid var(--line); min-height: 62px; }
 .field:first-of-type { border-top: 0; }
 .field .lbl { flex: 1; min-width: 0; }
@@ -1654,6 +1670,8 @@ select.sel option { background: var(--surface-2); color: var(--text); }
 .switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--knob-off); transition: transform .3s var(--spring), background .2s; }
 .switch.on { background: var(--teal); }
 .switch.on::after { transform: translateX(18px); background: var(--knob); }
+.switch.sw-replay, .switch.sw-replay::after { transition: none !important; }
+.switch, .switch::after { transition-delay: var(--sw-skip, 0s); }   /* core.js: a redrawn switch plays its change */
 .folder { display: flex; align-items: center; gap: 12px; padding: 12px 22px; border-top: 1px solid var(--line); }
 .folder .p { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -1760,6 +1778,22 @@ a.link:hover { text-decoration: underline; }
 .play-pulse { animation: pulse .35s var(--spring); }
 @keyframes pulse { 50% { transform: scale(1.12); } }
 .toast { transition: transform .3s; }
+/* buttons: press and state feedback. It runs only on a click or when a toggle turns on (nothing moves while idle),
+   only transform, and only on the one element touched */
+.btn:active { transform: scale(.97); transition-duration: .08s; }
+.set-tabs button, .rl-src button { transition: background .18s, color .18s, transform .15s; }
+.set-tabs button:active, .rl-src button:active, .out-btn:active { transform: scale(.95); }
+.out-btn { transition: background .15s, color .15s, transform .15s; }
+/* the player's toggles (shuffle, repeat, queue, DSP, mute, lyrics, translation): the icon gives a small pop as it turns on */
+:is(#b-shuffle, #b-repeat, #b-queue, #b-dsp, #b-mute, #np-shuffle, #np-repeat, #np-lyr, #np-trans).on svg.i { animation: toggleOn .34s var(--spring); }
+@keyframes toggleOn { 40% { transform: scale(1.2); } }
+/* 每排 N: the number rolls in from the side it moved to */
+.cols-n { display: inline-block; }
+.cols-n.cols-up { animation: colsUp .28s cubic-bezier(.22, .8, .3, 1); }
+.cols-n.cols-down { animation: colsDown .28s cubic-bezier(.22, .8, .3, 1); }
+@keyframes colsUp { from { opacity: 0; transform: translateY(-7px); } }
+@keyframes colsDown { from { opacity: 0; transform: translateY(7px); } }
+@media (prefers-reduced-motion: reduce) { .btn:active, .set-tabs button:active, .rl-src button:active, .out-btn:active { transform: none; } :is(#b-shuffle, #b-repeat, #b-queue, #b-dsp, #b-mute, #np-shuffle, #np-repeat, #np-lyr, #np-trans).on svg.i, .cols-n { animation: none !important; } }
 
 @media (max-width: 1180px) {
   :root { --sidebar: 76px; }

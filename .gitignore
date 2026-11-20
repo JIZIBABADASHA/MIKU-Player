@@ -26,6 +26,7 @@ mac/build/ext/
 
 # build logs / helper flags
 build.log
+last-build.log
 build-result.txt
 installer.log
 installer-result.txt
@@ -44,3 +45,5 @@ Thumbs.db
 # local build shortcut (MIKU without extensions)
 /windows/make-installer-no-ext.cmd
 
+# Claude Code's local session files
+.claude/
