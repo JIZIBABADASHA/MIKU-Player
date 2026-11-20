@@ -289,11 +289,25 @@ const ArtSharp = {
 ArtSharp.onDpr();
 
 /* ═════════════════════════════ library store ═════════════════════════════ */
-/** Artist and genre tags: ';' separates several values ("ほぼ日P ;  初音ミク", "Niconico; Vocaloid"). */
+/** Artist and genre tags: ';' separates several values ("ほぼ日P ;  初音ミク", "Niconico; Vocaloid"), and so do the
+ *  enumeration comma 、 and the full-width comma ， ("初星学園、花海佑芽"), outside brackets only ("ryo (supercell、x)" stays
+ *  one name). ASCII ',' / '&' don't split here ("Earth, Wind & Fire"). out.seps[i] is the text written before name i,
+ *  so joinNames / artistLinks show the credit as it was written ("初星学園、花海佑芽", "A / B"). */
 const splitNames = s => {
   // some files carry the same name many times (several tag blocks / taggers): keep each name once
   const seen = new Set(), out = [];
-  for (const x of (s || '').split(';')) { const v = x.trim(), k = v.toLowerCase(); if (v && !seen.has(k)) { seen.add(k); out.push(v); } }
+  out.seps = [];
+  const add = (v, sep) => { v = v.trim(); const k = v.toLowerCase(); if (v && !seen.has(k)) { seen.add(k); out.seps.push(out.length ? sep : ''); out.push(v); } };
+  for (const x of (s || '').split(';')) {
+    let depth = 0, from = 0, sep = ' / ';
+    for (let i = 0; i < x.length; i++) {
+      const c = x[i];
+      if ('(（[【「『'.includes(c)) depth++;
+      else if (')）]】」』'.includes(c)) depth = Math.max(0, depth - 1);
+      else if (!depth && (c === '、' || c === '，')) { add(x.slice(from, i), sep); sep = c; from = i + 1; }
+    }
+    add(x.slice(from), sep);
+  }
   return out;
 };
 /** Each artist credited in an artist text ("ryo feat. 初音ミク", "A & ryo", "A／ryo", "ryo x Mili", "ryo (supercell)"),
@@ -307,7 +321,7 @@ const creditNames = s => {
   return out;
 };
 /** Several values shown as one text. */
-const joinNames = names => names.join(' / ');
+const joinNames = names => names.map((n, i) => i ? (names.seps?.[i] || ' / ') + n : n).join('');
 const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
 /** The artist to put in an online search: the first name only, without "(CV. …)" (ArtworkService.SearchArtist). */
 const searchArtist = s => {
@@ -321,7 +335,7 @@ const mainArtist = t => (t.album?.artists || []).find(realArtist) || t.artists?.
 function artistLinks(names, before) {
   const out = [];
   names.forEach((n, i) => {
-    if (i) out.push(' / ');
+    if (i) out.push(names.seps?.[i] || ' / ');
     out.push(realArtist(n) ? h('a', { onclick: () => { before && before(); go('#/artist/' + encodeURIComponent(n)); } }, n) : n);
   });
   return out;
