@@ -2186,3 +2186,21 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 @keyframes egg-flick { from { opacity: 1; } to { opacity: .78; } }
 .egg-spark { position: fixed; z-index: 9998; pointer-events: none; border-radius: 2px; }
 .egg-ring { position: fixed; z-index: 9997; pointer-events: none; width: 60px; height: 60px; border-radius: 50%; border: 3px solid #39c5bb; box-shadow: 0 0 22px #39c5bb, inset 0 0 14px #e5307e; }
+
+/* search: what matched is marked like a highlighter pen (no underline), in a colour that suits each theme */
+:root { --hit: rgba(57, 197, 187, .34); }
+[data-theme="miku"] { --hit: rgba(44, 188, 180, .30); }
+[data-theme="night"] { --hit: rgba(57, 197, 187, .34); }
+[data-theme="wood"] { --hit: rgba(214, 168, 92, .36); }
+[data-theme="glass"] { --hit: rgba(255, 143, 207, .34); }
+[data-theme="flat"] { --hit: rgba(255, 221, 51, .62); }
+[data-theme="neon"] { --hit: rgba(255, 43, 214, .38); }
+[data-theme="washi"] { --hit: rgba(196, 67, 44, .20); }
+[data-theme="vinyl"] { --hit: rgba(217, 165, 33, .42); }
+mark.hit {
+  color: inherit; font-weight: 700; border-radius: 2px;
+  background: linear-gradient(100deg, transparent .05em, var(--hit) .12em, var(--hit) calc(100% - .12em), transparent calc(100% - .05em)) 0 88% / 100% 62% no-repeat;
+  padding: 0 .1em; margin: 0 -.1em;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+[data-theme="neon"] mark.hit { text-shadow: 0 0 8px rgba(255, 43, 214, .45); }

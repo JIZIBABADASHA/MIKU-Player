@@ -385,7 +385,23 @@ const SEARCH_FIELDS = {
   album: a => [[a.title, 1], [a.artist, 0.65]],
   track: t => [[t.title ?? t.name, 1], [t.artist, 0.65], [t.album && t.album.title, 0.4]],
 };
-const searchNorm = s => { s = (s || '').toLowerCase(); return /^[\x00-\x7f]*$/.test(s) ? s : s.normalize('NFKC'); };
+// (Traditional, Simplified and Japanese forms of a character are the same: 一體 finds 一体いつから)
+const searchNorm = s => { s = (s || '').toLowerCase(); return /^[\x00-\x7f]*$/.test(s) ? s : SearchJa.vfold(s.normalize('NFKC')); };
+// an item's search text with the character forms folded, made once (again only if its text changes)
+const searchText = item => { if (item._vs === undefined || item._vsOf !== item.s) { item._vsOf = item.s; item._vs = SearchJa.vfold(item.s); } return item._vs; };
+// romaji typed ("yoru ni kakeru", "itaiitsukara", "saranghae") also finds Japanese and Korean names: each name's romaji
+// key is made once per name (SearchJa caches it). The whole query without spaces is tried, and each word of 3+ letters.
+function searchRomaji(terms) {
+  if (!terms.length || !terms.every(t => /^[a-z0-9'\-.]+$/.test(t)) || !terms.some(t => /[a-z]/.test(t))) return null;
+  const whole = SearchJa.foldQuery(terms.join(''));
+  return whole.length >= 2 ? { whole, parts: terms.map(t => SearchJa.foldQuery(t)) } : null;
+}
+// how well a romaji key matches: the whole name, its start, inside it
+const romajiScore = (keys, q) => {
+  let best = 0;
+  for (const key of keys) if (q && key) best = Math.max(best, key === q ? 95 : key.startsWith(q) ? 75 : key.includes(q) ? 50 : 0);
+  return best;
+};
 const searchWordChar = /[\p{L}\p{N}]/u;
 // in Chinese / Japanese / Korean there are no spaces between words: any match counts as the start of one
 const searchCjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
@@ -407,10 +423,17 @@ function searchScore(text, term) {
 function searchMatches(items, terms, limit, fields = SEARCH_FIELDS.track, typed = terms) {
   if (!terms.length || !limit) return items.slice(0, limit);
   const phrase = terms.length > 1 ? terms.join(' ') : null;
+  const ro = searchRomaji(terms);
   const ranked = [];
   for (let index = 0; index < items.length; index++) {
     const item = items[index];
-    if (!terms.every(term => item.s.includes(term))) continue;
+    const s = searchText(item);
+    if (!terms.every(term => s.includes(term))) {
+      if (!ro || !SearchJa.hasJa(item.s)) continue;
+      const romaji = searchRomajiMatch(item, fields, terms, s, ro);
+      if (romaji) ranked.push({ item, ...romaji, cased: false, index });
+      continue;
+    }
     const texts = fields(item);
     const name = String(texts[0][0] || '');
     for (const f of texts) f[0] = searchNorm(f[0]);
@@ -430,9 +453,55 @@ function searchMatches(items, terms, limit, fields = SEARCH_FIELDS.track, typed 
     ranked.push({ item, named, tier, cased, score, len: texts[0][0].length, index });
   }
   // equally good matches: the shorter name (the closer match) first, then the library's order
+  // (a romaji match counts like any other: 夜に駆ける for "yoru ni kakeru" is a whole-name match)
   ranked.sort((a, b) => b.named - a.named || b.tier - a.tier || b.cased - a.cased || b.score - a.score || a.len - b.len || a.index - b.index);
   return ranked.slice(0, limit).map(r => r.item);
 }
+// A romaji match: the whole query (spaces ignored) in one of the names, or every word in the names, each either as
+// written or (3+ letters) in romaji. Ranked like a written match: in the name before the artist / album, whole before part.
+function searchRomajiMatch(item, fields, terms, s, ro) {
+  const texts = fields(item).map(([text, weight]) => [String(text || ''), weight]);
+  const keys = texts.map(([text]) => SearchJa.hasJa(text) ? SearchJa.keys(text).map(k => k.key) : [SearchJa.foldQuery(text)]);
+  let score = 0, tier = 0, named = false;
+  const whole = keys.map(k => romajiScore(k, ro.whole));
+  if (whole.some(Boolean)) {
+    for (let f = 0; f < texts.length; f++) score = Math.max(score, whole[f] * texts[f][1]);
+    score *= terms.length;
+    named = whole[0] > 0;
+    tier = named ? (whole[0] >= 75 ? 3 : 2) : 0;
+  } else {
+    for (let i = 0; i < terms.length; i++) {
+      const term = terms[i], part = ro.parts[i];
+      let best = 0, inName = false;
+      for (let f = 0; f < texts.length; f++) {
+        const v = Math.max(s.includes(term) ? searchScore(searchNorm(texts[f][0]), term) : 0, part.length >= 3 ? romajiScore(keys[f], part) : 0) * texts[f][1];
+        if (v > best) best = v;
+        if (f === 0 && v > 0) inName = true;
+      }
+      if (!best) return null;
+      score += best;
+      named = i === 0 ? inName : named && inName;
+    }
+    tier = named ? 1 : 0;
+  }
+  return { named, tier, score, len: texts[0][0].length };
+}
+// Romaji keys are made in idle time once the search box is first used, so the first romaji search doesn't wait for them.
+let searchWarmed = null;
+function searchWarm() {
+  if (!Lib.tracks || searchWarmed === Lib.tracks) return;
+  searchWarmed = Lib.tracks;
+  const names = [];
+  for (const t of Lib.tracks) names.push(t.title ?? t.name, t.artist, t.album && t.album.title);
+  let i = 0;
+  const idle = window.requestIdleCallback || (f => setTimeout(() => f({ timeRemaining: () => 8 }), 50));
+  const step = deadline => {
+    while (i < names.length && deadline.timeRemaining() > 2) { const n = names[i++]; if (n && SearchJa.hasJa(n)) SearchJa.key(n); }
+    if (i < names.length) idle(step);
+  };
+  idle(step);
+}
+document.addEventListener('focusin', e => { if (e.target && e.target.id === 'q') searchWarm(); });
 // The artists list only has album artists; search also finds artists who only appear on tracks (a compilation's
 // "FEEL SO BAD"), with the albums those tracks are on.
 let searchArtistCache = null;
@@ -454,13 +523,20 @@ function searchArtists() {
 // Marks what was searched for in the names shown (lightly: bold, with a thin accent underline), so it's clear why each
 // result is there.
 function searchHighlight(root, terms) {
+  const ro = searchRomaji(terms);
   for (const el of root.querySelectorAll('.card .t1, .card .t2, .row .tt > div, .row .al a')) {
     for (const node of [...el.childNodes]) {
       if (node.nodeType !== 3) continue;
-      const text = node.data, low = text.normalize('NFKC').toLowerCase();
+      const text = node.data, low = SearchJa.vfold(text.normalize('NFKC').toLowerCase());
       if (low.length !== text.length) continue;
       const spans = [];
       for (const term of terms) for (let i = low.indexOf(term); i >= 0; i = low.indexOf(term, i + term.length)) spans.push([i, i + term.length]);
+      // romaji: the part of a Japanese / Korean name it was found in
+      if (!spans.length && ro && SearchJa.hasJa(text)) {
+        const whole = SearchJa.find(text, ro.whole);
+        if (whole) spans.push(whole);
+        else ro.parts.forEach(part => { const r = part.length >= 3 && SearchJa.find(text, part); if (r) spans.push(r); });
+      }
       if (!spans.length) continue;
       spans.sort((a, b) => a[0] - b[0]);
       const frag = document.createDocumentFragment();
@@ -471,7 +547,6 @@ function searchHighlight(root, terms) {
         if (from > at) frag.append(text.slice(at, from));
         const m = document.createElement('mark');
         m.className = 'hit';
-        m.style.cssText = 'background:none;color:inherit;font-weight:700;text-decoration:underline 2px var(--teal);text-underline-offset:3px';
         m.textContent = text.slice(from, b);
         frag.append(m);
         at = b;
@@ -772,7 +847,7 @@ const Views = {
     const keep = e => { if (e.target.closest('.card, .row, a, button')) SearchHist.add(q); };
     view.addEventListener('click', keep, true);
     const cleanup = () => view.removeEventListener('click', keep, true);
-    const terms = norm(q).split(/\s+/).filter(Boolean);
+    const terms = SearchJa.vfold(norm(q)).split(/\s+/).filter(Boolean);
     const typed = q.normalize('NFKC').split(/\s+/).filter(Boolean);
     const artists = searchMatches(searchArtists(), terms, 10, SEARCH_FIELDS.artist, typed);
     const albums = searchMatches(Lib.albums, terms, 18, SEARCH_FIELDS.album, typed);
