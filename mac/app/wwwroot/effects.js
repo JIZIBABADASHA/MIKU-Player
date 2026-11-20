@@ -154,9 +154,22 @@ const IdleFx = {
         // 125 style passes a second for four loops; read first, a step is one pass.
         for (const a of this.steps.keys()) if (a.currentTime === null) this.steps.delete(a);
         for (const [a, t0] of this.steps) { try { a.currentTime = now - t0; } catch (e) { this.steps.delete(a); } }
+        // a draw that asked to go with a step (the progress bar: App.frame), from half a step before it is due
+        if (this.due && now >= this.due.at - 500 / this.fps) { const f = this.due.fn; this.due = null; f(); }
         if (!this.steps.size) this.clock();
       }, 1000 / this.fps);
-    } else if (!this.steps.size && this.stepTimer) { clearInterval(this.stepTimer); this.stepTimer = 0; }
+    } else if (!this.steps.size && this.stepTimer) {
+      clearInterval(this.stepTimer); this.stepTimer = 0;
+      if (this.due) { const d = this.due; this.due = null; setTimeout(d.fn, Math.max(0, d.at - performance.now())); }
+    }
+  },
+  /** Runs fn with the step nearest `ms` from now, so its changes land in the same frame as the step's; false when no
+   *  step clock runs (the caller keeps its own timer). One draw waits at a time: a later request replaces it. */
+  due: null,
+  onStep(fn, ms) {
+    if (!this.stepTimer) return false;
+    this.due = { fn, at: performance.now() + ms };
+    return true;
   },
   /** The host's view of the window (Mac: mac-bridge.js); document.hidden covers the rest. */
   setWindowVisible(visible) { this.windowVisible = visible !== false; this.sync(); },

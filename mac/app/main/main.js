@@ -103,14 +103,17 @@ remoteLib.on('library', () => { player.validate(); post('library', { revision: '
 {
   let timer = null;
   const send = () => { timer = null; post('remoteLib', remoteDto()); };
-  remoteLib.on('changed', () => { if (!timer) timer = setTimeout(send, 150); });
-  remoteLib.on('progress', () => { if (!timer) timer = setTimeout(send, 150); });
+  // while a song is being copied over, its progress (the page shows it in the player bar); the clock runs only then
+  let copying = null;
+  const watchJobs = () => {
+    if (remoteLib.jobs.size && !copying) copying = setInterval(() => { if (remoteLib.jobs.size) post('remoteLib', remoteDto()); else { clearInterval(copying); copying = null; } }, 700);
+  };
+  remoteLib.on('changed', () => { watchJobs(); if (!timer) timer = setTimeout(send, 150); });
+  remoteLib.on('progress', () => { watchJobs(); if (!timer) timer = setTimeout(send, 150); });
   remoteLib.on('art', id => {
     post('art', { kind: 'album', id });
     for (const t of (remoteLib.getAlbum(id) || {}).tracks || []) post('art', { kind: 'track', id: t.id });
   });
-  // while a song is being copied over, its progress (the page shows it in the player bar)
-  setInterval(() => { if (remoteLib.jobs.size) post('remoteLib', remoteDto()); }, 700);
 }
 function remoteDto() {
   const i = remoteLib.info();
@@ -305,11 +308,11 @@ cd.on('rip', p => post('cdRip', p));
 
 // keep the Mac awake enough to keep playing (display may sleep)
 let psb = null;
-setInterval(() => {
+engine.on('changed', () => {   // (was a 2 s clock, also while nothing played)
   const want = engine.isPlaying;
   if (want && psb == null) psb = powerSaveBlocker.start('prevent-app-suspension');
   else if (!want && psb != null) { powerSaveBlocker.stop(psb); psb = null; }
-}, 2000);
+});
 
 // ───────────── exclusive mode: when MIKU lets go of the DAC ─────────────
 // MIKU keeps the DAC it holds in exclusive mode for as long as it plays, and for as long as the listener is in MIKU:
@@ -330,6 +333,26 @@ function considerLettingGo(delay = 1500) {
   }, delay);
 }
 app.on('browser-window-blur', () => considerLettingGo());
+// ───────────── a long pause on a module's playback core ─────────────
+// MIKU's own Core Audio output stops the device's IO after 30 s paused (native/audio.mm, softPaused) and keeps holding it.
+// A module's core (Daphne) plays silence for as long as it is paused: its IO thread woke 300–400 times a second, more
+// energy while paused (Activity Monitor ~20) than while playing (~12). After 30 s paused the track is stopped where it
+// is, the device kept (exclusive mode stays held), and Play continues at the same place, as after letting go above.
+let longPauseTimer = null;
+function watchLongPause() {
+  const paused = () => !quitting && engine.coreId !== 'miku' && engine.isLoaded && !engine.isPlaying && !engine.isLoading && !engineLive();
+  if (!paused()) { clearTimeout(longPauseTimer); longPauseTimer = null; return; }
+  if (longPauseTimer) return;
+  longPauseTimer = setTimeout(() => {
+    longPauseTimer = null;
+    if (!paused()) return;
+    Log.info('Paused for 30 s on a module core: stopping at the place, device kept');
+    player.saveState(); engine.stop();
+    postSoon('state');
+  }, 30000);
+}
+engine.on('changed', watchLongPause);
+
 app.on('browser-window-focus', () => clearTimeout(letGoTimer));
 if (process.platform === 'darwin') app.on('did-resign-active', () => considerLettingGo());
 

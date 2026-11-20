@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 const arg = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-if (args[0] === '--compare') { compare(args[1], args[2]); process.exit(0); }
+if (require.main === module && args[0] === '--compare') { compare(args[1], args[2]); process.exit(0); }
 
 const APP = path.resolve(arg('app', path.join(ROOT, 'mac/build/work/root-' + (os.arch() === 'arm64' ? 'arm64' : 'x64') + '/MIKU.app')));
 const MINUTES = +arg('minutes', 0), ROUNDS = +arg('rounds', MINUTES ? 1e9 : 20), EVERY = +arg('every', 4);

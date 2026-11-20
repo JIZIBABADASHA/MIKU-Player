@@ -793,6 +793,7 @@ const App = {
   /* ── state ── */
   setState(s) {
     const prev = this.state;
+    const was = prev && prev.playing ? this.pos : null;   // where the page's own clock had got to
     // the first track of a module's Smart Playlist comes: the bar's left part as it is, before it shows that track
     // (the queue, which changes the slot, may come a moment later)
     const q = this.queue, c = q && q.continued;
@@ -833,7 +834,11 @@ const App = {
     const sg = s.signal;
     const signalKey = [s.trackId, sg?.quality, sg?.dspActive, sg?.dsd, sg?.dsdLabel, sg?.sourceBits, sg?.sourceRate, sg?.codec, sg?.dop, sg?.outputRate, sg?.outputFormat, sg?.physicalFormat, sg?.mode, sg?.device, sg?.replayGainDb, sg?.note].join('|');
     if (this.signalKey !== signalKey) { this.signalKey = signalKey; this.renderSignal(); }
-    this.kick();
+    // A periodic report that only confirms where playback is (five a second from the host) has nothing new to draw: the
+    // progress loop draws on its own schedule, on the badge's step clock when that runs (IdleFx.onStep). Drawn at once,
+    // each report was a frame of its own, the whole page composited again between two steps.
+    const routine = was !== null && s.playing && prev.trackId === s.trackId && Math.abs(s.pos - was) < 0.25 && (this.frameTimer || IdleFx.due);
+    if (!routine) this.kick();
   },
 
   get pos() {
@@ -957,7 +962,7 @@ const App = {
   kick() { if (!(this.state.playing && this.frameRaf)) this.frame(); },
   frame() {
     cancelAnimationFrame(this.frameRaf); clearTimeout(this.frameTimer);
-    this.frameRaf = this.frameTimer = 0;
+    this.frameRaf = this.frameTimer = 0; IdleFx.due = null;
     // Paused progress is redrawn by state/seek events; a hidden page needs no visual loop at all.
     if (document.hidden || this.uiVisible === false) return;
     if (!this.frameEls) {
@@ -988,7 +993,9 @@ const App = {
     const w = this.seekWidths.get(NowPlaying.open ? el.npSeek : el.seek) || 0;
     if (dur > 0 && w > 0) wait = Math.min(wait, dur / (w * 2));
     wait = Math.min(wait, sec + 1 - pos + .005);
-    this.frameTimer = setTimeout(() => this.frame(), Math.max(33, Math.min(500, wait * 1000)));
+    const ms = Math.max(33, Math.min(500, wait * 1000));
+    // while the badge (or Glass's orbs) is stepped, the next draw goes with a step: one frame for both
+    if (!IdleFx.onStep(() => this.frame(), ms)) this.frameTimer = setTimeout(() => this.frame(), ms);
   },
 
   /* ── commands ── */
