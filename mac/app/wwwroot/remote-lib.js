@@ -189,7 +189,10 @@ document.head.append(h('style', null, `
 .rl-only button { width: 18px; height: 18px; display: grid; place-items: center; color: var(--text-3); border-radius: 50%; }
 .rl-only button:hover { color: var(--text-hi); background: var(--surface-2); }
 .rl-only .i { width: 12px; height: 12px; }
-.rl-src button.off::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 5px; border-radius: 50%; background: #e0a030; vertical-align: middle; }
+.rl-src button { position: relative; }
+/* the remote computer can't be reached: a small status light at the button's right edge, so the label stays centred */
+.rl-src button.off::after { content: ''; position: absolute; top: 50%; right: 8px; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #f0a63a; box-shadow: 0 0 0 2px rgba(240,166,58,.22); pointer-events: none; }
+.rl-src button.off.on::after { background: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.3); opacity: .9; }
 @media (max-width: 1180px) { .rl-src, .rl-only { display: none; } }
 `));
 
