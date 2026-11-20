@@ -4,6 +4,7 @@ obj/
 dist/
 /MIKU/
 /MIKU-new/
+/MIKU-*/
 /MIKU-Setup/
 /Extensions/
 /artifacts/
