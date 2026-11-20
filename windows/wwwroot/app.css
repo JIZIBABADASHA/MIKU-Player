@@ -326,6 +326,11 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 /* artist page: albums dragged between 專輯 and 參與作品 (views.js) */
 .artist-part { border-radius: 18px; transition: background .15s, box-shadow .15s; }
 body.album-dragging .artist-part { box-shadow: inset 0 0 0 1px var(--line); }
+body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing !important; }
+.card.drag-src { opacity: .35; }
+.album-ghost { position: fixed; left: 0; top: 0; z-index: 9999; width: 120px; height: 120px; border-radius: 12px; overflow: hidden; pointer-events: none; will-change: transform; background: var(--surface-2); box-shadow: 0 14px 34px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); opacity: .92; }
+.album-ghost img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.album-ghost.quiet { box-shadow: none; }
 .artist-part.drop-on { background: var(--surface); box-shadow: inset 0 0 0 2px var(--teal); }
 .artist-drop-hint { margin: 0 0 8px; padding: 26px; border: 1.5px dashed var(--line-2); border-radius: 14px; text-align: center; color: var(--text-3); font-size: 13px; }
 .artist-part.empty:not(.drop-on) .artist-drop-hint { opacity: .75; }

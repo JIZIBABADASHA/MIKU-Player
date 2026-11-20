@@ -211,6 +211,97 @@ function albumCard(al, size) {
   return c;
 }
 
+/**
+ * Dragging an album card between an artist page's 專輯 and 參與作品 (.artist-part[data-mine]). Done with pointer events,
+ * not HTML drag and drop: during a native drag the window gets no wheel, so the page couldn't be scrolled. While
+ * dragging, the wheel scrolls as usual, and near the top / bottom of the page it scrolls by itself, faster closer
+ * to the edge. A copy of the cover follows the pointer; Esc cancels.
+ */
+const AlbumDrag = {
+  bind(card, al, mine, drop) {
+    card.draggable = false;
+    card.addEventListener('dragstart', e => e.preventDefault());   // the cover image's own drag
+    card.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || e.pointerType === 'touch' || e.target.closest('button')) return;
+      this.arm(e, card, al, mine, drop);
+    });
+  },
+  arm(e0, card, al, mine, drop) {
+    const x0 = e0.clientX, y0 = e0.clientY, content = $('#content');
+    let on = false, ghost = null, x = x0, y = y0, zone = null, raf = 0, last = 0;
+    const zoneAt = () => {
+      const z = document.elementFromPoint(x, y)?.closest('.artist-part');
+      if (z === zone) return;
+      zone?.classList.remove('drop-on');
+      zone = z && (z.dataset.mine === '1') !== mine ? z : null;   // only the other part takes it
+      zone?.classList.add('drop-on');
+    };
+    // scrolling near the edges: up to ~1100 px/s at the very edge, time-based so it's even on any refresh rate
+    const tick = t => {
+      raf = 0;
+      if (!on) return;
+      const r = content.getBoundingClientRect(), edge = Math.min(110, r.height / 4);
+      const into = y < r.top + edge ? -(r.top + edge - y) : y > r.bottom - edge ? y - (r.bottom - edge) : 0;
+      if (into) {
+        const dt = last ? Math.min(50, t - last) : 16;
+        const v = Math.sign(into) * 1100 * Math.min(1, Math.abs(into) / edge) ** 2;
+        content.scrollTop += v * dt / 1000;
+        zoneAt();
+        last = t;
+        raf = requestAnimationFrame(tick);
+      } else last = 0;
+    };
+    const place = () => { if (ghost) ghost.style.transform = `translate(${x - 60}px, ${y - 60}px)`; };
+    const start = () => {
+      on = true;
+      const art = card.querySelector('.art');
+      ghost = h('div', { class: 'album-ghost' + (Motion.quiet ? ' quiet' : '') });
+      const img = art?.querySelector('img');
+      if (img) ghost.append(h('img', { src: img.currentSrc || img.src, alt: '' }));
+      document.body.append(ghost);
+      document.body.classList.add('album-dragging');
+      card.classList.add('drag-src');
+      getSelection()?.removeAllRanges();
+      place();
+    };
+    const move = e => {
+      x = e.clientX; y = e.clientY;
+      if (!on) { if (Math.hypot(x - x0, y - y0) < 6) return; start(); }
+      e.preventDefault();
+      place();
+      zoneAt();
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const onScroll = () => on && zoneAt();   // the wheel moved the page under the pointer
+    const end = (ok) => {
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      removeEventListener('pointercancel', cancel);
+      removeEventListener('keydown', key, true);
+      content.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+      if (!on) return;
+      on = false;
+      ghost.remove();
+      zone?.classList.remove('drop-on');
+      document.body.classList.remove('album-dragging');
+      card.classList.remove('drag-src');
+      // the click that ends a drag doesn't open the album
+      const stop = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      addEventListener('click', stop, true);
+      setTimeout(() => removeEventListener('click', stop, true), 0);
+      if (ok && zone) drop(zone.dataset.mine === '1');
+    };
+    const up = () => end(true), cancel = () => end(false);
+    const key = e => { if (e.key === 'Escape' && on) { e.preventDefault(); e.stopPropagation(); end(false); } };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+    addEventListener('pointercancel', cancel);
+    addEventListener('keydown', key, true);
+    content.addEventListener('scroll', onScroll, { passive: true });
+  },
+};
+
 // The other names on this artist's page (分開 takes one off), and names that may be the same artist (合併 joins them):
 // Lib.linkArtists / ArtistLinks.
 function artistAka(name) {
@@ -812,12 +903,10 @@ const Views = {
           } }))));
     view.append(hero);
     // an album can be moved between 專輯 and 參與作品: dragged onto the other part, or from its menu (ArtistOwn)
-    const page = name, DT = 'application/x-miku-album';
+    const page = name;
     const card = mine => al => {
       const c = albumCard(al);
-      c.draggable = true;
-      c.ondragstart = e => { e.dataTransfer.setData(DT, al.id); e.dataTransfer.effectAllowed = 'move'; document.body.classList.add('album-dragging'); };
-      c.ondragend = () => document.body.classList.remove('album-dragging');
+      AlbumDrag.bind(c, al, mine, toMine => ArtistOwn.set(page, al, toMine));
       c.oncontextmenu = e => {
         e.preventDefault();
         albumMenu(al, { x: e.clientX, y: e.clientY }, false, [
@@ -830,20 +919,11 @@ const Views = {
     const section = (title, albums, mine) => {
       // the part stays (with a hint) while empty, so an album can be dragged into it
       if (!albums.length && !all.length) return;
-      const zone = h('div', { class: 'artist-part' + (albums.length ? '' : ' empty') });
+      const zone = h('div', { class: 'artist-part' + (albums.length ? '' : ' empty'), 'data-mine': mine ? '1' : '0' });
       zone.append(h('div', { class: 'rail-head' }, h('h2', null, title)));
       const host = h('div');
       zone.append(albums.length ? host : h('div', { class: 'artist-drop-hint' }, T('把專輯拖到這裡')));
       view.append(zone);
-      zone.ondragover = e => { if (!e.dataTransfer.types.includes(DT)) return; e.preventDefault(); zone.classList.add('drop-on'); };
-      zone.ondragleave = e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drop-on'); };
-      zone.ondrop = e => {
-        zone.classList.remove('drop-on');
-        const al = Lib.albumById.get(e.dataTransfer.getData(DT));
-        if (!al || albums.includes(al)) return;
-        e.preventDefault();
-        ArtistOwn.set(page, al, mine);
-      };
       return albums.length ? vgrid(host, albums, { render: card(mine) }) : null;
     };
     const c1 = section(T('專輯', 'nav'), own, true), c2 = section(T('參與作品'), appears, false);
