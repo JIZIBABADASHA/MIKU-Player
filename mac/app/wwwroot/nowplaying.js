@@ -18,7 +18,7 @@ const NowPlaying = {
   init() {
     $('#np-close').onclick = () => this.hide();
     $('#np-lyr').onclick = () => { this.showLyrics = !this.showLyrics; setUiPref('npLyrics', this.showLyrics ? '1' : '0'); this.applyLayout(); };
-    $('#np-trans').onclick = () => { this.showTrans = !this.showTrans; setUiPref('npTrans', this.showTrans ? '1' : '0'); this.syncTrans(); this.renderLyrics(); };
+    $('#np-trans').onclick = () => { this.showTrans = !this.showTrans; setUiPref('npTrans', this.showTrans ? '1' : '0'); this.syncTrans(); };
     $('#ly-minus').onclick = () => this.nudge(-0.1);
     $('#ly-plus').onclick = () => this.nudge(0.1);
     $('#ly-auto').onclick = async () => {
@@ -108,6 +108,9 @@ const NowPlaying = {
     const b = $('#np-trans');
     b.classList.toggle('on', this.showTrans);
     b.setAttribute('aria-pressed', this.showTrans ? 'true' : 'false');
+    // translations are always in the lines and only fold open / shut (app.css): no redraw, so nothing flashes, and the
+    // ResizeObserver re-measures as they fold, keeping the current line where it is
+    $('#lyrics').classList.toggle('ly-notr', !this.showTrans);
   },
 
   applyLayout() {
@@ -321,6 +324,7 @@ const NowPlaying = {
   renderLyrics() {
     const box = $('#lyrics');
     box.textContent = '';
+    box.classList.toggle('ly-notr', !this.showTrans);   // set before the lines exist, so they open already folded
     this._ro?.disconnect();
     this.lines = []; this.tops = []; this.active = -2;
     const ly = this.ly;
@@ -337,7 +341,7 @@ const NowPlaying = {
       else if (l.words && l.words.length) {
         l.words.forEach(w => el.append(h('span', { class: 'w' }, w.w)));
       } else el.append(l.text);
-      if (l.trans && this.showTrans) el.append(h('span', { class: 'tr' }, l.trans));
+      if (l.trans) el.append(h('span', { class: 'tr' }, h('span', {}, l.trans)));
       el.onclick = () => {
         App.seek(Math.max(0, l.t - (ly.offset || 0) + 0.01));
         // the clicked line becomes current right away and the list returns to its normal place

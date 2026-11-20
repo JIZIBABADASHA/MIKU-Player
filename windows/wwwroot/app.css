@@ -1603,7 +1603,13 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 #lyrics.ly-direct .ly-line { transition: opacity .28s var(--ease), filter .35s var(--ease), background .2s; }
 .ly-line:hover { background: rgba(var(--np-ink), .06); opacity: .65 !important; filter: none !important; }
 .ly-line.on { opacity: 1; }
-.ly-line .tr { display: block; font: 500 .56em/1.4 var(--font); color: rgba(var(--np-ink), .78); margin-top: 4px; letter-spacing: 0; }
+/* translation lines fold open / shut when 翻譯 is toggled: the height eases while the text fades (in after it opens, out before it shuts) */
+.ly-line .tr { display: grid; grid-template-rows: 1fr; font: 500 .56em/1.4 var(--font); color: rgba(var(--np-ink), .78); margin-top: 4px; letter-spacing: 0; opacity: 1;
+  transition: grid-template-rows .46s cubic-bezier(.2,.75,.25,1), margin-top .46s cubic-bezier(.2,.75,.25,1), opacity .32s var(--ease) .14s; }
+.ly-line .tr > span { min-height: 0; overflow: hidden; }
+#lyrics.ly-notr .ly-line .tr { grid-template-rows: 0fr; margin-top: 0; opacity: 0;
+  transition: grid-template-rows .46s cubic-bezier(.2,.75,.25,1) .06s, margin-top .46s cubic-bezier(.2,.75,.25,1) .06s, opacity .2s var(--ease); }
+@media (prefers-reduced-motion: reduce) { .ly-line .tr, #lyrics.ly-notr .ly-line .tr { transition: none; } }
 .ly-line.gap { height: 54px; }
 .ly-dots { display: flex; gap: 10px; padding: 14px 4px; }
 .ly-dots i { width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--np-ink)); opacity: .25; transition: opacity .3s; }
