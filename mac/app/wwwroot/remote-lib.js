@@ -170,12 +170,49 @@ const RemoteLib = {
         h('button', { class: 'btn small ghost', onclick: () => Host.call('remoteLib.openOffline') }, T('打開')),
         i.offlineCustom ? h('button', { class: 'btn small ghost', onclick: async () => { this.update(await Host.call('remoteLib.offlineDir', { reset: true })); } }, T('預設')) : null,
         h('button', { class: 'btn small', disabled: i.moving || null, onclick: async () => { this.update(await Host.call('remoteLib.offlineDir')); } }, T('更改…')))));
+    // 離線下載: a header that folds the album list (closed unless opened before, remembered in ui pref offlineOpen).
+    // 保留 takes an album off the list (ui pref offlineKept, ids one per line); it stays downloaded, and the kept ones
+    // can be shown again at the list's end to undo it.
     const dl = i.downloading;
-    box.append(field(T('離線下載'), dl ? T`正在下載「${dl.title}」（${dl.done + 1} / ${dl.total}）`
-        : i.offline.length ? T`${i.offline.length} 張專輯 · ${gb(i.offlineBytes)}，沒有網路也能聽。` : T('在專輯上按右鍵（或 ⋯ 按鈕）選「下載到這台電腦」，出門沒有網路也能聽。下載的是原始檔。'), null));
-    for (const a of i.offline) box.append(h('div', { class: 'folder' }, h('span', { html: icon('album') }),
+    const kept = new Set(String(uiPref('offlineKept', '')).split('\n').filter(Boolean));
+    const isKept = a => kept.has(String(a.id));
+    const rest = i.offline.filter(a => !isKept(a)), keptAl = i.offline.filter(isKept);
+    let open = uiPref('offlineOpen', '') === '1';
+    const head = field(T('離線下載'), dl ? T`正在下載「${dl.title}」（${dl.done + 1} / ${dl.total}）`
+        : i.offline.length ? T`${i.offline.length} 張專輯 · ${gb(i.offlineBytes)}，沒有網路也能聽。` : T('在專輯上按右鍵（或 ⋯ 按鈕）選「下載到這台電腦」，出門沒有網路也能聽。下載的是原始檔。'),
+      i.offline.length ? h('button', { class: 'icon-btn rl-chev', 'aria-expanded': String(open), title: open ? T('收合') : T('展開'), html: icon('down') }) : null);
+    box.append(head);
+    if (!i.offline.length) return;
+    const keep = (a, on) => {
+      if (on) kept.add(String(a.id)); else kept.delete(String(a.id));
+      setUiPref('offlineKept', [...kept].join('\n'));
+      if (on) toast(T`已保留「${a.title}」，不再列在這裡`);
+      this.drawSettings();
+    };
+    const row = a => h('div', { class: 'folder' }, h('span', { html: icon('album') }),
       h('span', { class: 'p', title: a.title }, `${a.title} · ${a.artist}`, h('small', { class: 'muted', style: { marginLeft: '8px' } }, a.have < a.count ? T`${a.have} / ${a.count} 首 · ${gb(a.bytes)}` : gb(a.bytes))),
-      h('button', { class: 'icon-btn', title: T('移除離線下載'), html: icon('trash'), onclick: async () => { this.update(await Host.call('remoteLib.removeOffline', { id: a.id })); } })));
+      isKept(a) ? h('button', { class: 'btn small ghost', onclick: () => keep(a, false) }, T('取消保留'))
+        : h('button', { class: 'btn small ghost', title: T('留在這台電腦，不再列在這個清單'), onclick: () => keep(a, true) }, T('保留')),
+      isKept(a) ? null : h('button', { class: 'icon-btn', title: T('移除離線下載'), html: icon('trash'), onclick: async () => { this.update(await Host.call('remoteLib.removeOffline', { id: a.id })); } }));
+    const inner = h('div', null, ...rest.map(row));
+    if (keptAl.length) {
+      inner.append(h('div', { class: 'folder rl-kept' }, h('span', { class: 'p muted' }, T`另有 ${keptAl.length} 張已保留，不列在這裡`),
+        h('button', { class: 'btn small ghost', onclick: () => { this.showKept = !this.showKept; this.drawSettings(); } }, this.showKept ? T('隱藏') : T('顯示'))));
+      if (this.showKept) inner.append(...keptAl.map(row));
+    }
+    const fold = h('div', { class: 'rl-dl-fold' + (open ? ' open' : '') }, inner);
+    box.append(fold);
+    head.classList.add('rl-dl-head');
+    if (open) head.classList.add('open');
+    head.onclick = () => {
+      open = !open;
+      head.classList.toggle('open', open);
+      fold.classList.toggle('open', open);
+      const b = head.querySelector('.rl-chev');
+      b.setAttribute('aria-expanded', String(open));
+      b.title = open ? T('收合') : T('展開');
+      setUiPref('offlineOpen', open ? '1' : '');
+    };
   },
 };
 
@@ -194,6 +231,17 @@ document.head.append(h('style', null, `
 .rl-src button.off::after { content: ''; position: absolute; top: 50%; right: 8px; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #f0a63a; box-shadow: 0 0 0 2px rgba(240,166,58,.22); pointer-events: none; }
 .rl-src button.off.on::after { background: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.3); opacity: .9; }
 @media (max-width: 1180px) { .rl-src, .rl-only { display: none; } }
+/* 設定 → 曲庫 → 離線下載: the header folds the album list */
+.rl-dl-head { cursor: pointer; user-select: none; }
+.rl-dl-head:hover .lbl b { color: var(--text-hi, var(--text)); }
+.rl-chev .i { transition: transform .32s var(--ease, ease); }
+.rl-dl-head.open .rl-chev .i { transform: rotate(180deg); }
+.rl-dl-fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .32s var(--ease, ease); }
+.rl-dl-fold.open { grid-template-rows: 1fr; }
+.rl-dl-fold > div { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s .32s; }
+.rl-dl-fold.open > div { visibility: visible; transition-delay: 0s; }
+.rl-kept .p { font-size: 12.5px; color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .rl-chev .i, .rl-dl-fold, .rl-dl-fold > div { transition: none; } }
 `));
 
 document.addEventListener('DOMContentLoaded', () => {
