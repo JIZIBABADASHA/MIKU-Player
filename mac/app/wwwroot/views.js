@@ -790,7 +790,7 @@ const Views = {
 
   artist(view, name) {
     name = Lib.artistMap.get(name)?.name || name;   // "月村手毬" opens 月村手毬(CV.小鹿なお)
-    const { own, appears } = Lib.artistAlbums(name);
+    const { own, appears, byHand } = Lib.artistAlbums(name);
     const all = own.concat(appears);
     const first = own[0] || appears[0];
     const tracks = own.flatMap(a => a.tracks);
@@ -804,16 +804,49 @@ const Views = {
         artistAka(name),
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), 0, false) }),
-          h('button', { class: 'btn', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), -1, true) }))));
+          h('button', { class: 'btn', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), -1, true) }),
+          // an album of hers MIKU didn't find (credited otherwise): put it under 專輯 by hand
+          h('button', { class: 'btn', html: icon('plus') + T('加入專輯…'), onclick: e => {
+            const here = new Set(own);
+            pickList(Lib.albums.filter(a => !here.has(a)).map(a => ({ label: a.title, sub: a.artist + (a.year ? ' · ' + a.year : ''), value: a })), e.currentTarget, al => ArtistOwn.set(name, al, true), T('搜尋專輯'));
+          } }))));
     view.append(hero);
-    const section = (title, albums) => {
-      if (!albums.length) return;
-      view.append(h('div', { class: 'rail-head' }, h('h2', null, title)));
-      const host = h('div');
-      view.append(host);
-      return vgrid(host, albums, { render: albumCard });
+    // an album can be moved between 專輯 and 參與作品: dragged onto the other part, or from its menu (ArtistOwn)
+    const page = name, DT = 'application/x-miku-album';
+    const card = mine => al => {
+      const c = albumCard(al);
+      c.draggable = true;
+      c.ondragstart = e => { e.dataTransfer.setData(DT, al.id); e.dataTransfer.effectAllowed = 'move'; document.body.classList.add('album-dragging'); };
+      c.ondragend = () => document.body.classList.remove('album-dragging');
+      c.oncontextmenu = e => {
+        e.preventDefault();
+        albumMenu(al, { x: e.clientX, y: e.clientY }, false, [
+          byHand.has(al) ? { label: T('從這位演出者移除'), icon: 'x', run: () => ArtistOwn.set(page, al, null) }
+          : mine ? { label: T('移到參與作品'), icon: 'list', run: () => ArtistOwn.set(page, al, false) }
+          : { label: T('移到專輯'), icon: 'album', run: () => ArtistOwn.set(page, al, true) }]);
+      };
+      return c;
     };
-    const c1 = section(T('專輯', 'nav'), own), c2 = section(T('參與作品'), appears);
+    const section = (title, albums, mine) => {
+      // the part stays (with a hint) while empty, so an album can be dragged into it
+      if (!albums.length && !all.length) return;
+      const zone = h('div', { class: 'artist-part' + (albums.length ? '' : ' empty') });
+      zone.append(h('div', { class: 'rail-head' }, h('h2', null, title)));
+      const host = h('div');
+      zone.append(albums.length ? host : h('div', { class: 'artist-drop-hint' }, T('把專輯拖到這裡')));
+      view.append(zone);
+      zone.ondragover = e => { if (!e.dataTransfer.types.includes(DT)) return; e.preventDefault(); zone.classList.add('drop-on'); };
+      zone.ondragleave = e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drop-on'); };
+      zone.ondrop = e => {
+        zone.classList.remove('drop-on');
+        const al = Lib.albumById.get(e.dataTransfer.getData(DT));
+        if (!al || albums.includes(al)) return;
+        e.preventDefault();
+        ArtistOwn.set(page, al, mine);
+      };
+      return albums.length ? vgrid(host, albums, { render: card(mine) }) : null;
+    };
+    const c1 = section(T('專輯', 'nav'), own, true), c2 = section(T('參與作品'), appears, false);
     return () => { c1 && c1(); c2 && c2(); };
   },
 

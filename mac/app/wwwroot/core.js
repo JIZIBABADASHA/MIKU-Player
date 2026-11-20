@@ -338,6 +338,21 @@ const ArtistLinks = {
     Router.render(true, 'none');
   },
 };
+/** Albums moved between an artist page's 專輯 and 參與作品 (drag, or the album menu), or added to it by hand (album
+ *  menu → 加入演出者頁面…, artist page → 加入專輯…): ui pref artistOwn, JSON { page name: { album: 1 in 專輯 / 0 in
+ *  參與作品 } }, the album as title + artist (its id changes with its folder). Only MIKU's view: no file is changed. */
+const ArtistOwn = {
+  key: al => norm(al.title) + '\n' + norm(al.artist),
+  get() { try { return JSON.parse((typeof uiPref === 'function' && uiPref('artistOwn', '')) || '{}') || {}; } catch { return {}; } },
+  of(name) { return this.get()[norm(name)] || {}; },
+  set(name, al, own) {   // own: true / false, or null to forget the choice
+    const m = this.get(), k = norm(name), a = m[k] || (m[k] = {});
+    if (own === null) delete a[this.key(al)]; else a[this.key(al)] = own ? 1 : 0;
+    if (!Object.keys(a).length) delete m[k];
+    setUiPref('artistOwn', JSON.stringify(m));
+    Router.render(true, 'none');
+  },
+};
 /** Several values shown as one text. */
 const joinNames = names => names.map((n, i) => i ? (names.seps?.[i] || ' / ') + n : n).join('');
 const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
@@ -493,8 +508,17 @@ const Lib = {
     const keys = (ar?.keys || [norm(name)]).filter(Boolean);
     const mine = new Set(own);
     // matched against each credited name, not a piece of the text (ryo's page must not get "xxxxryoxxxx")
-    const appears = keys.length ? this.albums.filter(a => !mine.has(a) && a.tracks.some(t => { const cr = t.cr || (t.cr = creditNames(t.artist)); return keys.some(k => cr.has(k)); })) : [];
-    return { own: own.slice().sort((a, b) => (b.year || 0) - (a.year || 0)), appears };
+    const sung = t => { const cr = t.cr || (t.cr = creditNames(t.artist)); return keys.some(k => cr.has(k)); };
+    let appears = keys.length ? this.albums.filter(a => !mine.has(a) && a.tracks.some(sung)) : [];
+    // an album where every song is this artist's (her single under the group's name, "初星学園" / "初星学園, 月村手毬")
+    // is hers; and the user can move any album up or down (ArtistOwn)
+    const moved = ArtistOwn.of(ar?.name || name), up = a => moved[ArtistOwn.key(a)];
+    const credited = new Set([...own, ...appears]);
+    const byHand = Object.values(moved).includes(1) ? this.albums.filter(a => !credited.has(a) && up(a) === 1) : [];
+    const mineNow = own.filter(a => up(a) !== 0).concat(appears.filter(a => up(a) === 1 || (up(a) !== 0 && a.tracks.length && a.tracks.every(sung))), byHand);
+    const inMine = new Set(mineNow);
+    appears = appears.filter(a => !inMine.has(a)).concat(own.filter(a => !inMine.has(a)));
+    return { own: mineNow.sort((a, b) => (b.year || 0) - (a.year || 0)), appears, byHand: new Set(byHand) };
   },
 };
 
@@ -1377,8 +1401,33 @@ function artistItems(names) {
   return names.map(n => ({ label: names.length > 1 ? T`前往演出者：${n}` : T('前往演出者'), icon: 'artist', run: () => go('#/artist/' + encodeURIComponent(n)) }));
 }
 
+/** A list to pick one from, with a search box on top (加入演出者頁面… / 加入專輯…). items: [{ label, sub?, value }]. */
+function pickList(items, anchor, onPick, placeholder) {
+  const input = h('input', { class: 'pick-q', type: 'search', placeholder: placeholder || T('搜尋'), spellcheck: 'false' });
+  const list = h('div', { class: 'pick-list' });
+  const draw = () => {
+    const q = norm(input.value.trim());
+    list.textContent = '';
+    const hits = (q ? items.filter(it => norm(it.label + ' ' + (it.sub || '')).includes(q)) : items).slice(0, 60);
+    for (const it of hits) list.append(h('button', { onclick: () => { Popover.close(); onPick(it.value); } }, h('span', null, it.label), it.sub ? h('small', null, it.sub) : null));
+    if (!hits.length) list.append(h('div', { class: 'pick-none' }, T('找不到')));
+  };
+  input.oninput = draw;
+  input.onkeydown = e => { if (e.key === 'Enter') list.querySelector('button')?.click(); };
+  draw();
+  Popover.show(h('div', { class: 'menu pick' }, input, list), anchor, { cls: 'menu-pop' });
+  setTimeout(() => input.focus(), 30);
+}
+/** Album menu → 加入演出者頁面…: the album shows under 專輯 on the artist's page picked (ArtistOwn). */
+function addAlbumToArtist(al, anchor) {
+  pickList(Lib.artists.map(ar => ({ label: ar.name, value: ar.name })), anchor, name => {
+    ArtistOwn.set(name, al, true);
+    toast(T`已把「${al.title}」加入 ${name}`);
+  }, T('搜尋演出者'));
+}
+
 /** An album's menu. On its own page (onPage) the page already has 播放 / 隨機 and the artist links: left out. */
-async function albumMenu(al, anchor, onPage) {
+async function albumMenu(al, anchor, onPage, extra) {
   // 「按 CUE 標記切開…」 only when the album's folder has a CUE sheet for its big file. The menu does not wait for that
   // (a busy disk can take a while, and a menu that comes late comes as the click does): an answer within 80 ms is in
   // it, a later one adds the item to it then
@@ -1387,6 +1436,7 @@ async function albumMenu(al, anchor, onPage) {
   const cue = await Promise.race([cuePromise, new Promise(r => setTimeout(() => r(undefined), 80))]);
   const cueItem = c => ({ label: T`按 CUE 標記切開（${c.tracks.length} 首）…`, icon: 'list', run: () => Convert.open({ album: al, cue: c }) });
   const box = menu([
+    ...(extra ? [...extra, '-'] : []),
     !onPage && { label: T('播放'), icon: 'play', run: () => App.playTracks(al.tracks, 0, false) },
     !onPage && { label: T('隨機播放'), icon: 'shuffle', run: () => App.playTracks(al.tracks, -1, true) },
     { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast(T('已排在下一首')); } },
@@ -1394,6 +1444,7 @@ async function albumMenu(al, anchor, onPage) {
     ...MikuExt.menuItems('album', al),
     '-',
     ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
+    { label: T('加入演出者頁面…'), icon: 'artist', run: () => addAlbumToArtist(al, anchor) },
     // one entry: the cover view shows the picture and leads on to 更換封面 / 寫入音樂檔案
     { label: T('封面…'), icon: 'image', run: () => CoverView.open(al) },
     // a remote album: its cover can be changed (on the computer it is on); the rest works on files here

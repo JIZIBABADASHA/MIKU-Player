@@ -323,6 +323,21 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .hero .aka-name { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
 .hero .aka-btn { border: 0; border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 12px; cursor: pointer; background: var(--surface-3); color: var(--text-2); }
 .hero .aka-btn:hover { background: var(--teal); color: var(--on-accent); }
+/* artist page: albums dragged between 專輯 and 參與作品 (views.js) */
+.artist-part { border-radius: 18px; transition: background .15s, box-shadow .15s; }
+body.album-dragging .artist-part { box-shadow: inset 0 0 0 1px var(--line); }
+.artist-part.drop-on { background: var(--surface); box-shadow: inset 0 0 0 2px var(--teal); }
+.artist-drop-hint { margin: 0 0 8px; padding: 26px; border: 1.5px dashed var(--line-2); border-radius: 14px; text-align: center; color: var(--text-3); font-size: 13px; }
+.artist-part.empty:not(.drop-on) .artist-drop-hint { opacity: .75; }
+/* a list to pick from with a search box (core.js pickList) */
+.menu.pick { width: 320px; padding: 8px; }
+.menu.pick .pick-q { width: 100%; box-sizing: border-box; height: 34px; padding: 0 12px; margin-bottom: 6px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; outline: none; }
+.menu.pick .pick-q:focus { border-color: var(--teal); }
+.menu.pick .pick-list { max-height: 340px; overflow-y: auto; }
+.menu.pick .pick-list button { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; height: auto; min-height: 36px; padding: 6px 12px; }
+.menu.pick .pick-list button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.menu.pick .pick-list small { color: var(--text-3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.menu.pick .pick-none { padding: 10px 12px; color: var(--text-3); font-size: 13px; }
 
 .badge { display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: rgba(var(--ink), .08); color: var(--text-2); }
 .badge.hi { background: var(--teal-dim); color: var(--teal-2); }
