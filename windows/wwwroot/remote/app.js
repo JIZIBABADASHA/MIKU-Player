@@ -33,6 +33,8 @@ const creditNames = s => {
   }
   return out;
 };
+// "月村手毬(CV.小鹿なお)" → "月村手毬" (core.js cvBase): only a voice-actor bracket, so "Michael (C)" stays itself
+const cvBase = s => { const m = /^(.+?)\s*[(（\[【]\s*cv(?![a-z])[^)）\]】]*[)）\]】]\s*$/i.exec(s || ''); return m ? m[1].trim() : ''; };
 const khz = r => (r / 1000).toFixed(1).replace(/\.0$/, '');
 const debounce = (f, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 const collator = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
@@ -158,8 +160,21 @@ const Lib = {
         ar.albums.push(al);
       }
     }
+    // a character with and without the voice actor is one artist (core.js Lib.load), when it has one voice actor
+    const cvForms = new Map();
+    for (const name of artistMap.keys()) { const b = cvBase(name); if (b) { const k = norm(b); (cvForms.get(k) || cvForms.set(k, []).get(k)).push(name); } }
+    for (const [k, full] of cvForms) {
+      if (full.length !== 1) continue;
+      const ar = artistMap.get(full[0]);
+      ar.keys = [norm(full[0]), k];
+      for (const [name, other] of artistMap) {
+        if (other === ar || norm(name) !== k) continue;
+        for (const al of other.albums) if (!ar.albums.includes(al)) ar.albums.push(al);
+        artistMap.set(name, ar);
+      }
+    }
     for (const t of tracks) t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : ''));
-    Object.assign(this, { albums, tracks, albumById, trackById, artistMap, sorted: {}, artists: [...artistMap.values()].sort((a, b) => collator.compare(a.name, b.name)) });
+    Object.assign(this, { albums, tracks, albumById, trackById, artistMap, sorted: {}, artists: [...new Set(artistMap.values())].sort((a, b) => collator.compare(a.name, b.name)) });
   },
   albumsBy(sort) {
     const key = 'a:' + sort;
@@ -183,10 +198,11 @@ const Lib = {
     return this.sorted[key] = t;
   },
   artistAlbums(name) {
-    const own = (this.artistMap.get(name)?.albums || []).slice().sort((a, b) => (b.year || 0) - (a.year || 0));
-    const nn = norm(name);
+    const ar = this.artistMap.get(name);
+    const own = (ar?.albums || []).slice().sort((a, b) => (b.year || 0) - (a.year || 0));
+    const keys = (ar?.keys || [norm(name)]).filter(Boolean);
     // each credited name must be the artist ("ryo feat. 初音ミク", "A & ryo"), not just contain it ("xxxxryoxxxx")
-    const appears = nn ? this.albums.filter(a => !own.includes(a) && a.tracks.some(t => (t.cr || (t.cr = creditNames(t.artist))).has(nn))) : [];
+    const appears = keys.length ? this.albums.filter(a => !own.includes(a) && a.tracks.some(t => { const cr = t.cr || (t.cr = creditNames(t.artist)); return keys.some(k => cr.has(k)); })) : [];
     return { own, appears };
   },
 };

@@ -211,6 +211,18 @@ function albumCard(al, size) {
   return c;
 }
 
+// The other names on this artist's page (分開 takes one off), and names that may be the same artist (合併 joins them):
+// Lib.linkArtists / ArtistLinks.
+function artistAka(name) {
+  const ar = Lib.artistMap.get(name);
+  const joined = [...new Set((ar?.joined || []).filter(n => norm(n) !== norm(name)))];
+  const maybe = Lib.nameVariants(name).slice(0, 6);
+  if (!joined.length && !maybe.length) return null;
+  const chip = (n, label, run) => h('span', { class: 'aka-name' }, n, h('button', { class: 'aka-btn', onclick: run }, label));
+  return h('div', { class: 'aka' },
+    joined.length ? h('span', { class: 'aka-group' }, h('span', { class: 'aka-label' }, T('也包含')), ...joined.map(n => chip(n, T('分開'), () => ArtistLinks.set(n, '')))) : null,
+    maybe.length ? h('span', { class: 'aka-group' }, h('span', { class: 'aka-label' }, T('可能是同一位')), ...maybe.map(n => chip(n, T('合併'), () => ArtistLinks.set(n, name)))) : null);
+}
 function artistCard(ar, size) {
   const c = h('div', { class: 'card artist', onclick: () => go('#/artist/' + encodeURIComponent(ar.name)) },
     artBox('art', 'r', ar.name, size || 200, ar.name),
@@ -777,6 +789,7 @@ const Views = {
   },
 
   artist(view, name) {
+    name = Lib.artistMap.get(name)?.name || name;   // "月村手毬" opens 月村手毬(CV.小鹿なお)
     const { own, appears } = Lib.artistAlbums(name);
     const all = own.concat(appears);
     const first = own[0] || appears[0];
@@ -788,6 +801,7 @@ const Views = {
         h('div', { class: 'kind' }, T('演出者')),
         h('h1', null, name),
         h('div', { class: 'facts' }, T`${own.length} 張專輯 · ${tracks.length} 首`),
+        artistAka(name),
         h('div', { class: 'actions' },
           h('button', { class: 'btn primary', html: icon('play', true) + T('播放'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), 0, false) }),
           h('button', { class: 'btn', html: icon('shuffle') + T('隨機'), onclick: () => App.playTracks(tracks.length ? tracks : all.flatMap(a => a.tracks), -1, true) }))));

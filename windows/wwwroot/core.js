@@ -320,6 +320,24 @@ const creditNames = s => {
   }
   return out;
 };
+/** "月村手毬(CV.小鹿なお)" → "月村手毬": a character credited with its voice actor. Only a closing bracket that starts
+ *  with CV ("CV.", "CV:", "cv ") counts, so "Michael (C)" or "ryo (supercell)" stay names of their own. '' otherwise. */
+const cvBase = s => { const m = /^(.+?)\s*[(（\[【]\s*cv(?![a-z])[^)）\]】]*[)）\]】]\s*$/i.exec(s || ''); return m ? m[1].trim() : ''; };
+/** A name without what's in brackets at its end ("ryo (supercell)" → "ryo"), '' when there's none. Only to suggest
+ *  names that may be the same artist: "Michael" and "Michael (C)" can be two people, so the user decides. */
+const bracketBase = s => { const m = /^(.+?)\s*[(（\[【][^)）\]】]*[)）\]】]\s*$/.exec(s || ''); return m ? m[1].trim() : ''; };
+/** Names joined to another artist's page by hand (artist page → 合併 / 分開): ui pref artistLinks, JSON
+ *  { name: the page it joins, or '' to keep it apart (also from an automatic join) }. */
+const ArtistLinks = {
+  get() { try { return JSON.parse((typeof uiPref === 'function' && uiPref('artistLinks', '')) || '{}') || {}; } catch { return {}; } },
+  async set(name, to) {
+    const m = this.get();
+    m[name] = to;
+    setUiPref('artistLinks', JSON.stringify(m));
+    await Lib.load();
+    Router.render(true, 'none');
+  },
+};
 /** Several values shown as one text. */
 const joinNames = names => names.map((n, i) => i ? (names.seps?.[i] || ' / ') + n : n).join('');
 const realArtist = n => n && n !== 'Various Artists' && n !== '未知演出者';
@@ -395,13 +413,14 @@ const Lib = {
         ar.albums.push(al);
       }
     }
+    this.linkArtists(artistMap, albums, tracks);
     for (const t of tracks) { t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : '')); t.na = norm(t.artist); }
     const shownTracks = tracks.filter(t => !t.album?.hidden);
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
     Object.assign(this, {
       // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
       albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll, hasFolders: !!dirs,
-      artists: [...artistMap.values()].sort((a, b) => coll.compare(a.name, b.name)),
+      artists: [...new Set(artistMap.values())].sort((a, b) => coll.compare(a.name, b.name)),
     });
     $('#c-albums').textContent = shown.length || '';
     $('#c-artists').textContent = this.artists.length || '';
@@ -418,12 +437,63 @@ const Lib = {
     for (const [k, v] of this.aliases) if (v === oldId) this.aliases.set(k, newId);   // a chain of edits
   },
   resolve(id) { let n = id, i = 0; while (!this.albumById.has(n) && this.aliases.has(n) && i++ < 20) n = this.aliases.get(n); return this.albumById.has(n) ? n : null; },
+  /**
+   * One artist under several names gets one page (the first name's), with the albums of all and the songs credited to
+   * any of them (ar.keys). Automatic: a character with and without the voice actor ("月村手毬(CV.小鹿なお)" on her
+   * albums, "初星学園, 月村手毬" on a group song), only when that name goes with one voice actor. By hand: ArtistLinks.
+   */
+  linkArtists(artistMap, albums, tracks) {
+    const links = ArtistLinks.get();
+    const keysOf = ar => ar.keys || (ar.keys = [norm(ar.name)]);
+    const join = (name, ar) => {
+      const other = artistMap.get(name);
+      if (other === ar) return;
+      const ks = keysOf(ar);
+      for (const k of other ? keysOf(other) : [norm(name)]) if (k && !ks.includes(k)) ks.push(k);
+      (ar.joined || (ar.joined = [])).push(name, ...(other?.joined || []));
+      if (other) {
+        for (const al of other.albums) if (!ar.albums.includes(al)) ar.albums.push(al);
+        for (const [n, o] of artistMap) if (o === other) artistMap.set(n, ar);
+      }
+      artistMap.set(name, ar);   // the other name opens this page
+    };
+    const cvForms = new Map();
+    const noteCv = name => { const b = cvBase(name); if (!b) return; const k = norm(b), f = cvForms.get(k) || cvForms.set(k, { base: b, full: new Set() }).get(k); f.full.add(name); };
+    for (const al of albums) al.artists.forEach(noteCv);
+    for (const t of tracks) t.artists.forEach(noteCv);
+    for (const [k, f] of cvForms) {
+      if (f.full.size !== 1) continue;   // the same name with two voice actors: two characters
+      const full = [...f.full][0], ar = artistMap.get(full);
+      if (!ar || links[full] === '') continue;
+      for (const n of new Set([f.base, ...[...artistMap.keys()].filter(n => norm(n) === k)])) if (links[n] !== '') join(n, ar);
+    }
+    for (const [name, to] of Object.entries(links)) { const ar = to && artistMap.get(to); if (ar && name !== to) join(name, ar); }
+  },
+  /** Names written like this artist's but with or without something in brackets ("ryo" / "ryo (supercell)") that
+   *  aren't on its page: the artist page offers to join them. */
+  nameVariants(name) {
+    const ar = this.artistMap.get(name);
+    if (this._pool?.tracks !== this.tracks) {
+      const pool = new Map(), add = n => { n = n.trim(); if (!realArtist(n)) return; const k = norm(bracketBase(n) || n); (pool.get(k) || pool.set(k, new Set()).get(k)).add(n); };
+      for (const al of this.albums) al.artists.forEach(add);
+      for (const t of this.tracks) for (const a of t.artists) a.split(/\s*[,，]\s*/).forEach(add);
+      this._pool = { tracks: this.tracks, pool };
+    }
+    const out = new Set();
+    for (const n of [name, ...(ar?.joined || [])]) for (const v of this._pool.pool.get(norm(bracketBase(n) || n)) || []) {
+      const to = this.artistMap.get(v);
+      if (ar ? to !== ar : norm(v) !== norm(name)) out.add(v);
+    }
+    return [...out].sort(this.collator.compare);
+  },
   artistAlbums(name) {
-    const own = this.artistMap.get(name)?.albums || [];
-    const nn = norm(name);
+    const ar = this.artistMap.get(name);
+    const own = ar?.albums || [];
+    // a character's page also matches her name without the voice actor (cvBase)
+    const keys = (ar?.keys || [norm(name)]).filter(Boolean);
     const mine = new Set(own);
     // matched against each credited name, not a piece of the text (ryo's page must not get "xxxxryoxxxx")
-    const appears = nn ? this.albums.filter(a => !mine.has(a) && a.tracks.some(t => (t.cr || (t.cr = creditNames(t.artist))).has(nn))) : [];
+    const appears = keys.length ? this.albums.filter(a => !mine.has(a) && a.tracks.some(t => { const cr = t.cr || (t.cr = creditNames(t.artist)); return keys.some(k => cr.has(k)); })) : [];
     return { own: own.slice().sort((a, b) => (b.year || 0) - (a.year || 0)), appears };
   },
 };

@@ -316,6 +316,13 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .hero .facts { color: var(--text-2); font-size: 15px; margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .hero .actions { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
 .hero.artist .cover { border-radius: 50%; width: 220px; height: 220px; }
+/* artist page: other names on the page / names that may be the same artist (views.js artistAka) */
+.hero .aka { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--text-2); }
+.hero .aka-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.hero .aka-label { opacity: .8; }
+.hero .aka-name { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); }
+.hero .aka-btn { border: 0; border-radius: 999px; padding: 2px 9px; font: inherit; font-size: 12px; cursor: pointer; background: var(--surface-3); color: var(--text-2); }
+.hero .aka-btn:hover { background: var(--teal); color: var(--on-accent); }
 
 .badge { display: inline-flex; align-items: center; height: 21px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; background: rgba(var(--ink), .08); color: var(--text-2); }
 .badge.hi { background: var(--teal-dim); color: var(--teal-2); }
