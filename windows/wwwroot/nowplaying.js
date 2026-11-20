@@ -18,7 +18,7 @@ const NowPlaying = {
   init() {
     $('#np-close').onclick = () => this.hide();
     $('#np-lyr').onclick = () => { this.showLyrics = !this.showLyrics; setUiPref('npLyrics', this.showLyrics ? '1' : '0'); this.applyLayout(); };
-    $('#np-trans').onclick = () => { this.showTrans = !this.showTrans; setUiPref('npTrans', this.showTrans ? '1' : '0'); this.renderLyrics(); };
+    $('#np-trans').onclick = () => { this.showTrans = !this.showTrans; setUiPref('npTrans', this.showTrans ? '1' : '0'); this.syncTrans(); this.renderLyrics(); };
     $('#ly-minus').onclick = () => this.nudge(-0.1);
     $('#ly-plus').onclick = () => this.nudge(0.1);
     $('#ly-auto').onclick = async () => {
@@ -103,13 +103,20 @@ const NowPlaying = {
   },
   toggle() { this.open ? this.hide() : this.show(); },
 
+  // 翻譯 is a toggle: lit like the selected 歌詞 button while translations show
+  syncTrans() {
+    const b = $('#np-trans');
+    b.classList.toggle('on', this.showTrans);
+    b.setAttribute('aria-pressed', this.showTrans ? 'true' : 'false');
+  },
+
   applyLayout() {
     const has = this.showLyrics && this.ly && (this.ly.lines.length > 0);
     $('#np').classList.toggle('nolyrics', !has);
     $('#np-lyr').classList.toggle('on', this.showLyrics);
     const hasTrans = this.ly && this.ly.lines.some(l => l.trans);
     $('#np-trans').style.display = hasTrans && this.showLyrics ? '' : 'none';
-    $('#np-trans').classList.toggle('on', this.showTrans);
+    this.syncTrans();
     $('#np-src').textContent = this.showLyrics && this.ly && this.ly.source ? T('歌詞來源：') + T.msg(this.ly.source) : '';
     if (has) requestAnimationFrame(() => this.measure());
   },
