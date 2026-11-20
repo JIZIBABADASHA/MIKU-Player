@@ -710,11 +710,14 @@ const App = {
     Host.on('library', async () => {
       const before = Lib.albums.length + ':' + Lib.tracks.length;
       const had = Lib.loaded ? Lib.allTracks.length : -1;
+      const oldIds = had > 0 ? new Set(Lib.allTracks.map(t => t.id)) : null;
       await Lib.load();
       this.redrawTrack(); // the track objects were rebuilt: redraw the now-playing bar with the new ones
       // music copied into a library folder while MIKU is open (the host's folder watcher): say so; a scan shows its own progress
+      // switching between 本地 and 遠端 swaps the whole library: that isn't new music (most of the old songs are gone)
       const grew = had >= 0 ? Lib.allTracks.length - had : 0;
-      if (grew > 0 && !this.scanning) toast(T`已加入 ${grew} 首新歌曲`);
+      const swapped = oldIds && Lib.allTracks.filter(t => oldIds.has(t.id)).length < had / 2;
+      if (grew > 0 && !this.scanning && !swapped) toast(T`已加入 ${grew} 首新歌曲`);
       // during a scan only refresh pages that list the library, and do it silently
       if (before !== Lib.albums.length + ':' + Lib.tracks.length && ['home', 'albums', 'artists', 'tracks', 'folders'].includes(Router.cur.name)) Router.render(true, 'none');
     });
@@ -868,7 +871,11 @@ const App = {
       return { id: 'yt-live', live: true, title: l.title || 'YouTube Music', artist: l.artist || '', albumId: null,
         album: { title: l.album || '', artist: l.artist || '' }, codec: 'YouTube', rate: 48000, bits: 0, img: l.img || '' };
     }
-    return Lib.trackById.get(s.trackId);
+    // the song keeps playing when the library shown changes (本地 ⇄ 遠端) and it isn't in the new one: keep the last
+    // track object drawn for it, so the now-playing bar keeps its cover, title and artist
+    const t = Lib.trackById.get(s.trackId);
+    if (t) this.npTrack = t;
+    return t || (this.npTrack && this.npTrack.id === s.trackId ? this.npTrack : undefined);
   },
 
   trackChanged() {
@@ -893,11 +900,14 @@ const App = {
     if (this.trackKey !== key) { this.trackKey = key; this.trackChanged(); }
     // states arrive before the library has loaded at startup (library.json can take a moment): a local track that
     // isn't in Lib yet was drawn empty, so don't remember it as drawn and try again with the next state
-    if (s.trackId && !s.live && !Lib.trackById.has(s.trackId)) this.trackKey = null;
+    if (s.trackId && !s.live && !this.track()) this.trackKey = null;
     return key;
   },
   /** The library was loaded again (its track objects are new): draw the now-playing bar from them now. */
   redrawTrack() {
+    // the playing song isn't in the library now shown (本地 ⇄ 遠端): the bar already shows it, leave it as it is
+    const s = this.state;
+    if (s.trackId && !s.live && !Lib.trackById.has(s.trackId) && this.track()) return;
     this.trackKey = null;
     if (this.state.trackId !== undefined) this.syncTrack(this.state);
   },
