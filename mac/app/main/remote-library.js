@@ -375,9 +375,10 @@ class RemoteLibrary extends EventEmitter {
     const r = this.remoteOf(t.id);
     if (r && this.st(r).online && this.streamable()) { this.bindStream(t); this.prefetch([t]); return true; }
     if (r && this.st(r).online) {
-      // a module's core reads the file as it is copied here (once its first part is there), DSD once it is whole
+      // a module's core that can read a file still being written plays it as it is copied here (once its first part is
+      // there), DSD once it is whole; any other core waits for the whole file (growable())
       const job = this.jobs.get(t.id + '|' + this.quality(t));
-      if (job && job.file && job.total && job.got >= Math.min(job.total, 1 << 20) && !DsdCodecs.has(t.base.codec)) {
+      if (this.growable() && job && job.file && job.total && job.got >= Math.min(job.total, 1 << 20) && !DsdCodecs.has(t.base.codec)) {
         this.bindGrowing(t, job); return true;
       }
       this.prefetch([t]);
@@ -391,6 +392,14 @@ class RemoteLibrary extends EventEmitter {
    * whole file first, as on Windows. main.js sets canStream.
    */
   streamable() { return !this.canStream || this.canStream(); }
+
+  /**
+   * Whether the playing core can read a file that is still being copied here: it waits for the bytes not there yet
+   * (the whole size is in <file>.growing). A core that can't takes the end of what has arrived for the end of the song
+   * and moves on to the next one after a few seconds, so it gets the whole file first. main.js sets canGrow from the
+   * core's own readsGrowingFiles.
+   */
+  growable() { return !!(this.canGrow && this.canGrow()); }
 
   /**
    * Before a song of the other computer plays: from the cache when it is there, else streamed straight away (the
@@ -416,15 +425,15 @@ class RemoteLibrary extends EventEmitter {
   }
 
   /**
-   * A module's core (Daphne) reads files, not addresses: the song is copied into the cache and played from that file
-   * as it grows, once its first 1 MB is there. The file's whole size is in <file>.growing while it is written (Daphne's
+   * A module's core (Daphne) reads files, not addresses: the song is copied into the cache first. A core that can read
+   * a growing file (growable()) plays it from that file as it grows, once its first 1 MB is there. The file's whole size is in <file>.growing while it is written (Daphne's
    * FileBytes waits for the bytes not there yet). DSD (read by Daphne without FileBytes) and a copy of unknown size
    * play once complete.
    */
   async playWhileCopying(t) {
     const task = this.fetch(t, true);
     const job = this.jobs.get(t.id + '|' + this.quality(t));
-    const growing = !DsdCodecs.has(t.base.codec);
+    const growing = this.growable() && !DsdCodecs.has(t.base.codec);
     const until = Date.now() + 60000;
     for (;;) {
       const done = await Promise.race([task.then(f => ({ f }), e => ({ e })), sleep(50).then(() => null)]);

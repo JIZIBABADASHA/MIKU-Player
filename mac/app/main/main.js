@@ -92,6 +92,8 @@ const remoteLib = new RemoteLibrary(S);
 player.remote = remoteLib;
 // a module's playback core (Daphne) reads files only: songs of the other computer are copied here before they play
 remoteLib.canStream = () => engine.coreId === 'miku' && engine.wantedCore === 'miku';
+// it plays a song while it is still being copied only when the core says it can read a growing file; else whole first
+remoteLib.canGrow = () => engine.coreId === engine.wantedCore && engine.readsGrowingFiles;
 engine.beforeCoreLoad = async t => { if (t.remote && t.streaming && !remoteLib.streamable()) await remoteLib.prepare(t); };
 {
   const getTrack = lib.getTrack.bind(lib), getAlbum = lib.getAlbum.bind(lib);

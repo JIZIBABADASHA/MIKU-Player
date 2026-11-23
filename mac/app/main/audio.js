@@ -52,6 +52,8 @@ class AudioEngine extends EventEmitter {
   }
   /** The core plays MIKU's live track itself (YouTube Music's audio, read from the host's liveSocket). */
   get supportsLive() { return !!this.backend?.supportsLive; }
+  /** The core waits for the rest of a file still being copied here (遠端音樂庫, <file>.growing) instead of ending there. */
+  get readsGrowingFiles() { return !!this.backend?.readsGrowingFiles; }
   setLiveRate(rate) { this.backend?.setLiveRate?.(rate); }
   /** Seconds from the page to the DAC while the live track plays, when the core knows. */
   get liveLatency() { return this.backend?.liveLatency ?? null; }
