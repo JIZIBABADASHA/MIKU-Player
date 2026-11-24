@@ -674,3 +674,17 @@ Object.assign(I18N_DICT.ja, {
   "白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。": "昼の研究室：淡いラベンダーの地に深い藍色のサイドバー、角を斜めに切ったパネルとシアン・マゼンタの細い線、等幅フォントの見出し。",
   "深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。": "深い藍紫の夜、角を斜めに切ったHUDパネルとシアンの光。選択中の項目は電光シアンとマゼンタで光り、見出しは等幅フォント。",
 });
+
+/* New picker descriptions: 櫻花. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "春天的櫻花：櫻花白的底、花瓣形的圓角，選中的地方別著一朵小櫻花，嫩葉綠點綴。": "春天的樱花：樱花白的底、花瓣形的圆角，选中的地方别着一朵小樱花，嫩叶绿点缀。",
+  "夜櫻：帶紫的黃昏色、淡粉的花與燈籠暖黃的花心，字清楚明亮。": "夜樱：带紫的黄昏色、淡粉的花与灯笼暖黄的花心，字清楚明亮。",
+});
+Object.assign(I18N_DICT.en, {
+  "春天的櫻花：櫻花白的底、花瓣形的圓角，選中的地方別著一朵小櫻花，嫩葉綠點綴。": "Spring cherry blossoms: blossom white, petal-shaped corners, a small flower pinned on whatever is selected, with fresh leaf-green accents.",
+  "夜櫻：帶紫的黃昏色、淡粉的花與燈籠暖黃的花心，字清楚明亮。": "Night blossoms: a violet dusk, pale pink flowers with warm lantern-yellow centres, and clear, bright text.",
+});
+Object.assign(I18N_DICT.ja, {
+  "春天的櫻花：櫻花白的底、花瓣形的圓角，選中的地方別著一朵小櫻花，嫩葉綠點綴。": "春の桜：桜色がかった白、花びら形の角、選択中の項目には小さな桜の花、若葉色のアクセント。",
+  "夜櫻：帶紫的黃昏色、淡粉的花與燈籠暖黃的花心，字清楚明亮。": "夜桜：紫がかった夕暮れ色、淡いピンクの花と提灯のような暖かい黄色の花芯。文字ははっきり明るく。",
+});
