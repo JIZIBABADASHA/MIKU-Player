@@ -11,7 +11,7 @@ const Theme = {
     { id: 'wood',     name: T('木質調'),   en: 'WALNUT',   native: 'night',
       desc: { day: T('淺色橡木側板、亞麻白的房間，古銅色點綴，白天的老音響。'), night: T('胡桃木紋、黃銅旋鈕與赤陶色，像老音響一樣溫暖。') } },
     { id: 'glass',    name: T('玻璃質感'), en: 'GLASS',    native: 'night',
-      desc: { day: T('白色毛玻璃浮在粉彩晨光上，背景一樣隨專輯封面變色。'), night: T('懸浮毛玻璃面板，背景隨專輯封面流動變色。') } },
+      desc: { day: T('白色毛玻璃浮在粉彩晨光上，玻璃邊緣一道反光；深藍的字清楚好讀，背景隨專輯封面變色。'), night: T('懸浮的毛玻璃面板，邊緣一道亮光、層層分明；背景隨專輯封面流動變色。') } },
     { id: 'flat',     name: T('極簡平面'), en: 'MINIMAL',  native: 'day',
       desc: { day: T('瑞士海報風：白紙黑字、超大粗體標題、直角無陰影，只用一種鈷藍。'), night: T('瑞士海報風的夜版：石墨灰的底、亮白的大字，直角無陰影，一種鈷藍。') } },
     { id: 'neon',     name: T('霓虹賽博'), en: 'NEON',     native: 'night',

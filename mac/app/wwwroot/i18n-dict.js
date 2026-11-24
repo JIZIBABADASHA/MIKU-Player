@@ -633,6 +633,20 @@ Object.assign(I18N_DICT.ja, {
   "瑞士海報風的夜版：石墨灰的底、亮白的大字，直角無陰影，一種鈷藍。": "スイスのポスター風の夜版：グラファイトグレーの地、明るい白の大きな文字、影のない直角、コバルトブルー一色。",
 });
 
+/* New picker descriptions: 玻璃質感. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "白色毛玻璃浮在粉彩晨光上，玻璃邊緣一道反光；深藍的字清楚好讀，背景隨專輯封面變色。": "白色毛玻璃浮在粉彩晨光上，玻璃边缘一道反光；深蓝的字清楚好读，背景随专辑封面变色。",
+  "懸浮的毛玻璃面板，邊緣一道亮光、層層分明；背景隨專輯封面流動變色。": "悬浮的毛玻璃面板，边缘一道亮光、层层分明；背景随专辑封面流动变色。",
+});
+Object.assign(I18N_DICT.en, {
+  "白色毛玻璃浮在粉彩晨光上，玻璃邊緣一道反光；深藍的字清楚好讀，背景隨專輯封面變色。": "White frosted glass floating in pastel morning light, with a highlight along each edge; clear dark-blue text, and a background that follows the album cover.",
+  "懸浮的毛玻璃面板，邊緣一道亮光、層層分明；背景隨專輯封面流動變色。": "Floating frosted-glass panels with a bright edge and clear layers; the background flows with the album cover's colours.",
+});
+Object.assign(I18N_DICT.ja, {
+  "白色毛玻璃浮在粉彩晨光上，玻璃邊緣一道反光；深藍的字清楚好讀，背景隨專輯封面變色。": "パステルの朝の光に浮かぶ白いすりガラス、縁にひと筋の光。濃紺の文字は読みやすく、背景はジャケットに合わせて色が変わります。",
+  "懸浮的毛玻璃面板，邊緣一道亮光、層層分明；背景隨專輯封面流動變色。": "浮かぶすりガラスのパネル、縁にひと筋の光、重なりがはっきり。背景はジャケットに合わせて流れるように色が変わります。",
+});
+
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {
   '輸出模式': 'Output mode', 'Core Audio（共享）': 'Core Audio (shared)', 'Core Audio 獨佔': 'Core Audio exclusive',

@@ -2707,3 +2707,154 @@
 :root[data-theme="flat"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .68; }
 :root[data-theme="flat"] .ly-line .tr { color: rgb(var(--np-ink)); font-weight: 600; }
 :root[data-theme="flat"] .ly-offset button { border-radius: 0; }
+
+/* ═════════════════════════════ 玻璃質感（glass）· 毛玻璃的層次 ═════════════════════════════
+   這個主題的夜版是其他主題的亮度標竿（「很舒服」），所以這裡只做輕微的調整，不改配色、不改整體樣子：
+   · 每一片玻璃（側欄、內容區、播放列、設定的卡片、抽屜、選單）都多一道「玻璃邊」：上緣一道亮的反光，
+     沿著兩側淡下去，下緣再微微亮一點，像一片有厚度的玻璃；外面再一圈很淡的深色細線，在明亮的光球上也分得出邊。
+   · 層次多一點：背景的光 → 內容區（稍微沉一點，是看字的地方）→ 浮起來的側欄與播放列（影子較深）
+     → 內容區裡的卡片（小影子）→ 彈出來的抽屜、選單（最深的影子）。
+   · 白天和夜一樣好讀：白天的字、主色、愛心、主要按鈕都加深一點；關著的開關以前是白底白鈕（看不見），
+     現在是有框的淡玻璃底、深色的鈕；開著是主色漸層、白色的鈕。
+   · 正在播放：左上角收合鈕、右上角的「歌詞不對？／翻譯／歌詞」都有自己的玻璃底和細框，任何封面上都看得清楚；
+     很淡的封面不會把背景洗白（夜裡封面再亮，背景也只到中間的灰藍；白天封面再暗，背景也只到淡灰藍）。
+   沒有加新的大面積模糊（backdrop-filter 維持原本那幾個），玻璃邊是一層 1px 的漸層。
+   這一份檔案就是這次的全部調整，要退回舊樣子時整份拿掉即可。 */
+
+
+/* ───────────── 1 · 色彩（夜，主題原本的版本） ─────────────
+   底色、光球、主色都不動；只把第二、三層字提亮一點（數字、小標、時間在亮的光球上也要讀得清楚）。
+   --gl-* 是這個主題自己的值：玻璃邊的漸層、外圈細線、各層的影子。 */
+[data-theme="glass"] {
+  --text-sub: #e0e5f5; --text-2: #d2d9ee; --text-3: #b2bbd8;
+  --gl-rim: linear-gradient(170deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.16) 18%, rgba(255,255,255,.05) 55%, rgba(255,255,255,.05) 80%, rgba(255,255,255,.16) 100%);
+  --gl-rim-soft: linear-gradient(170deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.10) 22%, rgba(255,255,255,.04) 60%, rgba(255,255,255,.10) 100%);
+  --gl-edge: rgba(4,6,20,.24);                 /* 玻璃外面一圈深色細線 */
+  --gl-lift: 0 2px 6px rgba(4,6,20,.18), 0 22px 54px -10px rgba(4,6,20,.52);   /* 浮起來的側欄、播放列 */
+  --gl-well: 0 14px 40px -14px rgba(4,6,20,.38);                                  /* 內容區 */
+  --gl-card: 0 12px 30px -16px rgba(4,6,20,.6);                                   /* 內容區裡的卡片 */
+}
+
+/* ───────────── 2 · 色彩（白天） ─────────────
+   字都深一階：第二層對卡片 6.5:1 以上、第三層 4.8:1 以上（以前在粉彩的光上只有 3.5–4.3）。
+   主色、愛心、主要按鈕、播放鈕都加深一點，上面的白字才讀得清楚；光球和白色毛玻璃不變。 */
+[data-theme="glass"]:where([data-mode="day"]) {
+  --text: #161d3c; --text-hi: #0a1030; --text-sub: #2c3456; --text-2: #363e60; --text-3: #4a5274;
+  --teal: #2f5fd6; --teal-rgb: 47, 95, 214; --teal-2: #1f3fa6; --teal-dim: rgba(47,95,214,.13);
+  --pink: #cf2e7a; --pink-text: #b0266b;
+  --play-bg: linear-gradient(145deg, #3b7ee8, #7a63f0);
+  --gl-rim: linear-gradient(170deg, #ffffff 0%, rgba(255,255,255,.9) 20%, rgba(255,255,255,.55) 60%, rgba(255,255,255,.55) 82%, rgba(255,255,255,.85) 100%);
+  --gl-rim-soft: linear-gradient(170deg, #ffffff 0%, rgba(255,255,255,.8) 24%, rgba(255,255,255,.45) 65%, rgba(255,255,255,.7) 100%);
+  --gl-edge: rgba(52,62,124,.13);
+  --gl-lift: 0 2px 6px rgba(60,70,130,.10), 0 22px 54px -12px rgba(60,70,130,.30);
+  --gl-well: 0 14px 40px -16px rgba(60,70,130,.22);
+  --gl-card: 0 12px 30px -16px rgba(60,70,130,.34);
+}
+
+
+/* ───────────── 3 · 玻璃邊（側欄、內容區、播放列、卡片、抽屜、選單、對話框） ─────────────
+   一層 1px 的漸層框（遮罩只留下框線），疊在原本的細框上：上緣最亮，兩側淡下去，下緣再亮一點。
+   不吃滑鼠、不模糊，只是一條線，所以很便宜。 */
+:root[data-theme="glass"] :is(#sidebar, .sect, .dsp-card, .modal) { position: relative; }
+:root[data-theme="glass"] :is(#sidebar, #main, #bar, .sect, .dsp-card, .drawer, .modal, .pop)::before {
+  content: ""; position: absolute; inset: 0; z-index: 25; pointer-events: none;
+  border-radius: calc(var(--gl-r, 24px) - 1px); padding: 1px;
+  background: var(--gl-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+:root[data-theme="glass"] :is(.sect, .dsp-card) { --gl-r: 22px; }
+:root[data-theme="glass"] .pop { --gl-r: 14px; }
+:root[data-theme="glass"] :is(#main, .sect, .dsp-card)::before { background: var(--gl-rim-soft); }
+
+/* 層次：側欄和播放列浮得最高；內容區稍微沉一點（底色深一點點，字更清楚）；卡片有小影子 */
+:root[data-theme="glass"] #sidebar,
+:root[data-theme="glass"] #bar { box-shadow: 0 0 0 1px var(--gl-edge), inset 0 1px 0 rgba(255,255,255,.22), inset 0 -1px 0 rgba(255,255,255,.04), var(--gl-lift); }
+:root[data-theme="glass"] #main { background: rgba(12,16,38,.36); box-shadow: 0 0 0 1px var(--gl-edge), var(--gl-well); }
+:root[data-theme="glass"] :is(.sect, .dsp-card) { box-shadow: inset 0 1px 0 rgba(255,255,255,.14), var(--gl-card); }
+:root[data-theme="glass"]:where([data-mode="day"]) #sidebar,
+:root[data-theme="glass"]:where([data-mode="day"]) #bar { box-shadow: 0 0 0 1px var(--gl-edge), inset 0 1px 0 rgba(255,255,255,.88), inset 0 -1px 0 rgba(255,255,255,.16), var(--gl-lift); }
+:root[data-theme="glass"]:where([data-mode="day"]) #main { background: rgba(255,255,255,.33); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.sect, .dsp-card) { box-shadow: 0 0 0 1px var(--gl-edge), inset 0 1px 0 rgba(255,255,255,.56), var(--gl-card); }
+:root[data-theme="glass"] .drawer, :root[data-theme="glass"] .modal { box-shadow: 0 0 0 1px var(--gl-edge), inset 0 1px 0 rgba(255,255,255,.2), 0 30px 80px rgba(4,6,20,.5); }
+:root[data-theme="glass"]:where([data-mode="day"]) .drawer, :root[data-theme="glass"]:where([data-mode="day"]) .modal { box-shadow: 0 0 0 1px var(--gl-edge), inset 0 1px 0 rgba(255,255,255,.8), 0 30px 80px rgba(60,70,130,.26); }
+:root[data-theme="glass"] .pop { box-shadow: 0 0 0 1px var(--gl-edge), 0 24px 60px rgba(4,6,20,.5); }
+:root[data-theme="glass"]:where([data-mode="day"]) .pop { box-shadow: 0 0 0 1px var(--gl-edge), 0 24px 60px rgba(60,70,130,.26); }
+/* 小的玻璃控制項（搜尋框、圓鈕、分段按鈕、一般按鈕、設定分頁）：上緣反光亮一點；白天在白卡片上原本看不出邊，外面加一圈很淡的深色細線 */
+:root[data-theme="glass"] :is(.search, .round-btn, .sig, .out-btn, .seg, .set-tabs, .btn:not(.primary):not(.ghost)) { box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.search, .round-btn, .sig, .out-btn, .seg, .set-tabs, .btn:not(.primary):not(.ghost)) { box-shadow: 0 0 0 1px var(--gl-edge), inset 0 1px 0 #ffffff, 0 1px 3px rgba(60,70,130,.08); }
+/* 專輯封面、播放清單封面：上緣一道細細的反光，像封面也壓在一片玻璃下面；播放清單的封面和專輯一樣是大圓角＋白色細框 */
+:root[data-theme="glass"] .pl-art { position: relative; border-radius: 18px; box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 10px 30px rgba(4,6,20,.35); }
+:root[data-theme="glass"]:where([data-mode="day"]) .pl-art { box-shadow: 0 0 0 1px rgba(255,255,255,.56), 0 10px 30px rgba(60,70,130,.16); }
+:root[data-theme="glass"] :is(.card .art, .pl-art)::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.42), inset 0 0 0 1px rgba(255,255,255,.07);
+}
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.card .art, .pl-art)::after { box-shadow: inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.18); }
+/* 正在播放的玻璃外框：白天也用白色的框（原本是夜裡的淡白框，在淺色上看不見） */
+:root:root[data-theme="glass"]:where([data-mode="day"]) #np::after { border-color: rgba(255,255,255,.8); box-shadow: 0 0 0 1px var(--gl-edge); }
+
+
+/* ───────────── 4 · 開關 ─────────────
+   夜：關＝淡玻璃底＋看得見的白色細框、淺色的鈕；開＝主色漸層（水藍到淡紫）、深藍的鈕（白鈕在淺色漸層上幾乎看不見）。
+   白天：關＝有深色細框的白玻璃底、深灰藍的鈕（以前白底白鈕看不見）；開＝加深的藍紫漸層、白色的鈕。
+   鈕和底的對比都在 3:1 以上，開和關一眼就分得出來。 */
+:root[data-theme="glass"] .switch { background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.36); }
+:root[data-theme="glass"] .switch::after { background: #dfe5f5; box-shadow: 0 1px 3px rgba(4,6,20,.45); }
+:root[data-theme="glass"] .switch.on { background: linear-gradient(90deg, #8be3ff, #c9b8ff); box-shadow: inset 0 0 0 1px rgba(255,255,255,.5), 0 2px 10px rgba(139,227,255,.22); }
+:root[data-theme="glass"] .switch.on::after { background: #121a3e; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 1px 3px rgba(4,6,20,.4); }
+:root[data-theme="glass"]:where([data-mode="day"]) .switch { background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1.5px rgba(36,44,90,.42); }
+:root[data-theme="glass"]:where([data-mode="day"]) .switch::after { background: #5a6386; box-shadow: none; }
+:root[data-theme="glass"]:where([data-mode="day"]) .switch.on { background: linear-gradient(90deg, #2f6fd6, #6b57e6); box-shadow: inset 0 0 0 1px rgba(20,30,90,.12), 0 2px 8px rgba(60,80,200,.25); }
+:root[data-theme="glass"]:where([data-mode="day"]) .switch.on::after { background: #ffffff; box-shadow: 0 1px 3px rgba(20,30,90,.35); }
+
+/* 設定頁的滑桿：白天的軌道原本是白色（--surface-3），在白玻璃上看不見；改成淡深藍的軌道、白鈕加一圈細框 */
+:root[data-theme="glass"]:where([data-mode="day"]) .range { background: rgba(24,32,72,.2); }
+:root[data-theme="glass"]:where([data-mode="day"]) .range::-webkit-slider-thumb { background: #ffffff; box-shadow: 0 0 0 1px rgba(24,32,72,.32), 0 2px 6px rgba(60,70,130,.3); }
+
+
+/* ───────────── 5 · 字要讀得清楚 ─────────────
+   側欄在最亮的那顆紫色光球上：側欄裡的第三層字再亮一點；選中那一行的數字用更亮的字色。 */
+:root[data-theme="glass"]:where(:not([data-mode="day"])) #sidebar { --text-3: #c0c8e2; }
+:root[data-theme="glass"] :is(.nav-label, .nav a .count) { color: var(--text-3); }
+:root[data-theme="glass"] .nav a.on .count { color: var(--text-sub); }
+:root[data-theme="glass"] .nav-edit { opacity: .9; }
+/* 表頭（標題／專輯／格式／時間）：原本是半透明的字，在光球上太淡 */
+:root[data-theme="glass"] .thead { color: var(--text-2); }
+:root[data-theme="glass"] .ft-head { color: var(--text-2); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.thead, .ft-head) { color: var(--text-3); }
+/* 分段按鈕、設定分頁沒選中的字也亮一點（它們浮在明亮的水藍光上） */
+:root[data-theme="glass"] :is(.seg button, .set-tabs button):not(.on) { color: var(--text-sub); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.seg button, .set-tabs button):not(.on) { color: var(--text-2); }
+/* 夜：選中的那格底下多墊一層淡淡的深藍，白字在明亮的光球上也夠清楚 */
+:root[data-theme="glass"]:where(:not([data-mode="day"])) :is(.seg button.on, .set-tabs button.on) { background: linear-gradient(rgba(139,227,255,.2), rgba(139,227,255,.2)), rgba(12,16,40,.32); }
+/* 播放佇列裡「已播放」的歌：原本淡到 45%，提高到看得清楚但仍然比較淡 */
+:root[data-theme="glass"] .qrow.past { opacity: .66; }
+:root[data-theme="glass"]:where([data-mode="day"]) .qrow.past { opacity: .8; }
+/* 白天：正在播放的那一行、主要按鈕上的白字，用深一階的藍 */
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.row.playing .tt div:first-child, .qrow.cur .t, .fr-song.playing .tt div:first-child, .row.trow.playing .nm) { color: var(--teal-2); }
+:root[data-theme="glass"]:where([data-mode="day"]) .btn.primary { background: linear-gradient(135deg, #2f6fd6, #6b57e6); color: #ffffff; box-shadow: 0 6px 22px rgba(60,80,200,.3), inset 0 1px 0 rgba(255,255,255,.35); }
+
+
+/* ───────────── 6 · 正在播放 ─────────────
+   背景是模糊放大的封面。很淡的封面在夜裡會把背景變成亮灰，白字就看不清楚；白天很暗的封面則反過來。
+   所以在封面上加一層「上限」：夜裡用「變暗」混合，比中間的灰藍亮的地方才被壓下來，一般的封面幾乎不變；
+   白天用「變亮」混合，比淡灰藍暗的地方才被提上來。這一層是靜態的一片色塊，不模糊。 */
+:root[data-theme="glass"] .np-bg { isolation: isolate; }
+:root[data-theme="glass"] .np-bg::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: rgba(74,80,142,.88); mix-blend-mode: darken; }
+:root[data-theme="glass"]:where([data-mode="day"]) .np-bg::before { background: rgba(212,217,240,.82); mix-blend-mode: lighten; }
+
+/* 左上角收合鈕、右上角的膠囊按鈕：自己有一塊玻璃底和細框，任何封面上都看得清楚 */
+:root[data-theme="glass"] :is(.np-top .icon-btn, .np-top .pill:not(.on)) { background: rgba(14,18,44,.5); color: #ffffff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.26), inset 0 1px 0 rgba(255,255,255,.2); }
+:root[data-theme="glass"] :is(.np-top .icon-btn, .np-top .pill:not(.on)):hover { background: rgba(30,36,72,.66); }
+:root[data-theme="glass"] .np-top .pill.on { background: rgba(255,255,255,.94); color: #0b1022; box-shadow: 0 0 0 1px rgba(255,255,255,.5), 0 4px 14px rgba(4,6,20,.3); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill:not(.on)) { background: rgba(255,255,255,.78); color: #161d3c; box-shadow: inset 0 0 0 1px rgba(36,44,90,.2), 0 1px 4px rgba(60,70,130,.16); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill:not(.on)):hover { background: #ffffff; }
+:root[data-theme="glass"]:where([data-mode="day"]) .np-top .pill.on { background: #1c2448; color: #ffffff; box-shadow: 0 4px 14px rgba(28,36,72,.25); }
+/* 「歌詞來源」、演出者、時間：原本太淡 */
+:root[data-theme="glass"] .np-top .src { color: rgba(var(--np-ink), .78); }
+:root[data-theme="glass"] .np-artist { color: rgba(var(--np-ink), .82); }
+:root[data-theme="glass"] .np-seek .times { color: rgba(var(--np-ink), .78); }
+/* 沒在唱的歌詞行：比全站的 60% 再清楚一點，翻譯行也是 */
+:root[data-theme="glass"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .72; }
+:root[data-theme="glass"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
