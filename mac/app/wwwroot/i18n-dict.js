@@ -661,6 +661,20 @@ Object.assign(I18N_DICT.ja, {
   "儀表的夜版：帶青色的墨綠灰底、明亮的字，蔥綠刻度燈與櫻桃粉點綴，不發光。": "計器の夜版：青みがかった深緑グレーの地、明るい文字、ネギ色のレベルメーターとチェリーピンク。光らせません。",
 });
 
+/* New picker descriptions: 霓虹賽博. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。": "白天的实验室：淡紫白底配深靛色侧栏，斜切角面板与青、洋红细线，等宽字标题。",
+  "深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。": "深靛紫的夜、斜切角的 HUD 面板与青色光晕，电光青与洋红点亮选中的项目，等宽字标题。",
+});
+Object.assign(I18N_DICT.en, {
+  "白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。": "A lab by day: pale lavender with a deep indigo sidebar, cut-corner panels with fine cyan and magenta lines, monospace titles.",
+  "深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。": "A deep indigo night, cut-corner HUD panels with a cyan glow; electric cyan and magenta light up what's selected, with monospace titles.",
+});
+Object.assign(I18N_DICT.ja, {
+  "白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。": "昼の研究室：淡いラベンダーの地に深い藍色のサイドバー、角を斜めに切ったパネルとシアン・マゼンタの細い線、等幅フォントの見出し。",
+  "深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。": "深い藍紫の夜、角を斜めに切ったHUDパネルとシアンの光。選択中の項目は電光シアンとマゼンタで光り、見出しは等幅フォント。",
+});
+
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {
   '輸出模式': 'Output mode', 'Core Audio（共享）': 'Core Audio (shared)', 'Core Audio 獨佔': 'Core Audio exclusive',

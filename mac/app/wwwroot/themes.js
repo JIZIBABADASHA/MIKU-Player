@@ -15,7 +15,7 @@ const Theme = {
     { id: 'flat',     name: T('極簡平面'), en: 'MINIMAL',  native: 'day',
       desc: { day: T('瑞士海報風：白紙黑字、超大粗體標題、直角無陰影，只用一種鈷藍。'), night: T('瑞士海報風的夜版：石墨灰的底、亮白的大字，直角無陰影，一種鈷藍。') } },
     { id: 'neon',     name: T('霓虹賽博'), en: 'NEON',     native: 'night',
-      desc: { day: T('白天的實驗室：淡紫白底與網格，青色與洋紅，等寬數字。'), night: T('深夜網格、電光青與洋紅發光，等寬數字。') } },
+      desc: { day: T('白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。'), night: T('深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。') } },
     { id: 'washi',    name: T('和紙'),     en: 'WASHI',    native: 'day',
       desc: { day: T('米白紙紋、明朝體，藍染為主色、朱印點綴。'), night: T('藍染的夜色、月白色的字與明朝體，朱印點綴。') } },
     { id: 'vinyl',    name: T('黑膠'),     en: 'VINYL',    native: 'day',

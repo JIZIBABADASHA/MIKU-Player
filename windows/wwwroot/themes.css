@@ -3322,3 +3322,598 @@
 :root[data-theme="miku"]:where([data-mode="night"]) .pill.on { box-shadow: none; }
 :root[data-theme="miku"]:where([data-mode="night"]) .msel-btn::before, :root[data-theme="miku"]:where([data-mode="night"]) .msel-opt.on::before { box-shadow: none; }
 :root[data-theme="miku"]:where([data-mode="night"]) .toast { border-left: 3px solid #39c5bb; }
+
+/* ═════════════════════════════ 霓虹賽博（neon）· 賽博龐克 HUD ═════════════════════════════
+   像科幻電影裡的抬頭顯示器（HUD），而不是儀表板（未來才是方正的儀器面板、刻度燈、不發光）：
+   · 面板是「斜切角」：右上、左下兩個角各切一刀（像往前傾的 / ），邊緣有一圈青色的光暈；
+     另外兩個角（左上青、右下洋紅）有亮色的 HUD 角括號。光只在邊框外面，不在字上。
+   · 按鈕、分段按鈕、搜尋框、開關都是同一種斜切角的形狀；選中的、主要的會「亮起來」：
+     實心的電光青（或洋紅）底配深色字，外面一圈光。
+   · 標題是等寬字、英文全大寫、字距拉開；頁面標題左上有 HUD 角括號，下面一條洋紅→青的斜頭光條；
+     首頁每排標題前面是兩道斜槓（洋紅、青）。
+   · 掃描線只放在封面圖片上（專輯卡滑過時、專輯頁、正在播放），不放在任何字後面，也不會動。
+   · 網格只留在內容區右上角，往外淡出；頂列右上角一排斜的訊號格（洋紅→青）。
+   · 開關：關的時候是暗底＋看得見的外框＋淡色斜塊；開的時候整條亮青、外面發光、滑塊變深色。
+   · 正在播放：封面是斜切角＋青色光暈＋細掃描線；四個角落按鈕都是實心底＋框，淺色封面上也看得清楚；
+     舊版的地平線網格會穿過播放鍵和進度條，拿掉，改成畫面下方兩角的 HUD 角括號。
+   夜（原生）：以前 #07060e 幾乎全黑，現在提亮成深靛紫（頁面 OKLab L≈0.27，卡片 0.30），字更亮。
+   日：淡紫白的實驗室螢幕，側欄維持深靛色的「機殼」；發光改成清楚的細線與淡淡的光暈。
+   字體：標題、標籤、數字用系統等寬字（Windows：Cascadia Mono／Consolas；Mac：SF Mono／Menlo），
+   中文日文自動改用正黑體／蘋方／游ゴシック／ヒラギノ；專輯名稱、歌詞維持易讀的無襯線字。
+   這一份檔案就是整個主題的「個性」，要退回舊樣子時整份拿掉即可。 */
+
+
+/* ───────────── 1 · 色彩（夜，主題原本的版本） ─────────────
+   頁面是深靛紫 #281c44，卡片 #312451；主文字對卡片 13:1、第二層 9:1、第三層 7:1。
+   電光青 #00f0ff 是「亮起來」的顏色（上面一律放深色字）；洋紅 #ff2bd6 做邊角、標記、進度條，
+   要當文字時改用淡一階的 #ff9cec。網格從整頁背景拿掉（只留在右上角，見第 7 段）。 */
+[data-theme="neon"] {
+  --bg: #281c44; --bg-rgb: 40, 28, 68; --bg-2: #251940;
+  --surface: #312451; --surface-2: #3e2f63; --surface-3: #4c3c74;
+  --ink: 214, 204, 255; --line: rgba(190,176,255,.15); --line-2: rgba(190,176,255,.27);
+  --text: #faf8ff; --text-hi: #ffffff; --text-sub: #e4dffc; --text-2: #d2cbf7; --text-3: #bbb2ea;
+  --teal: #00f0ff; --teal-rgb: 0, 240, 255; --teal-2: #8af8ff; --teal-dim: rgba(0,240,255,.16);
+  --pink: #ff2bd6; --pink-dim: rgba(255,43,214,.2); --pink-line: rgba(255,43,214,.6); --pink-text: #ff9cec;
+  --amber: #ffe14d; --on-accent: #10062a;
+  --play-bg: #00f0ff; --play-ink: #10062a; --knob: #ffffff; --knob-off: #d2cbf7;
+  --bar-bg: #251940; --pop-bg: #3a2c60; --drawer-bg: #2d2150; --toast-bg: #3a2c60; --modal-bg: #2f2353;
+  --shadow-rgb: 8, 3, 26; --sh: .9;
+  --tip-bg: #120a2a; --tip-ink: #8af8ff;
+  --np-base: #1f1539; --np-ink: 248, 245, 255; --np-pill-ink: #10062a; --np-dim: .5;
+  --np-veil: radial-gradient(120% 90% at 30% 40%, rgba(31,21,57,.42), rgba(31,21,57,.76));
+  --np-calm: rgba(31,21,57,.66);
+  --ph-s1: 70%; --ph-l1: 30%; --ph-s2: 75%; --ph-l2: 20%;
+  --brand-ink: #faf8ff; --brand-track: #4c3c74;
+  --hero-dim: .55;
+  --grid: linear-gradient(rgba(255,43,214,.10) 1px, transparent 1px) 0 0 / 36px 36px, linear-gradient(90deg, rgba(0,240,255,.09) 1px, transparent 1px) 0 0 / 36px 36px;
+  --app-bg: radial-gradient(900px 520px at 78% 112%, rgba(255,43,214,.16), transparent 62%), radial-gradient(760px 440px at 8% -12%, rgba(0,240,255,.10), transparent 60%), linear-gradient(180deg, #2a1e48, #261a41);
+  --sidebar-bg: linear-gradient(180deg, rgba(0,240,255,.07), transparent 28%), #251940;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", "Avenir Next", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Consolas", "SF Mono", "Menlo", ui-monospace, "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", monospace;
+  color-scheme: dark;
+  /* 這個主題自己的值 */
+  --nx-mono: "Cascadia Mono", "Consolas", "SF Mono", "Menlo", ui-monospace, "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", monospace;
+  --nx-ctl: #36295a;        /* 按鈕、輸入框的底（不透明，斜切角的框線才不會透出來） */
+  --nx-ctl-h: #43346e;      /* 滑過 */
+  --nx-well: #241a42;       /* 分段按鈕、分頁列的凹槽 */
+  --nx-edge: #8a7fd0;       /* 看得見的框線（對卡片 4:1） */
+  --nx-edge-h: #00f0ff;     /* 滑過、焦點：青色 */
+  --nx-lit: #00f0ff; --nx-lit-ink: #10062a;      /* 亮起來：電光青底、深色字（13.8:1） */
+  --nx-hot: #ff4fdc; --nx-hot-ink: #10062a;      /* 主要按鈕：洋紅底、深色字（6.8:1） */
+  --nx-head: #8af8ff;       /* 面板標題（青） */
+  --nx-label: #ff9cec;      /* 側欄分類標籤（洋紅） */
+  --nx-glow: drop-shadow(0 0 5px rgba(0,240,255,.6));
+  --nx-glow-hot: drop-shadow(0 0 5px rgba(255,43,214,.55));
+  --nx-scan: repeating-linear-gradient(180deg, rgba(12,4,32,.18) 0 1px, transparent 1px 3px);
+  --nx-panel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68' viewBox='0 0 68 68'%3E%3Cdefs%3E%3CclipPath id='k'%3E%3Cpolygon points='10,10 44,10 58,24 58,58 24,58 10,44'/%3E%3C/clipPath%3E%3C/defs%3E%3Cfilter id='b' x='-1' y='-1' width='3' height='3'%3E%3CfeGaussianBlur stdDeviation='3.6'/%3E%3C/filter%3E%3Cpolygon points='10,10 44,10 58,24 58,58 24,58 10,44' fill='none' stroke='%2300f0ff' stroke-opacity='0.9' stroke-width='2.5' filter='url(%23b)'/%3E%3Cpolygon points='10,10 44,10 58,24 58,58 24,58 10,44' fill='%23312451'/%3E%3Cg clip-path='url(%23k)' fill='none' stroke-linecap='square'%3E%3Cpolygon points='10,10 44,10 58,24 58,58 24,58 10,44' stroke='%23857ad0' stroke-width='2.0'/%3E%3Cpath d='M44,10 L58,24' stroke='%23ff2bd6' stroke-width='4.0'/%3E%3Cpath d='M24,58 L10,44' stroke='%2300f0ff' stroke-width='4.0'/%3E%3Cpath d='M10,26 V10 H26' stroke='%2300f0ff' stroke-width='4.0'/%3E%3Cpath d='M58,42 V58 H42' stroke='%23ff2bd6' stroke-width='4.0'/%3E%3C/g%3E%3C/svg%3E") 32 fill / 32px / 10px stretch;
+  --nx-pop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cdefs%3E%3CclipPath id='k'%3E%3Cpolygon points='10,10 40,10 50,20 50,50 20,50 10,40'/%3E%3C/clipPath%3E%3C/defs%3E%3Cfilter id='b' x='-1' y='-1' width='3' height='3'%3E%3CfeGaussianBlur stdDeviation='3.6'/%3E%3C/filter%3E%3Cpolygon points='10,10 40,10 50,20 50,50 20,50 10,40' fill='none' stroke='%2300f0ff' stroke-opacity='0.9' stroke-width='2.5' filter='url(%23b)'/%3E%3Cpolygon points='10,10 40,10 50,20 50,50 20,50 10,40' fill='%233a2c60'/%3E%3Cg clip-path='url(%23k)' fill='none' stroke-linecap='square'%3E%3Cpolygon points='10,10 40,10 50,20 50,50 20,50 10,40' stroke='%238f84d6' stroke-width='2.0'/%3E%3Cpath d='M40,10 L50,20' stroke='%23ff2bd6' stroke-width='4.0'/%3E%3Cpath d='M20,50 L10,40' stroke='%2300f0ff' stroke-width='4.0'/%3E%3Cpath d='M10,22 V10 H22' stroke='%2300f0ff' stroke-width='4.0'/%3E%3Cpath d='M50,38 V50 H38' stroke='%23ff2bd6' stroke-width='4.0'/%3E%3C/g%3E%3C/svg%3E") 28 fill / 28px / 10px stretch;
+}
+
+/* ───────────── 2 · 色彩（日） ─────────────
+   淡紫白的頁面、純白的面板；文字是深靛色，第二層 8.6:1、第三層 5.5:1。
+   亮青 #22d3ee 只當底色（上面放深色字），當文字或細線時改用深一階的 #006b7e；洋紅文字用 #b00c8a。 */
+[data-theme="neon"]:where([data-mode="day"]) {
+  --bg: #f4f1fc; --bg-rgb: 244, 241, 252; --bg-2: #ece8f9;
+  --surface: #ffffff; --surface-2: #efebfb; --surface-3: #e0d9f5;
+  --ink: 40, 24, 110; --line: rgba(60,40,150,.14); --line-2: rgba(60,40,150,.26);
+  --text: #1a1238; --text-hi: #0c0626; --text-sub: #352c63; --text-2: #4d4380; --text-3: #63579b;
+  --teal: #00b4cc; --teal-rgb: 0, 180, 204; --teal-2: #006b7e; --teal-dim: rgba(0,180,204,.14);
+  --pink: #e0179f; --pink-dim: rgba(224,23,159,.12); --pink-line: rgba(224,23,159,.5); --pink-text: #b00c8a;
+  --amber: #c98a00; --on-accent: #0c0626;
+  --play-bg: #22d3ee; --play-ink: #0c0626; --knob: #1a1238; --knob-off: #4d4380;
+  --bar-bg: #ffffff; --pop-bg: #ffffff; --drawer-bg: #fbfaff; --toast-bg: #ffffff; --modal-bg: #ffffff;
+  --shadow-rgb: 60, 40, 140; --sh: .4;
+  --tip-bg: #1a1238; --tip-ink: #ffffff;
+  --np-base: #efecfa; --np-ink: 26, 18, 56; --np-pill-ink: #0c0626; --np-dim: 1.1;
+  --np-veil: linear-gradient(180deg, rgba(244,241,252,.66), rgba(244,241,252,.86));
+  --np-calm: rgba(244,241,252,.8);
+  --ph-s1: 70%; --ph-l1: 82%; --ph-s2: 75%; --ph-l2: 70%;
+  --brand-ink: #1a1238; --brand-track: #e0d9f5;
+  --hero-dim: 1.15; --hero-op: .45;
+  --grid: linear-gradient(rgba(224,23,159,.11) 1px, transparent 1px) 0 0 / 36px 36px, linear-gradient(90deg, rgba(0,150,180,.12) 1px, transparent 1px) 0 0 / 36px 36px;
+  --app-bg: radial-gradient(900px 500px at 78% 112%, rgba(224,23,159,.10), transparent 60%), radial-gradient(700px 420px at 8% -12%, rgba(0,180,204,.12), transparent 60%), #f4f1fc;
+  --sidebar-bg: linear-gradient(180deg, rgba(0,240,255,.08), transparent 28%), #2a1f4a;
+  color-scheme: light;
+  --nx-ctl: #ffffff; --nx-ctl-h: #e9fbfd;
+  --nx-well: #ece8f9;
+  --nx-edge: #8c80c8;       /* 對白底 3.5:1 */
+  --nx-edge-h: #0091a8;
+  --nx-lit: #22d3ee; --nx-lit-ink: #0c0626;      /* 9.8:1 */
+  --nx-hot: #c0128f; --nx-hot-ink: #ffffff;      /* 5.6:1 */
+  --nx-head: #006b7e;
+  --nx-label: #ff9cec;      /* 側欄在白天也是深色 */
+  --nx-glow: drop-shadow(0 0 3px rgba(0,180,210,.55));
+  --nx-glow-hot: drop-shadow(0 0 3px rgba(192,18,143,.4));
+  --nx-scan: repeating-linear-gradient(180deg, rgba(40,20,90,.11) 0 1px, transparent 1px 3px);
+  --nx-panel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CclipPath id='k'%3E%3Cpolygon points='8,8 42,8 56,22 56,56 22,56 8,42'/%3E%3C/clipPath%3E%3C/defs%3E%3Cfilter id='b' x='-1' y='-1' width='3' height='3'%3E%3CfeGaussianBlur stdDeviation='2.6'/%3E%3C/filter%3E%3Cpolygon points='8,8 42,8 56,22 56,56 22,56 8,42' fill='none' stroke='%2300c8e0' stroke-opacity='0.42' stroke-width='2.5' filter='url(%23b)'/%3E%3Cpolygon points='8,8 42,8 56,22 56,56 22,56 8,42' fill='%23ffffff'/%3E%3Cg clip-path='url(%23k)' fill='none' stroke-linecap='square'%3E%3Cpolygon points='8,8 42,8 56,22 56,56 22,56 8,42' stroke='%23b9aee6' stroke-width='2.0'/%3E%3Cpath d='M42,8 L56,22' stroke='%23d41aa6' stroke-width='4.0'/%3E%3Cpath d='M22,56 L8,42' stroke='%2300a7bf' stroke-width='4.0'/%3E%3Cpath d='M8,24 V8 H24' stroke='%2300a7bf' stroke-width='4.0'/%3E%3Cpath d='M56,40 V56 H40' stroke='%23d41aa6' stroke-width='4.0'/%3E%3C/g%3E%3C/svg%3E") 30 fill / 30px / 8px stretch;
+  --nx-pop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cdefs%3E%3CclipPath id='k'%3E%3Cpolygon points='8,8 38,8 48,18 48,48 18,48 8,38'/%3E%3C/clipPath%3E%3C/defs%3E%3Cfilter id='b' x='-1' y='-1' width='3' height='3'%3E%3CfeGaussianBlur stdDeviation='2.6'/%3E%3C/filter%3E%3Cpolygon points='8,8 38,8 48,18 48,48 18,48 8,38' fill='none' stroke='%2300c8e0' stroke-opacity='0.45' stroke-width='2.5' filter='url(%23b)'/%3E%3Cpolygon points='8,8 38,8 48,18 48,48 18,48 8,38' fill='%23ffffff'/%3E%3Cg clip-path='url(%23k)' fill='none' stroke-linecap='square'%3E%3Cpolygon points='8,8 38,8 48,18 48,48 18,48 8,38' stroke='%23a99ddd' stroke-width='2.0'/%3E%3Cpath d='M38,8 L48,18' stroke='%23d41aa6' stroke-width='4.0'/%3E%3Cpath d='M18,48 L8,38' stroke='%2300a7bf' stroke-width='4.0'/%3E%3Cpath d='M8,20 V8 H20' stroke='%2300a7bf' stroke-width='4.0'/%3E%3Cpath d='M48,36 V48 H36' stroke='%23d41aa6' stroke-width='4.0'/%3E%3C/g%3E%3C/svg%3E") 26 fill / 26px / 8px stretch;
+}
+
+
+/* ───────────── 3 · 斜切角的形狀（按鈕、輸入框、分段按鈕…共用） ─────────────
+   不用 clip-path（會把外面的光切掉），而是用一層 45° 的漸層把右上、左下兩個角「留白」：
+   下層是框線色、上層內縮 1 px 是底色，兩層疊起來就是一個有細框的斜切角。
+   每個元件只要設 --nx-cut（切多大）、--nx-f（底色）、--nx-l（框線色）。
+   亮起來的狀態用 filter: drop-shadow 發光：光跟著斜切角的外形走，底是實心的，所以字不會糊。 */
+/* （:where：這裡只定義變數，specificity 為 0，後面任何一條規則都能改 --nx-f / --nx-l） */
+:root[data-theme="neon"] :where(.btn, .seg, .set-tabs, .search, .msel-btn, .chip, .round-btn, .out-btn, .badge, .nav-pill, .switch, .np-top .pill, .np-top .icon-btn, .msel-chev, .ly-offset button, .hero .aka-name, #bar .sig),
+:root[data-theme="neon"] :where(.seg, .set-tabs, .chips, .rl-src) > :where(button, a, .glide-pill) {
+  --nx-cut: 7px; --nx-f: var(--nx-ctl); --nx-l: var(--nx-edge);
+  --nx-shape:
+    linear-gradient(45deg, transparent calc(var(--nx-cut) - .9px), var(--nx-f) calc(var(--nx-cut) - .1px), var(--nx-f) calc(100% - var(--nx-cut) + .1px), transparent calc(100% - var(--nx-cut) + .9px)) 1px 1px / calc(100% - 2px) calc(100% - 2px) no-repeat,
+    linear-gradient(45deg, transparent calc(var(--nx-cut) - .5px), var(--nx-l) calc(var(--nx-cut) + .5px), var(--nx-l) calc(100% - var(--nx-cut) - .5px), transparent calc(100% - var(--nx-cut) + .5px));
+  --nx-solid: linear-gradient(45deg, transparent calc(var(--nx-cut) - .5px), var(--nx-f) calc(var(--nx-cut) + .5px), var(--nx-f) calc(100% - var(--nx-cut) - .5px), transparent calc(100% - var(--nx-cut) + .5px));
+}
+
+
+/* ───────────── 4 · 面板：斜切角＋青色光暈＋HUD 角括號（設定頁、DSP、選單、對話框） ─────────────
+   整個面板（底色、框、光暈、角括號）是一張九宮格圖（border-image），所以光暈在框外、不會被切掉，
+   也不需要任何濾鏡；面板本身的背景與陰影拿掉。 */
+:root[data-theme="neon"] :is(.sect, .dsp-card) {
+  border-radius: 0; border: 1px solid transparent; background: none; box-shadow: none;
+  border-image: var(--nx-panel);
+}
+:root[data-theme="neon"] :is(.pop, .msel-menu, .modal, .ly-pick) {
+  border-radius: 0; border: 1px solid transparent; background: none; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  border-image: var(--nx-pop);
+}
+/* 佇列抽屜是整條直的：左邊一條青色的光邊，左下切一刀 */
+:root[data-theme="neon"] .drawer {
+  border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--drawer-bg);
+  border: 1px solid var(--line-2); border-left: 2px solid var(--teal);
+  box-shadow: -1px 0 16px rgba(var(--teal-rgb), .28), 0 30px 80px rgba(var(--shadow-rgb), calc(.6 * var(--sh)));
+}
+:root[data-theme="neon"] .drawer:not(.on) { box-shadow: none; }
+:root[data-theme="neon"] .toast { border-radius: 0; border-left: 3px solid var(--teal); box-shadow: 0 12px 30px rgba(var(--shadow-rgb), calc(.5 * var(--sh))); }
+:root[data-theme="neon"] .toast.err { border-left-color: var(--pink); }
+/* 面板裡的列、說明 */
+:root[data-theme="neon"] .field { border-top-color: var(--line); }
+:root[data-theme="neon"] :is(.sect .hint, .field .lbl small) { color: var(--text-3); }
+:root[data-theme="neon"] .menu button { border-radius: 0; }
+:root[data-theme="neon"] .menu button:hover { background: rgba(var(--teal-rgb), .12); }
+:root[data-theme="neon"] .menu button.is-selected { background: rgba(var(--teal-rgb), .16); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="neon"] .menu hr { border-top-color: var(--line-2); }
+:root[data-theme="neon"] .msel-opt { border-radius: 0; }
+:root[data-theme="neon"] .msel-opt.on { background: rgba(var(--teal-rgb), .16); }
+:root[data-theme="neon"] .msel-opt.on::before { border-radius: 0; width: 4px; transform: skewX(-14deg); box-shadow: 0 0 6px rgba(var(--teal-rgb), .7); }
+:root[data-theme="neon"] .msel-opt.on .msel-ck { border-radius: 0; }
+
+
+/* ───────────── 5 · 字體：HUD 標題（等寬、英文大寫、字距拉開） ───────────── */
+/* （頁面標題、對話框標題可能是播放清單名稱、資料夾名稱或搜尋的字：只換字體，不改大小寫） */
+:root[data-theme="neon"] :is(.rail-head h2, .sect h2, .drawer-head h2, .dsp-card h3, .hero .kind, .thead, .nav-label, .badge, .set-tabs button, .page-head .sub) {
+  font-family: var(--nx-mono); text-transform: uppercase;
+}
+:root[data-theme="neon"] :is(.page-head h1, .modal-head h2) { font-family: var(--nx-mono); }
+:root[data-theme="neon"] :is(.sig, .out-btn) { font-family: var(--nx-mono); }
+:root[data-theme="neon"] :is(.num, .time, .seek, .nav a .count, .row .d, .row .fmt, .np-seek .times, .vol .db, .slider .hover-tip) { font-family: var(--nx-mono); font-variant-numeric: tabular-nums; }
+:root[data-theme="neon"] .nav a .count { font-style: normal; }
+/* 歌詞、專輯名稱、曲名維持易讀的無襯線字 */
+:root[data-theme="neon"] :is(.ly-line, .ly-plain, .np-title, .hero h1) { font-family: var(--font-display); }
+
+/* 頁面標題：等寬大字，左上角一個青色 HUD 角括號，下面一條洋紅→青、斜頭的光條（標題本身不發光） */
+:root[data-theme="neon"] .page-head h1 {
+  position: relative; font-weight: 700; letter-spacing: .07em; color: var(--text-hi); text-shadow: none;
+}
+:root[data-theme="neon"] .page-head h1::before {
+  content: ""; position: absolute; left: -13px; top: -7px; width: 11px; height: 11px; pointer-events: none;
+  border-left: 2px solid var(--teal); border-top: 2px solid var(--teal);
+}
+:root[data-theme="neon"] .page-head h1::after {
+  content: ""; position: absolute; left: 1px; bottom: -9px; width: 72px; height: 4px; pointer-events: none;
+  background: linear-gradient(90deg, var(--pink), var(--teal));
+  transform: skewX(-40deg); transform-origin: left bottom;
+  box-shadow: 0 0 8px rgba(var(--teal-rgb), .45);
+}
+:root[data-theme="neon"] .page-head .sub { color: var(--text-2); letter-spacing: .08em; font-size: 13px; }
+/* 首頁每排的標題：前面兩道斜槓（洋紅、青） */
+:root[data-theme="neon"] .rail-head h2 { font-size: 18px; font-weight: 700; letter-spacing: .08em; color: var(--text-hi); text-shadow: none; }
+:root[data-theme="neon"] .rail-head h2::before {
+  content: ""; display: inline-block; width: 13px; height: .86em; margin: 0 12px 0 2px; vertical-align: -.04em;
+  color: transparent; text-shadow: none;
+  background: linear-gradient(var(--pink), var(--pink)) 0 0 / 4px 100% no-repeat, linear-gradient(var(--teal), var(--teal)) 8px 0 / 4px 100% no-repeat;
+  transform: skewX(-24deg);
+}
+:root[data-theme="neon"] .rail-head a { color: var(--text-2); font-family: var(--nx-mono); font-size: 12px; letter-spacing: .06em; }
+:root[data-theme="neon"] .rail-head a:hover { color: var(--teal-2); }
+/* 面板標題：小一號的青色等寬字 */
+:root[data-theme="neon"] .sect h2 { font-size: 14px; font-weight: 700; letter-spacing: .14em; color: var(--nx-head); padding-top: 20px; }
+:root[data-theme="neon"] .sect h2::before { content: "▸ "; color: var(--pink); }
+:root[data-theme="neon"] .dsp-card h3 { letter-spacing: .1em; color: var(--nx-head); }
+:root[data-theme="neon"] :is(.drawer-head h2, .modal-head h2) { letter-spacing: .08em; }
+
+
+/* ───────────── 6 · 側欄：深靛色的機殼，右緣一條青色光邊；選中的項目是發光的斜切角 ───────────── */
+:root[data-theme="neon"] #sidebar {
+  background: var(--nx-scan) left top / 100% 96px no-repeat, var(--sidebar-bg);
+  border-right: 1px solid rgba(0,240,255,.55); box-shadow: 1px 0 14px rgba(0,240,255,.22);
+}
+:root[data-theme="neon"] .nav-label { color: var(--nx-label); font-size: 11px; letter-spacing: .2em; font-weight: 700; }
+:root[data-theme="neon"] .nav-label::before { content: "// "; opacity: .75; }
+:root[data-theme="neon"] .nav a { border-radius: 0; color: var(--text-2); }
+:root[data-theme="neon"] .nav a:hover { background: rgba(0,240,255,.07); color: var(--text); }
+:root[data-theme="neon"] .nav a.on, :root[data-theme="neon"] .nav a.on:hover { color: #ffffff; text-shadow: none; }
+:root[data-theme="neon"] .nav a.on .count { color: var(--text-2); }
+:root[data-theme="neon"] .nav a.on svg.i { color: #00f0ff; filter: none; }
+:root[data-theme="neon"] .nav-pill {
+  --nx-cut: 7px; --nx-f: #2f2b5e; --nx-l: rgba(0,240,255,.75);
+  border: 0; border-radius: 0; background: var(--nx-shape);
+  filter: drop-shadow(0 0 4px rgba(0,240,255,.35));
+}
+/* 左邊一支斜的洋紅光棒 */
+:root[data-theme="neon"] .nav-pill::before {
+  left: 6px; top: 9px; bottom: 9px; width: 4px; border-radius: 0;
+  background: #ff2bd6; box-shadow: 0 0 6px rgba(255,43,214,.8); transform: skewX(-16deg);
+}
+
+
+/* ───────────── 7 · 內容區：右上角的網格（往外淡出），頂列右上一排斜的訊號格 ───────────── */
+:root[data-theme="neon"] #main { isolation: isolate; }
+:root[data-theme="neon"] #main::before {
+  content: ""; position: absolute; top: 0; right: 0; width: min(560px, 62%); height: 260px; z-index: -1; pointer-events: none;
+  background: var(--grid);
+  -webkit-mask-image: radial-gradient(farthest-side at 100% 0, #000 20%, transparent); mask-image: radial-gradient(farthest-side at 100% 0, #000 20%, transparent);
+}
+:root[data-theme="neon"] #main::after {
+  content: ""; position: absolute; top: 27px; right: 40px; width: 150px; height: 10px; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(90deg, #ff2bd6 0 7px, transparent 7px 12px, #c351e6 12px 19px, transparent 19px 24px, #8a78f0 24px 31px, transparent 31px 36px, #45b4f8 36px 43px, transparent 43px 48px, #00f0ff 48px 55px) right top / 55px 100% no-repeat,
+    linear-gradient(90deg, transparent, rgba(var(--teal-rgb), .55)) left center / calc(100% - 64px) 1px no-repeat;
+  transform: skewX(-30deg);
+  opacity: .9;
+}
+:root[data-theme="neon"]:where([data-mode="day"]) #main::after { opacity: .75; }
+:root[data-theme="neon"] #topbar.solid { background: rgba(var(--bg-rgb), .93); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: rgba(var(--teal-rgb), .3); }
+
+/* 頂列：上一頁／下一頁、搜尋框 */
+:root[data-theme="neon"] .round-btn { --nx-cut: 6px; border: 0; border-radius: 0; color: var(--text); background: var(--nx-shape); }
+:root[data-theme="neon"] .round-btn:hover { --nx-l: var(--nx-edge-h); --nx-f: var(--nx-ctl-h); background: var(--nx-shape); color: var(--text-hi); }
+:root[data-theme="neon"] .round-btn:disabled { opacity: .5; }
+:root[data-theme="neon"] .search { --nx-cut: 9px; border: 0; border-radius: 0; background: var(--nx-shape); color: var(--text-2); }
+:root[data-theme="neon"] .search:focus-within { --nx-l: var(--nx-edge-h); background: var(--nx-shape); box-shadow: none; filter: var(--nx-glow); color: var(--text); }
+:root[data-theme="neon"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="neon"] .search kbd { border-radius: 0; font-family: var(--nx-mono); color: var(--text-2); border-color: var(--nx-edge); }
+
+
+/* ───────────── 8 · 專輯卡：斜切角的封面；滑過時掃描線＋青色的內光框 ───────────── */
+:root[data-theme="neon"] .card .art { border-radius: 0; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px)); box-shadow: none; }
+:root[data-theme="neon"] .card:hover .art { box-shadow: none; filter: none; }
+:root[data-theme="neon"] .card .art::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .25s;
+  background:
+    linear-gradient(45deg, transparent 10.3px, #00f0ff 10.3px, #00f0ff 12.6px, transparent 12.6px) left bottom / 24px 24px no-repeat,
+    linear-gradient(225deg, transparent 10.3px, #ff2bd6 10.3px, #ff2bd6 12.6px, transparent 12.6px) right top / 24px 24px no-repeat,
+    var(--nx-scan);
+  box-shadow: inset 0 0 0 1px rgba(0,240,255,.75), inset 0 0 18px rgba(0,240,255,.35);
+}
+:root[data-theme="neon"] .card:hover .art::after { opacity: 1; }
+:root[data-theme="neon"] .card.artist .art { clip-path: none; border-radius: 50%; box-shadow: 0 0 0 1px rgba(var(--teal-rgb), .35); }
+:root[data-theme="neon"] .card.artist:hover .art { box-shadow: 0 0 0 2px var(--teal), 0 0 16px rgba(var(--teal-rgb), .45); }
+:root[data-theme="neon"] .card.artist .art::after { display: none; }
+:root[data-theme="neon"] .card .t1 { color: var(--text); }
+:root[data-theme="neon"] .card:hover .t1 { color: var(--teal-2); text-shadow: none; }
+:root[data-theme="neon"] .card .t2 { color: var(--text-sub); }
+/* 封面上的播放鍵：亮青的斜切角塊，深色圖示 */
+:root[data-theme="neon"] .card .play {
+  border-radius: 0; background: #00f0ff; color: #10062a; box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+:root[data-theme="neon"] .card .play:hover { background: #7ff8ff; }
+:root[data-theme="neon"] .pl-art { border-radius: 0; box-shadow: none; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px)); }
+:root[data-theme="neon"] .pl-art.none {
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  background: linear-gradient(225deg, transparent 10.6px, var(--nx-edge) 10.6px, var(--nx-edge) 12px, transparent 12px) right top / 24px 24px no-repeat,
+              linear-gradient(45deg, transparent 10.6px, var(--nx-edge) 10.6px, var(--nx-edge) 12px, transparent 12px) left bottom / 24px 24px no-repeat, var(--surface-2);
+}
+:root[data-theme="neon"] .pl-card:hover .pl-t1 { color: var(--teal-2); }
+:root[data-theme="neon"]:where([data-mode="day"]) .pl-card:hover .pl-t1 { color: #006b7e; }
+:root[data-theme="neon"] .scroll-bubble { border-radius: 0; background: #00f0ff; color: #10062a; }
+
+
+/* ───────────── 9 · 曲目表：等寬的表頭，下緣洋紅細線＋一段青色；播放中那一列左邊一支洋紅光棒 ───────────── */
+:root[data-theme="neon"] .thead {
+  font-size: 11.5px; letter-spacing: .14em; color: var(--text-2); -webkit-backdrop-filter: none; backdrop-filter: none;
+  border-bottom: 1px solid rgba(255,43,214,.5);
+  background: linear-gradient(var(--teal), var(--teal)) left bottom / 56px 2px no-repeat, var(--bg);
+}
+:root[data-theme="neon"] .row { border-radius: 0; }
+:root[data-theme="neon"] .row:hover { background: linear-gradient(90deg, rgba(0,240,255,.12), rgba(0,240,255,.03) 70%); }
+:root[data-theme="neon"] .row.sel { background: rgba(0,240,255,.13); box-shadow: inset 0 0 0 1px rgba(0,240,255,.4); }
+:root[data-theme="neon"] .row .tt div:first-child { color: var(--text); }
+:root[data-theme="neon"] .row .tt .a { color: var(--text-sub); }
+:root[data-theme="neon"] :is(.row .al, .row .d, .row .fmt, .row .n) { color: var(--text-2); }
+:root[data-theme="neon"] .row .n .pi { color: var(--teal-2); }
+:root[data-theme="neon"] .row.playing { background: linear-gradient(90deg, rgba(255,43,214,.2), rgba(255,43,214,.04) 70%); box-shadow: inset 3px 0 0 #ff2bd6; }
+:root[data-theme="neon"] .row.playing .tt div:first-child { color: var(--teal-2); text-shadow: none; }
+:root[data-theme="neon"] .eq i { box-shadow: 0 0 5px rgba(var(--teal-rgb), .7); border-radius: 0; }
+:root[data-theme="neon"] .row .thumb, :root[data-theme="neon"] .qrow .thumb { border-radius: 0; clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)); }
+:root[data-theme="neon"] .qrow { border-radius: 0; }
+:root[data-theme="neon"] .qrow:hover { background: rgba(0,240,255,.08); }
+:root[data-theme="neon"] .qrow.cur { background: linear-gradient(90deg, rgba(255,43,214,.18), transparent 80%); box-shadow: inset 3px 0 0 #ff2bd6; }
+:root[data-theme="neon"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="neon"] .qrow.past { opacity: .85; }
+
+
+/* ───────────── 10 · 按鈕、分段按鈕、分頁列、晶片：斜切角；選中的亮起來 ───────────── */
+:root[data-theme="neon"] .btn { border: 0; border-radius: 0; color: var(--text); background: var(--nx-shape); box-shadow: none; }
+:root[data-theme="neon"] .btn:hover { --nx-l: var(--nx-edge-h); --nx-f: var(--nx-ctl-h); background: var(--nx-shape); box-shadow: none; }
+:root[data-theme="neon"] .btn.ghost { background: transparent; color: var(--text-2); }
+:root[data-theme="neon"] .btn.ghost:hover { --nx-l: var(--nx-edge); background: var(--nx-shape); color: var(--text); }
+/* 主要按鈕：洋紅實心、深色字，外面一圈洋紅的光 */
+:root[data-theme="neon"] .btn.primary { --nx-f: var(--nx-hot); color: var(--nx-hot-ink); background: var(--nx-solid); border: 0; box-shadow: none; text-shadow: none; filter: var(--nx-glow-hot); }
+:root[data-theme="neon"] .btn.primary:hover { --nx-f: #ff7ae6; background: var(--nx-solid); box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .btn.primary:hover { --nx-f: #a50c7a; }
+:root[data-theme="neon"] .btn.primary svg.i { color: currentColor; }
+:root[data-theme="neon"] .btn.bp-apply { --nx-l: var(--teal); background: var(--nx-shape); box-shadow: none; }
+:root[data-theme="neon"] .btn.bp-apply svg.i { color: var(--teal-2); }
+:root[data-theme="neon"] .page-head .tools > .btn.small { border-radius: 0; }
+
+/* 分段按鈕：深色凹槽＋框；選中的是亮青的斜切角塊、深色字、外面發光 */
+:root[data-theme="neon"] .seg { --nx-cut: 8px; --nx-f: var(--nx-well); border-radius: 0; padding: 3px; background: var(--nx-shape); box-shadow: none; }
+:root[data-theme="neon"] .seg button { border-radius: 0; color: var(--text-2); }
+:root[data-theme="neon"] .seg button:hover { --nx-cut: 6px; --nx-f: rgba(var(--teal-rgb), .14); color: var(--text-hi); background: var(--nx-solid); }
+:root[data-theme="neon"] :is(.seg, .set-tabs, .chips, .rl-src) > :is(button, a).on,
+:root[data-theme="neon"] :is(.seg, .set-tabs, .chips, .rl-src) > .glide-pill {
+  --nx-cut: 6px; --nx-f: var(--nx-lit);
+  border: 0; border-radius: 0 !important; box-shadow: none; background: var(--nx-solid);
+}
+:root[data-theme="neon"] :is(.seg, .set-tabs, .chips, .rl-src) > :is(button, a).on { color: var(--nx-lit-ink); font-weight: 600; text-shadow: none; filter: var(--nx-glow); }
+:root[data-theme="neon"] :is(.seg, .set-tabs, .chips, .rl-src) > .glide-pill { filter: var(--nx-glow); }
+/* 換選項時（core.js 的 Glide 替身在滑動），原本的項目不發光 */
+:root[data-theme="neon"] .glide-run > :is(button, a).on { filter: none; }
+
+/* 設定頁上方的分頁列 */
+:root[data-theme="neon"] .set-tabs { --nx-cut: 10px; --nx-f: var(--nx-well); border: 0; border-radius: 0; padding: 4px; background: var(--nx-shape); -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-theme="neon"] .set-tabs button { border-radius: 0; color: var(--text-2); letter-spacing: .1em; }
+:root[data-theme="neon"] .set-tabs button:hover { color: var(--text-hi); }
+:root[data-theme="neon"] .set-tabs button.on { --nx-cut: 8px; }
+
+/* 晶片 */
+:root[data-theme="neon"] .chip { --nx-cut: 6px; border: 0; border-radius: 0; color: var(--text-2); background: var(--nx-shape); }
+:root[data-theme="neon"] .chip:hover { --nx-l: var(--nx-edge-h); background: var(--nx-shape); color: var(--text); }
+:root[data-theme="neon"] .chip.on { --nx-f: var(--nx-lit); color: var(--nx-lit-ink); background: var(--nx-solid); filter: var(--nx-glow); }
+
+/* 小標籤（格式、取樣率）：等寬字、小的斜切角 */
+:root[data-theme="neon"] .badge { --nx-cut: 4px; --nx-f: var(--surface-2); --nx-l: var(--line-2); border: 0; border-radius: 0; background: var(--nx-shape); color: var(--text-sub); letter-spacing: .06em; }
+:root[data-theme="neon"] .badge.hi { --nx-l: var(--teal); color: var(--teal-2); background: var(--nx-shape); border: 0; }
+:root[data-theme="neon"] .badge.dsd { --nx-l: var(--pink); color: var(--pink-text); background: var(--nx-shape); border: 0; }
+:root[data-theme="neon"] .icon-btn { border-radius: 0; }
+:root[data-theme="neon"] .icon-btn:hover { background: rgba(var(--teal-rgb), .1); }
+:root[data-theme="neon"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="neon"] .icon-btn.fav-on { color: var(--pink); filter: none; }
+
+/* 下拉選單按鈕：前面的小圓點改成斜的青色光塊，箭頭放在小的斜切角框裡 */
+:root[data-theme="neon"] .msel-btn { --nx-cut: 8px; border: 0; border-radius: 0; box-shadow: none; background: var(--nx-shape); color: var(--text-hi); }
+:root[data-theme="neon"] :is(.msel-btn:hover, .msel-btn:focus-visible, .msel.open .msel-btn) { --nx-l: var(--nx-edge-h); background: var(--nx-shape); box-shadow: none; }
+:root[data-theme="neon"] .msel.open .msel-btn { filter: var(--nx-glow); }
+:root[data-theme="neon"] .msel-btn::before { width: 5px; height: 12px; border-radius: 0; background: var(--teal); box-shadow: 0 0 6px rgba(var(--teal-rgb), .8); transform: skewX(-18deg); }
+:root[data-theme="neon"] .msel-chev { --nx-cut: 4px; --nx-f: var(--nx-well); --nx-l: var(--line-2); border-radius: 0; color: var(--teal-2); background: var(--nx-shape); }
+:root[data-theme="neon"] .msel.open .msel-chev { background: var(--nx-shape); }
+:root[data-theme="neon"] .range { height: 3px; border-radius: 0; background: rgba(var(--ink), .3); }
+:root[data-theme="neon"] .range::-webkit-slider-thumb { width: 7px; height: 18px; border-radius: 0; background: #ffffff; box-shadow: 0 0 0 1px rgba(16,6,42,.6), 0 0 8px rgba(var(--teal-rgb), .9); clip-path: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .range::-webkit-slider-thumb { background: #1a1238; box-shadow: 0 0 0 1px #ffffff, 0 0 6px rgba(0,180,204,.6); }
+:root[data-theme="neon"] .warn { border-radius: 0; border-left: 3px solid var(--pink); }
+:root[data-theme="neon"] :is(select.sel, input.inp) { border-radius: 0; border-color: var(--nx-edge); background-color: var(--nx-ctl); }
+:root[data-theme="neon"] :is(select.sel, input.inp):focus { border-color: var(--nx-edge-h); }
+
+
+/* ───────────── 11 · 開關 ─────────────
+   斜切角的軌道、斜的滑塊。關：暗底＋看得見的框，滑塊是淡紫色的斜塊（對軌道 7:1）；
+   開：整條亮青、外面發光，滑塊變成深靛色。一眼就分得出來。 */
+:root[data-theme="neon"] .switch {
+  --nx-cut: 6px; --nx-f: var(--nx-well); --nx-l: var(--nx-edge);
+  border: 0; border-radius: 0; box-shadow: none; background: var(--nx-shape);
+}
+:root[data-theme="neon"] .switch::after {
+  top: 4px; left: 4px; width: 15px; height: 16px; border-radius: 0; box-shadow: none;
+  background: var(--knob-off);
+  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+}
+:root[data-theme="neon"] .switch.on { --nx-f: var(--nx-lit); --nx-l: var(--nx-lit); background: var(--nx-solid); box-shadow: none; border: 0; filter: var(--nx-glow); }
+:root[data-theme="neon"] .switch.on::after { transform: translateX(19px); background: var(--nx-lit-ink); box-shadow: none; }
+
+
+/* ───────────── 12 · 播放列：上緣一條洋紅光邊；播放鍵是發光的六角形 ───────────── */
+:root[data-theme="neon"] #bar {
+  -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bar-bg);
+  border-top: 1px solid rgba(255,43,214,.75); box-shadow: 0 -1px 14px rgba(255,43,214,.24);
+}
+:root[data-theme="neon"] .playbtn {
+  position: relative; isolation: isolate; border: 0; border-radius: 0; background: none; color: var(--play-ink); box-shadow: none;
+  filter: drop-shadow(0 0 6px rgba(0,240,255,.55));
+}
+:root[data-theme="neon"] .playbtn::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; background: var(--play-bg);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+:root[data-theme="neon"] .playbtn:hover { background: none; }
+:root[data-theme="neon"] .playbtn:hover::before { background: #7ff8ff; }
+:root[data-theme="neon"] .playbtn svg { filter: none; }
+/* 按下時的水波紋是方的圓，會畫到六角形外面：播放鍵不用（按下時本來就會縮一下） */
+:root[data-theme="neon"] .playbtn .ripple { display: none; }
+:root[data-theme="neon"] :is(#bar .playbtn, #bar .playbtn:hover, .np-ctrl .playbtn) { box-shadow: none; border: 0; }
+:root[data-theme="neon"] .np-ctrl .playbtn { color: var(--play-ink); }
+:root[data-theme="neon"] .np-mini .art { border-radius: 0; clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px)); box-shadow: none; }
+:root[data-theme="neon"] .np-mini .a { color: var(--text-sub); }
+:root[data-theme="neon"] :is(.out-btn, #bar .sig:not(.hires):not(.dsd):not(.upsample)) { --nx-cut: 6px; border-radius: 0; background: var(--nx-shape); color: var(--text-2); letter-spacing: .04em; }
+:root[data-theme="neon"] :is(.out-btn, #bar .sig:not(.hires):not(.dsd):not(.upsample)):hover { --nx-l: var(--nx-edge-h); background: var(--nx-shape); color: var(--text); }
+:root[data-theme="neon"] .tool-sep { background: rgba(255,43,214,.45); transform: skewX(-20deg); }
+:root[data-theme="neon"] .vol .db { color: var(--text-2); }
+
+/* 進度條、音量：方頭；填滿是洋紅→青的光條；播放頭是一支斜的白色細塊，平常就看得見 */
+:root[data-theme="neon"] .slider .track { border-radius: 0; background: rgba(var(--ink), .22); overflow: visible; }
+:root[data-theme="neon"] :is(.slider .fill, .slider:hover .fill, .slider.drag .fill) { border-radius: 0; background: linear-gradient(90deg, var(--pink), var(--teal)); box-shadow: 0 0 8px rgba(var(--teal-rgb), .55); }
+:root[data-theme="neon"] .slider .knob {
+  width: 5px; height: 16px; margin: -8px 0 0 -2.5px; border-radius: 0; background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(16,6,42,.6), 0 0 8px rgba(var(--teal-rgb), .9); opacity: 1; transform: skewX(-14deg);
+}
+:root[data-theme="neon"] :is(.slider:hover .knob, .slider.drag .knob) { transform: skewX(-14deg); }
+:root[data-theme="neon"] .slider .hover-tip { border-radius: 0; box-shadow: 0 0 0 1px rgba(var(--teal-rgb), .6); }
+
+
+/* ───────────── 13 · 專輯頁：封面斜切角＋掃描線 ───────────── */
+:root[data-theme="neon"] .hero .cover { border-radius: 0; box-shadow: none; overflow: visible; background: none; filter: drop-shadow(0 0 1px rgba(0,240,255,.9)) drop-shadow(0 0 16px rgba(0,240,255,.3)); }
+:root[data-theme="neon"] .hero:not(.artist) .cover > :is(img, .ph) { clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px)); }
+:root[data-theme="neon"] .hero:not(.artist) .cover > .ph { background: var(--surface-2); }
+:root[data-theme="neon"] .hero:not(.artist) .cover::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+  background:
+    linear-gradient(45deg, transparent 14.5px, #00f0ff 14.5px, #00f0ff 17px, transparent 17px) left bottom / 32px 32px no-repeat,
+    linear-gradient(225deg, transparent 14.5px, #ff2bd6 14.5px, #ff2bd6 17px, transparent 17px) right top / 32px 32px no-repeat,
+    var(--nx-scan);
+}
+:root[data-theme="neon"] .hero.artist .cover { border-radius: 50%; overflow: hidden; filter: none; box-shadow: 0 0 0 2px var(--teal), 0 0 24px rgba(var(--teal-rgb), .35); }
+:root[data-theme="neon"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .25), rgba(var(--bg-rgb), .66) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="neon"] .hero .kind { color: var(--nx-label); letter-spacing: .18em; }
+:root[data-theme="neon"]:where([data-mode="day"]) .hero .kind { color: var(--pink-text); }
+:root[data-theme="neon"] .hero h1 { text-shadow: none; font-weight: 800; letter-spacing: 0; }
+:root[data-theme="neon"] .hero .facts { color: var(--text-2); }
+:root[data-theme="neon"] .hero .aka-name { --nx-cut: 5px; border: 0; border-radius: 0; background: var(--nx-shape); }
+
+
+/* ───────────── 14 · 正在播放 ─────────────
+   拿掉地平線網格（會穿過播放鍵、進度條）；畫面下方兩角各一個 HUD 角括號（離內容很遠）。
+   封面：斜切角、青色光暈、細掃描線。四個角落按鈕：實心底＋框，任何封面上都看得清楚。 */
+:root[data-theme="neon"] .np-bg::before {
+  content: ""; position: absolute; z-index: 1; inset: auto 16px 16px 16px; height: 30px; left: 16px; right: 16px; bottom: 16px; top: auto;
+  transform: none; opacity: .8; pointer-events: none; -webkit-mask-image: none; mask-image: none;
+  background:
+    linear-gradient(#00f0ff, #00f0ff) left bottom / 30px 2px no-repeat,
+    linear-gradient(#00f0ff, #00f0ff) left bottom / 2px 30px no-repeat,
+    linear-gradient(#ff2bd6, #ff2bd6) right bottom / 30px 2px no-repeat,
+    linear-gradient(#ff2bd6, #ff2bd6) right bottom / 2px 30px no-repeat;
+}
+:root[data-theme="neon"]:where([data-mode="day"]) .np-bg::before {
+  opacity: .9;
+  background:
+    linear-gradient(#00a7bf, #00a7bf) left bottom / 30px 2px no-repeat,
+    linear-gradient(#00a7bf, #00a7bf) left bottom / 2px 30px no-repeat,
+    linear-gradient(#d41aa6, #d41aa6) right bottom / 30px 2px no-repeat,
+    linear-gradient(#d41aa6, #d41aa6) right bottom / 2px 30px no-repeat;
+}
+:root[data-theme="neon"] #np .np-cover {
+  border-radius: 0; overflow: visible; box-shadow: none; background: none;
+  filter: drop-shadow(0 0 1px rgba(0,240,255,.95)) drop-shadow(0 0 18px rgba(0,240,255,.32));
+}
+:root[data-theme="neon"]:where([data-mode="day"]) #np .np-cover { filter: drop-shadow(0 0 1px rgba(0,150,180,.9)) drop-shadow(0 14px 26px rgba(60,40,140,.28)); }
+:root[data-theme="neon"] #np .np-cover > :is(img, .ph) { clip-path: polygon(0 0, calc(100% - var(--nx-cut-c)) 0, 100% var(--nx-cut-c), 100% 100%, var(--nx-cut-c) 100%, 0 calc(100% - var(--nx-cut-c))); }
+:root[data-theme="neon"] #np .np-cover > .ph { background: var(--np-base); }
+/* 斜角上的亮線：切角 26 px（斜邊離角 18.4 px），線畫在 17.2–20 px */
+:root[data-theme="neon"] #np .np-cover { --nx-cut-c: 26px; --nx-d1: 17.2px; --nx-d2: 20px; --nx-dt: 38px; --nx-c1: #00f0ff; --nx-c2: #ff2bd6; }
+:root[data-theme="neon"]:where([data-mode="day"]) #np .np-cover { --nx-c1: #00a7bf; --nx-c2: #d41aa6; }
+:root[data-theme="neon"] #np .np-cover::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  clip-path: polygon(0 0, calc(100% - var(--nx-cut-c)) 0, 100% var(--nx-cut-c), 100% 100%, var(--nx-cut-c) 100%, 0 calc(100% - var(--nx-cut-c)));
+  background:
+    linear-gradient(45deg, transparent var(--nx-d1), var(--nx-c1) var(--nx-d1), var(--nx-c1) var(--nx-d2), transparent var(--nx-d2)) left bottom / var(--nx-dt) var(--nx-dt) no-repeat,
+    linear-gradient(225deg, transparent var(--nx-d1), var(--nx-c2) var(--nx-d1), var(--nx-c2) var(--nx-d2), transparent var(--nx-d2)) right top / var(--nx-dt) var(--nx-dt) no-repeat,
+    var(--nx-scan);
+}
+/* 視窗矮或窄時封面縮小（responsive.css）：切角跟著變小 */
+@media (max-height: 700px), (max-width: 960px) {
+  :root[data-theme="neon"] #np .np-cover { --nx-cut-c: 14px; --nx-d1: 8.8px; --nx-d2: 11.2px; --nx-dt: 22px; }
+}
+:root[data-theme="neon"] .np-title { font-weight: 800; letter-spacing: 0; text-shadow: none; }
+:root[data-theme="neon"] .np-artist { color: rgba(var(--np-ink), .84); }
+:root[data-theme="neon"] .np-badges .badge { --nx-f: #1c1236; --nx-l: rgba(var(--teal-rgb), .55); color: #e4dffc; }
+:root[data-theme="neon"]:where([data-mode="day"]) .np-badges .badge { --nx-f: #ffffff; --nx-l: #8c80c8; color: #352c63; }
+:root[data-theme="neon"] .np-seek .times { color: rgba(var(--np-ink), .82); }
+:root[data-theme="neon"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
+:root[data-theme="neon"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .88); }
+:root[data-theme="neon"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="neon"]:where([data-mode="day"]) .np-ctrl .icon-btn.on { color: #006b7e; }
+
+/* 四個角落按鈕（收起、歌詞不對？、翻譯、歌詞）：實心深色底＋青框（日：白底＋深紫框）；開著的是亮青實心 */
+:root[data-theme="neon"] :is(.np-top .icon-btn, .np-top .pill) {
+  --nx-cut: 7px; --nx-f: #1c1236; --nx-l: #7ff8ff;
+  border: 0; border-radius: 0; box-shadow: none; background: var(--nx-shape); color: #f6f3ff;
+}
+:root[data-theme="neon"] :is(.np-top .icon-btn, .np-top .pill):hover { --nx-f: #2e2152; background: var(--nx-shape); }
+:root[data-theme="neon"] .np-top .pill.on { --nx-f: #00f0ff; --nx-l: #00f0ff; background: var(--nx-solid); color: #10062a; font-weight: 600; box-shadow: none; filter: drop-shadow(0 0 5px rgba(0,240,255,.55)); }
+:root[data-theme="neon"] .np-top .pill.on:hover { --nx-f: #7ff8ff; background: var(--nx-solid); }
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill) { --nx-f: #ffffff; --nx-l: #3e3570; color: #1a1238; }
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill):hover { --nx-f: #e9fbfd; }
+:root[data-theme="neon"]:where([data-mode="day"]) .np-top .pill.on { --nx-f: #22d3ee; --nx-l: #22d3ee; color: #0c0626; filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
+:root[data-theme="neon"] .np-top .src { padding: 3px 8px; font-family: var(--nx-mono); letter-spacing: .04em; }
+:root[data-theme="neon"] .np-top .src:empty { padding: 0; background: none !important; }
+:root[data-theme="neon"] .np-top .src { color: #e4dffc; background: rgba(16,6,42,.72); }
+:root[data-theme="neon"]:where([data-mode="day"]) .np-top .src { color: #352c63; background: rgba(255,255,255,.85); }
+
+/* 歌詞：唱到的那一行是白色（日：深靛），不發光；其他行不要淡到看不清楚 */
+:root[data-theme="neon"] .ly-line { border-radius: 0; }
+:root[data-theme="neon"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="neon"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
+:root[data-theme="neon"] .ly-line.on { text-shadow: none; }
+:root[data-theme="neon"] .ly-line .w { background-image: linear-gradient(90deg, #ffffff 0, #ffffff var(--p, 0%), rgba(248,245,255,.5) var(--p, 0%)); }
+:root[data-theme="neon"]:where([data-mode="day"]) .ly-line .w { background-image: linear-gradient(90deg, #0c0626 0, #0c0626 var(--p, 0%), rgba(26,18,56,.45) var(--p, 0%)); }
+:root[data-theme="neon"] .ly-offset button { --nx-cut: 5px; border-radius: 0; background: var(--nx-shape); }
+
+
+/* ───────────── 15 · 等化器 ───────────── */
+:root[data-theme="neon"] .eq-graph { border-radius: 0; background: var(--grid), var(--nx-well); }
+/* 等化器的控制點：小六角形（跟播放鍵同一個形狀），數字保持正的 */
+:root[data-theme="neon"] .eq-handle { border-radius: 0; box-shadow: none; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); width: 24px; margin: -11px 0 0 -12px; }
+
+
+/* ───────────── 16 · 日：深色側欄（實驗室牆上的霓虹招牌），其他地方用清楚的細線取代發光 ───────────── */
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar {
+  color: #faf8ff; --text: #faf8ff; --text-hi: #ffffff; --text-sub: #e4dffc; --text-2: #d2cbf7; --text-3: #bbb2ea;
+  --ink: 214, 204, 255; --line: rgba(190,176,255,.15); --line-2: rgba(190,176,255,.27);
+  --surface: #312451; --surface-2: #3e2f63; --surface-3: #4c3c74;
+  --teal: #00f0ff; --teal-rgb: 0, 240, 255; --teal-2: #8af8ff; --pink: #ff2bd6; --on-accent: #10062a;
+  --brand-ink: #faf8ff; --brand-track: #4c3c74;
+  --nx-scan: repeating-linear-gradient(180deg, rgba(12,4,32,.26) 0 1px, transparent 1px 3px);
+  border-right: 1px solid rgba(0,240,255,.6); box-shadow: 1px 0 6px rgba(0,200,230,.28);
+}
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-pill { --nx-f: #2f2b5e; --nx-l: rgba(0,240,255,.75); border: 0; background: var(--nx-shape); }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-pill::before { background: #ff2bd6; box-shadow: 0 0 6px rgba(255,43,214,.8); }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav a.on { color: #ffffff; text-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav a.on svg.i { color: #00f0ff; filter: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-label { color: #ff9cec; }
+:root[data-theme="neon"]:where([data-mode="day"]) #bar { border-top: 1px solid rgba(224,23,159,.6); box-shadow: 0 -1px 10px rgba(224,23,159,.12); }
+:root[data-theme="neon"]:where([data-mode="day"]) .playbtn { filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80) drop-shadow(0 0 4px rgba(0,190,215,.45)); }
+:root[data-theme="neon"]:where([data-mode="day"]) .playbtn:hover::before { background: #67e8f9; }
+:root[data-theme="neon"]:where([data-mode="day"]) .slider .knob { background: #1a1238; box-shadow: 0 0 0 1px #ffffff, 0 0 6px rgba(0,180,204,.6); }
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.slider .fill, .slider:hover .fill, .slider.drag .fill) { background: linear-gradient(90deg, #e0179f, #00a7bf); box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .thead { border-bottom-color: rgba(224,23,159,.5); }
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.row:hover) { background: linear-gradient(90deg, rgba(0,180,204,.12), rgba(0,180,204,.03) 70%); }
+:root[data-theme="neon"]:where([data-mode="day"]) .row.sel { background: rgba(0,180,204,.12); box-shadow: inset 0 0 0 1px rgba(0,140,165,.45); }
+:root[data-theme="neon"]:where([data-mode="day"]) .row.playing { background: linear-gradient(90deg, rgba(224,23,159,.12), rgba(224,23,159,.02) 70%); box-shadow: inset 3px 0 0 #e0179f; }
+:root[data-theme="neon"]:where([data-mode="day"]) .row.playing .tt div:first-child { color: #005a6b; }
+:root[data-theme="neon"]:where([data-mode="day"]) .qrow.cur { background: linear-gradient(90deg, rgba(224,23,159,.12), transparent 80%); box-shadow: inset 3px 0 0 #e0179f; }
+:root[data-theme="neon"]:where([data-mode="day"]) .card .art::after { box-shadow: inset 0 0 0 2px #00a7bf, inset 0 0 14px rgba(0,180,204,.35); }
+:root[data-theme="neon"]:where([data-mode="day"]) .card .play { background: #22d3ee; color: #0c0626; }
+:root[data-theme="neon"]:where([data-mode="day"]) .card .play:hover { background: #67e8f9; }
+:root[data-theme="neon"]:where([data-mode="day"]) .card:hover .t1 { color: #006b7e; }
+:root[data-theme="neon"]:where([data-mode="day"]) .scroll-bubble { background: #22d3ee; color: #0c0626; }
+:root[data-theme="neon"]:where([data-mode="day"]) .hero .cover { filter: drop-shadow(0 0 1px rgba(0,150,180,.9)) drop-shadow(0 14px 24px rgba(60,40,140,.25)); }
+:root[data-theme="neon"]:where([data-mode="day"]) .hero:not(.artist) .cover::after { background:
+    linear-gradient(45deg, transparent 14.5px, #00a7bf 14.5px, #00a7bf 17px, transparent 17px) left bottom / 32px 32px no-repeat,
+    linear-gradient(225deg, transparent 14.5px, #d41aa6 14.5px, #d41aa6 17px, transparent 17px) right top / 32px 32px no-repeat,
+    var(--nx-scan); }
+:root[data-theme="neon"]:where([data-mode="day"]) .page-head h1::after { box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .page-head h1::before { border-color: #00a7bf; }
+:root[data-theme="neon"]:where([data-mode="day"]) .rail-head h2::before { background: linear-gradient(#e0179f, #e0179f) 0 0 / 4px 100% no-repeat, linear-gradient(#00a7bf, #00a7bf) 8px 0 / 4px 100% no-repeat; }
+:root[data-theme="neon"]:where([data-mode="day"]) .sect h2::before { color: #c0128f; }
+:root[data-theme="neon"]:where([data-mode="day"]) .msel-btn::before { background: #00a7bf; box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .msel-opt.on::before { background: #00a7bf; box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .menu button.is-selected { box-shadow: inset 3px 0 0 #00a7bf; }
+:root[data-theme="neon"]:where([data-mode="day"]) .eq i { box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .eq-handle.off { color: #ffffff; }
+:root[data-theme="neon"]:where([data-mode="day"]) #topbar.solid { border-bottom-color: rgba(0,150,180,.3); }
+/* 開關（日）：關的時候白底＋深紫框、深紫滑塊；開的時候亮青＋深色滑塊＋深青的細邊 */
+:root[data-theme="neon"]:where([data-mode="day"]) .switch { --nx-f: #ffffff; --nx-l: #6b5fa3; }
+:root[data-theme="neon"]:where([data-mode="day"]) .switch.on { --nx-f: #22d3ee; --nx-l: #22d3ee; filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.seg, .set-tabs, .chips, .rl-src) > :is(button, a).on,
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.seg, .set-tabs, .chips, .rl-src) > .glide-pill,
+:root[data-theme="neon"]:where([data-mode="day"]) .chip.on { filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
+:root[data-theme="neon"]:where([data-mode="day"]) .glide-run > :is(button, a).on { filter: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .drawer { box-shadow: -1px 0 10px rgba(0,180,204,.2), 0 30px 80px rgba(60,40,140,.2); }
+
+
+/* ───────────── 17 · 少一點動態 ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="neon"] .card .art::after { transition: none; }
+}
