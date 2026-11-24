@@ -600,7 +600,7 @@ async function saveTags(a) {
       for (const t of targets) {
         try {
           const withCover = coverFor(t);
-          if (withCover || edits.has(t.id)) { await TagWriter.write(t.path, edits.get(t.id) || {}, withCover ? cover : null, withCover && removeCover); written++; }
+          if (withCover || edits.has(t.id)) { await TagWriter.write(t.path, edits.get(t.id) || {}, withCover ? cover : null, withCover && removeCover, t); written++; }
         } catch (e) {
           const msg = e.code === 'EACCES' || e.code === 'EPERM' ? '沒有寫入權限' : e.code === 'EBUSY' ? '檔案正在被其他程式使用' : e.message;
           failed.push({ file: path.basename(t.path), error: msg });

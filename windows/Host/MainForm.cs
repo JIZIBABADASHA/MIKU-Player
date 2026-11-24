@@ -1220,7 +1220,7 @@ public sealed class MainForm : Form
                             bool withCover = CoverFor(t);
                             if (withCover || edits.ContainsKey(t.Id))   // (a track that is only renamed has nothing to write)
                             {
-                                WhenFree(() => TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover));
+                                WhenFree(() => TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover, t));
                                 written++;
                             }
                         }

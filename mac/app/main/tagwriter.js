@@ -1,6 +1,9 @@
 'use strict';
 // Writes tags into music files (tag editor 「編輯標籤」), the Mac counterpart of TagWriter (TagLib) in TagEditor.cs.
-// Only the fields that were changed are written; everything else in the file is kept as it was.
+// The fields that were changed are written; everything else in the file is kept as it was, except a field the file's
+// own tag has empty or garbled while MIKU shows it (read from RIFF INFO in a legacy code page, '?' restored, the
+// track number from the file name…): that one is written as MIKU shows it too, so other players (foobar2000) see the
+// same (repair()).
 //
 //   FLAC          Vorbis comments + PICTURE blocks (in place when the padding has room)
 //   MP3           ID3v2 at the start (the version found is kept; a new tag is v2.3)
@@ -30,6 +33,23 @@ const splitNames = v => [...new Set(clean(v).split(';').map(s => s.trim()).filte
 const num = v => { const n = parseInt(clean(v), 10); return Number.isFinite(n) && n > 0 ? n : 0; };
 /** "3/12" → [3, 12] */
 const pair = s => { const m = /^\s*(\d*)\s*(?:\/\s*(\d*))?/.exec(s || ''); return [m && m[1] ? +m[1] : 0, m && m[2] ? +m[2] : 0]; };
+
+/** A value other players can't read: empty, U+FFFD, or characters lost as '?' (two or more). */
+const unreadable = v => { const s = clean(Array.isArray(v) ? v.join('; ') : v); return !s || s.includes('\uFFFD') || (s.match(/\?/g) || []).length >= 2; };
+/**
+ * Adds to the changes `ch` the fields MIKU shows (`shown`: the library's track) that the file's own tag can't give
+ * (`current(field)`: its value there, '' when none) and the editor didn't change. Numbers: the track only (a disc 1 or
+ * a year MIKU made up is not written).
+ */
+function repair(ch, shown, current) {
+  if (!shown) return;
+  const text = { title: shown.title, artist: shown.artist, albumArtist: shown.albumArtist, album: shown.album, genre: shown.genre, composer: shown.composer };
+  for (const [k, v] of Object.entries(text)) {
+    if (k in ch || unreadable(v) || !unreadable(current(k))) continue;
+    ch[k] = Multi.has(k) ? splitNames(v) : clean(v);
+  }
+  if (!('track' in ch) && shown.trackNo > 0 && !(pair(current('track'))[0] > 0)) ch.track = shown.trackNo;
+}
 
 /** Normalised changes: text fields → string ('' clears), multi fields → array, numbers → int (0 clears). */
 function normalise(set) {
@@ -100,6 +120,11 @@ function renderVorbis(vc) {
 }
 const vkey = s => { const i = s.indexOf('='); return i < 0 ? s.toUpperCase() : s.slice(0, i).toUpperCase(); };
 const vval = s => { const i = s.indexOf('='); return i < 0 ? '' : s.slice(i + 1); };
+/** A field's value in a list of Vorbis comments (several joined with "; "). */
+function vorbisField(list, f) {
+  const keys = { title: ['TITLE'], artist: ['ARTIST'], albumArtist: ['ALBUMARTIST', 'ALBUM ARTIST', 'ALBUM_ARTIST'], album: ['ALBUM'], genre: ['GENRE'], composer: ['COMPOSER'], track: ['TRACKNUMBER'] }[f] || [];
+  return list.filter(s => keys.includes(vkey(s))).map(vval).join('; ');
+}
 
 /** Applies the changes to a list of "KEY=value" comments (and the cover, for Ogg). */
 function applyVorbis(list, ch, cover, removeCover, withPictures) {
@@ -139,7 +164,7 @@ function applyVorbis(list, ch, cover, removeCover, withPictures) {
 }
 
 // ───────────────────────────── FLAC ─────────────────────────────
-function writeFlac(file, ch, cover, removeCover) {
+function writeFlac(file, ch, cover, removeCover, shown) {
   const fd = fs.openSync(file, 'r');
   let start = 0, blocks = [], audio;
   try {
@@ -166,6 +191,7 @@ function writeFlac(file, ch, cover, removeCover) {
   // comments
   let vcBlock = blocks.find(b => b.type === 4);
   const vc = vcBlock ? parseVorbis(vcBlock.body) : { vendor: 'MIKU', list: [] };
+  repair(ch, shown, f => vorbisField(vc.list, f));
   applyVorbis(vc.list, ch, null, false, false);
   const vcBody = renderVorbis(vc);
   if (vcBlock) vcBlock.body = vcBody; else blocks.splice(1, 0, vcBlock = { type: 4, body: vcBody });
@@ -258,6 +284,14 @@ function apicType(f, major) {
   return z < 0 ? 3 : d[z + 1];
 }
 
+/** A field's value in a parsed ID3v2 tag ('' when none). */
+function id3Field(old, f) {
+  if (!old) return '';
+  const id = { title: 'TIT2', artist: 'TPE1', albumArtist: 'TPE2', album: 'TALB', genre: 'TCON', composer: 'TCOM', track: 'TRCK' }[f];
+  const fr = id && old.frames.find(x => x.id === id);
+  return fr ? frameText(fr, old.major) : '';
+}
+
 /** The tag after the changes, rendered (with `padding` bytes of padding). */
 function applyId3(old, ch, cover, removeCover, padding = 1024) {
   const major = old ? old.major : 3;
@@ -303,7 +337,7 @@ function applyId3(old, ch, cover, removeCover, padding = 1024) {
   return Buffer.concat([head, body, Buffer.alloc(padding)]);
 }
 
-function writeMp3(file, ch, cover, removeCover) {
+function writeMp3(file, ch, cover, removeCover, shown) {
   const fd = fs.openSync(file, 'r');
   let old = null, oldSize = 0;
   try {
@@ -316,6 +350,7 @@ function writeMp3(file, ch, cover, removeCover) {
       old = parseId3(buf); oldSize = size;
     }
   } finally { fs.closeSync(fd); }
+  repair(ch, shown, f => id3Field(old, f));
   const probe = applyId3(old, ch, cover, removeCover, 0);
   // fits where the old tag was: write it in place, padded to the same size
   if (old && probe.length <= oldSize && !(old.major === 4 && oldSize !== old.size)) {
@@ -458,7 +493,7 @@ function applyInfo(body, ch) {
   })]);
 }
 
-function writeRiffLike(file, ch, cover, removeCover) {
+function writeRiffLike(file, ch, cover, removeCover, shown) {
   const head = readRange(file, 0, 12);
   const form = head.toString('latin1', 0, 4);
   const big = form === 'FORM';
@@ -467,6 +502,8 @@ function writeRiffLike(file, ch, cover, removeCover) {
   const id3Chunk = r.chunks.find(c => c.id === 'id3 ' || c.id === 'ID3 ');
   let old = null;
   if (id3Chunk) old = parseId3(readRange(file, id3Chunk.pos + 8, id3Chunk.size));
+  // what other players read is the ID3 chunk (the INFO list is in a legacy code page or lost to '?')
+  repair(ch, shown, f => id3Field(old, f));
   const tag = applyId3(old, ch, cover, removeCover, 0);
   const pieces = [];
   const u32 = n => { const b = Buffer.alloc(4); if (big) b.writeUInt32BE(n); else b.writeUInt32LE(n); return b; };
@@ -831,17 +868,18 @@ async function rewrite(file, pieces) {
  * Writes one file. `set`: field → new value ('' clears). `cover`: { data, mime } to embed as the front cover, or
  * null to keep it; `removeCover` removes the front cover.
  */
-async function write(file, set, cover, removeCover) {
+/** shown: the library's track (MIKU's reading of the file), for repair(); optional. */
+async function write(file, set, cover, removeCover, shown) {
   if (!canWrite(file)) throw new Error('不支援寫入這種格式（' + path.extname(file) + '）');
   try { fs.accessSync(file, fs.constants.W_OK); } catch { try { fs.chmodSync(file, fs.statSync(file).mode | 0o200); } catch { throw new Error('沒有寫入權限'); } }
   const ch = normalise(set);
   if (!Object.keys(ch).length && !cover && !removeCover) return;
   switch (ext(file)) {
-    case '.flac': return writeFlac(file, ch, cover, removeCover);
-    case '.mp3': return writeMp3(file, ch, cover, removeCover);
+    case '.flac': return writeFlac(file, ch, cover, removeCover, shown);
+    case '.mp3': return writeMp3(file, ch, cover, removeCover, shown);
     case '.dsf': return writeDsf(file, ch, cover, removeCover);
     case '.dff': return writeDff(file, ch, cover, removeCover);
-    case '.wav': case '.aif': case '.aiff': case '.aifc': return writeRiffLike(file, ch, cover, removeCover);
+    case '.wav': case '.aif': case '.aiff': case '.aifc': return writeRiffLike(file, ch, cover, removeCover, shown);
     case '.m4a': case '.mp4': case '.aac': case '.alac': {
       const h = readRange(file, 0, 8);
       if (h.toString('latin1', 4, 8) !== 'ftyp') throw new Error('不支援寫入這種 AAC 檔案（ADTS）');
@@ -853,4 +891,4 @@ async function write(file, set, cover, removeCover) {
   throw new Error('不支援寫入這種格式');
 }
 
-module.exports = { Fields, canWrite, write, setVerifier, imageSize, _test: { parseId3, applyId3, parseVorbis, readPages, oggCrc, frameText } };
+module.exports = { Fields, canWrite, write, setVerifier, imageSize, _test: { parseId3, applyId3, parseVorbis, readPages, oggCrc, frameText, repair, id3Field, vorbisField } };

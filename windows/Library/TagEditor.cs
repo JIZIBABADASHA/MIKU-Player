@@ -52,9 +52,10 @@ public static class TagWriter
 
     /// <summary>
     /// Writes one file. <paramref name="set"/>: field → new value ("" clears it). <paramref name="cover"/>: the new
-    /// front cover, or null to keep it; <paramref name="removeCover"/> removes the front cover.
+    /// front cover, or null to keep it; <paramref name="removeCover"/> removes the front cover. <paramref name="shown"/>:
+    /// the library's track (MIKU's reading of the file), for <see cref="Repair"/>.
     /// </summary>
-    public static void Write(string path, IReadOnlyDictionary<string, string> set, (byte[] Data, string Mime)? cover, bool removeCover)
+    public static void Write(string path, IReadOnlyDictionary<string, string> set, (byte[] Data, string Mime)? cover, bool removeCover, Track shown = null)
     {
         if (!CanWrite(path)) throw new InvalidOperationException("不支援寫入這種格式（" + Path.GetExtension(path) + "）");
         var fi = new FileInfo(path);
@@ -62,25 +63,65 @@ public static class TagWriter
         if (Path.GetExtension(path).Equals(".dsf", StringComparison.OrdinalIgnoreCase)) { WriteDsf(path, set, cover, removeCover); return; }
         if (Path.GetExtension(path).Equals(".dff", StringComparison.OrdinalIgnoreCase)) { WriteDff(path, set, cover, removeCover); return; }
         using var file = TagLib.File.Create(path);
-        // make sure there is a tag that holds Unicode text (an MP3 with only ID3v1 would get '?' for CJK)
-        switch (file)
+        var onDisk = file.TagTypesOnDisk;
+        // the tag other players read first, made when missing so it holds Unicode text (an MP3 with only ID3v1 would
+        // get '?' for CJK; a WAV's RIFF INFO is read in the system's code page)
+        var main = file switch
         {
-            case TagLib.Mpeg.AudioFile:
-            case TagLib.Riff.File:
-            case TagLib.Aiff.File:
-                file.GetTag(TagLib.TagTypes.Id3v2, true);
-                break;
-            case TagLib.Flac.File:
-                file.GetTag(TagLib.TagTypes.Xiph, true);
-                break;
-            case TagLib.Ape.File:
-            case TagLib.WavPack.File:
-                file.GetTag(TagLib.TagTypes.Ape, true);
-                break;
+            TagLib.Mpeg.AudioFile or TagLib.Riff.File or TagLib.Aiff.File => TagLib.TagTypes.Id3v2,
+            TagLib.Flac.File => TagLib.TagTypes.Xiph,
+            TagLib.Ape.File or TagLib.WavPack.File => TagLib.TagTypes.Ape,
+            _ => TagLib.TagTypes.None,
+        };
+        if (main != TagLib.TagTypes.None)
+        {
+            var made = file.GetTag(main, true);
+            // a WAV / AIFF without an ID3 chunk gets the kind foobar2000 and Windows read best: ID3v2.3, no footer
+            if ((onDisk & main) == 0 && made is TagLib.Id3v2.Tag id3 && file is TagLib.Riff.File or TagLib.Aiff.File)
+            {
+                id3.Version = 3;
+                id3.Flags &= ~TagLib.Id3v2.HeaderFlags.FooterPresent;
+            }
         }
+        Repair(file.Tag, main != TagLib.TagTypes.None ? file.GetTag(main, false) : file.Tag, set, shown);
         Apply(file.Tag, set);
         if (cover != null || removeCover) SetCover(file.Tag, cover, removeCover);
+        // tags TagLib makes up when it reads a file are not added to it: an MP3's ID3v1 (Japanese becomes '?'), a
+        // WAV's RIFF INFO, DivX and MovieID chunks (with only the track count in them)
+        var madeUp = file.TagTypes & ~onDisk & ~main;
+        if (madeUp != TagLib.TagTypes.None) file.RemoveTags(madeUp);
+        // RIFF INFO: TagLib keeps its album in DIRC, but the album other programs read is IPRD (often an old one with
+        // its Japanese lost to '?')
+        if (file.GetTag(TagLib.TagTypes.RiffInfo, false) is TagLib.Riff.InfoTag info && !Unreadable(file.Tag.Album))
+            info.SetValue(TagLib.ByteVector.FromString("IPRD", TagLib.StringType.Latin1), file.Tag.Album);
         file.Save();
+    }
+
+    /// <summary>A value other players can't read: empty, U+FFFD, or characters lost as '?' (two or more).</summary>
+    static bool Unreadable(string s) => string.IsNullOrWhiteSpace(s) || s.Contains('\uFFFD') || s.Count(c => c == '?') >= 2;
+
+    /// <summary>
+    /// The editor sends only the fields that were changed, but MIKU shows the others as it reads them (TagReader: RIFF
+    /// INFO decoded in the system's code page, '?' restored, the album from IPRD, the track number from the file name).
+    /// A field the file's own tag (<paramref name="own"/>: the one other players read) has empty or garbled while MIKU
+    /// shows it readable is written as MIKU shows it: foobar2000 then sees what MIKU showed, instead of nothing or
+    /// garbled text. Numbers: the track only (a disc 1 or a year MIKU made up is not written).
+    /// </summary>
+    static void Repair(TagLib.Tag all, TagLib.Tag own, IReadOnlyDictionary<string, string> set, Track shown)
+    {
+        if (shown == null) return;
+        void Text(string key, string mine, string theirs, Action<string> write)
+        {
+            if (set.ContainsKey(key) || Unreadable(mine) || !Unreadable(theirs)) return;
+            write(mine.Trim());
+        }
+        Text("title", shown.Title, own?.Title, v => all.Title = v);
+        Text("artist", shown.Artist, own?.JoinedPerformers, v => all.Performers = Split(v));
+        Text("albumArtist", shown.AlbumArtist, own?.JoinedAlbumArtists, v => all.AlbumArtists = Split(v));
+        Text("album", shown.Album, own?.Album, v => all.Album = v);
+        Text("genre", shown.Genre, own?.JoinedGenres, v => all.Genres = Split(v));
+        Text("composer", shown.Composer, own?.JoinedComposers, v => all.Composers = Split(v));
+        if (!set.ContainsKey("track") && shown.TrackNo > 0 && (own?.Track ?? 0) == 0) all.Track = (uint)shown.TrackNo;
     }
 
     static string[] Split(string v) => (v ?? "").Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Distinct().ToArray();
