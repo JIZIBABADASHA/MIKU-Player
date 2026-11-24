@@ -717,6 +717,58 @@ Object.assign(I18N_DICT.ja, {
   "胡桃木音響櫃：溫暖的深棕、木框封面、黃銅旋鈕與撥動開關，襯線標題。": "ウォールナットのオーディオキャビネット：暖かいこげ茶、額縁に入ったジャケット、真鍮のつまみとトグルスイッチ、セリフ体の見出し。",
 });
 
+/* Theme names and picker families (黑金, 極簡平面 1 / 2, 暴發戶黃金), new picker descriptions for 黑金 and 暴發戶黃金. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "極簡平面 1": "极简平面 1",
+  "極簡平面 2": "极简平面 2",
+  "黑金": "黑金",
+  "暴發戶黃金": "暴发户黄金",
+  "經典": "经典",
+  "質感": "质感",
+  "個性": "个性",
+  "象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。": "象牙白的纸面配黑漆侧栏与播放栏，金色的装饰艺术放射扇形、双金线细框与菱形，选中的是黑底金字。",
+  "帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。": "带暖意的黑漆面板层层分明、象牙白的字，金色放射扇形、阶梯角饰与双金线细框，选中的是黑底金字。",
+  "金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。": "金光闪闪的香槟色宫殿：大马士革花纹壁纸、镀金画框、红丝绒播放栏挂着粗金链，按钮是镜面金牌，翡翠与红宝石点缀。",
+  "酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。": "酒红丝绒的夜：暗金花纹壁纸、镀金画框与水晶吊灯，镜面金牌按钮和粗金链，开关镶着红宝石与翡翠。",
+});
+Object.assign(I18N_DICT.en, {
+  "極簡平面 1": "Minimal 1",
+  "極簡平面 2": "Minimal 2",
+  "黑金": "Black Gold",
+  "暴發戶黃金": "Bling Gold",
+  "經典": "Classic",
+  "質感": "Textured",
+  "個性": "Bold",
+  "象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。": "Ivory paper with a black lacquer sidebar and player bar, gold Art Deco sunbursts, fine double gold rules and diamonds; selected items are gold on black.",
+  "帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。": "Warm black lacquer in clearly layered panels with ivory type, gold sunbursts, stepped corner ornaments and fine double gold rules; selected items are gold on black.",
+  "金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。": "A glittering champagne palace: damask wallpaper, gilded picture frames, a red velvet player bar hung with a chunky gold chain, mirror-gold plaque buttons, jade and ruby accents.",
+  "酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。": "Wine-red velvet after dark: dark gold damask, gilded frames and a crystal chandelier, mirror-gold plaque buttons and a chunky gold chain, switches set with rubies and jade.",
+});
+Object.assign(I18N_DICT.ja, {
+  "極簡平面 1": "ミニマル 1",
+  "極簡平面 2": "ミニマル 2",
+  "黑金": "ブラックゴールド",
+  "暴發戶黃金": "成金ゴールド",
+  "經典": "定番",
+  "質感": "質感",
+  "個性": "個性派",
+  "象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。": "アイボリーの紙に黒漆のサイドバーとプレーヤーバー、金のアール・デコの放射扇、細い二重の金線とひし形。選択中は黒地に金文字。",
+  "帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。": "ほんのり暖かい黒漆のパネルが層をなし、文字はアイボリー。金の放射扇、段状のコーナー飾り、細い二重の金線、選択中は黒地に金文字。",
+  "金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。": "きらきら輝くシャンパンゴールドの宮殿：ダマスク柄の壁紙、金縁の額、太い金の鎖を掛けた赤いベルベットの再生バー、鏡面仕上げの金のプレートボタン、翡翠とルビーのアクセント。",
+  "酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。": "ワインレッドのベルベットの夜：暗い金のダマスク柄、金縁の額とクリスタルのシャンデリア、鏡面仕上げの金のプレートボタンと太い金の鎖、ルビーと翡翠をはめたスイッチ。",
+});
+
+/* 極簡平面 2: new night description. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "瑞士海報風的夜版：藍圖般的深鈷藍紙、純白的大字，直角無陰影，訊號橘標出選中的地方。": "瑞士海报风的夜版：蓝图般的深钴蓝纸、纯白的大字，直角无阴影，信号橙标出选中的地方。",
+});
+Object.assign(I18N_DICT.en, {
+  "瑞士海報風的夜版：藍圖般的深鈷藍紙、純白的大字，直角無陰影，訊號橘標出選中的地方。": "Swiss poster style after dark: blueprint-deep cobalt paper, pure white type, square corners with no shadows, and signal orange marking what's selected.",
+});
+Object.assign(I18N_DICT.ja, {
+  "瑞士海報風的夜版：藍圖般的深鈷藍紙、純白的大字，直角無陰影，訊號橘標出選中的地方。": "スイスポスター風の夜版：青焼き図面のような深いコバルトの紙、真っ白な大きな文字、影のない直角、選択中はシグナルオレンジ。",
+});
+
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {
   '輸出模式': 'Output mode', 'Core Audio（共享）': 'Core Audio (shared)', 'Core Audio 獨佔': 'Core Audio exclusive',

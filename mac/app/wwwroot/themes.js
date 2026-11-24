@@ -12,8 +12,10 @@ const Theme = {
       desc: { day: T('淺橡木側板、亞麻白的房間；封面裝在木框裡，黃銅按鍵與撥動開關，襯線標題。'), night: T('胡桃木音響櫃：溫暖的深棕、木框封面、黃銅旋鈕與撥動開關，襯線標題。') } },
     { id: 'glass',    name: T('玻璃質感'), en: 'GLASS',    native: 'night',
       desc: { day: T('白色毛玻璃浮在粉彩晨光上，玻璃邊緣一道反光；深藍的字清楚好讀，背景隨專輯封面變色。'), night: T('懸浮的毛玻璃面板，邊緣一道亮光、層層分明；背景隨專輯封面流動變色。') } },
-    { id: 'flat',     name: T('極簡平面'), en: 'MINIMAL',  native: 'day',
-      desc: { day: T('瑞士海報風：白紙黑字、超大粗體標題、直角無陰影，只用一種鈷藍。'), night: T('瑞士海報風的夜版：石墨灰的底、亮白的大字，直角無陰影，一種鈷藍。') } },
+    { id: 'flat',     name: T('極簡平面 1'), en: 'MINIMAL 1', native: 'day',
+      desc: { day: T('亮色、無陰影、直角。黑白為主，只用一種鈷藍。'), night: T('近黑、無陰影、直角。白字為主，只用一種鈷藍。') } },
+    { id: 'flat2',    name: T('極簡平面 2'), en: 'MINIMAL 2', native: 'day',
+      desc: { day: T('瑞士海報風：白紙黑字、超大粗體標題、直角無陰影，只用一種鈷藍。'), night: T('瑞士海報風的夜版：藍圖般的深鈷藍紙、純白的大字，直角無陰影，訊號橘標出選中的地方。') } },
     { id: 'neon',     name: T('霓虹賽博'), en: 'NEON',     native: 'night',
       desc: { day: T('白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。'), night: T('深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。') } },
     { id: 'washi',    name: T('和紙'),     en: 'WASHI',    native: 'day',
@@ -28,8 +30,10 @@ const Theme = {
       desc: { day: T('漫畫風：粗黑框、硬陰影與網點，紅黃藍三原色。'), night: T('漫畫風的夜版：深灰底、奶油色粗框、硬陰影，正在播放整面黃色網點。') } },
     { id: 'poster',   name: T('復古海報'), en: 'POSTER',   native: 'day',
       desc: { day: T('三〇年代石版印刷海報：米色紙紋、朱紅與墨黑的斜切色塊、方框開關，粗體窄字標題。'), night: T('海報的夜版：深棕色的印刷紙面、朱紅色塊與米色大字，石版印刷的顆粒。') } },
-    { id: 'luka',     name: T('巡音'),     en: 'LUKA',     native: 'night',
-      desc: { day: T('象牙白的紙面配黑漆側欄與播放列，金色扇形與菱形裝飾，玫瑰粉的細長曲線。'), night: T('黑漆與金：帶青色調的石板灰、金色裝飾藝術線條與菱形拖曳鈕，兩側飄著玫瑰粉長髮曲線。') } },
+    { id: 'luka',     name: T('黑金'),     en: 'BLACK GOLD', native: 'night',
+      desc: { day: T('象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。'), night: T('帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。') } },
+    { id: 'gold',     name: T('暴發戶黃金'), en: 'BLING',   native: 'day',
+      desc: { day: T('金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。'), night: T('酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。') } },
   ],
   modes: [['day', T('日'), 'sun'], ['night', T('夜'), 'moon']],
   cur: null,
@@ -108,11 +112,18 @@ const Theme = {
     }
   },
 
+  /** The picker's families, in the order shown (two rows of small cards each); a theme not listed here goes in the last one. */
+  families: [
+    [T('經典'), ['miku', 'glass', 'flat', 'flat2']],
+    [T('質感'), ['wood', 'vinyl', 'washi', 'sakura']],
+    [T('個性'), ['neon', 'terminal', 'pop', 'poster', 'luka', 'gold']],
+  ],
+
   /** The settings section, when it is shown: the chosen card, the 日 / 夜 switch, the previews and the line under them. */
   paint() {
     const sect = document.querySelector('.sect.theme-sect');
     if (!sect) return;
-    sect.querySelectorAll('.tp').forEach(el => el.classList.toggle('on', el.dataset.id === this.cur));
+    sect.querySelectorAll('.tp').forEach(el => { const on = el.dataset.id === this.cur; el.classList.toggle('on', on); el.setAttribute('aria-pressed', on); });
     sect.querySelectorAll('.theme-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === this.mode));
     sect.querySelectorAll('.tp-screen').forEach(el => { el.dataset.mode = this.mode; });
     const t = this.list.find(t => t.id === this.cur), m = this.modes.find(m => m[0] === this.mode);
@@ -120,7 +131,7 @@ const Theme = {
     if (t && desc) { desc.textContent = ''; desc.append(h('b', null, t.name + '・' + m[1]), t.desc[this.mode]); }
   },
 
-  /** Settings page section: one card per theme, and 日 / 夜 as a switch of its own. */
+  /** Settings page section: the themes as small cards in a few families, and 日 / 夜 as a switch of its own. */
   section(root) {
     const mode = h('div', { class: 'seg theme-mode' });
     for (const [v, label, ic] of this.modes) {
@@ -132,21 +143,32 @@ const Theme = {
       h('div', { class: 'theme-head' },
         h('div', { class: 'tx' }, h('h2', null, T('外觀')), h('div', { class: 'hint' }, T('選擇主題，再選日或夜。切換後立即套用，並會記住你的選擇。'))),
         mode));
+    // each family: a label, then its cards in two rows (--n columns)
+    const rest = new Set(this.list.map(t => t.id));
+    const fams = this.families.map(([name, ids]) => [name, ids.filter(id => rest.delete(id))]);
+    fams[fams.length - 1][1].push(...rest);
     const grid = h('div', { class: 'theme-grid' });
-    for (const t of this.list) {
-      const card = h('button', { class: 'tp', 'data-id': t.id, title: t.name + ' · ' + t.en });
-      card.innerHTML = `
-        <div class="tp-screen" data-theme="${t.id}" data-mode="${this.mode}">
-          <div class="tp-side"><i class="logo"></i><i class="on"></i><i></i><i></i><i></i></div>
-          <div class="tp-main"><b></b><div class="tp-cards"><i></i><i></i><i></i></div></div>
-          <div class="tp-bar"><i class="art"></i><i class="heart"></i><span class="seek"></span><i class="play"></i></div>
-        </div>
-        <span class="chk">${icon('check')}</span>
-        <div class="tp-name"><b>${t.name}</b><small>${t.en}</small></div>`;
-      card.onclick = () => this.apply(t.id, this.mode);
-      grid.append(card);
+    for (const [name, ids] of fams) {
+      if (!ids.length) continue;
+      const tiles = h('div', { class: 'tp-tiles' });
+      for (const id of ids) {
+        const t = this.list.find(t => t.id === id);
+        const card = h('button', { class: 'tp', 'data-id': t.id, title: t.name + ' · ' + t.en });
+        card.innerHTML = `
+          <div class="tp-screen" data-theme="${t.id}" data-mode="${this.mode}">
+            <div class="tp-side"><i class="logo"></i><i class="on"></i><i></i><i></i><i></i></div>
+            <div class="tp-main"><b></b><div class="tp-cards"><i></i><i></i><i></i></div></div>
+            <div class="tp-bar"><i class="art"></i><i class="heart"></i><span class="seek"></span><i class="play"></i></div>
+          </div>
+          <span class="chk">${icon('check')}</span>
+          <span class="tp-name">${t.name}</span>`;
+        card.onclick = () => this.apply(t.id, this.mode);
+        tiles.append(card);
+      }
+      grid.append(h('div', { class: 'tp-fam', role: 'group', 'aria-label': name, style: `--n: ${Math.ceil(ids.length / 2)}` },
+        h('div', { class: 'tp-fam-h' }, name), tiles));
     }
-    sect.append(grid, h('div', { class: 'theme-desc' }));
+    sect.append(h('div', { class: 'theme-pick' }, grid), h('div', { class: 'theme-desc' }));
     root.append(sect);
     this.paint();
   },

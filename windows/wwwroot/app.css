@@ -2028,7 +2028,7 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .msel-menu::-webkit-scrollbar-thumb { background: rgba(var(--ink), .15); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
 :root[data-theme="miku"]:not([data-mode="night"]) .msel-btn { background: linear-gradient(180deg, #fff, #f6fbfb); }
 :root[data-theme="miku"]:not([data-mode="night"]) .msel-menu { background: rgba(255,255,255,.97); }
-:root[data-theme="flat"] .msel-btn, :root[data-theme="neon"] .msel-btn, :root[data-theme="flat"] .msel-menu, :root[data-theme="neon"] .msel-menu, :root[data-theme="flat"] .msel-opt, :root[data-theme="neon"] .msel-opt { border-radius: 2px; }
+:root[data-theme^="flat"] .msel-btn, :root[data-theme="neon"] .msel-btn, :root[data-theme^="flat"] .msel-menu, :root[data-theme="neon"] .msel-menu, :root[data-theme^="flat"] .msel-opt, :root[data-theme="neon"] .msel-opt { border-radius: 2px; }
 
 /* ===== Now Playing：先照原本彈出，彈完後下方播放列沉下去，頁面同時往下延伸填滿 ===== */
 #bar { transition: transform .45s var(--ease-out), opacity .35s; will-change: transform; }
@@ -2262,8 +2262,8 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 [data-theme="wood"][data-mode="day"] { --hit: rgba(196, 150, 70, .30); }
 [data-theme="glass"] { --hit: rgba(255, 143, 207, .34); }
 [data-theme="glass"][data-mode="day"] { --hit: rgba(232, 85, 158, .22); }
-[data-theme="flat"] { --hit: rgba(255, 221, 51, .62); }
-[data-theme="flat"][data-mode="night"] { --hit: rgba(255, 221, 51, .30); }
+[data-theme^="flat"] { --hit: rgba(255, 221, 51, .62); }
+[data-theme^="flat"][data-mode="night"] { --hit: rgba(255, 221, 51, .30); }
 [data-theme="neon"] { --hit: rgba(255, 43, 214, .38); }
 [data-theme="neon"][data-mode="day"] { --hit: rgba(240, 31, 196, .20); }
 [data-theme="washi"] { --hit: rgba(196, 67, 44, .20); }
@@ -2307,7 +2307,7 @@ mark.hit {
 .pl-drop.on { opacity: 1; }
 .pl-drop > div { display: grid; gap: 6px; justify-items: center; font-size: 18px; font-weight: 600; }
 .pl-drop small { font-size: 12px; font-weight: 500; color: var(--text-3); letter-spacing: .04em; }
-:root[data-theme="flat"] .pl-art { border-radius: 0; box-shadow: none; }
+:root[data-theme^="flat"] .pl-art { border-radius: 0; box-shadow: none; }
 /* a rail being dragged with the mouse (views.js attachRailNav): nothing under the pointer reacts until it is let go */
 .rail.dragging { cursor: grabbing; user-select: none; }
 .rail.dragging .card { pointer-events: none; }

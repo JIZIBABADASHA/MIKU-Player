@@ -77,9 +77,15 @@ const Vinyl = {
     if (PageEffects.reduced('album')) { this.placeImmediately(d); return; }
     d.state = 'flying';
     const t = d.rec.getBoundingClientRect();
-    const fly = this.fly = this.recordEl('vrec-fly');
-    Object.assign(fly.style, { left: t.left + 'px', top: t.top + 'px', width: t.width + 'px', height: t.height + 'px' });
-    document.body.append(fly);
+    // The record flies inside the album header, under its own sleeve: it leaves the list still partly inside the
+    // sleeve, and the sleeve flies too (Flip, z-index 60 while it flies, then the cover's own 3: themes.css). On top of
+    // the whole page (fixed on <body>) the part still in the sleeve jumped in front of it for the first frames. Above
+    // the title and the turntable (z-index 2; the header's other parts are 1), as before.
+    const hr = d.hero.getBoundingClientRect();
+    const fly = this.fly = this.recordEl('vrec-in');
+    Object.assign(fly.style, { position: 'absolute', zIndex: 2, animation: 'none', pointerEvents: 'none',
+      left: (t.left - hr.left) + 'px', top: (t.top - hr.top) + 'px', width: t.width + 'px', height: t.height + 'px' });
+    d.hero.insertBefore(fly, d.cover);
     const sc = s.width / t.width;
     const dx = (s.left + s.width / 2) - (t.left + t.width / 2), dy = (s.top + s.height / 2) - (t.top + t.height / 2);
     const lift = Math.min(140, 50 + Math.hypot(dx, dy) * .12);
