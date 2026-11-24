@@ -689,6 +689,20 @@ Object.assign(I18N_DICT.ja, {
   "夜櫻：帶紫的黃昏色、淡粉的花與燈籠暖黃的花心，字清楚明亮。": "夜桜：紫がかった夕暮れ色、淡いピンクの花と提灯のような暖かい黄色の花芯。文字ははっきり明るく。",
 });
 
+/* New picker descriptions: 終端機. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。": "绿条纹的报表纸、侧边送纸孔，方框和 [ 方括号 ] 按钮，选到的反白。",
+  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。": "带绿的灰色屏幕、磷光绿的等宽字，方框窗口、$ 提示符号与闪烁光标，选到的反白。",
+});
+Object.assign(I18N_DICT.en, {
+  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。": "Green-bar printer paper with tractor-feed holes, box frames and [ bracketed ] buttons; the selection is shown in reverse video.",
+  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。": "A green-grey screen with phosphor-green monospace text, boxed windows, $ prompts and a blinking cursor; the selection is shown in reverse video.",
+});
+Object.assign(I18N_DICT.ja, {
+  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。": "緑の縞のストックフォーム紙と送り穴、罫線の枠と [ 角括弧 ] のボタン。選択中は反転表示。",
+  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。": "緑がかったグレーの画面、蛍光グリーンの等幅文字、罫線のウィンドウ、$ プロンプトと点滅カーソル。選択中は反転表示。",
+});
+
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {
   '輸出模式': 'Output mode', 'Core Audio（共享）': 'Core Audio (shared)', 'Core Audio 獨佔': 'Core Audio exclusive',

@@ -4309,3 +4309,296 @@
 :root[data-theme="sakura"]:where([data-mode="night"]) .btn.primary { box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .slider .fill, :root[data-theme="sakura"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(90deg, #c77a9c, #ff9ec0); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .68) 60%, var(--bg)); }
+
+/* ═════════════════════════════ 終端機（terminal）· 文字介面（TUI） ═════════════════════════════
+   原本就有個性（等寬字、磷光綠），這一份把它做成真正的「文字介面」：
+   · 面板是方框：細框線，四個角是較亮的 ┌ ┐ └ ┘ 轉角；設定區塊的標題嵌在上框線上，像 [ 取樣率 ] 這樣的視窗標題。
+   · 提示符號：頁面標題前面是「$」、後面是一格會閃的方塊游標；側欄選到的項目前面是「>」；側欄分組前面是「#」。
+   · 按鈕不是圓角膠囊，而是左右兩個方括號 [ … ]；選中的（分段按鈕、分頁、開著的開關）一律反白：實心綠底、深色字。
+   · 開關像 [█   ]：關的時候是有外框的空格、左邊一塊暗色方塊；開的時候整格填滿綠色、深色方塊在右邊。
+   · 夜：不再是近乎全黑，而是帶綠的灰色螢幕（頁面 OKLab L≈0.26，面板 0.29），字更亮；掃描線和發光都很淡，不會糊字。
+   · 日：綠條紋的連續報表紙、側邊送紙孔，框線像印表機印出來的墨線。
+   · 正在播放：左上的收起鍵和右上的「歌詞不對？／翻譯／歌詞」都有實心底和框，任何封面上都看得清楚。
+   字體：英數用 Cascadia Mono／Consolas（Windows）、SF Mono／Menlo（Mac）；中文日文自動改用正黑體／蘋方／遊ゴシック／
+   ヒラギノ，等寬字沒有中文字也不會變成方塊或怪字。這一份就是整個主題的「個性」，要退回舊樣子時整份拿掉即可。 */
+
+
+/* ───────────── 1 · 色彩（夜，主題原本的版本） ─────────────
+   以前是 #050a07（幾乎全黑）；現在是帶綠的深灰綠螢幕：頁面 #1b2b21（OKLab L≈0.27），面板 #1f3127（L≈0.29）。
+   文字對面板：主文字 13.5:1、第二層 9.5:1、第三層 7:1。磷光綠 #5cf093 當文字和細線；反白的底用 #4fe387，上面放深綠字。
+   用 :not(day) 寫，才不會蓋掉後面日版的值。 */
+[data-theme="terminal"]:where(:not([data-mode="day"])) {
+  --bg: #1b2b21; --bg-rgb: 27, 43, 33; --bg-2: #18271e;
+  --surface: #1f3127; --surface-2: #273c30; --surface-3: #31493b;
+  --ink: 200, 255, 215; --line: rgba(150,255,185,.13); --line-2: rgba(150,255,185,.25);
+  --text: #f2fff5; --text-hi: #ffffff; --text-sub: #c9ecd2; --text-2: #b4e2bf; --text-3: #92c49e;
+  --teal: #5cf093; --teal-rgb: 92, 240, 147; --teal-2: #9dffbf; --teal-dim: rgba(92,240,147,.14);
+  --pink: #ffb000; --pink-dim: rgba(255,176,0,.14); --pink-line: rgba(255,176,0,.55); --pink-text: #ffc94d;
+  --amber: #ffb000; --on-accent: #062011;
+  --play-bg: transparent; --play-ink: #5cf093; --knob: #eefff2; --knob-off: #b4e2bf;
+  --bar-bg: #142119; --pop-bg: #213429; --drawer-bg: #1c2d23; --toast-bg: #24382c; --modal-bg: #1d2f24;
+  --tip-bg: #062011; --tip-ink: #c9ffd9;
+  --shadow-rgb: 4, 12, 7; --sh: .9;
+  --np-base: #13201a; --np-ink: 225, 255, 233; --np-pill-ink: #062011; --np-dim: .3;
+  --brand-ink: #f2fff5; --brand-track: #31493b;
+  --hero-dim: .45; --hero-op: .5;
+  --tm-fill: #4fe387;                          /* 反白（選中）的底 */
+  --tm-frame: rgba(150,255,185,.3);            /* 面板的框線 */
+  --tm-corner: #5cf093;                        /* 框的四個轉角、方括號 */
+  --tm-brk-c: rgba(150,255,185,.62);           /* 按鈕的方括號 */
+  --tm-glow: 0 0 5px rgba(92,240,147,.28);     /* 標題的磷光：很淡，只是一層光暈，不會糊字 */
+  --tm-glow-box: 0 0 8px rgba(92,240,147,.2);
+  --tm-scan: repeating-linear-gradient(0deg, rgba(0,0,0,.08) 0 1px, transparent 1px 3px);
+  --app-bg: var(--tm-scan), radial-gradient(130% 100% at 55% 35%, #1e2f25, #1a2920 85%);
+  --sidebar-bg: var(--tm-scan), #18271e;
+  --np-calm: rgba(19,32,25,.62);
+}
+
+
+/* ───────────── 2 · 色彩（日） ─────────────
+   綠條紋報表紙：頁面是米白，面板純白；第二層字 7.5:1、第三層 5.9:1（原本 3.8:1 太淡）。
+   開關關著的方塊改成深色（原本是白色方塊放在白底上，看不見）。 */
+[data-theme="terminal"]:where([data-mode="day"]) {
+  --bg: #f7f8f1; --bg-rgb: 247, 248, 241; --bg-2: #f1f4ea;
+  --surface: #ffffff; --surface-2: #eef2e6; --surface-3: #dde5d2;
+  --ink: 24, 46, 30; --line: rgba(24,70,40,.13); --line-2: rgba(24,70,40,.26);
+  --text: #18261b; --text-hi: #0a140d; --text-sub: #33463a; --text-2: #3f5545; --text-3: #56695a;
+  --teal: #1f7a3a; --teal-rgb: 31, 122, 58; --teal-2: #155c2a; --teal-dim: rgba(31,122,58,.12);
+  --on-accent: #fbfbf6;
+  --knob: #18261b; --knob-off: #3f5545;
+  --tip-bg: #18261b; --tip-ink: #f7f8f1;
+  --brand-ink: #18261b;
+  --tm-fill: #1b6f34;
+  --tm-frame: rgba(24,70,40,.4);
+  --tm-corner: #1f7a3a;
+  --tm-brk-c: rgba(24,70,40,.7);
+  --app-bg: #f7f8f1;
+  --np-calm: rgba(251,251,246,.86);
+}
+
+
+/* ───────────── 3 · 字體 ─────────────
+   英數是等寬字；等寬字沒有中文字，所以後面接中文、日文的黑體，中日文字一樣清楚。 */
+[data-theme="terminal"] {
+  --font: "Cascadia Mono", Consolas, ui-monospace, "SF Mono", Menlo, "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC",
+          "Yu Gothic UI", "Hiragino Sans", "Noto Sans CJK TC", monospace;
+  --font-display: var(--font);
+  --mono: var(--font);
+}
+/* 側欄分組的「#」：用不斷行空白，原本的「> 」在彈性排版裡空白被吃掉，變成「>音樂庫」 */
+:root[data-theme="terminal"] .nav-label::before { content: "#\00a0"; color: var(--teal); font-weight: 700; }
+
+
+/* ───────────── 4 · 方框：設定區塊、DSP 卡片、抽屜、選單、對話框 ─────────────
+   細框線＋四個較亮的轉角（┌ ┐ └ ┘），轉角畫在一層不擋滑鼠的 ::before 上。面板一律是實心底，字不會壓在掃描線上。 */
+:root[data-theme="terminal"] :is(.sect, .dsp-card, .drawer, .modal, .pop, .msel-menu) {
+  --tm-k: 12px;   /* 轉角的長度 */
+  --tm-corners:
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left top / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left top / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right top / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right top / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left bottom / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left bottom / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / 2px var(--tm-k) no-repeat;
+}
+:root[data-theme="terminal"] .sect { position: relative; overflow: visible; margin-top: 34px; background: var(--surface); border: 1px solid var(--tm-frame); box-shadow: none; }
+:root[data-theme="terminal"] .sect::before { content: ""; position: absolute; inset: -1px; z-index: 2; pointer-events: none; background: var(--tm-corners); }
+:root[data-theme="terminal"] .dsp-card { position: relative; background: var(--surface); border: 1px solid var(--tm-frame); }
+:root[data-theme="terminal"] .dsp-card::before { content: ""; position: absolute; inset: -1px; z-index: 3; pointer-events: none; background: var(--tm-corners); }
+:root[data-theme="terminal"] :is(.drawer, .modal) { border: 1px solid var(--tm-frame); background: var(--tm-corners), var(--drawer-bg); box-shadow: 0 24px 60px rgba(var(--shadow-rgb), .5); backdrop-filter: none; }
+:root[data-theme="terminal"] .modal { background: var(--tm-corners), var(--modal-bg); }
+:root[data-theme="terminal"] :is(.pop, .msel-menu) { --tm-k: 9px; border: 1px solid var(--tm-frame); background: var(--tm-corners), var(--pop-bg); backdrop-filter: none; box-shadow: 0 16px 40px rgba(var(--shadow-rgb), .45); }
+
+/* 設定區塊的標題嵌在上框線上：「[ 取樣率 ]」，實心底把框線斷開，像文字介面的視窗標題 */
+:root[data-theme="terminal"] .sect > h2,
+:root[data-theme="terminal"] .sect .theme-head h2 {
+  display: table; position: relative; z-index: 3; margin: -12px 0 8px 14px; padding: 0 6px; line-height: 22px;
+  font-size: 15px; font-weight: 700; letter-spacing: .02em; background: var(--surface); color: var(--text-hi);
+}
+:root[data-theme="terminal"] .sect > h2::before,
+:root[data-theme="terminal"] .sect .theme-head h2::before { content: "[\00a0"; color: var(--teal); font-weight: 700; }
+:root[data-theme="terminal"] .sect > h2::after,
+:root[data-theme="terminal"] .sect .theme-head h2::after { content: "\00a0]"; color: var(--teal); font-weight: 700; }
+:root[data-theme="terminal"] .sect > h2 + .hint { padding-top: 0; }
+:root[data-theme="terminal"] .sect .theme-head { padding-top: 12px; }
+:root[data-theme="terminal"] .sect .theme-head h2 { margin: -24px 0 8px -8px; }
+:root[data-theme="terminal"] .tp { border-radius: 0; }
+
+
+/* ───────────── 5 · 標題與提示符號 ─────────────
+   頁面標題：「$ 專輯█」，方塊游標慢慢閃（減少動態時不閃）；首頁的列標題前面也是「$」。
+   磷光只留一層很淡的光暈。 */
+:root[data-theme="terminal"] .page-head h1, :root[data-theme="terminal"] .hero h1, :root[data-theme="terminal"] .np-title { text-shadow: var(--tm-glow); }
+/* 「$」掛在標題左邊的留白裡，不佔標題的寬度（工具列很長的頁面，標題才不會被擠到換行） */
+:root[data-theme="terminal"] .page-head h1 { position: relative; }
+:root[data-theme="terminal"] .page-head h1::before { content: "$"; position: absolute; right: 100%; bottom: .12em; margin-right: .3em; font-size: .72em; line-height: 1; color: var(--teal); font-weight: 700; text-shadow: none; }
+:root[data-theme="terminal"] .page-head h1::after { animation: tm-blink 1.1s step-end infinite; }
+@keyframes tm-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0; } }
+:root[data-theme="terminal"] .rail-head h2::before { content: "$\00a0"; color: var(--teal); }
+:root[data-theme="terminal"] .drawer-head h2::before, :root[data-theme="terminal"] .modal-head h2::before { content: "$\00a0"; color: var(--teal); }
+
+
+/* ───────────── 6 · 按鈕：方括號 [ … ] ─────────────
+   一般按鈕沒有圓角外框，只有左右兩個方括號（畫在背景上，不佔位置、不改字）；滑過時填一層淡綠。
+   主要按鈕（播放、套用）是反白：實心綠底、深色字。 */
+:root[data-theme="terminal"] :is(.btn, .round-btn, .out-btn, .sig, .pill, .chip, .rail-btn, .search, .set-tabs, .seg) {
+  --tm-b: var(--tm-brk-c);
+  --tm-brk:
+    linear-gradient(var(--tm-b), var(--tm-b)) left top / 2px 100% no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) left top / 7px 2px no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) left bottom / 7px 2px no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) right top / 2px 100% no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) right top / 7px 2px no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) right bottom / 7px 2px no-repeat;
+}
+:root[data-theme="terminal"] :is(.btn:not(.primary), .round-btn, .out-btn, .sig, .chip:not(.on), .rail-btn) { background: var(--tm-brk); border-color: transparent; box-shadow: none; }
+:root[data-theme="terminal"] :is(.btn:not(.primary), .round-btn, .out-btn, .sig, .chip:not(.on), .rail-btn):hover { --tm-b: var(--teal); background: var(--tm-brk), rgba(var(--teal-rgb), .12); color: var(--text-hi); }
+:root[data-theme="terminal"] .btn.primary, :root[data-theme="terminal"] .btn.primary:hover { background: var(--tm-fill); border-color: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .btn.bp-apply { background: var(--tm-brk), rgba(var(--teal-rgb), .1); box-shadow: none; }
+:root[data-theme="terminal"] .chip.on { background: var(--tm-fill); border-color: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .round-btn:disabled { opacity: .4; }
+/* 搜尋框：實心底、細框，焦點時框變亮綠 */
+:root[data-theme="terminal"] .search { background: var(--surface); border: 1px solid var(--tm-frame); }
+:root[data-theme="terminal"] .search:focus-within { background: var(--surface); border-color: var(--teal); box-shadow: none; }
+:root[data-theme="terminal"] .search kbd { border-radius: 0; border-color: var(--tm-frame); color: var(--text-2); }
+/* 文字輸入框：方形、實心底、細框 */
+:root[data-theme="terminal"] :is(input.inp, select.sel) { border-radius: 0; background-color: var(--surface-2); border-color: var(--tm-frame); color: var(--text); }
+:root[data-theme="terminal"] :is(input.inp, select.sel):focus { border-color: var(--teal); }
+/* 下拉選單按鈕：方形、細框，前面的點改成方塊 */
+:root[data-theme="terminal"] .msel-btn { border-radius: 0; background: var(--surface-2); border-color: var(--tm-frame); box-shadow: none; }
+:root[data-theme="terminal"] .msel-btn::before { border-radius: 0; width: 6px; height: 10px; box-shadow: none; }
+:root[data-theme="terminal"] .msel-chev { border-radius: 0; }
+:root[data-theme="terminal"] .msel-opt { border-radius: 0; }
+:root[data-theme="terminal"] .msel-opt.on { background: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .msel-opt.on::before { display: none; }
+:root[data-theme="terminal"] .msel-opt.on .msel-ck { background: var(--on-accent); color: var(--tm-fill); border-radius: 0; }
+/* 右鍵選單：滑過的那一行反白 */
+:root[data-theme="terminal"] .menu button { border-radius: 0; }
+:root[data-theme="terminal"] .menu button:hover { background: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .menu button:hover svg.i { color: var(--on-accent); }
+:root[data-theme="terminal"] .menu hr { border-top: 1px dashed var(--line-2); }
+
+
+/* ───────────── 7 · 分段按鈕、設定分頁 ─────────────
+   整組是一個 [ … ] 欄位，選中的那一格反白。 */
+:root[data-theme="terminal"] .seg { background: var(--tm-brk), var(--surface); box-shadow: none; }
+:root[data-theme="terminal"] .seg button { color: var(--text-2); }
+:root[data-theme="terminal"] .seg button:hover { color: var(--text-hi); }
+:root[data-theme="terminal"] .seg button.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .set-tabs { background: var(--tm-brk), var(--surface); box-shadow: none; padding: 4px 6px; }
+:root[data-theme="terminal"] .set-tabs button { color: var(--text-2); }
+:root[data-theme="terminal"] .set-tabs button:hover { color: var(--text-hi); }
+
+
+/* ───────────── 8 · 開關：[█   ] ─────────────
+   關：有外框的空格（外框是第三層字的顏色，看得見），左邊一塊暗色方塊。
+   開：整格填滿綠色，深色方塊在右邊。大小和原本一樣。 */
+:root[data-theme="terminal"] .switch { border-radius: 0; background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--text-3); }
+:root[data-theme="terminal"] .switch::after { border-radius: 0; left: 4px; top: 4px; width: 14px; height: 16px; background: var(--knob-off); box-shadow: none; }
+:root[data-theme="terminal"] .switch.on { background: var(--tm-fill); box-shadow: inset 0 0 0 1.5px var(--tm-fill); }
+:root[data-theme="terminal"] .switch.on::after { transform: translateX(20px); background: var(--on-accent); }
+:root[data-theme="terminal"]:where([data-mode="day"]) .switch { background: #ffffff; }
+
+
+/* ───────────── 9 · 側欄 ─────────────
+   選到的項目反白，前面多一個「>」（畫在滑動的反白條上，不推動文字）。 */
+:root[data-theme="terminal"] #sidebar { border-right: 1px solid var(--line-2); }
+:root[data-theme="terminal"] .nav-pill { background: var(--tm-fill); }
+:root[data-theme="terminal"] .nav-pill::before {
+  display: block; content: ">"; position: absolute; left: 4px; top: 0; bottom: 0; width: auto; height: auto; border-radius: 0;
+  background: none; box-shadow: none; color: var(--on-accent); font: 700 13px/38px var(--font);
+}
+/* 為了「>」，所有項目的圖示和字一起往右挪 5px（每一項都一樣，選到時字不會動）；側欄收成圖示時不挪 */
+@media (min-width: 1181px) { :root[data-theme="terminal"] .nav a { padding-left: 17px; } }
+:root[data-theme="terminal"] .nav-edit { opacity: .85; border-radius: 0; }
+:root[data-theme="terminal"] .nav a:hover:not(.on) { background: rgba(var(--teal-rgb), .1); color: var(--text-hi); }
+:root[data-theme="terminal"] .nav a .count { color: var(--text-3); }
+:root[data-theme="terminal"] .nav a.on .count { color: var(--on-accent); }
+
+
+/* ───────────── 10 · 卡片與列表 ─────────────
+   專輯封面：細框；滑過時不浮起，四角出現亮綠的轉角，像被游標框選。 */
+:root[data-theme="terminal"] .card:hover .art { transform: none; box-shadow: 0 0 0 1px var(--teal); }
+:root[data-theme="terminal"] .card::before {
+  content: ""; position: absolute; left: -4px; right: -4px; top: -4px; aspect-ratio: 1; z-index: 3; pointer-events: none; opacity: 0;
+  --tm-c: var(--teal);
+  background:
+    linear-gradient(var(--tm-c), var(--tm-c)) left top / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) left top / 2px 14px no-repeat,
+    linear-gradient(var(--tm-c), var(--tm-c)) right top / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) right top / 2px 14px no-repeat,
+    linear-gradient(var(--tm-c), var(--tm-c)) left bottom / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) left bottom / 2px 14px no-repeat,
+    linear-gradient(var(--tm-c), var(--tm-c)) right bottom / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) right bottom / 2px 14px no-repeat;
+}
+:root[data-theme="terminal"] .card:hover::before { opacity: 1; }
+:root[data-theme="terminal"] .card.artist::before { display: none; }
+:root[data-theme="terminal"] .card .t2 { color: var(--text-2); }
+:root[data-theme="terminal"] .row .tt .a { color: var(--text-2); }
+:root[data-theme="terminal"] .thead { border-bottom: 1px dashed var(--line-2); color: var(--text-2); }
+:root[data-theme="terminal"] .row.playing { background: rgba(var(--teal-rgb), .13); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="terminal"] .row.playing .tt div:first-child, :root[data-theme="terminal"] .qrow.cur .t { color: var(--teal); text-shadow: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]) .row.playing .tt div:first-child, :root[data-theme="terminal"]:where([data-mode="day"]) .qrow.cur .t { color: var(--teal-2); }
+/* 播放佇列裡已經播過的歌：淡一點就好，字還是讀得到 */
+:root[data-theme="terminal"] .qrow.past { opacity: .72; }
+:root[data-theme="terminal"]:where([data-mode="day"]) .qrow.past { opacity: .85; }
+:root[data-theme="terminal"] .qrow:hover { background: rgba(var(--teal-rgb), .1); }
+:root[data-theme="terminal"] .badge { box-shadow: inset 0 0 0 1px var(--tm-frame); color: var(--text-2); }
+/* 設定頁的滑桿（原生 range）：方形的滑塊 */
+:root[data-theme="terminal"] .range { border-radius: 0; background: rgba(var(--teal-rgb), .2); }
+:root[data-theme="terminal"] .range::-webkit-slider-thumb { border-radius: 0; width: 8px; height: 16px; background: var(--teal); box-shadow: none; }
+
+
+/* ───────────── 11 · 播放列：狀態列 ─────────────
+   上緣是雙線（═），像文字介面最下面的狀態列。播放鍵是方框。 */
+:root[data-theme="terminal"] #bar { border-top: 1px solid var(--tm-frame); background: linear-gradient(var(--tm-frame), var(--tm-frame)) left 0 top 2px / 100% 1px no-repeat, var(--bar-bg); }
+:root[data-theme="terminal"] .playbtn { box-shadow: inset 0 0 0 2px var(--teal); }
+:root[data-theme="terminal"] .sig, :root[data-theme="terminal"] .out-btn { color: var(--text-2); }
+
+
+/* ───────────── 12 · 正在播放 ─────────────
+   夜：封面變成磷光綠的單色螢幕，比以前亮一點（不再是黑的），掃描線更淡。
+   日：去色的封面印在報表紙上，兩邊的送紙孔留著；綠色條紋拿掉，不再橫過標題、進度條和按鈕。
+   四個角落的按鈕：實心底＋框，收起鍵是方框，三個小按鈕是 [ … ]；開著的是反白。 */
+[data-theme="terminal"]:where(:not([data-mode="day"])) {
+  --np-filter: blur(36px) grayscale(1) sepia(1) hue-rotate(72deg) saturate(1.9) brightness(.52) contrast(1.05);
+  --np-veil: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 3px), radial-gradient(115% 95% at 50% 46%, rgba(27,43,33,.4), rgba(22,36,28,.8));
+}
+[data-theme="terminal"]:where([data-mode="day"]) {
+  --np-veil: radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) left 0 top 9px / 22px 34px repeat-y,
+             radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) right 0 top 9px / 22px 34px repeat-y,
+             linear-gradient(rgba(251,251,246,.8), rgba(251,251,246,.88));
+}
+:root[data-theme="terminal"] .np-top .icon-btn,
+:root[data-theme="terminal"] .np-top .pill {
+  --tm-b: rgba(var(--np-ink), .75);
+  background: var(--tm-brk), rgba(var(--np-btn), .94); color: rgb(var(--np-ink)); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .32);
+}
+:root[data-theme="terminal"] .np-top .icon-btn { --np-btn: 22, 36, 28; border-radius: 0; background: rgba(var(--np-btn), .94); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .55); }
+:root[data-theme="terminal"] .np-top .pill { --np-btn: 22, 36, 28; }
+:root[data-theme="terminal"] .np-top :is(.icon-btn, .pill):hover { background: var(--tm-brk), rgba(var(--teal-rgb), .3); }
+:root[data-theme="terminal"] .np-top .icon-btn:hover { background: rgba(var(--teal-rgb), .3); }
+:root[data-theme="terminal"] .np-top .pill.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: inset 0 0 0 1px var(--tm-fill); }
+:root[data-theme="terminal"] .np-top .src { color: rgba(var(--np-ink), .8); background: rgba(var(--np-btn, 22, 36, 28), .8); padding: 3px 6px; }
+:root[data-theme="terminal"] .np-top .src:empty { display: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]) .np-top :is(.icon-btn, .pill, .src) { --np-btn: 255, 255, 255; }
+:root[data-theme="terminal"] .np-badges .badge { background: rgba(var(--np-ink), .06); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .4); color: rgb(var(--np-ink)); }
+:root[data-theme="terminal"] .np-seek .times { color: rgba(var(--np-ink), .78); }
+:root[data-theme="terminal"] .np-artist { color: rgba(var(--np-ink), .82); }
+:root[data-theme="terminal"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .88); border-radius: 0; }
+:root[data-theme="terminal"] .ly-line { border-radius: 0; }
+:root[data-theme="terminal"] .ly-line.on { text-shadow: var(--tm-glow); }
+/* 沒在唱的歌詞行淡一點就好（.72），翻譯行也看得清楚 */
+:root[data-theme="terminal"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .72; }
+:root[data-theme="terminal"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
+:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
+  background: radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) right 0 top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
+              linear-gradient(90deg, transparent 40%, var(--np-calm) 50%);
+}
+
+
+/* ───────────── 13 · 減少動態 ─────────────
+   系統設定「減少動態」或 App 的輕量化頁面打開時，游標不閃。 */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="terminal"] .page-head h1::after { animation: none; }
+}
+:root[data-theme="terminal"].lite-page .page-head h1::after { animation: none; }

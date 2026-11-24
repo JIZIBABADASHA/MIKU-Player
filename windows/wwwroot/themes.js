@@ -24,7 +24,7 @@ const Theme = {
     { id: 'sakura',   name: T('櫻花'),     en: 'SAKURA',   native: 'day',
       desc: { day: T('春天的櫻花：櫻花白的底、花瓣形的圓角，選中的地方別著一朵小櫻花，嫩葉綠點綴。'), night: T('夜櫻：帶紫的黃昏色、淡粉的花與燈籠暖黃的花心，字清楚明亮。') } },
     { id: 'terminal', name: T('終端機'),   en: 'TERMINAL', native: 'night',
-      desc: { day: T('綠條紋的打孔報表紙、側邊送紙孔、等寬字，色帶紅點綴。'), night: T('黑底 CRT 螢幕、磷光綠的等寬字，選到的項目反白。') } },
+      desc: { day: T('綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。'), night: T('帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。') } },
     { id: 'pop',      name: T('普普'),     en: 'POP',      native: 'day',
       desc: { day: T('漫畫風：粗黑框、硬陰影與網點，紅黃藍三原色。'), night: T('漫畫風的夜版：深灰底、奶油色粗框、硬陰影，正在播放整面黃色網點。') } },
     { id: 'poster',   name: T('復古海報'), en: 'POSTER',   native: 'day',
