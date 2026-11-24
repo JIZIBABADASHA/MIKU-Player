@@ -2290,3 +2290,6 @@ mark.hit {
 .pl-tracks .row.pl-drag { opacity: .45; }
 .pl-tracks .row.pl-over { box-shadow: inset 0 2px 0 var(--teal); }
 :root[data-theme="flat"] .pl-art { border-radius: 0; box-shadow: none; }
+/* a rail being dragged with the mouse (views.js attachRailNav): nothing under the pointer reacts until it is let go */
+.rail.dragging { cursor: grabbing; user-select: none; }
+.rail.dragging .card { pointer-events: none; }
