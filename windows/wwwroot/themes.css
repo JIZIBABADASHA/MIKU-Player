@@ -192,7 +192,8 @@
 
 /* 內容區：右上角鋼琴捲軸，像夜空中的音符 */
 :root[data-theme="night"] #main { isolation: isolate; }
-:root[data-theme="night"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: min(760px, 66%); height: 230px; z-index: -1; pointer-events: none; opacity: .7; background: var(--roll-n) right top / 760px 448px no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 20%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); -webkit-mask-composite: source-in; mask-image: linear-gradient(180deg, #000 20%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); mask-composite: intersect; }
+/* the piano roll stays in the top bar's band: lower down its notes sat behind the page tools (sort / per-row controls) and read as stray boxes */
+:root[data-theme="night"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: min(760px, 66%); height: 80px; z-index: -1; pointer-events: none; opacity: .7; background: var(--roll-n) right top / 760px 448px no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 25%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); -webkit-mask-composite: source-in; mask-image: linear-gradient(180deg, #000 25%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); mask-composite: intersect; }
 :root[data-theme="night"] #topbar.solid { background: rgba(11,22,25,.84); }
 :root[data-theme="night"] .search { background: rgba(255,255,255,.045); border: 1px solid rgba(160,230,230,.10); }
 :root[data-theme="night"] .search:focus-within { border-color: rgba(57,197,187,.7); box-shadow: 0 0 0 3px rgba(57,197,187,.14), 0 0 18px rgba(57,197,187,.18); }
