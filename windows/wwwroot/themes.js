@@ -27,8 +27,6 @@ const Theme = {
       desc: { day: T('綠條紋的打孔報表紙、側邊送紙孔、等寬字，色帶紅點綴。'), night: T('黑底 CRT 螢幕、磷光綠的等寬字，選到的項目反白。') } },
     { id: 'pop',      name: T('普普'),     en: 'POP',      native: 'day',
       desc: { day: T('漫畫風：粗黑框、硬陰影與網點，紅黃藍三原色。'), night: T('漫畫風的夜版：墨黑底、奶油色粗框、硬陰影與暗色網點。') } },
-    { id: 'velvet',   name: T('絲絨'),     en: 'VELVET',   native: 'night',
-      desc: { day: T('白天的劇院大廳：香檳白的牆、酒紅絲絨布幕側欄與金色細線。'), night: T('爵士俱樂部：酒紅絲絨布幕、香檳金細線與裝飾藝術花紋。') } },
   ],
   modes: [['day', T('日'), 'sun'], ['night', T('夜'), 'moon']],
   cur: null,
@@ -60,11 +58,11 @@ const Theme = {
   apply(id, mode) {
     [id, mode] = this.resolve(id || this.cur, mode || this.mode);
     if (id === this.cur && mode === this.mode) return;
-    const run = () => this.set(id, mode);
+    // the cards and the 日 / 夜 switch change together with the page: a view transition runs this a frame later
+    const run = () => { this.set(id, mode); this.paint(); };
     if (document.startViewTransition && !PageEffects.reduced('page') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
     else run();
     try { if (typeof App !== 'undefined' && App.settings) { setUiPref('theme', id); setUiPref('themeMode', mode); } } catch (e) { }
-    this.paint();
   },
 
   /** Early boot: last theme from local cache (avoids a flash), then the saved setting once the host is ready. */

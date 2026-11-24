@@ -2276,8 +2276,6 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 [data-theme="terminal"][data-mode="day"] { --hit: rgba(31, 122, 58, .18); }
 [data-theme="pop"] { --hit: rgba(255, 210, 63, .78); }
 [data-theme="pop"][data-mode="night"] { --hit: rgba(255, 210, 63, .34); }
-[data-theme="velvet"] { --hit: rgba(212, 175, 106, .30); }
-[data-theme="velvet"][data-mode="day"] { --hit: rgba(142, 31, 58, .16); }
 mark.hit {
   color: inherit; font-weight: 700; border-radius: 2px;
   background: linear-gradient(100deg, transparent .05em, var(--hit) .12em, var(--hit) calc(100% - .12em), transparent calc(100% - .05em)) 0 88% / 100% 62% no-repeat;

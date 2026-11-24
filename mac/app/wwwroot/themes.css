@@ -382,8 +382,6 @@
 :root[data-theme="wood"] .row .tt .a { font-weight: 400; color: var(--text-2); }
 :root[data-theme="wood"] .row:hover .tt div:first-child { color: var(--text-hi); }
 :root[data-theme="wood"] .hero h1, :root[data-theme="wood"] .page-head h1 { color: var(--text); }
-/* 白天：正在播放的封面陰影改成淡淡的木色，不是黑色的光暈 */
-:root[data-theme="wood"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(60,42,24,.08), 0 30px 60px -12px rgba(70,48,24,.38); }
 
 
 /* ───────────────────── 3 · 玻璃質感（毛玻璃 · 環境光） ───────────────────── */
@@ -425,7 +423,7 @@
   --shadow-rgb: 60, 70, 130; --sh: .45;
   --tip-bg: rgba(255,255,255,.96); --tip-ink: #1c2444;
   --np-base: #e8ecf8; --np-ink: 22, 28, 60; --np-pill-ink: #ffffff; --np-dim: 1.1;
-  --np-veil: radial-gradient(120% 90% at 30% 40%, rgba(240,243,252,.25), rgba(240,243,252,.7));
+  --np-veil: radial-gradient(120% 90% at 30% 40%, rgba(240,243,252,.5), rgba(240,243,252,.82));
   --ph-s1: 60%; --ph-l1: 80%; --ph-s2: 62%; --ph-l2: 68%;
   --brand-ink: #1c2444; --brand-track: rgba(24,32,72,.16);
   --hero-dim: 1.15; --hero-op: .5;
@@ -539,7 +537,7 @@
   --pink: #ff5468; --pink-dim: rgba(255,84,104,.14); --pink-line: rgba(255,84,104,.5); --pink-text: #ff8593;
   --amber: #f0a020; --on-accent: #ffffff;
   --play-bg: #f2f2ee; --play-ink: #111111; --knob: #f2f2ee; --knob-off: #111111;
-  --bar-bg: #161616; --pop-bg: #1c1c1c; --drawer-bg: #181818; --toast-bg: #f2f2ee; --modal-bg: #1a1a1a;
+  --bar-bg: #161616; --pop-bg: #1c1c1c; --drawer-bg: #181818; --toast-bg: #222222; --modal-bg: #1a1a1a;
   --shadow-rgb: 0, 0, 0; --sh: .6;
   --np-base: #0d0d0d; --np-ink: 240, 240, 236; --np-pill-ink: #111111; --np-dim: .42;
   --np-veil: linear-gradient(90deg, rgba(17,17,17,.78), rgba(17,17,17,.9));
@@ -696,7 +694,7 @@
   --bar-bg: linear-gradient(180deg, rgba(255,255,255,.96), rgba(244,241,252,.98)); --pop-bg: rgba(255,255,255,.97); --drawer-bg: rgba(250,249,255,.97); --toast-bg: rgba(255,255,255,.98); --modal-bg: #ffffff;
   --shadow-rgb: 60, 40, 140; --sh: .4;
   --np-base: #efecfa; --np-ink: 28, 20, 64; --np-pill-ink: #ffffff; --np-dim: 1.1;
-  --np-veil: linear-gradient(180deg, rgba(243,241,251,.35), rgba(243,241,251,.82)), repeating-linear-gradient(0deg, rgba(80,60,180,.05) 0 1px, transparent 1px 3px);
+  --np-veil: linear-gradient(180deg, rgba(243,241,251,.6), rgba(243,241,251,.86)), repeating-linear-gradient(0deg, rgba(80,60,180,.05) 0 1px, transparent 1px 3px);
   --ph-s1: 70%; --ph-l1: 82%; --ph-s2: 75%; --ph-l2: 70%;
   --brand-ink: #1c1440; --brand-track: #dcd6f2;
   --hero-dim: 1.15; --hero-op: .45;
@@ -706,7 +704,7 @@
   color-scheme: light;
 }
 :root[data-theme="neon"] #sidebar { border-right: 1px solid rgba(0,240,255,.35); box-shadow: 1px 0 18px rgba(0,240,255,.15); }
-  :root[data-theme="neon"]:where([data-mode="day"]) #sidebar { border-right: 1px solid rgba(0,180,204,.35); box-shadow: 1px 0 18px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) #sidebar { border-right: 1px solid rgba(0,180,204,.35); box-shadow: 1px 0 18px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .nav-label { color: #ff7ee6; font-family: var(--mono); font-size: 11px; letter-spacing: .2em; }
   :root[data-theme="neon"]:where([data-mode="day"]) .nav-label { color: #c40d9e; }
 :root[data-theme="neon"] .nav-label::before { content: "// "; opacity: .6; }
@@ -714,23 +712,23 @@
 :root[data-theme="neon"] .nav-pill { border-radius: 2px; background: linear-gradient(90deg, rgba(0,240,255,.16), rgba(0,240,255,.02)); border: 1px solid rgba(0,240,255,.25); }
   :root[data-theme="neon"]:where([data-mode="day"]) .nav-pill { background: linear-gradient(90deg, rgba(0,180,204,.16), rgba(0,180,204,.02)); border: 1px solid rgba(0,180,204,.25); }
 :root[data-theme="neon"] .nav-pill::before { background: #ff2bd6; box-shadow: 0 0 10px #ff2bd6, 0 0 2px #fff; top: 6px; bottom: 6px; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .nav-pill::before { background: #f01fc4; box-shadow: 0 0 10px rgba(240,31,196,.75), 0 0 2px rgba(255,255,255,.9); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .nav-pill::before { background: #f01fc4; box-shadow: 0 0 10px rgba(240,31,196,.22), 0 0 2px rgba(255,255,255,.9); }
 :root[data-theme="neon"] .nav a.on { color: #fff; text-shadow: 0 0 10px rgba(0,240,255,.8); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .nav a.on { color: #0c0626; text-shadow: 0 0 10px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .nav a.on { color: #0c0626; text-shadow: 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .nav a.on svg.i { color: #00f0ff; filter: drop-shadow(0 0 4px #00f0ff); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .nav a.on svg.i { color: #00a6bd; filter: drop-shadow(0 0 4px rgba(0,190,215,.8)); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .nav a.on svg.i { color: #00a6bd; filter: drop-shadow(0 0 4px rgba(0,190,215,.22)); }
 :root[data-theme="neon"] .num, :root[data-theme="neon"] .time, :root[data-theme="neon"] .seek, :root[data-theme="neon"] .nav a .count, :root[data-theme="neon"] .sig, :root[data-theme="neon"] .badge { font-family: var(--mono); }
 :root[data-theme="neon"] .page-head h1, :root[data-theme="neon"] .hero h1 { text-shadow: 0 0 18px rgba(0,240,255,.45), 2px 0 0 rgba(255,43,214,.55), -2px 0 0 rgba(0,240,255,.45); letter-spacing: .01em; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .page-head h1, :root[data-theme="neon"]:where([data-mode="day"]) .hero h1 { text-shadow: 0 0 18px rgba(0,190,215,.8), 2px 0 0 rgba(240,31,196,.75), -2px 0 0 rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .page-head h1, :root[data-theme="neon"]:where([data-mode="day"]) .hero h1 { text-shadow: 0 0 18px rgba(0,190,215,.22), 2px 0 0 rgba(240,31,196,.22), -2px 0 0 rgba(0,190,215,.22); }
 :root[data-theme="neon"] .rail-head h2 { letter-spacing: .04em; }
 :root[data-theme="neon"] .rail-head h2::before { content: "▍"; color: #ff2bd6; text-shadow: 0 0 8px #ff2bd6; margin-right: 6px; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .rail-head h2::before { color: #f01fc4; text-shadow: 0 0 8px rgba(240,31,196,.75); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .rail-head h2::before { color: #f01fc4; text-shadow: 0 0 8px rgba(240,31,196,.22); }
 :root[data-theme="neon"] #bar { border-top: 1px solid rgba(255,43,214,.45); box-shadow: 0 -1px 18px rgba(255,43,214,.18); }
-  :root[data-theme="neon"]:where([data-mode="day"]) #bar { border-top: 1px solid rgba(240,31,196,.45); box-shadow: 0 -1px 18px rgba(240,31,196,.75); }
+  :root[data-theme="neon"]:where([data-mode="day"]) #bar { border-top: 1px solid rgba(240,31,196,.45); box-shadow: 0 -1px 18px rgba(240,31,196,.22); }
 :root[data-theme="neon"] .playbtn { border: 2px solid #00f0ff; box-shadow: 0 0 14px rgba(0,240,255,.55), inset 0 0 10px rgba(0,240,255,.35); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .playbtn { border: 2px solid #00b4cc; box-shadow: 0 0 14px rgba(0,190,215,.8), inset 0 0 10px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .playbtn { border: 2px solid #00b4cc; box-shadow: 0 0 14px rgba(0,190,215,.22), inset 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .playbtn svg { filter: drop-shadow(0 0 4px #00f0ff); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .playbtn svg { filter: drop-shadow(0 0 4px rgba(0,190,215,.8)); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .playbtn svg { filter: drop-shadow(0 0 4px rgba(0,190,215,.22)); }
 :root[data-theme="neon"] .playbtn:hover { background: rgba(0,240,255,.12); }
   :root[data-theme="neon"]:where([data-mode="day"]) .playbtn:hover { background: rgba(0,180,204,.12); }
 :root[data-theme="neon"] .np-ctrl .playbtn { color: #00f0ff; }
@@ -738,22 +736,22 @@
 :root[data-theme="neon"] .slider .track { border-radius: 0; background: rgba(160,140,255,.16); overflow: visible; }
   :root[data-theme="neon"]:where([data-mode="day"]) .slider .track { background: rgba(80,60,180,.16); }
 :root[data-theme="neon"] .slider .fill, :root[data-theme="neon"] .slider:hover .fill { border-radius: 0; background: linear-gradient(90deg, #ff2bd6, #00f0ff); box-shadow: 0 0 10px rgba(0,240,255,.7); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .slider .fill, :root[data-theme="neon"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(90deg, #f01fc4, #00b4cc); box-shadow: 0 0 10px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .slider .fill, :root[data-theme="neon"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(90deg, #f01fc4, #00b4cc); box-shadow: 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .slider .knob { border-radius: 1px; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: #fff; box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .slider .knob { background: #1c1440; box-shadow: 0 0 10px rgba(0,190,215,.8), 0 0 20px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .slider .knob { background: #1c1440; box-shadow: 0 0 10px rgba(0,190,215,.22), 0 0 20px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .search { border-radius: 2px; background: rgba(0,240,255,.04); border: 1px solid rgba(0,240,255,.22); }
   :root[data-theme="neon"]:where([data-mode="day"]) .search { background: rgba(0,180,204,.04); border: 1px solid rgba(0,180,204,.22); }
 :root[data-theme="neon"] .search:focus-within { border-color: #00f0ff; box-shadow: 0 0 12px rgba(0,240,255,.35); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .search:focus-within { border-color: #00b4cc; box-shadow: 0 0 12px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .search:focus-within { border-color: #00b4cc; box-shadow: 0 0 12px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .round-btn { border-radius: 2px; border: 1px solid rgba(160,140,255,.2); }
   :root[data-theme="neon"]:where([data-mode="day"]) .round-btn { border: 1px solid rgba(80,60,180,.2); }
 :root[data-theme="neon"] .btn, :root[data-theme="neon"] .seg, :root[data-theme="neon"] .seg button, :root[data-theme="neon"] .chip, :root[data-theme="neon"] .sig, :root[data-theme="neon"] .out-btn, :root[data-theme="neon"] select.sel, :root[data-theme="neon"] input.inp, :root[data-theme="neon"] .badge { border-radius: 2px; }
 :root[data-theme="neon"] .btn.primary { background: transparent; color: #00f0ff; border: 1px solid #00f0ff; box-shadow: 0 0 12px rgba(0,240,255,.4), inset 0 0 12px rgba(0,240,255,.2); text-shadow: 0 0 6px rgba(0,240,255,.8); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .btn.primary { color: #008aa0; border: 1px solid #00b4cc; box-shadow: 0 0 12px rgba(0,190,215,.8), inset 0 0 12px rgba(0,190,215,.8); text-shadow: 0 0 6px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .btn.primary { color: #008aa0; border: 1px solid #00b4cc; box-shadow: 0 0 12px rgba(0,190,215,.22), inset 0 0 12px rgba(0,190,215,.22); text-shadow: 0 0 6px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .btn.primary:hover { background: rgba(0,240,255,.14); }
   :root[data-theme="neon"]:where([data-mode="day"]) .btn.primary:hover { background: rgba(0,180,204,.14); }
 :root[data-theme="neon"] .seg button.on { background: rgba(0,240,255,.14); color: #7ff8ff; box-shadow: inset 0 -2px 0 #00f0ff; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .seg button.on { background: rgba(0,180,204,.14); color: #008aa0; box-shadow: inset 0 -2px 0 rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .seg button.on { background: rgba(0,180,204,.14); color: #008aa0; box-shadow: inset 0 -2px 0 rgba(0,190,215,.22); }
 :root[data-theme="neon"] .card .art { border-radius: 2px; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px)); }
 :root[data-theme="neon"] .card:hover .art { box-shadow: none; filter: drop-shadow(0 0 0 #000) brightness(1.08) saturate(1.2); }
   :root[data-theme="neon"]:where([data-mode="day"]) .card:hover .art { filter: drop-shadow(0 0 0 rgba(60,40,140,.38)) brightness(1.08) saturate(1.2); }
@@ -761,42 +759,42 @@
   :root[data-theme="neon"]:where([data-mode="day"]) .card .art::after { background: linear-gradient(135deg, transparent calc(100% - 23px), #00b4cc calc(100% - 23px), #00b4cc calc(100% - 21px), transparent calc(100% - 21px)), linear-gradient(135deg, transparent 21px, #f01fc4 21px, #f01fc4 23px, transparent 23px); }
 :root[data-theme="neon"] .card:hover .art::after { opacity: 1; }
 :root[data-theme="neon"] .card .play { border-radius: 2px; background: #00f0ff; box-shadow: 0 0 16px #00f0ff; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .card .play { background: #00b4cc; box-shadow: 0 0 16px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .card .play { background: #00b4cc; box-shadow: 0 0 16px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .card:hover .t1 { color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,.6); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .card:hover .t1 { color: #008aa0; text-shadow: 0 0 10px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .card:hover .t1 { color: #008aa0; text-shadow: 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .row { border-radius: 2px; }
 :root[data-theme="neon"] .row:hover { background: linear-gradient(90deg, rgba(0,240,255,.08), transparent); }
   :root[data-theme="neon"]:where([data-mode="day"]) .row:hover { background: linear-gradient(90deg, rgba(0,180,204,.08), transparent); }
 :root[data-theme="neon"] .row.playing .tt div:first-child { color: #00f0ff; text-shadow: 0 0 8px rgba(0,240,255,.7); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .row.playing .tt div:first-child { color: #008aa0; text-shadow: 0 0 8px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .row.playing .tt div:first-child { color: #008aa0; text-shadow: 0 0 8px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .eq i { box-shadow: 0 0 6px #00f0ff; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .eq i { box-shadow: 0 0 6px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .eq i { box-shadow: 0 0 6px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .thead { background: #08070f; border-bottom-color: rgba(255,43,214,.35); font-family: var(--mono); text-transform: uppercase; }
   :root[data-theme="neon"]:where([data-mode="day"]) .thead { background: #f7f5fd; border-bottom-color: rgba(240,31,196,.35); }
 :root[data-theme="neon"] .sect { border-radius: 2px; background: rgba(15,13,29,.85); border: 1px solid rgba(160,140,255,.16); box-shadow: inset 3px 0 0 #ff2bd6; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .sect { background: rgba(255,255,255,.85); border: 1px solid rgba(80,60,180,.16); box-shadow: inset 3px 0 0 rgba(240,31,196,.75); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .sect { background: rgba(255,255,255,.85); border: 1px solid rgba(80,60,180,.16); box-shadow: inset 3px 0 0 rgba(240,31,196,.22); }
 :root[data-theme="neon"] .sect h2 { letter-spacing: .06em; }
 :root[data-theme="neon"] .switch { border-radius: 2px; background: #1b1838; border: 1px solid rgba(160,140,255,.25); }
   :root[data-theme="neon"]:where([data-mode="day"]) .switch { background: #dcd6f2; border: 1px solid rgba(80,60,180,.25); }
 :root[data-theme="neon"] .switch::after { border-radius: 1px; top: 2px; }
 :root[data-theme="neon"] .switch.on { background: rgba(0,240,255,.2); border-color: #00f0ff; box-shadow: 0 0 10px rgba(0,240,255,.45); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .switch.on { background: rgba(0,180,204,.2); border-color: #00b4cc; box-shadow: 0 0 10px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .switch.on { background: rgba(0,180,204,.2); border-color: #00b4cc; box-shadow: 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .switch.on::after { background: #00f0ff; box-shadow: 0 0 8px #00f0ff; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .switch.on::after { background: #00b4cc; box-shadow: 0 0 8px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .switch.on::after { background: #00b4cc; box-shadow: 0 0 8px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .drawer, :root[data-theme="neon"] .pop, :root[data-theme="neon"] .modal { border-radius: 4px; border-color: rgba(0,240,255,.35); box-shadow: 0 0 30px rgba(0,240,255,.12), 0 30px 80px rgba(0,0,0,.6); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .drawer, :root[data-theme="neon"]:where([data-mode="day"]) .pop, :root[data-theme="neon"]:where([data-mode="day"]) .modal { border-color: rgba(0,180,204,.35); box-shadow: 0 0 30px rgba(0,190,215,.8), 0 30px 80px rgba(60,40,140,.23); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .drawer, :root[data-theme="neon"]:where([data-mode="day"]) .pop, :root[data-theme="neon"]:where([data-mode="day"]) .modal { border-color: rgba(0,180,204,.35); box-shadow: 0 0 30px rgba(0,190,215,.22), 0 30px 80px rgba(60,40,140,.23); }
 :root[data-theme="neon"] .hero .cover { border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,240,255,.4), 0 0 40px rgba(255,43,214,.25); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .hero .cover { box-shadow: 0 0 0 1px rgba(0,190,215,.8), 0 0 40px rgba(240,31,196,.75); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .hero .cover { box-shadow: 0 0 0 1px rgba(0,190,215,.22), 0 0 40px rgba(240,31,196,.22); }
 :root[data-theme="neon"] .hero::after { background: linear-gradient(180deg, rgba(7,6,14,.2), rgba(7,6,14,.6) 60%, rgba(7,6,14,0)); }
   :root[data-theme="neon"]:where([data-mode="day"]) .hero::after { background: linear-gradient(180deg, rgba(243,241,251,.2), rgba(243,241,251,.6) 60%, rgba(243,241,251,0)); }
 :root[data-theme="neon"] .np-cover { border-radius: 4px; box-shadow: 0 0 0 1px rgba(0,240,255,.5), 0 0 60px rgba(0,240,255,.25), 0 0 120px rgba(255,43,214,.2); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(0,190,215,.8), 0 0 60px rgba(0,190,215,.8), 0 0 120px rgba(240,31,196,.75); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(0,190,215,.22), 0 0 60px rgba(0,190,215,.22), 0 0 120px rgba(240,31,196,.22); }
 :root[data-theme="neon"] .ly-line.on { text-shadow: 0 0 12px rgba(0,240,255,.34), 0 1px 2px rgba(0,0,0,.4); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .ly-line.on { text-shadow: 0 0 12px rgba(0,190,215,.8), 0 1px 2px rgba(60,40,140,.15); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .ly-line.on { text-shadow: 0 0 12px rgba(0,190,215,.22), 0 1px 2px rgba(60,40,140,.15); }
 :root[data-theme="neon"] .ly-line .w { background-image: linear-gradient(90deg, #e0fdff 0, #e0fdff var(--p, 0%), rgba(236,235,255,.42) var(--p, 0%)); }
   :root[data-theme="neon"]:where([data-mode="day"]) .ly-line .w { background-image: linear-gradient(90deg, #0c0626 0, #0c0626 var(--p, 0%), rgba(28,20,64,.42) var(--p, 0%)); }
 :root[data-theme="neon"] .pill.on { background: #00f0ff; box-shadow: 0 0 14px rgba(0,240,255,.6); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .pill.on { background: #00b4cc; box-shadow: 0 0 14px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .pill.on { background: #00b4cc; box-shadow: 0 0 14px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .badge.hi { color: #00f0ff; border: 1px solid rgba(0,240,255,.4); }
   :root[data-theme="neon"]:where([data-mode="day"]) .badge.hi { color: #008aa0; border: 1px solid rgba(0,180,204,.4); }
 :root[data-theme="neon"] .badge.dsd { border: 1px solid rgba(255,43,214,.5); }
@@ -804,7 +802,7 @@
 :root[data-theme="neon"] .eq-graph { background: var(--grid), rgba(0,0,0,.35); }
   :root[data-theme="neon"]:where([data-mode="day"]) .eq-graph { background: var(--grid), rgba(255,255,255,.6); }
 :root[data-theme="neon"] .eq-handle { border-radius: 2px; box-shadow: 0 0 10px #00f0ff; }
-  :root[data-theme="neon"]:where([data-mode="day"]) .eq-handle { box-shadow: 0 0 10px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .eq-handle { box-shadow: 0 0 10px rgba(0,190,215,.22); }
 
 
 /* ───────────────────── 6 · 和紙（米白紙感 · 藍染 × 朱印） ───────────────────── */
@@ -963,15 +961,12 @@
 
 :root[data-theme] .card.artist .art { border-radius: 50%; }
 :root[data-theme="neon"] .card.artist .art { clip-path: none; box-shadow: 0 0 0 1px rgba(0,240,255,.3); }
-  :root[data-theme="neon"]:where([data-mode="day"]) .card.artist .art { box-shadow: 0 0 0 1px rgba(0,190,215,.8); }
+  :root[data-theme="neon"]:where([data-mode="day"]) .card.artist .art { box-shadow: 0 0 0 1px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .card.artist .art::after { display: none; }
 :root[data-theme="washi"] .card.artist .art { border-width: 5px; }
 
 /* textured backgrounds: let the album glow fade out instead of ending in a hard edge */
 :root[data-theme="glass"] .hero-bg, :root[data-theme="neon"] .hero-bg, :root[data-theme="washi"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
-/* 夜：右上角一彎淡淡的月牙 */
-:root[data-theme="washi"]:where([data-mode="night"]) #main { isolation: isolate; }
-:root[data-theme="washi"]:where([data-mode="night"]) #main::before { content: ""; position: absolute; top: 30px; right: 72px; width: 56px; height: 56px; border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle at 35% 42%, rgba(251,246,234,.42), rgba(233,227,213,.22)); -webkit-mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); }
 
 /* ───────────────────── 主題切換 · 設定頁選擇器 ─────────────────────
    一張卡一個主題（日夜不分開列），日 / 夜 是右上角另外的開關；卡片的預覽跟著開關顯示那一版。
@@ -985,7 +980,7 @@
 .theme-mode { flex: none; }
 .theme-mode button { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; }
 .theme-mode svg.i { width: 15px; height: 15px; }
-.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; padding: 10px 16px 4px; }
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; padding: 10px 16px 4px; }
 .tp { position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; min-width: 0; cursor: pointer; border-radius: 12px; padding: 6px 6px 7px; background: transparent; border: 1px solid transparent; transition: background .2s, border-color .2s, transform .25s var(--ease-out); text-align: left; color: inherit; font: inherit; }
 .tp:hover { transform: translateY(-2px); background: rgba(var(--ink), .03); }
 .tp .tp-screen {
@@ -1253,7 +1248,7 @@
   --ink: 246, 226, 236; --line: rgba(246,214,228,.08); --line-2: rgba(246,214,228,.15);
   --text: #f4e6ee; --text-hi: #fff7fb; --text-sub: #d2bcca; --text-2: #b9a2b2; --text-3: #8f7c8f;
   --teal: #ff8fb4; --teal-rgb: 255, 143, 180; --teal-2: #ffb6cf; --teal-dim: rgba(255,143,180,.14);
-  --pink: #ffc46b; --pink-dim: rgba(255,196,107,.14); --pink-line: rgba(255,196,107,.5); --pink-text: #ffd28f;
+  --pink: #ff9ec0; --pink-dim: rgba(255,158,192,.14); --pink-line: rgba(255,158,192,.5); --pink-text: #ffb8d0;
   --amber: #ffc46b; --on-accent: #2a0f1c;
   --play-bg: linear-gradient(160deg, #ffb0cb, #f0709c); --play-ink: #2a0f1c; --knob: #fff7fb; --knob-off: #b9a2b2;
   --bar-bg: rgba(18,14,30,.96); --pop-bg: rgba(36,29,54,.98); --drawer-bg: rgba(30,24,46,.98); --toast-bg: rgba(42,34,62,.98); --modal-bg: #221c35;
@@ -1273,10 +1268,13 @@
 /* 側欄：底部一枝櫻花 */
 :root[data-theme="sakura"] #sidebar { position: relative; isolation: isolate; border-right: 1px solid var(--line); }
 :root[data-theme="sakura"] #sidebar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 300px; z-index: -1; pointer-events: none; background: var(--sk-branch) left bottom / 240px 300px no-repeat; }
+/* 視窗矮的時候側欄項目會碰到樹枝：樹枝縮小、變淡，字才不會被花擋到 */
+@media (max-height: 900px) { :root[data-theme="sakura"] #sidebar::after { height: 220px; background-size: 176px 220px; opacity: .55; -webkit-mask-image: linear-gradient(180deg, transparent, #000 45%); mask-image: linear-gradient(180deg, transparent, #000 45%); } }
+@media (max-height: 760px) { :root[data-theme="sakura"] #sidebar::after { opacity: .3; } }
 :root[data-theme="sakura"] .nav a { color: var(--text-2); }
 :root[data-theme="sakura"] .nav a:hover { background: rgba(var(--teal-rgb), .07); color: var(--text); }
 :root[data-theme="sakura"] .nav-label { color: var(--text-3); font-weight: 600; letter-spacing: .14em; }
-:root[data-theme="sakura"] .nav-pill { background: rgba(var(--teal-rgb), .13); border-radius: 19px; box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .2); }
+:root[data-theme="sakura"] .nav-pill { background: color-mix(in srgb, rgb(var(--teal-rgb)) 13%, var(--bg)); border-radius: 19px; box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .2); }
 :root[data-theme="sakura"] .nav-pill::before { left: -3px; top: 50%; bottom: auto; width: 8px; height: 8px; margin-top: -4px; border-radius: 70% 0; background: var(--teal); box-shadow: none; transform: rotate(-45deg); }
 :root[data-theme="sakura"] .nav a.on { color: var(--text-hi); }
 :root[data-theme="sakura"] .nav a.on svg.i { color: var(--teal); }
@@ -1300,6 +1298,7 @@
 :root[data-theme="sakura"] .slider .fill, :root[data-theme="sakura"] .slider:hover .fill { background: linear-gradient(90deg, rgba(var(--teal-rgb), .55), var(--teal)); }
 :root[data-theme="sakura"] .seek .slider .knob, :root[data-theme="sakura"] .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px var(--pink-dim), 0 2px 8px var(--pink-line); }
 :root[data-theme="sakura"] .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+:root[data-theme="sakura"]:where([data-mode="day"]) .eq-handle.sel { color: var(--teal-2); }
 :root[data-theme="sakura"] .chip.on { border-color: var(--teal); color: var(--teal-2); }
 :root[data-theme="sakura"] .badge.hi { background: rgba(var(--teal-rgb), .13); color: var(--teal-2); }
 :root[data-theme="sakura"] .icon-btn.on { color: var(--teal-2); }
@@ -1331,7 +1330,7 @@
 :root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill::before { box-shadow: 0 0 8px rgba(255,143,180,.8); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 1px rgba(255,143,180,.6), 0 0 26px rgba(255,143,180,.25), 0 18px 34px -10px rgba(0,0,0,.75); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .hero .cover, :root[data-theme="sakura"]:where([data-mode="night"]) .np-cover { box-shadow: 0 0 0 1px var(--sk-ring), 0 0 70px rgba(255,143,180,.16), 0 34px 80px -18px rgba(0,0,0,.8); }
-:root[data-theme="sakura"]:where([data-mode="night"]) .icon-btn.fav-on { filter: drop-shadow(0 0 6px rgba(255,196,107,.55)); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .icon-btn.fav-on { filter: drop-shadow(0 0 6px rgba(255,158,192,.5)); }
 :root[data-theme="sakura"]:where([data-mode="night"]) #bar { box-shadow: 0 -6px 24px rgba(255,143,180,.07); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 22px rgba(255,143,180,.35); }
 
@@ -1357,6 +1356,7 @@
   --hero-dim: .35; --hero-op: .45;
   --tm-glow: 0 0 6px rgba(57,255,122,.55);
   --tm-glow-box: 0 0 10px rgba(57,255,122,.35);
+  --tm-fill: #27b85a;
   --tm-scan: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
   --app-bg: var(--tm-scan), radial-gradient(120% 90% at 50% 40%, #0a1a10, #030705 75%);
   --sidebar-bg: var(--tm-scan), #040906;
@@ -1383,16 +1383,20 @@
   --hero-dim: 1.2; --hero-op: .3;
   --tm-glow: none;
   --tm-glow-box: 0 0 0 transparent;
-  --app-bg: repeating-linear-gradient(180deg, rgba(92,170,110,.12) 0 66px, transparent 66px 132px), #fbfbf6;
+  --tm-fill: #1f7a3a;
+  --app-bg: #fbfbf6;
+  --tm-bar: rgba(92,170,110,.11);
   --sidebar-bg: radial-gradient(circle, #e4e9da 0 4px, rgba(24,70,40,.2) 4.5px 5.2px, transparent 5.7px) right 5px top 6px / 14px 24px repeat-y, linear-gradient(90deg, #fbfbf6 calc(100% - 26px), rgba(24,70,40,.12) calc(100% - 26px) calc(100% - 25px), #f6f7f0 calc(100% - 25px));
   color-scheme: light;
 }
 :root[data-theme="terminal"] #sidebar { border-right: 1px dashed var(--line-2); }
+:root[data-theme="terminal"]:where([data-mode="day"]) #sidebar { padding-right: 34px; }
+@media (max-width: 1180px) { :root[data-theme="terminal"]:where([data-mode="day"]) #sidebar { padding-right: 12px; background: #f6f7f0; } }
 :root[data-theme="terminal"] .nav a { border-radius: 0; }
 :root[data-theme="terminal"] .nav a:hover { background: rgba(var(--teal-rgb), .1); color: var(--text-hi); }
 :root[data-theme="terminal"] .nav-label { color: var(--text-3); letter-spacing: .08em; text-transform: uppercase; }
 :root[data-theme="terminal"] .nav-label::before { content: "> "; color: var(--teal); }
-:root[data-theme="terminal"] .nav-pill { background: var(--teal); border-radius: 0; box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"] .nav-pill { background: var(--tm-fill); border-radius: 0; box-shadow: none; }
 :root[data-theme="terminal"] .nav-pill::before { display: none; }
 :root[data-theme="terminal"] .nav a.on, :root[data-theme="terminal"] .nav a.on svg.i, :root[data-theme="terminal"] .nav a.on .count, :root[data-theme="terminal"] .nav a.on:hover { color: var(--on-accent); }
 :root[data-theme="terminal"] #topbar.solid { background: rgba(var(--bg-rgb), .92); }
@@ -1407,12 +1411,12 @@
 :root[data-theme="terminal"] .round-btn { background: transparent; border: 1px solid var(--line-2); }
 :root[data-theme="terminal"] .btn { background: transparent; border: 1px solid var(--line-2); box-shadow: none; }
 :root[data-theme="terminal"] .btn:hover { background: rgba(var(--teal-rgb), .1); }
-:root[data-theme="terminal"] .btn.primary { background: var(--teal); border-color: var(--teal); color: var(--on-accent); box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"] .btn.primary { background: var(--tm-fill); border-color: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
 :root[data-theme="terminal"] .btn.ghost { border-color: transparent; }
 :root[data-theme="terminal"] .seg { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
-:root[data-theme="terminal"] .seg button.on { background: var(--teal); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .seg button.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
 :root[data-theme="terminal"] .switch { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
-:root[data-theme="terminal"] .switch.on { background: var(--teal); box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"] .switch.on { background: var(--tm-fill); box-shadow: none; }
 :root[data-theme="terminal"] .switch.on::after { background: var(--on-accent); }
 :root[data-theme="terminal"] .chip.on { border-color: var(--teal); color: var(--teal); }
 :root[data-theme="terminal"] .badge { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
@@ -1431,7 +1435,7 @@
 :root[data-theme="terminal"] .card .art { box-shadow: 0 0 0 1px var(--line-2); }
 :root[data-theme="terminal"] .card:hover .art { box-shadow: 0 0 0 1px var(--teal), var(--tm-glow-box); }
 :root[data-theme="terminal"] .card:hover .t1 { color: var(--teal); }
-:root[data-theme="terminal"] .card .play { background: var(--teal); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .card .play { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
 :root[data-theme="terminal"] .card .t2, :root[data-theme="terminal"] .row .tt .a { color: var(--text-3); }
 /* 列表與面板 */
 :root[data-theme="terminal"] .thead { background: var(--bg); border-bottom: 1px dashed var(--line-2); text-transform: uppercase; letter-spacing: .06em; }
@@ -1450,17 +1454,20 @@
 :root[data-theme="terminal"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--teal-rgb), .24); border-radius: 0; }
 :root[data-theme="terminal"] .np-cover { box-shadow: 0 0 0 1px var(--line-2), 0 30px 70px -20px rgba(var(--shadow-rgb), calc(.9 * var(--sh))); }
 :root[data-theme="terminal"] .np-ctrl .icon-btn.on { color: var(--teal); }
-:root[data-theme="terminal"] .pill.on { background: var(--teal); color: var(--on-accent); }
+:root[data-theme="terminal"] .pill.on { background: var(--tm-fill); color: var(--on-accent); }
 :root[data-theme="terminal"] .ly-line.on { text-shadow: var(--tm-glow); }
 :root[data-theme="terminal"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .38) var(--p, 0%)); }
-:root[data-theme="terminal"] .scroll-bubble { background: var(--teal); color: var(--on-accent); }
+:root[data-theme="terminal"] .scroll-bubble { background: var(--tm-fill); color: var(--on-accent); }
+/* 日：報表紙的綠條紋畫在列上（每隔一列），會跟著列表一起捲動 */
+:root[data-theme="terminal"]:where([data-mode="day"]) .tracks > .row:where(:nth-child(even of .row)) { background: var(--tm-bar); }
+:root[data-theme="terminal"]:where([data-mode="day"]) .tracks .vlist { background: repeating-linear-gradient(180deg, transparent 0 68px, var(--tm-bar) 68px 136px); }
 
 
 /* ───────────────────── 10 · 普普（日：漫畫紙 · 夜：墨黑漫畫） ─────────────────────
    粗黑框、硬陰影（不模糊的位移陰影）、網點，紅黃藍三原色；按下去會往陰影的方向壓。
    日：奶油黃的紙、黃色側欄；夜：墨黑底、奶油色粗框，選中與播放鈕還是黃色。 */
 [data-theme="pop"] {
-  --bg: #fff7dc; --bg-rgb: 255, 247, 220; --bg-2: #fff2cc;
+  --bg: #fffdf6; --bg-rgb: 255, 253, 246; --bg-2: #fff8e4;
   --surface: #ffffff; --surface-2: #fff0c2; --surface-3: #ffe59a;
   --ink: 17, 17, 17; --line: rgba(17,17,17,.14); --line-2: rgba(17,17,17,.7);
   --text: #111111; --text-hi: #000000; --text-sub: #333333; --text-2: #444444; --text-3: #6b6758;
@@ -1471,14 +1478,14 @@
   --bar-bg: #ffffff; --pop-bg: #ffffff; --drawer-bg: #fffdf5; --toast-bg: #ffffff; --modal-bg: #ffffff;
   --shadow-rgb: 17, 17, 17; --sh: .3;
   --np-base: #fff4cf; --np-ink: 17, 17, 17; --np-pill-ink: #111111; --np-dim: 1.12;
-  --np-veil: radial-gradient(rgba(17,17,17,.08) 1.2px, transparent 1.7px) 0 0 / 10px 10px, linear-gradient(90deg, rgba(255,247,220,.8), rgba(255,247,220,.9));
+  --np-veil: radial-gradient(rgba(17,17,17,.08) 1.2px, transparent 1.7px) 0 0 / 10px 10px, linear-gradient(90deg, rgba(255,253,246,.8), rgba(255,253,246,.9));
   --ph-s1: 80%; --ph-l1: 74%; --ph-s2: 85%; --ph-l2: 60%;
   --brand-ink: #111111; --brand-track: #fff7dc;
   --hero-dim: 1.15; --hero-op: .4;
   --pop-line: #111111; --pop-shadow: #111111; --pop-yellow: #ffcc1f; --pop-panel: #ffffff;
   --pop-pill: #ffffff; --pop-title: #ffcc1f; --pop-playing: #ffcc1f;
   --pop-dots: radial-gradient(rgba(17,17,17,.09) 1.3px, transparent 1.8px) 0 0 / 12px 12px;
-  --app-bg: var(--pop-dots), #fff7dc;
+  --app-bg: var(--pop-dots), #fffdf6;
   --sidebar-bg: radial-gradient(rgba(17,17,17,.12) 1.3px, transparent 1.8px) 0 0 / 12px 12px, #ffcc1f;
   --font-display: "Arial Black", "Segoe UI Black", "Helvetica Neue", "Microsoft JhengHei UI", "PingFang TC", sans-serif;
   color-scheme: light;
@@ -1500,10 +1507,10 @@
   --brand-ink: #f5f1e6; --brand-track: #383745;
   --hero-dim: .5; --hero-op: .5;
   --pop-line: #f5f1e6; --pop-shadow: #000000; --pop-yellow: #ffd23f; --pop-panel: #222129;
-  --pop-pill: #ffd23f; --pop-title: #ff4f63; --pop-playing: rgba(255,210,63,.16);
+  --pop-pill: #ffd23f; --pop-title: #ff4f63; --pop-playing: #ffd23f;
   --pop-dots: radial-gradient(rgba(255,255,255,.05) 1.3px, transparent 1.8px) 0 0 / 12px 12px;
   --app-bg: var(--pop-dots), #16151b;
-  --sidebar-bg: var(--pop-dots), #1d1c23;
+  --sidebar-bg: radial-gradient(rgba(255,210,63,.13) 1.3px, transparent 1.8px) 0 0 / 12px 12px, #1d1c23;
   color-scheme: dark;
 }
 :root[data-theme="pop"] #sidebar { border-right: 3px solid var(--pop-line); }
@@ -1556,6 +1563,10 @@
 :root[data-theme="pop"] .row:hover { background: rgba(var(--ink), .06); }
 :root[data-theme="pop"] .row.playing { background: var(--pop-playing); box-shadow: inset 0 0 0 2px var(--pop-line); }
 :root[data-theme="pop"] .row.playing .tt div:first-child, :root[data-theme="pop"] .qrow.cur .t { color: var(--text-hi); font-weight: 800; }
+/* 夜：播放中的列和白天一樣是實心黃底，字改成黑色；側欄右邊的粗框也是黃色 */
+:root[data-theme="pop"]:where([data-mode="night"]) .row.playing { --text: #111111; --text-hi: #000000; --text-sub: #2a2a2a; --text-2: #2a2a2a; --text-3: #3d3a30; --ink: 17, 17, 17; color: #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) .row.playing .eq i { background: #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) #sidebar { border-right-color: #ffd23f; }
 :root[data-theme="pop"] .eq i { background: var(--pink); }
 :root[data-theme="pop"] .sect, :root[data-theme="pop"] .dsp-card { background: var(--pop-panel); border: 2px solid var(--pop-line); border-radius: 10px; box-shadow: 5px 5px 0 var(--pop-shadow); }
 :root[data-theme="pop"] .drawer, :root[data-theme="pop"] .pop, :root[data-theme="pop"] .modal { border: 2px solid var(--pop-line); box-shadow: 6px 6px 0 var(--pop-shadow); }
@@ -1579,122 +1590,72 @@
 :root[data-theme="pop"] .scroll-bubble { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111, 3px 3px 0 #111; }
 
 
-/* ───────────────────── 11 · 絲絨（夜：爵士俱樂部 · 日：劇院大廳） ─────────────────────
-   側欄是酒紅絲絨布幕（有布褶），底部一把金色的裝飾藝術扇形；標題用 Didot / Bodoni，標題下雙金線，
-   封面、面板都有一圈香檳金的細框。夜：酒紅墨色的廳、香檳色字；日：香檳白的牆、酒紅為主色，布幕不變。 */
-[data-theme="velvet"] {
-  --bg: #1a0a10; --bg-rgb: 26, 10, 16; --bg-2: #1e0c13;
-  --surface: #261018; --surface-2: #31151f; --surface-3: #42202c;
-  --ink: 245, 228, 210; --line: rgba(212,175,106,.12); --line-2: rgba(212,175,106,.24);
-  --text: #f3e6d8; --text-hi: #fff8ee; --text-sub: #d2c0ad; --text-2: #bba792; --text-3: #94806e;
-  --teal: #d4af6a; --teal-rgb: 212, 175, 106; --teal-2: #ecd08f; --teal-dim: rgba(212,175,106,.14);
-  --pink: #e0607e; --pink-dim: rgba(224,96,126,.15); --pink-line: rgba(224,96,126,.5); --pink-text: #f08aa2;
-  --amber: #d4af6a; --on-accent: #1a0a10;
-  --play-bg: linear-gradient(160deg, #f0d596, #b98d45); --play-ink: #1a0a10; --knob: #ecd08f; --knob-off: #94806e;
-  --bar-bg: linear-gradient(180deg, #1c0a11, #12060b); --pop-bg: rgba(40,16,25,.98); --drawer-bg: rgba(34,13,21,.98); --toast-bg: rgba(44,18,28,.98); --modal-bg: #261018;
-  --shadow-rgb: 0, 0, 0; --sh: 1;
-  --np-base: #0e0508; --np-ink: 245, 230, 214; --np-pill-ink: #1a0a10; --np-dim: .4;
-  --np-veil: radial-gradient(120% 90% at 30% 40%, rgba(26,10,16,.25), rgba(26,10,16,.75));
-  --ph-s1: 40%; --ph-l1: 28%; --ph-s2: 46%; --ph-l2: 17%;
-  --brand-ink: #f3e6d8; --brand-track: #5a1a2c;
-  --hero-dim: .5; --hero-op: .55;
-  --vv-gold: #d4af6a; --vv-gold-rgb: 212, 175, 106;
-  --vv-fan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='152'%3E%3Cpath d='M104,150 A46,46 0 0 1 196,150' fill='none' stroke='%23d4af6a' stroke-width='1' opacity='0.5'/%3E%3Cpath d='M72,150 A78,78 0 0 1 228,150' fill='none' stroke='%23d4af6a' stroke-width='1' opacity='0.5'/%3E%3Cpath d='M40,150 A110,110 0 0 1 260,150' fill='none' stroke='%23d4af6a' stroke-width='1' opacity='0.5'/%3E%3Cpath d='M10,150 A140,140 0 0 1 290,150' fill='none' stroke='%23d4af6a' stroke-width='1.6' opacity='0.5'/%3E%3Cline x1='196' y1='150' x2='290' y2='150' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='195' y1='140.4' x2='286.9' y2='120.9' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='192' y1='131.3' x2='277.9' y2='93.1' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='187.2' y1='123' x2='263.3' y2='67.7' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='180.8' y1='115.8' x2='243.7' y2='46' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='173' y1='110.2' x2='220' y2='28.8' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='164.2' y1='106.3' x2='193.3' y2='16.9' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='154.8' y1='104.3' x2='164.6' y2='10.8' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='145.2' y1='104.3' x2='135.4' y2='10.8' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='135.8' y1='106.3' x2='106.7' y2='16.9' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='127' y1='110.2' x2='80' y2='28.8' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='119.2' y1='115.8' x2='56.3' y2='46' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='112.8' y1='123' x2='36.7' y2='67.7' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='108' y1='131.3' x2='22.1' y2='93.1' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='105' y1='140.4' x2='13.1' y2='120.9' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cline x1='104' y1='150' x2='10' y2='150' stroke='%23d4af6a' stroke-width='.8' opacity='0.4'/%3E%3Cpath d='M120,150 A30,30 0 0 1 180,150 Z' fill='%23d4af6a' opacity='0.28'/%3E%3C/svg%3E");
-  --vv-curtain: repeating-linear-gradient(90deg, rgba(0,0,0,.30) 0, rgba(255,255,255,.045) 13px, rgba(0,0,0,.30) 26px), linear-gradient(180deg, #6e1328, #4d0c1c 60%, #3a0815);
-  --app-bg: radial-gradient(900px 520px at 85% -15%, rgba(212,175,106,.10), transparent 60%), radial-gradient(700px 500px at 0% 110%, rgba(140,20,50,.20), transparent 60%), #1a0a10;
-  --sidebar-bg: var(--vv-curtain);
-  --font-display: "Didot", "Bodoni 72", "Bodoni MT", Georgia, "Noto Serif TC", "PMingLiU", serif;
-  color-scheme: dark;
-}
-[data-theme="velvet"]:where([data-mode="day"]) {
-  --bg: #f8f1e7; --bg-rgb: 248, 241, 231; --bg-2: #f3eadd;
-  --surface: #fffaf2; --surface-2: #f0e4d2; --surface-3: #e4d2b8;
-  --ink: 60, 20, 30; --line: rgba(140,100,50,.16); --line-2: rgba(140,100,50,.3);
-  --text: #2c1418; --text-hi: #1a080c; --text-sub: #553a3c; --text-2: #6a4e4e; --text-3: #8f746c;
-  --teal: #8e1f3a; --teal-rgb: 142, 31, 58; --teal-2: #6e1328; --teal-dim: rgba(142,31,58,.10);
-  --pink: #b8862e; --pink-dim: rgba(184,134,46,.14); --pink-line: rgba(184,134,46,.5); --pink-text: #8c6418;
-  --amber: #b8862e; --on-accent: #fff8ee;
-  --play-bg: linear-gradient(160deg, #a8304d, #7a1530); --play-ink: #fff8ee; --knob: #8e1f3a; --knob-off: #fffaf2;
-  --bar-bg: #f3eadd; --pop-bg: rgba(255,250,242,.98); --drawer-bg: rgba(252,246,237,.98); --toast-bg: #fffaf2; --modal-bg: #fffaf2;
-  --shadow-rgb: 80, 30, 40; --sh: .45;
-  --np-base: #f1e7da; --np-ink: 44, 20, 24; --np-pill-ink: #fff8ee; --np-dim: 1.1;
-  --np-veil: linear-gradient(90deg, rgba(248,241,231,.8), rgba(248,241,231,.9));
-  --ph-s1: 40%; --ph-l1: 78%; --ph-s2: 44%; --ph-l2: 64%;
-  --brand-track: #e4d2b8;
-  --hero-dim: 1.1; --hero-op: .45;
-  --vv-gold: #b8862e; --vv-gold-rgb: 184, 134, 46;
-  --app-bg: radial-gradient(900px 520px at 85% -15%, rgba(184,134,46,.14), transparent 60%), #f8f1e7;
-  color-scheme: light;
-}
-/* 布幕側欄：兩版都是酒紅絲絨，所以側欄裡的字永遠是淺色 */
-:root[data-theme="velvet"] #sidebar { position: relative; isolation: isolate; border-right: 1px solid rgba(212,175,106,.5); box-shadow: inset -1px 0 0 rgba(0,0,0,.4);
-  color: #f3e6d8; --text: #f3e6d8; --text-hi: #fff8ee; --text-2: #dcc6b2; --text-3: #b89c86; --ink: 245, 228, 210; --brand-ink: #f3e6d8; --brand-track: #8a3346; --teal: #e8c886; --teal-rgb: 232, 200, 134; --on-accent: #3a0815; --line: rgba(212,175,106,.16); --line-2: rgba(212,175,106,.3); }
-:root[data-theme="velvet"] #sidebar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 152px; z-index: -1; pointer-events: none; background: var(--vv-fan) center bottom / 236px auto no-repeat; }
-:root[data-theme="velvet"] .nav a { color: #ead7c4; }
-:root[data-theme="velvet"] .nav a:hover { background: rgba(0,0,0,.2); color: #fff8ee; }
-:root[data-theme="velvet"] .nav-label { color: #d4af6a; letter-spacing: .24em; }
-:root[data-theme="velvet"] .nav-pill { background: rgba(0,0,0,.3); border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(212,175,106,.6), inset 0 0 0 3px rgba(0,0,0,.2), inset 0 0 0 4px rgba(212,175,106,.2); }
-:root[data-theme="velvet"] .nav-pill::before { display: none; }
-:root[data-theme="velvet"] .nav a.on, :root[data-theme="velvet"] .nav a.on svg.i { color: #f0d596; }
-:root[data-theme="velvet"] .nav a .count { color: rgba(240,213,150,.6); }
-:root[data-theme="velvet"] #topbar.solid { background: rgba(var(--bg-rgb), .9); }
-/* 標題：Didot、雙金線 */
-:root[data-theme="velvet"] .page-head h1, :root[data-theme="velvet"] .hero h1, :root[data-theme="velvet"] .sect h2, :root[data-theme="velvet"] .np-title, :root[data-theme="velvet"] .drawer-head h2, :root[data-theme="velvet"] .modal-head h2 { font-family: var(--font-display); font-weight: 600; letter-spacing: .02em; }
-:root[data-theme="velvet"] .rail-head h2 { font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; }
-:root[data-theme="velvet"] .rail-head h2::before { content: "◆"; color: var(--vv-gold); font-size: .55em; margin-right: 10px; vertical-align: .28em; }
-:root[data-theme="velvet"] .page-head h1::after { content: ""; display: block; width: 64px; height: 5px; margin-top: 10px; border-top: 1px solid var(--vv-gold); border-bottom: 1px solid var(--vv-gold); }
-/* 控制項 */
-:root[data-theme="velvet"] .search { background: rgba(var(--ink), .04); border: 1px solid var(--line-2); border-radius: 2px; }
-:root[data-theme="velvet"] .search:focus-within { border-color: var(--vv-gold); box-shadow: 0 0 0 3px rgba(var(--vv-gold-rgb), .14); }
-:root[data-theme="velvet"] .round-btn { background: transparent; border: 1px solid var(--line-2); }
-:root[data-theme="velvet"] .btn { border-radius: 2px; background: transparent; border: 1px solid var(--line-2); }
-:root[data-theme="velvet"] .btn:hover { border-color: rgba(var(--vv-gold-rgb), .6); }
-:root[data-theme="velvet"] .btn.primary { background: var(--play-bg); color: var(--play-ink); border-color: transparent; box-shadow: inset 0 1px 0 rgba(255,255,255,.3); letter-spacing: .04em; }
-:root[data-theme="velvet"] .btn.ghost { border-color: transparent; }
-:root[data-theme="velvet"] .playbtn { box-shadow: 0 0 0 1px rgba(var(--vv-gold-rgb), .7), 0 0 0 4px rgba(var(--vv-gold-rgb), .12), 0 6px 18px rgba(var(--shadow-rgb), calc(.4 * var(--sh))); }
-:root[data-theme="velvet"] .seg, :root[data-theme="velvet"] .seg button, :root[data-theme="velvet"] .chip, :root[data-theme="velvet"] .sig, :root[data-theme="velvet"] .out-btn, :root[data-theme="velvet"] select.sel, :root[data-theme="velvet"] input.inp, :root[data-theme="velvet"] .badge { border-radius: 2px; }
-:root[data-theme="velvet"] .seg button.on { background: rgba(var(--teal-rgb), .16); color: var(--text-hi); box-shadow: inset 0 0 0 1px rgba(var(--vv-gold-rgb), .6); }
-:root[data-theme="velvet"] .switch.on { background: var(--teal); }
-:root[data-theme="velvet"] .switch.on::after { background: var(--on-accent); }
-:root[data-theme="velvet"] .slider .track { background: rgba(var(--vv-gold-rgb), .2); }
-:root[data-theme="velvet"] .slider .fill, :root[data-theme="velvet"] .slider:hover .fill { background: linear-gradient(90deg, #b98d45, #f0d596); }
-:root[data-theme="velvet"] .chip.on { border-color: var(--vv-gold); color: var(--teal-2); }
-:root[data-theme="velvet"] .badge.hi { background: rgba(var(--vv-gold-rgb), .14); color: var(--teal-2); box-shadow: inset 0 0 0 1px rgba(var(--vv-gold-rgb), .35); }
-:root[data-theme="velvet"] .icon-btn.on { color: var(--teal-2); }
-:root[data-theme="velvet"] .icon-btn.fav-on { color: var(--pink); }
-/* 卡片：香檳金細框，像掛在牆上的唱片 */
-:root[data-theme="velvet"] .card .art { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--vv-gold-rgb), .4), 0 0 0 4px var(--bg), 0 0 0 5px rgba(var(--vv-gold-rgb), .22), 0 14px 28px -8px rgba(var(--shadow-rgb), calc(.6 * var(--sh))); }
-:root[data-theme="velvet"] .card:hover .art { box-shadow: 0 0 0 1px var(--vv-gold), 0 0 0 4px var(--bg), 0 0 0 5px rgba(var(--vv-gold-rgb), .7), 0 18px 34px -8px rgba(var(--shadow-rgb), calc(.7 * var(--sh))); }
-:root[data-theme="velvet"] .card:hover .t1 { color: var(--teal-2); }
-:root[data-theme="velvet"] .card .play { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--vv-gold-rgb), .6), 0 8px 20px rgba(var(--shadow-rgb), calc(.45 * var(--sh))); }
-/* 列表與面板 */
-:root[data-theme="velvet"] .thead { background: var(--bg); border-bottom: 1px solid var(--line-2); letter-spacing: .1em; }
-:root[data-theme="velvet"] .row { border-radius: 2px; }
-:root[data-theme="velvet"] .row:hover { background: rgba(var(--vv-gold-rgb), .07); }
-:root[data-theme="velvet"] .row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .16), rgba(var(--teal-rgb), 0) 70%); }
-:root[data-theme="velvet"] .row.playing .tt div:first-child, :root[data-theme="velvet"] .qrow.cur .t { color: var(--teal-2); }
-:root[data-theme="velvet"] .eq i { background: var(--vv-gold); }
-:root[data-theme="velvet"] .sect, :root[data-theme="velvet"] .dsp-card { border-radius: 2px; border: 1px solid var(--line-2); background: var(--surface); box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 5px var(--line); }
-:root[data-theme="velvet"] .drawer, :root[data-theme="velvet"] .pop, :root[data-theme="velvet"] .modal { border-color: rgba(var(--vv-gold-rgb), .4); border-radius: 4px; }
-:root[data-theme="velvet"] .toast { border-left: 2px solid var(--vv-gold); }
-:root[data-theme="velvet"] #bar { border-top: 1px solid rgba(var(--vv-gold-rgb), .5); box-shadow: 0 -4px 0 -3px rgba(var(--vv-gold-rgb), .25); backdrop-filter: none; }
-:root[data-theme="velvet"] .hero .cover { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--vv-gold-rgb), .5), 0 0 0 6px var(--bg), 0 0 0 7px rgba(var(--vv-gold-rgb), .35), 0 28px 60px -12px rgba(var(--shadow-rgb), calc(.8 * var(--sh))); }
-:root[data-theme="velvet"] .hero.artist .cover { border-radius: 50%; }
-:root[data-theme="velvet"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .7) 60%, rgba(var(--bg-rgb), 0)); }
-:root[data-theme="velvet"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
-:root[data-theme="velvet"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--vv-gold-rgb), .25); }
-/* 正在播放 */
-:root[data-theme="velvet"] .np-cover { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--vv-gold-rgb), .55), 0 0 0 8px rgba(var(--bg-rgb), .55), 0 0 0 9px rgba(var(--vv-gold-rgb), .3), 0 40px 90px -20px rgba(var(--shadow-rgb), calc(.8 * var(--sh))); }
-:root[data-theme="velvet"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
-:root[data-theme="velvet"] .pill.on { background: var(--play-bg); color: var(--play-ink); }
-:root[data-theme="velvet"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .38) var(--p, 0%)); }
-/* 日：金色在香檳白上太淡，進度條改用酒紅 */
-:root[data-theme="velvet"]:where([data-mode="day"]) .slider .fill, :root[data-theme="velvet"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(90deg, #7a1530, #a8304d); }
-:root[data-theme="velvet"]:where([data-mode="day"]) .slider .track { background: rgba(var(--ink), .12); }
-
-
 /* 新主題的預覽卡片 */
-.tp-screen[data-theme="velvet"] .tp-side { --ink: 245, 228, 210; --brand-ink: #f3e6d8; --teal: #e8c886; }
 .tp-screen[data-theme="pop"] .tp-side { border-right: 2px solid var(--pop-line); }
 .tp-screen[data-theme="pop"] .tp-cards i { box-shadow: 0 0 0 1px var(--pop-line), 2px 2px 0 var(--pop-shadow); }
 .tp-screen[data-theme="terminal"] .tp-side i.on { box-shadow: var(--tm-glow-box); }
+
+
+/* ───────────────────── 日／夜版本的補充修正 ───────────────────── */
+/* 白天：正在播放的封面陰影改成淡淡的木色，不是黑色的光暈 */
+:root[data-theme="wood"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(60,42,24,.08), 0 30px 60px -12px rgba(70,48,24,.38); }
+
+/* 白天：側欄是較深的橡木，上面的數字和小標用深一點的字色才看得清楚 */
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar { --text-3: #6f5c45; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar .nav-label { color: #5f4a31; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar .seg button.on { background: rgba(255,248,235,.5); color: #5a3d16; }
+
+/* 白天：光球不用「濾色」疊（在淺底上會被洗成白），封面的光也淡一點 */
+:root[data-theme="glass"]:where([data-mode="day"]) #theme-bg .orb { mix-blend-mode: normal; opacity: .3; }
+:root[data-theme="glass"]:where([data-mode="day"]) #theme-bg .orb.o1 { background: #b9a8ff; }
+:root[data-theme="glass"]:where([data-mode="day"]) #theme-bg .orb.o2 { background: #8fd8ff; }
+:root[data-theme="glass"]:where([data-mode="day"]) #theme-bg .orb.o3 { background: #ffb3d9; }
+:root[data-theme="glass"]:where([data-mode="day"]) #theme-bg .art.on { opacity: .3; }
+
+/* 白天：選中項目的底是白色毛玻璃，圖示改用深色字色（原本是白色，看不見） */
+:root[data-theme="glass"]:where([data-mode="day"]) .nav a.on svg.i { color: var(--text-hi); }
+/* 白天：主色和淡字在粉彩底上太淺，加深一點 */
+[data-theme="glass"]:where([data-mode="day"]) { --teal: #3366dd; --teal-rgb: 51, 102, 221; --teal-2: #2550c0; --text-3: #5a6386; }
+/* 白天：等化器選中的圓點是白色，上面的數字改用深色 */
+:root[data-theme="glass"]:where([data-mode="day"]) .eq-handle.sel { color: var(--text-hi); }
+:root[data-theme="glass"]:where([data-mode="day"]) :is(.nav-label, .nav a .count) { color: rgba(24,32,72,.72); }
+
+/* 夜：右上角一彎淡淡的月牙 */
+:root[data-theme="washi"]:where([data-mode="night"]) #main { isolation: isolate; }
+:root[data-theme="washi"]:where([data-mode="night"]) #main::before { content: ""; position: absolute; top: 30px; right: 72px; width: 56px; height: 56px; border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle at 35% 42%, rgba(251,246,234,.42), rgba(233,227,213,.22)); -webkit-mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); }
+
+/* 白天：最淡的字（側欄數字、時間）在米色紙上太淡，加深一點 */
+[data-theme="washi"]:where(:not([data-mode="night"])) { --text-3: #857767; }
+:root[data-theme="washi"]:where(:not([data-mode="night"])) .nav-label { color: #85766a; }
+
+/* 白天：發光在淺色底上會糊成一片，改成清楚的細線 */
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar { box-shadow: 1px 0 0 rgba(240,31,196,.35); }
+:root[data-theme="neon"]:where([data-mode="day"]) .nav a.on { text-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .nav a.on svg.i { filter: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .page-head h1, :root[data-theme="neon"]:where([data-mode="day"]) .hero h1 { text-shadow: 1px 0 0 rgba(240,31,196,.35), -1px 0 0 rgba(0,180,204,.35); }
+:root[data-theme="neon"]:where([data-mode="day"]) #bar { box-shadow: 0 -1px 0 rgba(240,31,196,.22); }
+:root[data-theme="neon"]:where([data-mode="day"]) .btn.primary { box-shadow: inset 0 0 0 1px #00b4cc; text-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) :is(.card:hover .t1, .row.playing .tt div:first-child, .rail-head h2::before) { text-shadow: none; }
+/* 白天：亮青色的按鈕上用深色字（白字看不清楚），正在播放的曲目用深一點的青色 */
+:root[data-theme="neon"]:where([data-mode="day"]) .pill.on { color: #0c0626; }
+:root[data-theme="neon"]:where([data-mode="day"]) .qrow.cur .t { color: #008aa0; }
+:root[data-theme="neon"]:where([data-mode="day"]) .nav a.on svg.i { color: #008aa0; }
+/* 白天：亮青色上的字一律用深色（等化器圓點、按鈕） */
+[data-theme="neon"]:where([data-mode="day"]) { --on-accent: #0c0626; }
+:root[data-theme="neon"]:where([data-mode="day"]) .eq-handle.sel { color: #ffffff; }
+
+/* 白天：最淡的字在鼠尾草綠上太淡，加深一點 */
+[data-theme="vinyl"]:where(:not([data-mode="night"])) { --text-3: #6d7f72; }
+/* 白天：芥末黃的愛心在鼠尾草綠上太淡 */
+:root[data-theme="vinyl"]:where(:not([data-mode="night"])) .icon-btn.fav-on { color: #a37209; }
+
+/* 夜：選中的分段按鈕和提示不要用整塊白色（在黑底上像閃光）：深灰底、白字、鈷藍底線 */
+:root[data-theme="flat"]:where([data-mode="night"]) .seg button.on { background: #2e2e2e; color: #ffffff; box-shadow: inset 0 -2px 0 var(--teal); }
+:root[data-theme="flat"]:where([data-mode="night"]) .toast { color: #ffffff; box-shadow: inset 3px 0 0 var(--teal); }
+/* 白天：側欄小標太淡 */
+:root[data-theme="flat"]:where(:not([data-mode="night"])) .nav-label { color: #8a8a85; }
+/* 夜：等化器選中的圓點是白色，上面的數字改用黑色 */
+:root[data-theme="flat"]:where([data-mode="night"]) .eq-handle.sel { color: #111111; }
+
+/* 白天：側欄小標淡了一點點，加深 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-label { color: #6f878a; }
