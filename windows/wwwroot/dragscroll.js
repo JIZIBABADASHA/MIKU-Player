@@ -1,13 +1,61 @@
 'use strict';
 /* MIKU: grab and drag with the mouse to scroll a page or a list up and down (like on a touch screen).
    A press that moves more than a few pixels, mostly up or down, becomes a drag: the list follows the pointer, a flick
-   glides on for a moment, and the click that ends it opens nothing. A press that does not move is a click as before.
+   glides on and slows down by itself (Fling below), and the click that ends it opens nothing. A press that does not
+   move is a click as before.
    Left alone: text fields, sliders, the scrollbar itself, anything that has its own drag (queue rows, playlist rows,
    album cards on an artist page, the sidebar's links, the EQ graph, the tag editor) and the now-playing page.
-   Sideways drags belong to the home page's rails (views.js attachRailNav). */
+   Sideways drags belong to the home page's rails (views.js attachRailNav), which glide with Fling too. */
+
+/* Momentum after a mouse drag, the way a touch screen or a trackpad does it: the list keeps the speed it had when the
+   button was let go and slows down smoothly. The speed is measured over the last 100 ms of the drag (one pointer event
+   alone is too noisy), and letting go after holding still does not glide. This is part of the drag itself, so it runs on
+   the Mac too (there, wheel and trackpad scrolling are left to macOS: PageEffects.nativeScroll) and with 關閉平滑捲動,
+   which is about the wheel and the jumps to the top. */
+const Fling = {
+  /** Remembers where the pointer was (pos: clientX or clientY) for speed(). */
+  track(samples, pos, now = performance.now()) {
+    samples.push([now, pos]);
+    while (samples.length > 2 && now - samples[0][0] > 100) samples.shift();
+  },
+  /** The pointer's speed at release, in px/ms; 0 when it stood still before the button was let go. */
+  speed(samples, now = performance.now()) {
+    if (samples.length < 2 || now - samples[samples.length - 1][0] > 80) return 0;
+    const [t0, p0] = samples[0], [t1, p1] = samples[samples.length - 1];
+    return t1 - t0 < 8 ? 0 : (p1 - p0) / (t1 - t0);
+  },
+  /** Glides el's scrollTop (axis 'y') or scrollLeft ('x') at v px/ms, slowing by `friction` each millisecond (0.998: a
+   *  phone's normal deceleration, about half the speed gone every 350 ms). done() runs when it stops by itself or is
+   *  stopped. Returns stop(). */
+  glide(el, axis, v, done, friction = .998) {
+    const key = axis === 'x' ? 'scrollLeft' : 'scrollTop';
+    const max = () => axis === 'x' ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
+    const k = -Math.log(friction);
+    let pos = el[key], last = performance.now(), raf = 0, over = false;
+    const stop = () => { if (over) return; over = true; cancelAnimationFrame(raf); done && done(); };
+    v = Math.max(-8, Math.min(8, v));
+    if (Math.abs(v) < .15) { stop(); return stop; }
+    const run = t => {
+      if (!el.isConnected) { stop(); return; }
+      const dt = Math.min(40, Math.max(0, t - last)); last = t;
+      // the exact distance covered while slowing down over dt (a long frame does not overshoot)
+      const f = Math.exp(-k * dt);
+      pos += v * (1 - f) / k;
+      v *= f;
+      const m = max();
+      if ((v < 0 && pos <= 0) || (v > 0 && pos >= m)) { el[key] = Math.max(0, Math.min(m, pos)); stop(); return; }   // reached the end
+      el[key] = pos;   // pos keeps the fractions the element may round away
+      if (Math.abs(v) < .02) { stop(); return; }
+      raf = requestAnimationFrame(run);
+    };
+    raf = requestAnimationFrame(run);
+    return stop;
+  },
+};
+
 (() => {
   const SKIP = 'input, textarea, select, [contenteditable], [draggable], canvas, .slider, .eq-graph, .eq-handle, .te, #nav, #bar, #np, .msel-menu, .scroll-bubble';
-  let d = null, glide = 0, gliding = null;
+  let d = null, stopGlide = () => {};
 
   function scroller(t) {
     for (let el = t; el && el !== document.documentElement; el = el.parentElement) {
@@ -17,10 +65,10 @@
     }
     return null;
   }
-  const stopGlide = () => { cancelAnimationFrame(glide); glide = 0; if (gliding) { gliding.style.scrollBehavior = ''; gliding = null; } };
+  const halt = () => stopGlide();
 
   addEventListener('pointerdown', e => {
-    stopGlide();
+    halt();   // a press catches a gliding list, like a finger on a phone
     if (e.button !== 0 || e.pointerType !== 'mouse' || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
     const t = e.target;
     if (!(t instanceof Element) || t.closest(SKIP)) return;
@@ -30,7 +78,8 @@
     if (!el) return;
     // the scrollbar: the press is on the scroller itself, outside its content box
     if (t === el) { const r = el.getBoundingClientRect(); if (e.clientX - r.left >= el.clientLeft + el.clientWidth) return; }
-    d = { el, x: e.clientX, y: e.clientY, top: el.scrollTop, on: false, lastY: e.clientY, lastT: performance.now(), v: 0 };
+    d = { el, x: e.clientX, y: e.clientY, top: el.scrollTop, on: false, samples: [] };
+    Fling.track(d.samples, e.clientY);
     addEventListener('pointermove', move, true);
     addEventListener('pointerup', up, true);
     addEventListener('pointercancel', up, true);
@@ -47,8 +96,7 @@
       d.el.style.scrollBehavior = 'auto';
       document.documentElement.classList.add('drag-scrolling');
     }
-    const now = performance.now(), dt = now - d.lastT;
-    if (dt > 0) { d.v = .7 * (e.clientY - d.lastY) / dt + .3 * d.v; d.lastY = e.clientY; d.lastT = now; }
+    Fling.track(d.samples, e.clientY);
     d.el.scrollTop = d.top - dy;
     e.preventDefault();
   }
@@ -61,7 +109,7 @@
     return was;
   }
 
-  function up() {
+  function up(e) {
     const was = end();
     if (!was || !was.on) return;
     const el = was.el;
@@ -69,22 +117,9 @@
     const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
     addEventListener('click', eat, { capture: true, once: true });
     setTimeout(() => { removeEventListener('click', eat, true); document.documentElement.classList.remove('drag-scrolling'); }, 0);
-    let v = performance.now() - was.lastT > 80 ? 0 : -was.v;   // px/ms; held still before letting go: no glide
-    const reduced = typeof PageEffects !== 'undefined' && PageEffects.reduced('scroll');
-    if (Math.abs(v) < .25 || reduced) { el.style.scrollBehavior = ''; return; }
-    v = Math.max(-6, Math.min(6, v));
-    let last = performance.now();
-    gliding = el;
-    const run = t => {
-      const dt = Math.min(32, t - last); last = t;
-      const before = el.scrollTop;
-      el.scrollTop = before + v * dt;
-      v *= Math.pow(.996, dt);
-      if (Math.abs(v) < .05 || el.scrollTop === before || !el.isConnected) { stopGlide(); return; }
-      glide = requestAnimationFrame(run);
-    };
-    glide = requestAnimationFrame(run);
+    if (e && e.type === 'pointerup') Fling.track(was.samples, e.clientY);
+    stopGlide = Fling.glide(el, 'y', -Fling.speed(was.samples), () => { el.style.scrollBehavior = ''; stopGlide = () => {}; });
   }
-  addEventListener('wheel', stopGlide, { capture: true, passive: true });
-  addEventListener('keydown', stopGlide, { capture: true, passive: true });
+  addEventListener('wheel', halt, { capture: true, passive: true });
+  addEventListener('keydown', halt, { capture: true, passive: true });
 })();

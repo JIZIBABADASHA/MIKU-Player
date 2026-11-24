@@ -487,13 +487,15 @@ function attachRailNav(root) {
     head.addEventListener('pointerenter', intent, { passive: true });
     // drag the rail with the mouse to scroll it (the ‹ › buttons were the only way with a mouse). A press that moves
     // more than a few pixels sideways is a drag: the rail follows the pointer and the click that ends it opens nothing.
-    // A flick keeps gliding for a moment; the rail's own snap then brings a card to the edge.
-    let drag = null, glide = 0;
+    // A flick keeps gliding and slows down by itself (Fling, dragscroll.js); the rail's own snap then brings a card to
+    // the edge.
+    let drag = null, stopGlide = () => {};
     const onDown = e => {
       if (e.button !== 0 || e.pointerType !== 'mouse' || e.target.closest('button')) return;
       if (r.scrollWidth - r.clientWidth <= 4) return;
-      cancelAnimationFrame(glide);
-      drag = { x: e.clientX, y: e.clientY, left: r.scrollLeft, on: false, lastX: e.clientX, lastT: performance.now(), v: 0 };
+      stopGlide();   // a press catches a gliding rail
+      drag = { x: e.clientX, y: e.clientY, left: r.scrollLeft, on: false, samples: [] };
+      Fling.track(drag.samples, e.clientX);
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', onUp);
@@ -510,13 +512,12 @@ function attachRailNav(root) {
         r.style.scrollSnapType = 'none'; r.style.scrollBehavior = 'auto';
         warm();
       }
-      const now = performance.now(), dt = now - drag.lastT;
-      if (dt > 0) { drag.v = .7 * (e.clientX - drag.lastX) / dt + .3 * drag.v; drag.lastX = e.clientX; drag.lastT = now; }
+      Fling.track(drag.samples, e.clientX);
       r.scrollLeft = drag.left - dx;
       e.preventDefault();
     };
     const endDrag = () => { r.classList.remove('dragging'); r.style.scrollSnapType = ''; r.style.scrollBehavior = ''; };
-    const onUp = () => {
+    const onUp = e => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
@@ -526,18 +527,8 @@ function attachRailNav(root) {
       const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
       r.addEventListener('click', eat, { capture: true, once: true });
       setTimeout(() => r.removeEventListener('click', eat, true), 0);
-      let v = performance.now() - d.lastT > 80 ? 0 : -d.v;   // px/ms; held still before letting go: no glide
-      if (Math.abs(v) < .25 || PageEffects.reduced('scroll')) { endDrag(); return; }
-      let last = performance.now();
-      const run = t => {
-        const dt = Math.min(32, t - last); last = t;
-        const before = r.scrollLeft;
-        r.scrollLeft = before + v * dt;
-        v *= Math.pow(.994, dt);
-        if (Math.abs(v) < .05 || r.scrollLeft === before || !r.isConnected) { endDrag(); return; }
-        glide = requestAnimationFrame(run);
-      };
-      glide = requestAnimationFrame(run);
+      if (e && e.type === 'pointerup') Fling.track(d.samples, e.clientX);
+      stopGlide = Fling.glide(r, 'x', -Fling.speed(d.samples), () => { endDrag(); stopGlide = () => {}; }, .997);
     };
     const noNativeDrag = e => e.preventDefault();   // the cover image's own drag would take the pointer away
     r.addEventListener('pointerdown', onDown);
@@ -549,7 +540,7 @@ function attachRailNav(root) {
       r.removeEventListener('scroll', onScroll); r.removeEventListener('scrollend', settled);
       r.removeEventListener('pointerenter', intent); head.removeEventListener('pointerenter', intent);
       ro.disconnect(); cancelAnimationFrame(raf); clearTimeout(settleT); clearTimeout(warmT);
-      r.removeEventListener('pointerdown', onDown); r.removeEventListener('dragstart', noNativeDrag); cancelAnimationFrame(glide); onUp();
+      r.removeEventListener('pointerdown', onDown); r.removeEventListener('dragstart', noNativeDrag); stopGlide(); onUp();
     });
   }
   return () => cleanups.forEach(cleanup => cleanup());
