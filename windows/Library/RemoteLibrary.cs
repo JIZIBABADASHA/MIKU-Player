@@ -526,6 +526,12 @@ public sealed class RemoteLibrary : IDisposable
         return r.Url + "/stream/" + Uri.EscapeDataString(Split(t.Id).id) + "?" + (q == "orig" ? "raw=1" : $"q={q}&c={Caps}") + "&t=" + Uri.EscapeDataString(r.Token);
     }
 
+    /// <summary>
+    /// The playing core reads a file still being copied here (IAudioEngine.ReadsGrowingFiles): MainForm asks the core
+    /// that runs now. A module's core that can't (or MIKU's own while the module's is not there yet) gets the whole file.
+    /// </summary>
+    public Func<bool> CanGrow { get; set; }
+
     /// <summary>Streamed straight from the other computer: MIKU's own core, a PCM format (DSD is read from a file).</summary>
     bool CanStream(Track t) => (_s.AudioCore ?? "miku") == "miku" && (Quality(t) != "orig" || !(Base(t).Codec is "DSF" or "DFF"));
 
@@ -550,7 +556,10 @@ public sealed class RemoteLibrary : IDisposable
         return false;
     }
 
-    /// <summary>Before a song of the other computer plays: from the cache, streamed, or (DSD, a module's core) copied first.</summary>
+    /// <summary>
+    /// Before a song of the other computer plays: from the cache, streamed (MIKU's own core), or played from the cache's
+    /// copy as it comes (DSD on MIKU's own core; a module's core that reads growing files, PCM only), or copied first.
+    /// </summary>
     public async Task Prepare(Track t, IEnumerable<Track> next)
     {
         PlayingId = t.Id;
@@ -567,7 +576,10 @@ public sealed class RemoteLibrary : IDisposable
             }
             if (CanStream(t)) BindStream(t);
             else if ((_s.AudioCore ?? "miku") == "miku") await PlayWhileCopying(t);
-            else Bind(t, await Fetch(t, true));   // a module's core reads the file itself: the whole file first
+            // a module's core reads the file itself: from the copy as it grows when it can (Daphne's FileBytes reads
+            // PCM formats that way; its DSD reader needs the whole file), else the whole file first
+            else if (CanGrow?.Invoke() == true && !(Quality(t) == "orig" && Base(t).Codec is "DSF" or "DFF")) await PlayWhileCopying(t);
+            else Bind(t, await Fetch(t, true));
         }
         SaveIndex();
         if (NoCache) Trim();   // 不暫存: the song played before (a DSD file copied to play it) goes now
@@ -575,25 +587,28 @@ public sealed class RemoteLibrary : IDisposable
     }
 
     /// <summary>
-    /// DSD on MIKU's own core (its header and DoP data are read from a file): copied into the cache, and played from
-    /// that file as it grows (GrowingFiles) once its first part is there.
+    /// Copied into the cache, and played from that file as it grows once its first part is there: DSD on MIKU's own
+    /// core (its header and DoP data are read from a file, through GrowingFiles), or any PCM song on a module's core that
+    /// reads growing files (&lt;file&gt;.growing).
     /// </summary>
     async Task PlayWhileCopying(Track t)
     {
         Job job;
-        var task = Fetch(t, true, "orig");
-        lock (_lock) _jobs.TryGetValue(t.Id + "|orig", out job);
+        string q = Quality(t);
+        var task = Fetch(t, true, q);
+        lock (_lock) _jobs.TryGetValue(t.Id + "|" + q, out job);
         var until = DateTime.UtcNow.AddSeconds(60);
         while (!task.IsCompleted)
         {
             if (job != null && job.File != null && job.Total > 0 && Interlocked.Read(ref job.Got) >= Math.Min(job.Total, 1 << 20)) break;
+            // coming, but of unknown size (a converted copy): no <file>.growing, so the whole file first (the copy has
+            // its own 30 s stall limit)
+            if (job != null && job.File != null && job.Total == 0) { await Task.Delay(50); continue; }
             if (DateTime.UtcNow > until) throw new IOException("遠端電腦回應太慢");
             await Task.Delay(50);
         }
         if (task.IsCompleted) { Bind(t, await task); return; }
-        t.Path = job.File;
-        var b = Base(t);
-        t.Codec = b.Codec; t.SampleRate = b.Rate; t.Bits = b.Bits; t.Channels = 2;
+        Bind(t, new FileEntry { File = job.File, Q = q });   // the cache's index gets the copy once it is complete
     }
 
     /// <summary>Copies the given songs into the cache one after another (the song playing keeps most of the connection).</summary>

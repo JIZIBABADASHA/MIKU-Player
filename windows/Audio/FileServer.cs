@@ -198,10 +198,22 @@ public static class GrowingFiles
     sealed class Entry { public long Total, Got; public bool Ended; }
     static readonly ConcurrentDictionary<string, Entry> _files = new(StringComparer.OrdinalIgnoreCase);
 
-    public static void Start(string path, long total) => _files[path] = new Entry { Total = total };
+    /// <summary>
+    /// The file is about to be written. Its whole size also goes into &lt;file&gt;.growing for a core that reads the file
+    /// itself (a module's core, IAudioEngine.ReadsGrowingFiles: Daphne's FileBytes waits while that file is there).
+    /// </summary>
+    public static void Start(string path, long total)
+    {
+        _files[path] = new Entry { Total = total };
+        try { File.WriteAllText(path + ".growing", total.ToString(System.Globalization.CultureInfo.InvariantCulture)); } catch { }
+    }
     public static void Progress(string path, long got) { if (_files.TryGetValue(path, out var e)) System.Threading.Interlocked.Exchange(ref e.Got, got); }
     /// <summary>Written to the end, or given up (the reader then meets the end of what is there).</summary>
-    public static void End(string path) { if (_files.TryRemove(path, out var e)) e.Ended = true; }
+    public static void End(string path)
+    {
+        if (_files.TryRemove(path, out var e)) e.Ended = true;
+        try { File.Delete(path + ".growing"); } catch { }
+    }
     /// <summary>The length the file will have, or 0 when it is not being written.</summary>
     public static long Total(string path) => _files.TryGetValue(path, out var e) ? e.Total : 0;
     public static long Got(string path) => _files.TryGetValue(path, out var e) ? System.Threading.Interlocked.Read(ref e.Got) : -1;

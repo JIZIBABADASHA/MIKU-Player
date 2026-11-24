@@ -453,6 +453,7 @@ public sealed class MainForm : Form
         // 遠端音樂庫 (Library/RemoteLibrary.cs): another computer's MIKU library, listed here and played by this engine
         _remoteLib = new RemoteLibrary(_s);
         _remoteLib.Save += SaveSoon;
+        _remoteLib.CanGrow = () => _engine?.ReadsGrowingFiles == true;
         _remoteLib.LibraryChanged += () => { _player?.Validate(); Post("library", new { revision = -Environment.TickCount }); };
         _remoteLib.Changed += () => PostRemoteLib();
         _remoteLib.OfflineDone += () => PostRemoteLib();

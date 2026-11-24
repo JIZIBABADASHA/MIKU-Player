@@ -49,4 +49,10 @@ public interface IAudioEngine : IDisposable
     double? LiveLatency => null;
     /// <summary>PCM rates the ASIO driver accepts, when the core has it open and knows (null: not known / not open).</summary>
     List<int> AsioRates(string driver) => null;
+    /// <summary>
+    /// The core reads a file still being copied here (遠端音樂庫): its whole size is in &lt;file&gt;.growing until it is
+    /// complete, and the core waits for the bytes not there yet instead of taking them as the end of the song. Then a
+    /// song of another computer starts once its first part has arrived, not after the whole file.
+    /// </summary>
+    bool ReadsGrowingFiles => false;
 }
