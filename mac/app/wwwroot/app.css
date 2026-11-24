@@ -531,11 +531,11 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 .stage .k { font-size: 12px; color: var(--text-3); }
 .stage .v { font-size: 13.5px; }
 .sigpop .note { margin-top: 10px; font-size: 12.5px; color: var(--pink-text); background: var(--pink-dim); padding: 9px 11px; border-radius: 9px; }
-/* light surfaces (light pop-ups: miku, flat, washi, vinyl; light player bar: flat, washi, vinyl): the SR star's white light vanishes on paper,
+/* light surfaces (light pop-ups: every day version; light player bar: every day version but 未來's): the SR star's white light vanishes on paper,
    so it gets deeper colours and a thin dark edge */
-:root:is([data-theme="miku"], [data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot, :root:is([data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot { filter: drop-shadow(0 0 .6px rgba(30, 60, 110, .8)) drop-shadow(0 0 4px rgba(80, 140, 220, .65)); }
-:root:is([data-theme="miku"], [data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before, :root:is([data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before { background: radial-gradient(circle, #fff 0 14%, #8cc2f2 40%, #3f7fc8 80%); }
-:root:is([data-theme="miku"], [data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after, :root:is([data-theme="flat"], [data-theme="washi"], [data-theme="vinyl"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after { background:
+:root[data-mode="day"] .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot, :root[data-mode="day"]:not([data-theme="miku"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot { filter: drop-shadow(0 0 .6px rgba(30, 60, 110, .8)) drop-shadow(0 0 4px rgba(80, 140, 220, .65)); }
+:root[data-mode="day"] .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::before, :root[data-mode="day"]:not([data-theme="miku"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot::before { background: radial-gradient(circle, #fff 0 14%, #8cc2f2 40%, #3f7fc8 80%); }
+:root[data-mode="day"] .sigpop .q-bitperfect:not(.dsd):not(.hires) h3 .dot::after, :root[data-mode="day"]:not([data-theme="miku"]) .sig.q-bitperfect:not(.dsd):not(.hires) .dot::after { background:
     linear-gradient(90deg, transparent, rgba(60, 120, 200, .75) 50%, transparent) center / 100% 1px no-repeat,
     linear-gradient(0deg, transparent, rgba(60, 120, 200, .75) 50%, transparent) center / 1px 100% no-repeat; }
 /* the signal path drawn in sections (a module's core: SignalInfo.Custom) and its collapsed technical details */
@@ -2026,8 +2026,8 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 .msel-opt.dis { opacity: .4; pointer-events: none; }
 .msel-menu::-webkit-scrollbar { width: 8px; }
 .msel-menu::-webkit-scrollbar-thumb { background: rgba(var(--ink), .15); border-radius: 4px; border: 2px solid transparent; background-clip: padding-box; }
-:root[data-theme="miku"] .msel-btn { background: linear-gradient(180deg, #fff, #f6fbfb); }
-:root[data-theme="miku"] .msel-menu { background: rgba(255,255,255,.97); }
+:root[data-theme="miku"]:not([data-mode="night"]) .msel-btn { background: linear-gradient(180deg, #fff, #f6fbfb); }
+:root[data-theme="miku"]:not([data-mode="night"]) .msel-menu { background: rgba(255,255,255,.97); }
 :root[data-theme="flat"] .msel-btn, :root[data-theme="neon"] .msel-btn, :root[data-theme="flat"] .msel-menu, :root[data-theme="neon"] .msel-menu, :root[data-theme="flat"] .msel-opt, :root[data-theme="neon"] .msel-opt { border-radius: 2px; }
 
 /* ===== Now Playing：先照原本彈出，彈完後下方播放列沉下去，頁面同時往下延伸填滿 ===== */
@@ -2257,20 +2257,34 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 /* search: what matched is marked like a highlighter pen (no underline), in a colour that suits each theme */
 :root { --hit: rgba(57, 197, 187, .34); }
 [data-theme="miku"] { --hit: rgba(44, 188, 180, .30); }
-[data-theme="night"] { --hit: rgba(57, 197, 187, .34); }
+[data-theme="miku"][data-mode="night"] { --hit: rgba(57, 197, 187, .34); }
 [data-theme="wood"] { --hit: rgba(214, 168, 92, .36); }
+[data-theme="wood"][data-mode="day"] { --hit: rgba(196, 150, 70, .30); }
 [data-theme="glass"] { --hit: rgba(255, 143, 207, .34); }
+[data-theme="glass"][data-mode="day"] { --hit: rgba(232, 85, 158, .22); }
 [data-theme="flat"] { --hit: rgba(255, 221, 51, .62); }
+[data-theme="flat"][data-mode="night"] { --hit: rgba(255, 221, 51, .30); }
 [data-theme="neon"] { --hit: rgba(255, 43, 214, .38); }
+[data-theme="neon"][data-mode="day"] { --hit: rgba(240, 31, 196, .20); }
 [data-theme="washi"] { --hit: rgba(196, 67, 44, .20); }
+[data-theme="washi"][data-mode="night"] { --hit: rgba(232, 103, 76, .30); }
 [data-theme="vinyl"] { --hit: rgba(217, 165, 33, .42); }
+[data-theme="vinyl"][data-mode="night"] { --hit: rgba(229, 180, 58, .30); }
+[data-theme="sakura"] { --hit: rgba(214, 81, 128, .22); }
+[data-theme="sakura"][data-mode="night"] { --hit: rgba(255, 143, 180, .28); }
+[data-theme="terminal"] { --hit: rgba(57, 255, 122, .26); }
+[data-theme="terminal"][data-mode="day"] { --hit: rgba(31, 122, 58, .18); }
+[data-theme="pop"] { --hit: rgba(255, 210, 63, .78); }
+[data-theme="pop"][data-mode="night"] { --hit: rgba(255, 210, 63, .34); }
+[data-theme="velvet"] { --hit: rgba(212, 175, 106, .30); }
+[data-theme="velvet"][data-mode="day"] { --hit: rgba(142, 31, 58, .16); }
 mark.hit {
   color: inherit; font-weight: 700; border-radius: 2px;
   background: linear-gradient(100deg, transparent .05em, var(--hit) .12em, var(--hit) calc(100% - .12em), transparent calc(100% - .05em)) 0 88% / 100% 62% no-repeat;
   padding: 0 .1em; margin: 0 -.1em;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
-[data-theme="neon"] mark.hit { text-shadow: 0 0 8px rgba(255, 43, 214, .45); }
+[data-theme="neon"]:not([data-mode="day"]) mark.hit { text-shadow: 0 0 8px rgba(255, 43, 214, .45); }
 
 /* ───────────── 播放清單 (playlists.js) ───────────── */
 .pl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 22px; padding: 4px 36px 40px; }

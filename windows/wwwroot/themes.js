@@ -1,49 +1,85 @@
 'use strict';
-/* ═════════════════════════════ themes ═════════════════════════════ */
+/* ═════════════════════════════ themes ═════════════════════════════
+ * A theme (data-theme on <html>) and, chosen on its own, its day or night version (data-mode="day" / "night").
+ * Every theme has both: `native` is the one it was first made as (its plain [data-theme] rules in themes.css),
+ * the other one is drawn over it with [data-theme]:where([data-mode]) rules. A setting saved before the modes
+ * existed keeps its look: no mode saved → the theme's native one, and 未來・夜 ('night') is 未來 at night. */
 const Theme = {
   list: [
-    { id: 'miku',  name: T('未來'),     en: 'MIKU',     desc: T('明亮水色、蔥綠為主、櫻桃粉點綴，深色播放列配蔥綠滾邊。') },
-    { id: 'night', name: T('未來・夜'), en: 'NIGHT', desc: T('帶綠的墨色夜空與星點，蔥綠像螢光棒一樣柔和發光。') },
-    { id: 'wood',  name: T('木質調'),   en: 'WALNUT',   desc: T('胡桃木紋、黃銅旋鈕與赤陶色，像老音響一樣溫暖。') },
-    { id: 'glass', name: T('玻璃質感'), en: 'GLASS',    desc: T('懸浮毛玻璃面板，背景隨專輯封面流動變色。') },
-    { id: 'flat',  name: T('極簡平面'), en: 'MINIMAL',  desc: T('亮色、無陰影、直角。黑白為主，只用一種鈷藍。') },
-    { id: 'neon',  name: T('霓虹賽博'), en: 'NEON',     desc: T('深夜網格、電光青與洋紅發光，等寬數字。') },
-    { id: 'washi', name: T('和紙'),     en: 'WASHI',    desc: T('米白紙紋、明朝體，藍染為主色、朱印點綴。') },
-    { id: 'vinyl', name: T('黑膠'),     en: 'VINYL',    desc: T('七〇年代音響：鼠尾草綠的房間、松木深綠側欄、焦橙與芥末黃。專輯是唱片封套，滑過會抽出黑膠；播放中的唱片會轉，暫停就停住。') },
+    { id: 'miku',     name: T('未來'),     en: 'MIKU',     native: 'day',
+      desc: { day: T('明亮水色、蔥綠為主、櫻桃粉點綴，深色播放列配蔥綠滾邊。'), night: T('帶綠的墨色夜空與星點，蔥綠像螢光棒一樣柔和發光。') } },
+    { id: 'wood',     name: T('木質調'),   en: 'WALNUT',   native: 'night',
+      desc: { day: T('淺色橡木側板、亞麻白的房間，古銅色點綴，白天的老音響。'), night: T('胡桃木紋、黃銅旋鈕與赤陶色，像老音響一樣溫暖。') } },
+    { id: 'glass',    name: T('玻璃質感'), en: 'GLASS',    native: 'night',
+      desc: { day: T('白色毛玻璃浮在粉彩晨光上，背景一樣隨專輯封面變色。'), night: T('懸浮毛玻璃面板，背景隨專輯封面流動變色。') } },
+    { id: 'flat',     name: T('極簡平面'), en: 'MINIMAL',  native: 'day',
+      desc: { day: T('亮色、無陰影、直角。黑白為主，只用一種鈷藍。'), night: T('近黑、無陰影、直角。白字為主，只用一種鈷藍。') } },
+    { id: 'neon',     name: T('霓虹賽博'), en: 'NEON',     native: 'night',
+      desc: { day: T('白天的實驗室：淡紫白底與網格，青色與洋紅，等寬數字。'), night: T('深夜網格、電光青與洋紅發光，等寬數字。') } },
+    { id: 'washi',    name: T('和紙'),     en: 'WASHI',    native: 'day',
+      desc: { day: T('米白紙紋、明朝體，藍染為主色、朱印點綴。'), night: T('藍染的夜色、月白色的字與明朝體，朱印點綴。') } },
+    { id: 'vinyl',    name: T('黑膠'),     en: 'VINYL',    native: 'day',
+      desc: { day: T('七〇年代音響：鼠尾草綠的房間、松木深綠側欄、焦橙與芥末黃。專輯是唱片封套，滑過會抽出黑膠；播放中的唱片會轉，暫停就停住。'),
+              night: T('關了燈的聆聽室：深松綠的牆、奶油色的字、焦橙與芥末黃。專輯一樣是唱片封套，播放中的唱片會轉。') } },
+    { id: 'sakura',   name: T('櫻花'),     en: 'SAKURA',   native: 'day',
+      desc: { day: T('春天的櫻花：淡粉的紙色、花瓣從右上角飄落，梅紅點綴。'), night: T('夜櫻：深紫藍的夜空，燈籠照亮的粉色櫻花與暖黃燈光。') } },
+    { id: 'terminal', name: T('終端機'),   en: 'TERMINAL', native: 'night',
+      desc: { day: T('綠條紋的打孔報表紙、側邊送紙孔、等寬字，色帶紅點綴。'), night: T('黑底 CRT 螢幕、磷光綠的等寬字，選到的項目反白。') } },
+    { id: 'pop',      name: T('普普'),     en: 'POP',      native: 'day',
+      desc: { day: T('漫畫風：粗黑框、硬陰影與網點，紅黃藍三原色。'), night: T('漫畫風的夜版：墨黑底、奶油色粗框、硬陰影與暗色網點。') } },
+    { id: 'velvet',   name: T('絲絨'),     en: 'VELVET',   native: 'night',
+      desc: { day: T('白天的劇院大廳：香檳白的牆、酒紅絲絨布幕側欄與金色細線。'), night: T('爵士俱樂部：酒紅絲絨布幕、香檳金細線與裝飾藝術花紋。') } },
   ],
+  modes: [['day', T('日'), 'sun'], ['night', T('夜'), 'moon']],
   cur: null,
+  mode: null,
   key: 'miku.theme',
+  modeKey: 'miku.mode',
 
-  /** Applies a theme instantly (no persistence). */
-  set(id) {
-    if (!this.list.some(t => t.id === id)) id = 'miku';
-    this.cur = id;
-    document.documentElement.dataset.theme = id;
-    try { localStorage.setItem(this.key, id); } catch (e) { }
+  /** A saved theme and mode → one that exists ('night' was 未來・夜 before themes had modes). */
+  resolve(id, mode) {
+    if (id === 'night') { id = 'miku'; if (!mode) mode = 'night'; }
+    const t = this.list.find(t => t.id === id) || this.list[0];
+    return [t.id, mode === 'day' || mode === 'night' ? mode : t.native];
+  },
+
+  /** Applies a theme and mode instantly (no saving to the app settings). */
+  set(id, mode) {
+    [id, mode] = this.resolve(id, mode);
+    this.cur = id; this.mode = mode;
+    const root = document.documentElement;
+    root.dataset.theme = id;
+    root.dataset.mode = mode;
+    try { localStorage.setItem(this.key, id); localStorage.setItem(this.modeKey, mode); } catch (e) { }
     this.ambient();
     // canvases read colors from CSS — redraw them
     requestAnimationFrame(() => { try { typeof Dsp !== 'undefined' && Dsp.cfg && Dsp.drawGraph(); } catch (e) { } });
   },
 
-  /** Switches theme with a cross-fade and saves it to the app settings. */
-  apply(id) {
-    if (id === this.cur) return;
-    const run = () => this.set(id);
+  /** Switches theme and / or mode with a cross-fade and saves them to the app settings. */
+  apply(id, mode) {
+    [id, mode] = this.resolve(id || this.cur, mode || this.mode);
+    if (id === this.cur && mode === this.mode) return;
+    const run = () => this.set(id, mode);
     if (document.startViewTransition && !PageEffects.reduced('page') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
     else run();
-    try { if (typeof App !== 'undefined' && App.settings) setUiPref('theme', id); } catch (e) { }
-    document.querySelectorAll('.tp').forEach(el => el.classList.toggle('on', el.dataset.id === id));
+    try { if (typeof App !== 'undefined' && App.settings) { setUiPref('theme', id); setUiPref('themeMode', mode); } } catch (e) { }
+    this.paint();
   },
 
   /** Early boot: last theme from local cache (avoids a flash), then the saved setting once the host is ready. */
   boot() {
-    let id = 'miku';
-    try { id = localStorage.getItem(this.key) || id; } catch (e) { }
-    this.set(id);
+    let id = 'miku', mode = null;
+    try { id = localStorage.getItem(this.key) || id; mode = localStorage.getItem(this.modeKey); } catch (e) { }
+    this.set(id, mode);
   },
   sync() {
-    const id = typeof App !== 'undefined' && App.settings && App.settings.ui && App.settings.ui.theme;
-    if (id && id !== this.cur) this.set(id);
+    const ui = typeof App !== 'undefined' && App.settings && App.settings.ui;
+    if (!ui || !ui.theme) return;
+    const [id, mode] = this.resolve(ui.theme, ui.themeMode);
+    if (id !== this.cur || mode !== this.mode) this.set(id, mode);
+    // a setting from before the modes (or 未來・夜): saved the new way, so it reads the same everywhere from now on
+    try { if (ui.theme !== id || ui.themeMode !== mode) { setUiPref('theme', id); setUiPref('themeMode', mode); } } catch (e) { }
   },
 
   /* glass theme: ambient layer that follows the now-playing artwork */
@@ -71,25 +107,47 @@ const Theme = {
     }
   },
 
-  /** Settings page section. */
+  /** The settings section, when it is shown: the chosen card, the 日 / 夜 switch, the previews and the line under them. */
+  paint() {
+    const sect = document.querySelector('.sect.theme-sect');
+    if (!sect) return;
+    sect.querySelectorAll('.tp').forEach(el => el.classList.toggle('on', el.dataset.id === this.cur));
+    sect.querySelectorAll('.theme-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === this.mode));
+    sect.querySelectorAll('.tp-screen').forEach(el => { el.dataset.mode = this.mode; });
+    const t = this.list.find(t => t.id === this.cur), m = this.modes.find(m => m[0] === this.mode);
+    const desc = sect.querySelector('.theme-desc');
+    if (t && desc) { desc.textContent = ''; desc.append(h('b', null, t.name + '・' + m[1]), t.desc[this.mode]); }
+  },
+
+  /** Settings page section: one card per theme, and 日 / 夜 as a switch of its own. */
   section(root) {
-    const sect = h('div', { class: 'sect' }, h('h2', null, T('外觀')), h('div', { class: 'hint' }, T('選擇介面主題。切換後立即套用，並會記住你的選擇。')));
+    const mode = h('div', { class: 'seg theme-mode' });
+    for (const [v, label, ic] of this.modes) {
+      const b = h('button', { 'data-v': v, title: label, html: icon(ic) + `<span>${label}</span>` });
+      b.onclick = () => this.apply(this.cur, v);
+      mode.append(b);
+    }
+    const sect = h('div', { class: 'sect theme-sect' },
+      h('div', { class: 'theme-head' },
+        h('div', { class: 'tx' }, h('h2', null, T('外觀')), h('div', { class: 'hint' }, T('選擇主題，再選日或夜。切換後立即套用，並會記住你的選擇。'))),
+        mode));
     const grid = h('div', { class: 'theme-grid' });
     for (const t of this.list) {
-      const card = h('button', { class: 'tp' + (t.id === this.cur ? ' on' : ''), 'data-id': t.id, title: t.name });
+      const card = h('button', { class: 'tp', 'data-id': t.id, title: t.name + ' · ' + t.en });
       card.innerHTML = `
-        <div class="tp-screen" data-theme="${t.id}">
+        <div class="tp-screen" data-theme="${t.id}" data-mode="${this.mode}">
           <div class="tp-side"><i class="logo"></i><i class="on"></i><i></i><i></i><i></i></div>
           <div class="tp-main"><b></b><div class="tp-cards"><i></i><i></i><i></i></div></div>
           <div class="tp-bar"><i class="art"></i><i class="heart"></i><span class="seek"></span><i class="play"></i></div>
         </div>
-        <div class="tp-name"><b>${t.name}</b><small>${t.en}</small><span class="chk">${icon('check')}</span></div>
-        <div class="tp-desc">${t.desc}</div>`;
-      card.onclick = () => this.apply(t.id);
+        <span class="chk">${icon('check')}</span>
+        <div class="tp-name"><b>${t.name}</b><small>${t.en}</small></div>`;
+      card.onclick = () => this.apply(t.id, this.mode);
       grid.append(card);
     }
-    sect.append(grid);
+    sect.append(grid, h('div', { class: 'theme-desc' }));
     root.append(sect);
+    this.paint();
   },
 };
 Theme.boot();
