@@ -104,10 +104,15 @@ const Playlists = {
 Views.playlists = function (view) {
   const add = h('button', { class: 'btn primary small', html: icon('plus') + T('新增播放清單') });
   add.onclick = () => Playlists.askName(add, T('新增播放清單'), '', name => { const pl = Playlists.create(name); go('#/playlist/' + pl.id); });
-  view.append(pageHead(T('播放清單'), T`${Playlists.list.length} 個`, [add]));
+  // 匯入: m3u / m3u8, pls, xspf, foobar2000 .fpl (playlistio.js); a file dropped on the window does the same
+  const imp = h('button', { class: 'btn small', html: icon('import') + T('匯入播放清單…'),
+    title: T('匯入 m3u、m3u8、pls、xspf 或 foobar2000 的 fpl 檔；也可以直接把檔案拖進視窗') });
+  imp.onclick = () => PlaylistIO.pick();
+  view.append(pageHead(T('播放清單'), T`${Playlists.list.length} 個`, [imp, add]));
   if (!Playlists.list.length) {
     view.append(h('div', { class: 'empty', style: { minHeight: '50vh' } }, h('div', { class: 'box' },
-      h('p', null, T('還沒有播放清單。按「新增播放清單」，或在曲目、專輯上按右鍵選「加入播放清單…」。')))));
+      h('p', null, T('還沒有播放清單。按「新增播放清單」，或在曲目、專輯上按右鍵選「加入播放清單…」。')),
+      h('p', null, T('也可以按「匯入播放清單…」，或把 m3u、m3u8、pls、xspf、foobar2000 的 fpl 檔拖進視窗。')))));
     return;
   }
   const grid = h('div', { class: 'pl-grid' });
@@ -131,6 +136,7 @@ function playlistMenu(pl, anchor) {
     tracks.length && { label: T('隨機播放'), icon: 'shuffle', run: () => App.playTracks(tracks, -1, true) },
     tracks.length && { label: T('加入播放佇列'), icon: 'queue', run: () => { Host.call('queue.add', { ids: tracks.map(t => t.id) }); toast(T`已加入 ${tracks.length} 首`); } },
     tracks.length && '-',
+    tracks.length && { label: T('匯出成 M3U8…'), icon: 'export', run: () => PlaylistIO.export(pl) },
     { label: T('重新命名…'), icon: 'note', run: () => setTimeout(() => Playlists.askName(anchor, T('重新命名播放清單'), pl.name, name => Playlists.rename(pl, name)), 180) },
     { label: T('刪除播放清單'), icon: 'trash', run: () => setTimeout(() => menu([
       { label: T`確定刪除「${pl.name}」`, icon: 'trash', run: () => { Playlists.remove(pl); toast(T`已刪除「${pl.name}」`); } },

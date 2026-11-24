@@ -1670,6 +1670,30 @@ public sealed class MainForm : Form
                 return Init();
             case "init": return Init();
             case "playlists.get": return _s.Playlists;
+            case "library.files":
+            {
+                // 匯入 / 匯出播放清單 (playlistio.js): this computer's tracks with their files (ids: only those)
+                var want = L(a, "ids")?.ToHashSet();
+                return _lib.AllTracks.Where(t => want == null || want.Contains(t.Id))
+                    .Select(t => new object[] { t.Id, t.Path ?? "", t.Title ?? "", t.Artist ?? "", Math.Round(t.Duration, 1) }).ToList();
+            }
+            case "playlists.saveFile":
+            {
+                // 匯出播放清單: .m3u8 is UTF-8 as it is; .m3u gets a BOM, so players that read .m3u in the system's code page
+                // still see UTF-8
+                string name = string.Concat((S(a, "name") ?? "playlist").Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim();
+                using var dlg = new SaveFileDialog
+                {
+                    Title = Tr("匯出播放清單", "导出播放列表", "Export playlist", "プレイリストを書き出す"),
+                    FileName = (name.Length > 0 ? name : "playlist") + ".m3u8",
+                    Filter = "M3U8 (UTF-8)|*.m3u8|M3U|*.m3u",
+                    DefaultExt = "m3u8", AddExtension = true, OverwritePrompt = true,
+                };
+                if (dlg.ShowDialog(this) != DialogResult.OK) return null;
+                bool bom = dlg.FileName.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase);
+                await File.WriteAllTextAsync(dlg.FileName, S(a, "text") ?? "", new System.Text.UTF8Encoding(bom));
+                return dlg.FileName;
+            }
             case "playlists.put":
             {
                 // the page keeps the playlists and sends all of them after each change

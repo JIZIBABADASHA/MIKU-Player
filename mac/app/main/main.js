@@ -898,6 +898,23 @@ async function handleRpc(m, a) {
       return init();
     case 'init': return init();
     case 'playlists.get': return S.playlists || [];
+    case 'library.files': {
+      // 匯入 / 匯出播放清單 (playlistio.js): this computer's tracks with their files (ids: only those)
+      const want = Array.isArray(a.ids) ? new Set(a.ids) : null;
+      return lib.allTracks.filter(t => !want || want.has(t.id))
+        .map(t => [t.id, t.path || '', t.title || '', t.artist || '', Math.round((t.duration || 0) * 10) / 10]);
+    }
+    case 'playlists.saveFile': {
+      // 匯出播放清單: .m3u8 is UTF-8 as it is; .m3u gets a BOM, so players that read .m3u in the system's code page still
+      // see UTF-8
+      const name = String(a.name || 'playlist').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim() || 'playlist';
+      const r = await dialog.showSaveDialog(win, { title: tr('匯出播放清單'), defaultPath: path.join(app.getPath('music'), name + '.m3u8'),
+        filters: [{ name: 'M3U8 (UTF-8)', extensions: ['m3u8'] }, { name: 'M3U', extensions: ['m3u'] }] });
+      if (r.canceled || !r.filePath) return null;
+      const bom = r.filePath.toLowerCase().endsWith('.m3u') ? '\ufeff' : '';
+      await fs.promises.writeFile(r.filePath, bom + String(a.text || ''), 'utf8');
+      return r.filePath;
+    }
     case 'playlists.put': {
       // the page keeps the playlists (播放清單) and sends all of them after each change
       if (!Array.isArray(a.list)) return null;
@@ -1353,6 +1370,11 @@ function uiLang() {
   return c.startsWith('ja') ? 'ja' : c.startsWith('zh') ? (/hans|-cn|-sg/.test(c) && !/hant/.test(c) ? 'zh-Hans' : 'zh-Hant') : 'en';
 }
 const NATIVE_TEXT = {
+  "匯出播放清單": [
+    "导出播放列表",
+    "Export playlist",
+    "プレイリストを書き出す"
+  ],
   "關於 MIKU": [
     "关于 MIKU",
     "About MIKU",
