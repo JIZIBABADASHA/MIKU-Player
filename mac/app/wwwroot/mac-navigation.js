@@ -1,18 +1,52 @@
 'use strict';
 // macOS two-finger page swipes arrive as pixel wheel events, not Electron's three-finger "swipe" event.
 (() => {
-  const gap = 300, threshold = 140;
-  let last = -Infinity, x = 0, y = 0, blocked = false, handled = false, lastNavigation = -Infinity;
+  const gap = 300, threshold = 120;
+  // One gesture: its events (and its momentum tail) come in less than `gap` apart. `start`: the sideways scrollers under
+  // the pointer when it began, with where they were, so a swipe only scrolls one that can still move that way (a rail
+  // at its left end, or a page a few pixels too wide, lets the swipe back through, like Safari). `why`: why it is not
+  // a page swipe ('vertical' can still turn into one, see fresh()).
+  let last = -Infinity, x = 0, y = 0, blocked = false, why = '', handled = false, lastNavigation = -Infinity;
+  let start = null, began = -Infinity, peak = 0, low = 0, dir = 0;
   const verticalWheel = e => Math.abs(e.deltaY) >= 12 && Math.abs(e.deltaY) > Math.abs(e.deltaX) * 1.5;
 
-  function reset() { last = -Infinity; x = y = 0; blocked = handled = false; }
-  function ownsHorizontalScroll(target) {
-    if (!(target instanceof Element)) return false;
-    if (target.isContentEditable || target.closest('.rail, .slider, .eq-graph, input, textarea, select')) return true;
+  function reset() { last = -Infinity; x = y = 0; blocked = handled = false; why = ''; start = null; }
+  /** The sideways scrollers under target ({ el, left, max }), or 'control' when target has its own sideways drag. */
+  function horizontalScrollers(target) {
+    if (!(target instanceof Element)) return [];
+    if (target.isContentEditable || target.closest('.slider, .eq-graph, input, textarea, select')) return 'control';
+    const list = [];
     for (let el = target; el; el = el.parentElement) {
-      if (el.scrollWidth <= el.clientWidth + 2) continue;
-      if (/^(auto|scroll|overlay)$/.test(getComputedStyle(el).overflowX)) return true;
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 2) continue;
+      if (/^(auto|scroll|overlay)$/.test(getComputedStyle(el).overflowX)) list.push({ el, left: el.scrollLeft, max });
     }
+    return list;
+  }
+  /** Whether a scroller under the gesture's start could still scroll toward d (-1: left, 1: right). */
+  function ownsSwipe(d) {
+    if (start === 'control') return true;
+    return !!start?.some(s => d < 0 ? s.left > 2 : s.left < s.max - 2);
+  }
+  function begin(e) {
+    x = y = 0; handled = false; blocked = false; why = '';
+    start = horizontalScrollers(e.composedPath()[0]);
+    began = e.timeStamp; peak = low = 0; dir = 0;
+  }
+  /** Whether e, inside the current gesture's stream, is really a new gesture made while the last one's momentum tail
+   *  was still coming in: trackpad momentum only dies down and keeps its axis, so deltas that rise again after it has
+   *  died well down, a turn the other way, or a sideways move after an up/down scroll start a new one. Without this, a
+   *  swipe back made soon after a scroll or another swipe was eaten as part of it. */
+  function fresh(e) {
+    const mag = Math.hypot(e.deltaX, e.deltaY);
+    const rose = e.timeStamp - began > 200 && low < peak * 0.35 && mag > low * 2 + 6;
+    if (mag >= peak) peak = low = mag; else low = Math.min(low, mag);
+    if (handled) {
+      if (performance.now() - lastNavigation < 250) return false;
+      return rose || (dir && Math.sign(e.deltaX) === -dir && Math.abs(e.deltaX) >= 3 && Math.abs(e.deltaX) > Math.abs(e.deltaY));
+    }
+    if (why === 'scroller') return rose;
+    if (why === 'vertical') return rose || (Math.abs(e.deltaX) >= 4 && Math.abs(e.deltaX) > Math.abs(e.deltaY) * 2);
     return false;
   }
   // The full-screen now-playing page (#np.on): a two-finger swipe up raises the player bar over it; down puts a raised
@@ -94,23 +128,24 @@
     if (!e.deltaX && !e.deltaY || e.mikuForwarded) return;
     // Use input time so a busy renderer cannot split one queued swipe into several gestures.
     const now = e.timeStamp;
-    if (now - last > gap) {
-      x = y = 0; handled = false;
-      blocked = ownsHorizontalScroll(e.composedPath()[0]);
-    }
+    if (now - last > gap || fresh(e)) begin(e);
     last = now;
-    // Preserve pinch zoom, modified wheel controls and ordinary mouse-wheel scrolling.
-    if (e.defaultPrevented || e.deltaMode !== WheelEvent.DOM_DELTA_PIXEL || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) blocked = true;
+    // Preserve pinch zoom, modified wheel controls and ordinary mouse-wheel scrolling (for this event only: a pinch or
+    // a held key does not spoil the rest of the gesture).
+    if (e.defaultPrevented || e.deltaMode !== WheelEvent.DOM_DELTA_PIXEL || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
     if (blocked) return;
     if (handled) {
-      if (verticalWheel(e)) { blocked = true; return; }
+      if (verticalWheel(e)) { blocked = true; why = 'done'; return; }
       e.preventDefault(); return;
     }
     x += e.deltaX; y += Math.abs(e.deltaY);
     // Once a gesture is vertical, its sideways drift must not become a page swipe.
-    if (y > 12 && y > Math.abs(x) * 1.5) { blocked = true; return; }
+    if (y > 16 && y > Math.abs(x) * 1.5) { blocked = true; why = 'vertical'; return; }
     if (Math.abs(x) < threshold || Math.abs(x) < y * 1.8) return;
-    handled = true;
+    const d = Math.sign(x);
+    // a sideways list under the pointer that can still scroll this way takes the swipe (the browser has been scrolling it)
+    if (ownsSwipe(d)) { blocked = true; why = 'scroller'; return; }
+    handled = true; dir = d;
     e.preventDefault();
     // With macOS natural scrolling, fingers moving right produce negative deltaX (back).
     navigate(x < 0 ? -1 : 1);
@@ -126,6 +161,6 @@
     // Some trackpad settings can deliver both forms of the same gesture.
     if (performance.now() - lastNavigation < 700) return;
     navigate(msg.d.offset);
-    last = performance.now(); handled = true; blocked = false;
+    last = performance.now(); handled = true; blocked = false; why = ''; dir = msg.d.offset; began = last; peak = low = 0;
   });
 })();
