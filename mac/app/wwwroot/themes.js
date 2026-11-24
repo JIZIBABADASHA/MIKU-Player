@@ -13,7 +13,7 @@ const Theme = {
     { id: 'glass',    name: T('玻璃質感'), en: 'GLASS',    native: 'night',
       desc: { day: T('白色毛玻璃浮在粉彩晨光上，背景一樣隨專輯封面變色。'), night: T('懸浮毛玻璃面板，背景隨專輯封面流動變色。') } },
     { id: 'flat',     name: T('極簡平面'), en: 'MINIMAL',  native: 'day',
-      desc: { day: T('亮色、無陰影、直角。黑白為主，只用一種鈷藍。'), night: T('近黑、無陰影、直角。白字為主，只用一種鈷藍。') } },
+      desc: { day: T('瑞士海報風：白紙黑字、超大粗體標題、直角無陰影，只用一種鈷藍。'), night: T('瑞士海報風的夜版：石墨灰的底、亮白的大字，直角無陰影，一種鈷藍。') } },
     { id: 'neon',     name: T('霓虹賽博'), en: 'NEON',     native: 'night',
       desc: { day: T('白天的實驗室：淡紫白底與網格，青色與洋紅，等寬數字。'), night: T('深夜網格、電光青與洋紅發光，等寬數字。') } },
     { id: 'washi',    name: T('和紙'),     en: 'WASHI',    native: 'day',

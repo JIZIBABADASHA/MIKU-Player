@@ -2358,3 +2358,352 @@
 :root[data-theme="pop"]:where(:not([data-mode="night"])) #sidebar .nav a em { color: #3a372d; }
 :root[data-theme="pop"] .row.playing .icon-btn.fav-on { color: #c0122a; }
 :root[data-theme="pop"]:where([data-mode="night"]) :is(.badge.hi, .badge.dsd) { color: #111111; }
+
+/* ═════════════════════════════ 極簡平面（flat）· 瑞士國際主義海報 ═════════════════════════════
+   像一張瑞士風格（International Typographic Style）的海報：白紙、黑字、一個鈷藍色塊。
+   · 結構靠留白、字級和格線，不靠框線：內容區是一張白紙，側欄和播放列是淡灰的「紙框」，
+     設定頁的面板是淡灰的色塊，色塊之間用白色的空隙分開。只在必要的地方留很淡的細線，沒有黑線。
+   · 頁面標題非常大、非常粗、字距收緊，靠左對齊；旁邊的「12 張」用鈷藍、等寬數字，和標題同一條基線。
+   · 區塊標題上方有一小段粗的鈷藍色條（海報上的「旗標」），標示一個區塊的開始。
+   · 選中的項目：側欄是一整條實心鈷藍色塊；分段按鈕、設定分頁是字下面一條粗的鈷藍底線。
+   · 全部直角、完全沒有陰影；數字一律等寬（時間、曲數、張數）。
+   · 開關：方形。關的時候是白底＋灰框＋灰色方鈕在左；開的時候整個變鈷藍、白色方鈕在右。
+   · 正在播放：大字的歌名；畫面左右分成兩塊色面（封面那半是淡灰、歌詞那半是白紙），
+     分界落在兩欄中間的空隙，不會碰到任何字、進度條或按鈕；角落按鈕都是實心底。
+   字體：標題用 Helvetica Neue（Mac）／Segoe UI Black（Windows，Segoe UI 的 900 字重）；中文日文自動改用蘋方／正黑體。
+   這一份檔案就是整個主題的「個性」，要退回舊樣子時整份拿掉即可。 */
+
+
+/* ───────────── 1 · 色彩（白天，主題原本的版本） ─────────────
+   內容區是純白的紙；側欄、播放列是淡灰的紙框（不用分隔線，用顏色的深淺分開）。
+   文字是近黑；第二層、第三層文字也夠深（對面板 7:1、5:1 以上）。鈷藍 #2040e0 白字 7:1，當文字也 7:1。 */
+[data-theme="flat"] {
+  --bg: #ffffff; --bg-rgb: 255, 255, 255; --bg-2: #f2f2ef;
+  --surface: #f3f3f0; --surface-2: #e8e8e4; --surface-3: #d6d6d1;
+  --ink: 17, 17, 17; --line: rgba(0,0,0,.07); --line-2: rgba(0,0,0,.13);
+  --text: #111111; --text-hi: #000000; --text-sub: #3a3a38; --text-2: #4a4a47; --text-3: #61615d;
+  --teal: #2040e0; --teal-rgb: 32, 64, 224; --teal-2: #1733c4; --teal-dim: rgba(32,64,224,.10);
+  --pink: #e0283c; --pink-dim: rgba(224,40,60,.10); --pink-line: rgba(224,40,60,.5); --pink-text: #c01a2e;
+  --on-accent: #ffffff;
+  --play-bg: #2040e0; --play-ink: #ffffff; --knob: #111111; --knob-off: #ffffff;
+  --bar-bg: #f2f2ef; --pop-bg: #ffffff; --drawer-bg: #ffffff; --toast-bg: #111111; --modal-bg: #ffffff;
+  --tip-bg: #111111; --tip-ink: #ffffff;
+  --shadow-rgb: 0, 0, 0; --sh: 0;
+  --np-base: #ffffff; --np-ink: 17, 17, 17; --np-pill-ink: #ffffff; --np-dim: 1;
+  --np-veil: none; --np-calm: transparent;
+  --brand-ink: #111111; --brand-track: #d6d6d1;
+  --hero-dim: 1.2; --hero-op: .3;
+  --app-bg: #ffffff;
+  --sidebar-bg: #f2f2ef;
+  --font: "Helvetica Neue", "Segoe UI Variable Text", "Segoe UI", Arial, "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", "Meiryo UI", system-ui, sans-serif;
+  --font-display: "Helvetica Neue", "Segoe UI", Arial, "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif;
+  /* 這個主題自己的值 */
+  --fl-fill: #2040e0;          /* 實心色塊（選中的側欄、播放鍵、開著的開關）：上面放白字 */
+  --fl-fill-2: #1733c4;        /* 色塊滑過 */
+  --fl-on-fill: #ffffff;
+  --fl-track: #e2e2de;         /* 分段按鈕、分頁下面那條淡淡的底線 */
+  --fl-plate: #f3f3f0;         /* 淡灰的色塊（設定面板、正在播放封面那半） */
+  --fl-field: #ffffff;         /* 下拉選單、輸入框：白色的「格子」 */
+  --fl-sw-off: #6c6c68;        /* 開關關著：框和方鈕 */
+  color-scheme: light;
+}
+
+/* ───────────── 2 · 色彩（夜） ─────────────
+   以前是近黑的 #111111；現在提亮成帶一點點藍的石墨灰：頁面 OKLab L≈0.27、面板 0.30、紙框（側欄、播放列）0.25。
+   字更亮：主文字對面板 13.3:1、第二層 9:1、第三層 6.7:1。鈷藍色塊用亮一階的 #3d5cf0（白字 5.3:1），
+   當文字、底線用的鈷藍改成淺一點的 #9aadff（對面板 6.3:1）。 */
+[data-theme="flat"]:where([data-mode="night"]) {
+  --bg: #25272b; --bg-rgb: 37, 39, 43; --bg-2: #212226;
+  --surface: #2c2e33; --surface-2: #36383e; --surface-3: #45474e;
+  --ink: 246, 246, 244; --line: rgba(255,255,255,.08); --line-2: rgba(255,255,255,.15);
+  --text: #fdfdfc; --text-hi: #ffffff; --text-sub: #dedee1; --text-2: #d2d2d6; --text-3: #b6b6bb;
+  --teal: #9aadff; --teal-rgb: 154, 173, 255; --teal-2: #b8c5ff; --teal-dim: rgba(154,173,255,.16);
+  --pink: #ff5a6a; --pink-dim: rgba(255,90,106,.16); --pink-line: rgba(255,90,106,.5); --pink-text: #ff9aa5;
+  --amber: #f0a020; --on-accent: #0d1333;
+  --play-bg: #3d5cf0; --play-ink: #ffffff; --knob: #fdfdfc; --knob-off: #25272b;
+  --bar-bg: #212226; --pop-bg: #303238; --drawer-bg: #2c2e33; --toast-bg: #36383e; --modal-bg: #2c2e33;
+  --tip-bg: #fdfdfc; --tip-ink: #111111;
+  --shadow-rgb: 0, 0, 0; --sh: 0;
+  --np-base: #25272b; --np-ink: 253, 253, 252; --np-pill-ink: #ffffff; --np-dim: 1;
+  --np-veil: none; --np-calm: transparent;
+  --ph-s1: 18%; --ph-l1: 34%; --ph-s2: 22%; --ph-l2: 24%;
+  --brand-ink: #fdfdfc; --brand-track: #45474e;
+  --hero-dim: .5; --hero-op: .3;
+  --app-bg: #25272b;
+  --sidebar-bg: #212226;
+  --fl-fill: #3d5cf0; --fl-fill-2: #5672f5; --fl-on-fill: #ffffff;
+  --fl-track: #3f4148;
+  --fl-plate: #2c2e33;
+  --fl-field: #212226;
+  --fl-sw-off: #a4a4aa;
+  color-scheme: dark;
+}
+
+
+/* ───────────── 3 · 字：大標題、等寬數字 ─────────────
+   頁面標題：最粗的字重（Windows 是 Segoe UI Black，Mac 是 Helvetica Neue Bold），字距收緊，行高壓低。 */
+:root[data-theme="flat"] .page-head h1 {
+  font: 900 clamp(40px, 4.4vw, 60px)/1.06 var(--font-display); letter-spacing: -.035em; color: var(--text-hi);
+}
+:root[data-theme="flat"] .page-head .sub { color: var(--teal); font-weight: 700; font-size: 14px; letter-spacing: .02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* 視窗窄、右邊的工具列放不下時，工具列整排換到標題下面一行（以前是把大標題擠成一個字一行） */
+:root[data-theme="flat"] .page-head { flex-wrap: wrap; row-gap: 12px; }
+:root[data-theme="flat"] .hero h1 { font-weight: 900; letter-spacing: -.035em; }
+:root[data-theme="flat"] .hero .kind { color: var(--teal); font-weight: 800; letter-spacing: .16em; }
+:root[data-theme="flat"] :is(.num, .nav a .count, .row .d, .row .n, .time, .db, .np-seek .times, .badge, .qrow .d) { font-variant-numeric: tabular-nums; }
+
+/* ───────────── 4 · 區塊標題：上面一小段粗的鈷藍旗標 ─────────────
+   原本區塊之間是一條橫跨整頁的線（太顯眼），現在拿掉，只留標題上方 28×5 的色條和多一點留白。 */
+:root[data-theme="flat"] .rail-head { border-top: 0; margin: 0; padding: 40px 36px 14px; }
+:root[data-theme="flat"] .rail-head h2 { position: relative; font: 800 24px/1.15 var(--font-display); letter-spacing: -.02em; color: var(--text-hi); }
+:root[data-theme="flat"] .rail-head h2::before,
+:root[data-theme="flat"] .sect > h2::before,
+:root[data-theme="flat"] .sect .theme-head h2::before {
+  content: ""; position: absolute; left: 0; top: -14px; width: 28px; height: 5px; background: var(--fl-fill); pointer-events: none;
+}
+:root[data-theme="flat"] .rail-head a { color: var(--text-2); font-weight: 600; }
+:root[data-theme="flat"] .rail-head a:hover { color: var(--teal); }
+
+
+/* ───────────── 5 · 側欄：淡灰的紙框，選中的是一整條鈷藍色塊 ───────────── */
+:root[data-theme="flat"] #sidebar { border-right: 0; }
+:root[data-theme="flat"] .nav a { border-radius: 0; font-weight: 500; color: var(--text); }
+:root[data-theme="flat"] .nav a svg.i { color: var(--text-2); }
+:root[data-theme="flat"] .nav a:hover { background: rgba(var(--ink), .06); box-shadow: -12px 0 0 rgba(var(--ink), .06), 12px 0 0 rgba(var(--ink), .06); }
+/* 色塊左右各伸出 12px，貼齊側欄的兩邊（core.js 把 .nav-pill 本身設成和選項一樣寬，所以色塊畫在 ::before） */
+:root[data-theme="flat"] .nav-pill { border-radius: 0; background: transparent; }
+:root[data-theme="flat"] .nav-pill::before { display: block; left: -12px; right: -12px; top: 0; bottom: 0; width: auto; border-radius: 0; background: var(--fl-fill); box-shadow: none; }
+:root[data-theme="flat"] .nav-edit { border-radius: 0; color: var(--text-2); opacity: .85; }
+:root[data-theme="flat"] .nav a.on, :root[data-theme="flat"] .nav a.on svg.i, :root[data-theme="flat"] .nav a.on .count { color: var(--fl-on-fill); }
+:root[data-theme="flat"] .nav a.on { font-weight: 700; }
+:root[data-theme="flat"] .nav-label { color: var(--text-3); font-weight: 800; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+:root[data-theme="flat"] .nav a .count { font-style: normal; font-weight: 600; color: var(--text-3); }
+
+
+/* ───────────── 6 · 上方：返回鍵、搜尋框都是灰色方塊，不加框線 ───────────── */
+:root[data-theme="flat"] #topbar.solid { background: var(--bg); backdrop-filter: none; border-bottom-color: var(--line); }
+:root[data-theme="flat"] .round-btn { border-radius: 0; border: 0; background: var(--surface-2); color: var(--text); }
+:root[data-theme="flat"] .round-btn:hover { background: var(--surface-3); }
+:root[data-theme="flat"] .round-btn:disabled { opacity: .5; }
+:root[data-theme="flat"] .search { border-radius: 0; border: 0; background: var(--surface-2); color: var(--text-2); }
+:root[data-theme="flat"] .search:focus-within { background: var(--surface-2); box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="flat"] .search kbd { border-radius: 0; border-color: var(--line-2); color: var(--text-2); }
+
+
+/* ───────────── 7 · 按鈕：直角、實心的淡灰；主要按鈕是鈷藍 ───────────── */
+:root[data-theme="flat"] .btn { border: 0; border-radius: 0; background: var(--surface-2); color: var(--text); box-shadow: none; }
+:root[data-theme="flat"] .btn:hover { background: var(--surface-3); transform: none; }
+:root[data-theme="flat"] .btn.primary { background: var(--fl-fill); color: var(--fl-on-fill); box-shadow: none; }
+:root[data-theme="flat"] .btn.primary:hover { background: var(--fl-fill-2); box-shadow: none; }
+:root[data-theme="flat"] .btn.ghost { background: transparent; color: var(--text-2); }
+:root[data-theme="flat"] .btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+:root[data-theme="flat"] .btn.bp-apply { background: var(--surface-2); color: var(--text-hi); box-shadow: none; }
+:root[data-theme="flat"] .btn.bp-apply:hover { background: var(--surface-3); box-shadow: none; }
+:root[data-theme="flat"] .page-head .tools > .btn.small { border-radius: 0; }
+:root[data-theme="flat"] .page-head .tools > .btn.small:not(.primary) { border-radius: 0; background: var(--surface-2); }
+:root[data-theme="flat"] .page-head .tools > .btn.small:not(.primary):hover { background: var(--surface-3); }
+:root[data-theme="flat"] .icon-btn { border-radius: 0; }
+:root[data-theme="flat"] .icon-btn:hover { background: rgba(var(--ink), .07); }
+:root[data-theme="flat"] .chip { border-radius: 0; border-color: transparent; background: var(--surface-2); color: var(--text-2); }
+:root[data-theme="flat"] .chip:hover { background: var(--surface-3); color: var(--text); }
+:root[data-theme="flat"] .chip.on { background: var(--fl-fill); border-color: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat"] .badge { border-radius: 0; background: var(--surface-2); color: var(--text-sub); }
+:root[data-theme="flat"] .badge.hi { background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat"] .badge.dsd { background: var(--pink); color: #ffffff; }
+:root[data-theme="flat"]:where([data-mode="night"]) .badge.dsd { background: #d92a3d; }
+
+
+/* ───────────── 8 · 分段按鈕、設定分頁：純文字，選中的下面一條粗鈷藍線 ─────────────
+   整組下面一條很淡的灰底線，看得出這幾個是同一組；選中的那個字變黑、加粗，壓上 3px（分頁 4px）的鈷藍。
+   字粗細選中前後一樣寬（app.css 的 data-label 預留了粗體的寬度），切換時字不會跳。 */
+:root[data-theme="flat"] .seg { background: transparent; border-radius: 0; padding: 0; gap: 0; box-shadow: inset 0 -2px 0 var(--fl-track); }
+:root[data-theme="flat"] .seg button { border-radius: 0; height: 36px; padding: 0 12px; color: var(--text-2); font-weight: 600; background: transparent; }
+:root[data-theme="flat"] .seg button[data-label]::after { font-weight: 800; }
+:root[data-theme="flat"] .seg button:hover { color: var(--text); background: rgba(var(--ink), .05); }
+:root[data-theme="flat"] .seg button.on { background: transparent; color: var(--text-hi); font-weight: 800; box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat"] .page-head .tools { gap: 12px; }
+
+:root[data-theme="flat"] .set-tabs { background: var(--bg); border: 0; border-radius: 0; padding: 0; gap: 26px; backdrop-filter: none; box-shadow: inset 0 -2px 0 var(--fl-track); }
+:root[data-theme="flat"] .set-tabs button { border-radius: 0; height: 42px; padding: 0 2px; font-size: 16px; font-weight: 700; color: var(--text-2); background: transparent; }
+:root[data-theme="flat"] .set-tabs button:hover { color: var(--text-hi); }
+:root[data-theme="flat"] .set-tabs button.on { background: transparent; color: var(--text-hi); box-shadow: inset 0 -4px 0 var(--fl-fill); }
+
+
+/* ───────────── 9 · 開關：方形；關＝白底灰框、灰方鈕在左；開＝整塊鈷藍、白方鈕在右 ───────────── */
+:root[data-theme="flat"] .switch { border-radius: 0; background: var(--fl-field); box-shadow: inset 0 0 0 2px var(--fl-sw-off); }
+:root[data-theme="flat"] .switch::after { border-radius: 0; left: 5px; top: 5px; width: 14px; height: 14px; background: var(--fl-sw-off); }
+:root[data-theme="flat"] .switch.on { background: var(--fl-fill); box-shadow: none; }
+:root[data-theme="flat"] .switch.on::after { background: #ffffff; }
+
+
+/* ───────────── 10 · 滑桿：細細的灰軌、黑色的進度、直立的方鈕 ───────────── */
+:root[data-theme="flat"] .slider .track { border-radius: 0; height: 3px; background: var(--fl-track); }
+:root[data-theme="flat"] .slider:hover .track, :root[data-theme="flat"] .slider.drag .track { height: 5px; }
+:root[data-theme="flat"] .slider .fill { border-radius: 0; background: var(--text-hi); }
+:root[data-theme="flat"] .slider:hover .fill, :root[data-theme="flat"] .slider.drag .fill { background: var(--fl-fill); }
+:root[data-theme="flat"] .slider .knob { border-radius: 0; width: 4px; height: 16px; margin: -8px 0 0 -2px; box-shadow: none; background: var(--text-hi); }
+:root[data-theme="flat"] .slider .hover-tip { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat"] .range { border-radius: 0; height: 3px; background: var(--fl-track); }
+:root[data-theme="flat"] .range::-webkit-slider-thumb { border-radius: 0; width: 6px; height: 20px; background: var(--text-hi); box-shadow: none; }
+
+
+/* ───────────── 11 · 下拉選單：白色的格子，小方塊記號 ───────────── */
+:root[data-theme="flat"] .msel-btn { border-radius: 0; border: 1px solid var(--line-2); background: var(--fl-field); box-shadow: none; color: var(--text); }
+:root[data-theme="flat"] .msel-btn:hover { border-color: rgba(var(--ink), .3); }
+:root[data-theme="flat"] .msel-btn:focus-visible, :root[data-theme="flat"] .msel.open .msel-btn { border-color: var(--fl-fill); box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat"] .msel-btn::before { border-radius: 0; box-shadow: none; background: var(--fl-fill); }
+:root[data-theme="flat"] .msel-chev { border-radius: 0; background: transparent; color: var(--text); }
+:root[data-theme="flat"] .msel.open .msel-chev { background: transparent; }
+:root[data-theme="flat"] .msel-menu { border-radius: 0; border: 1px solid var(--line-2); box-shadow: none; backdrop-filter: none; }
+:root[data-theme="flat"] .msel-opt { border-radius: 0; }
+:root[data-theme="flat"] .msel-opt.on, :root[data-theme="flat"] .msel-opt.on.act { background: var(--teal-dim); }
+:root[data-theme="flat"] .msel-opt.on::before { left: 0; top: 0; bottom: 0; width: 4px; border-radius: 0; box-shadow: none; background: var(--fl-fill); }
+:root[data-theme="flat"] .msel-opt.on .msel-ck { border-radius: 0; background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat"] input.inp, :root[data-theme="flat"] select.sel { border-radius: 0; background-color: var(--fl-field); border-color: var(--line-2); }
+:root[data-theme="flat"] input.inp:focus, :root[data-theme="flat"] select.sel:focus { border-color: var(--fl-fill); }
+:root[data-theme="flat"] .band-table td:first-child, :root[data-theme="flat"] .band-table td:last-child { border-radius: 0; }
+
+
+/* ───────────── 12 · 專輯卡：方形封面，沒有陰影；滑過時封面下緣一條鈷藍 ───────────── */
+:root[data-theme="flat"] .card .art { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat"] .card:hover .art { transform: none; box-shadow: none; outline: 0; }
+:root[data-theme="flat"] .card .art::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; z-index: 2; background: var(--fl-fill); transform: scaleY(0); transform-origin: bottom; transition: transform .18s var(--ease); pointer-events: none; }
+:root[data-theme="flat"] .card:hover .art::after { transform: none; }
+@media (prefers-reduced-motion: reduce) { :root[data-theme="flat"] .card .art::after { transition: none; } }
+:root[data-theme="flat"] .card .play { border-radius: 0; background: var(--fl-fill); color: var(--fl-on-fill); box-shadow: none; }
+:root[data-theme="flat"] .card .play:hover { background: var(--fl-fill-2); }
+:root[data-theme="flat"] .card .t1 { color: var(--text-hi); font-weight: 700; }
+:root[data-theme="flat"] .card:hover .t1 { color: var(--teal); }
+:root[data-theme="flat"] .card .t2 { color: var(--text-2); }
+:root[data-theme="flat"] .ph { color: rgba(var(--ink), .4); }
+:root[data-theme="flat"] .hero .cover { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .55), rgba(var(--bg-rgb), .86) 60%, var(--bg)); }
+
+
+/* ───────────── 13 · 曲目表：表頭是小號大寫字，沒有底線；播放中那列左邊一條鈷藍 ───────────── */
+:root[data-theme="flat"] .thead { background: var(--bg); border-bottom: 0; color: var(--text-3); font-weight: 800; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; }
+:root[data-theme="flat"] .row { border-radius: 0; }
+:root[data-theme="flat"] .row:hover { background: var(--surface); }
+:root[data-theme="flat"] .row.sel { background: var(--teal-dim); }
+:root[data-theme="flat"] .row .n, :root[data-theme="flat"] .row .n:has(.thumb) { border-radius: 0; }
+:root[data-theme="flat"] .row .n { color: var(--text-2); font-weight: 700; }
+:root[data-theme="flat"] .row .tt div:first-child { color: var(--text-hi); font-weight: 700; }
+:root[data-theme="flat"] .row .tt .a { color: var(--text-2); }
+:root[data-theme="flat"] .row.playing { background: var(--surface); box-shadow: inset 5px 0 0 var(--fl-fill); }
+:root[data-theme="flat"] .row.playing .tt div:first-child { color: var(--teal); }
+:root[data-theme="flat"] .np-mini .art, :root[data-theme="flat"] .row .thumb, :root[data-theme="flat"] .qrow .thumb { border-radius: 0; box-shadow: none; }
+/* 資料夾頁的表頭：和曲目表一樣，不是圓角的浮條、沒有陰影；排序中的那欄字變黑、下面一條鈷藍 */
+:root[data-theme="flat"] .ft-head { border-radius: 0; background: var(--bg); box-shadow: none; color: var(--text-3); font-weight: 800; letter-spacing: .1em; }
+:root[data-theme="flat"] .ft-h { border-radius: 0; }
+:root[data-theme="flat"] .ft-h:hover { color: var(--text-hi); background: rgba(var(--ink), .05); }
+:root[data-theme="flat"] .ft-h.on { color: var(--text-hi); font-weight: 800; background: transparent; box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat"] .ft-q, :root[data-theme="flat"] .fcrumbs a, :root[data-theme="flat"] .fcrumbs .cur { border-radius: 0; }
+:root[data-theme="flat"] .ft-none { border-style: solid; border-color: var(--line); }
+:root[data-theme="flat"] .qrow { border-radius: 0; }
+:root[data-theme="flat"] .qrow.cur { box-shadow: inset 4px 0 0 var(--fl-fill); }
+/* 已經播過的：不再整列變淡（淡到看不清楚），改成字的顏色退一階 */
+:root[data-theme="flat"] .qrow.past { opacity: 1; }
+:root[data-theme="flat"] .qrow.past .t { color: var(--text-2); font-weight: 500; }
+:root[data-theme="flat"] .qrow.past .a { color: var(--text-3); }
+
+
+/* ───────────── 14 · 設定頁：淡灰的色塊，項目之間是白色的空隙（不是線） ───────────── */
+:root[data-theme="flat"] .sect { border: 0; border-radius: 0; background: var(--fl-plate); margin-top: 28px; }
+:root[data-theme="flat"] .sect > h2, :root[data-theme="flat"] .sect .theme-head h2 { position: relative; font: 800 20px/1.25 var(--font-display); letter-spacing: -.015em; color: var(--text-hi); }
+:root[data-theme="flat"] .sect > h2 { padding-top: 24px; }
+:root[data-theme="flat"] .sect .theme-head { padding-top: 24px; }
+:root[data-theme="flat"] .sect > h2::before { left: 22px; top: 0; }
+:root[data-theme="flat"] .sect .theme-head h2::before { top: -24px; }
+:root[data-theme="flat"] .sect .hint { color: var(--text-2); }
+:root[data-theme="flat"] .field { border-top: 2px solid var(--bg); }
+:root[data-theme="flat"] .field:first-of-type { border-top: 0; }
+:root[data-theme="flat"] .field .lbl b { font-weight: 700; color: var(--text-hi); }
+:root[data-theme="flat"] .field .lbl small { color: var(--text-2); }
+:root[data-theme="flat"] .tp, :root[data-theme="flat"] .tp .tp-screen { border-radius: 0; }
+:root[data-theme="flat"] .tp .tp-screen { box-shadow: 0 0 0 1px rgba(127,127,127,.28); }
+:root[data-theme="flat"] .tp.on { background: var(--bg); border-color: transparent; box-shadow: inset 0 -4px 0 var(--fl-fill); }
+:root[data-theme="flat"] .tp:hover { transform: none; background: var(--bg); }
+:root[data-theme="flat"] .tp .chk { border-radius: 0; box-shadow: none; background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat"] .theme-desc { color: var(--text-2); }
+:root[data-theme="flat"] .theme-desc b { color: var(--text-hi); }
+/* 外觀頁的小預覽：極簡平面這張也是直角、沒有分隔線 */
+.tp-screen[data-theme="flat"] .tp-side { border-right: 0; }
+.tp-screen[data-theme="flat"] .tp-bar { border-top: 0; }
+.tp-screen[data-theme="flat"] .tp-side i, .tp-screen[data-theme="flat"] .tp-main b, .tp-screen[data-theme="flat"] .tp-cards i, .tp-screen[data-theme="flat"] .tp-bar .seek, .tp-screen[data-theme="flat"] .tp-bar .seek::after { border-radius: 0; }
+.tp-screen[data-theme="flat"] .tp-side i.on { background: var(--fl-fill); }
+.tp-screen[data-theme="flat"] .tp-main b { height: 9px; width: 38%; background: var(--text-hi); }
+.tp-screen[data-theme="flat"] .tp-bar .play { border-radius: 0; box-shadow: none; background: var(--fl-fill); }
+.tp-screen[data-theme="flat"] .tp-bar .seek::after { background: var(--text-hi); }
+
+
+/* ───────────── 15 · 選單、抽屜、對話框、提示：直角、細的淡框，沒有陰影 ───────────── */
+:root[data-theme="flat"] .drawer,
+:root[data-theme="flat"] .pop,
+:root[data-theme="flat"] .modal { border-radius: 0; border: 1px solid var(--line-2); box-shadow: none; backdrop-filter: none; }
+:root[data-theme="flat"] .drawer { border-width: 0 0 0 1px; }
+:root[data-theme="flat"] .drawer-head h2 { font: 800 22px var(--font-display); letter-spacing: -.02em; }
+:root[data-theme="flat"] .menu button { border-radius: 0; }
+:root[data-theme="flat"] .menu button.is-selected { background: var(--teal-dim); box-shadow: inset 4px 0 0 var(--fl-fill); }
+:root[data-theme="flat"] .menu hr { border-top-color: var(--line); }
+:root[data-theme="flat"] .toast { border-radius: 0; border: 0; color: var(--tip-ink); background: var(--toast-bg); box-shadow: inset 5px 0 0 var(--fl-fill); }
+:root[data-theme="flat"]:where([data-mode="night"]) .toast { color: var(--text-hi); }
+:root[data-theme="flat"] .scroll-bubble { border-radius: 0; background: var(--fl-fill); color: var(--fl-on-fill); box-shadow: none; }
+:root[data-theme="flat"] .dsp-card { border-radius: 0; border: 0; background: var(--fl-plate); }
+:root[data-theme="flat"] .eq-graph { border-radius: 0; background: var(--bg); }
+:root[data-theme="flat"] .eq-handle { border-radius: 0; box-shadow: none; color: var(--fl-on-fill); background: var(--fl-fill); }
+:root[data-theme="flat"] .eq-handle.sel { background: var(--text-hi); color: var(--bg); }
+:root[data-theme="flat"] .eq-handle.off { background: var(--text-3); color: var(--bg); }
+
+
+/* ───────────── 16 · 播放列：淡灰紙框，不加上緣線；播放鍵是鈷藍方塊 ───────────── */
+:root[data-theme="flat"] #bar { border-top: 0; backdrop-filter: none; }
+:root[data-theme="flat"] .playbtn { border-radius: 0; }
+:root[data-theme="flat"] .playbtn:hover { transform: none; background: var(--fl-fill-2); }
+:root[data-theme="flat"] .np-mini .t { font-weight: 800; color: var(--text-hi); }
+:root[data-theme="flat"] .np-mini .a { color: var(--text-2); }
+:root[data-theme="flat"] .sig, :root[data-theme="flat"] .out-btn { border-radius: 0; background: var(--surface-2); color: var(--text-sub); }
+:root[data-theme="flat"] .sig:hover, :root[data-theme="flat"] .out-btn:hover { background: var(--surface-3); color: var(--text-hi); }
+:root[data-theme="flat"] .sig .dot { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat"] .tool-sep { background: transparent; }
+:root[data-theme="flat"] #bar .time, :root[data-theme="flat"] #bar .db { color: var(--text-2); font-weight: 600; }
+
+
+/* ───────────── 17 · 正在播放：兩塊色面＋大字 ─────────────
+   背景不用模糊的封面：封面那半是淡灰色面、歌詞那半是白紙（夜裡是深淺兩塊灰），分界在兩欄之間的空隙
+   （寬度 47%），關掉歌詞時色面淡掉、整片同一色。歌名用大而粗的字；時間是等寬數字。 */
+:root[data-theme="flat"] #np .np-wrap::before { background: linear-gradient(90deg, var(--fl-np-plate) 47%, transparent 47%); }
+[data-theme="flat"] { --fl-np-plate: #efefeb; --fl-np-btn: #ffffff; }
+[data-theme="flat"]:where([data-mode="night"]) { --fl-np-plate: #212226; --fl-np-btn: #36383e; }
+@media (orientation: portrait), (max-width: 760px) {
+  :root[data-theme="flat"] #np .np-wrap::before { opacity: 0; }
+}
+:root[data-theme="flat"] .np-cover { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat"] .np-title { font-weight: 900; letter-spacing: -.03em; color: rgb(var(--np-ink)); }
+@media (min-height: 761px) and (min-width: 761px) and (orientation: landscape) {
+  :root[data-theme="flat"] .np-title { font-size: 40px; line-height: 1.12; }
+  :root[data-theme="flat"] .np-artist { font-size: 17px; margin-top: 6px; }
+  /* 歌名上方也有一段鈷藍旗標（和頁面的區塊標題一樣），畫在封面和歌名之間的空白裡 */
+  :root[data-theme="flat"] .np-info { position: relative; }
+  :root[data-theme="flat"] .np-info::before { content: ""; position: absolute; left: 0; top: -12px; width: 28px; height: 5px; background: var(--fl-fill); pointer-events: none; }
+}
+:root[data-theme="flat"] .np-artist { color: var(--text-2); font-weight: 500; }
+:root[data-theme="flat"] .np-badges .badge { border-radius: 0; background: var(--surface-2); color: var(--text-sub); }
+:root[data-theme="flat"] .np-seek .slider .track { background: var(--fl-track); }
+:root[data-theme="flat"] .np-seek .times { color: var(--text-2); font-size: 13px; font-weight: 700; }
+:root[data-theme="flat"] .np-ctrl .icon-btn { color: var(--text); }
+:root[data-theme="flat"] .np-ctrl .icon-btn:hover { background: rgba(var(--np-ink), .08); }
+:root[data-theme="flat"] .np-ctrl .icon-btn.on { color: var(--teal); }
+/* 四個角落按鈕：實心底、深色字；選中的「歌詞」「翻譯」是鈷藍色塊 */
+:root[data-theme="flat"] .np-top .icon-btn { border-radius: 0; background: var(--fl-np-btn); color: var(--text-hi); box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="flat"] .np-top .icon-btn:hover { background: var(--surface-2); }
+:root[data-theme="flat"] .pill { border-radius: 0; background: var(--surface-2); color: var(--text-hi); font-weight: 600; }
+:root[data-theme="flat"] .pill:hover { background: var(--surface-3); }
+:root[data-theme="flat"] .pill.on { background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat"] .pill.on:hover { background: var(--fl-fill-2); }
+:root[data-theme="flat"] .np-top .src { color: var(--text-2); }
+/* 歌詞：唱到的那行最黑最粗，其他行灰但看得清楚；翻譯行深一點 */
+:root[data-theme="flat"] .ly-line { font-weight: 800; letter-spacing: -.02em; border-radius: 0; }
+:root[data-theme="flat"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .68; }
+:root[data-theme="flat"] .ly-line .tr { color: rgb(var(--np-ink)); font-weight: 600; }
+:root[data-theme="flat"] .ly-offset button { border-radius: 0; }
