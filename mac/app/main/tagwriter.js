@@ -34,21 +34,27 @@ const num = v => { const n = parseInt(clean(v), 10); return Number.isFinite(n) &
 /** "3/12" → [3, 12] */
 const pair = s => { const m = /^\s*(\d*)\s*(?:\/\s*(\d*))?/.exec(s || ''); return [m && m[1] ? +m[1] : 0, m && m[2] ? +m[2] : 0]; };
 
-/** A value other players can't read: empty, U+FFFD, or characters lost as '?' (two or more). */
-const unreadable = v => { const s = clean(Array.isArray(v) ? v.join('; ') : v); return !s || s.includes('\uFFFD') || (s.match(/\?/g) || []).length >= 2; };
+/**
+ * A value other players can't read: empty, U+FFFD, private-use characters (Shift-JIS RIFF INFO decoded as Big5), or
+ * characters lost as '?' (two or more).
+ */
+const unreadable = v => { const s = clean(Array.isArray(v) ? v.join('; ') : v); return !s || /[\uFFFD\uE000-\uF8FF]/.test(s) || (s.match(/\?/g) || []).length >= 2; };
 /**
  * Adds to the changes `ch` the fields MIKU shows (`shown`: the library's track) that the file's own tag can't give
  * (`current(field)`: its value there, '' when none) and the editor didn't change. Numbers: the track only (a disc 1 or
- * a year MIKU made up is not written).
+ * a year MIKU made up is not written). Returns the fields it added.
  */
 function repair(ch, shown, current) {
-  if (!shown) return;
+  const added = [];
+  if (!shown) return added;
   const text = { title: shown.title, artist: shown.artist, albumArtist: shown.albumArtist, album: shown.album, genre: shown.genre, composer: shown.composer };
   for (const [k, v] of Object.entries(text)) {
     if (k in ch || unreadable(v) || !unreadable(current(k))) continue;
     ch[k] = Multi.has(k) ? splitNames(v) : clean(v);
+    added.push(k);
   }
-  if (!('track' in ch) && shown.trackNo > 0 && !(pair(current('track'))[0] > 0)) ch.track = shown.trackNo;
+  if (!('track' in ch) && shown.trackNo > 0 && !(pair(current('track'))[0] > 0)) { ch.track = shown.trackNo; added.push('track'); }
+  return added;
 }
 
 /** Normalised changes: text fields → string ('' clears), multi fields → array, numbers → int (0 clears). */
@@ -502,8 +508,10 @@ function writeRiffLike(file, ch, cover, removeCover, shown) {
   const id3Chunk = r.chunks.find(c => c.id === 'id3 ' || c.id === 'ID3 ');
   let old = null;
   if (id3Chunk) old = parseId3(readRange(file, id3Chunk.pos + 8, id3Chunk.size));
-  // what other players read is the ID3 chunk (the INFO list is in a legacy code page or lost to '?')
-  repair(ch, shown, f => id3Field(old, f));
+  // what other players read is the ID3 chunk (the INFO list is in a legacy code page or lost to '?'): the repaired
+  // fields go there only, and the INFO list keeps its own bytes (a code page MIKU may have read wrongly)
+  const repaired = repair(ch, shown, f => id3Field(old, f));
+  const infoCh = Object.fromEntries(Object.entries(ch).filter(([k]) => !repaired.includes(k)));
   const tag = applyId3(old, ch, cover, removeCover, 0);
   const pieces = [];
   const u32 = n => { const b = Buffer.alloc(4); if (big) b.writeUInt32BE(n); else b.writeUInt32LE(n); return b; };
@@ -514,7 +522,7 @@ function writeRiffLike(file, ch, cover, removeCover, shown) {
     if (!big && c.id === 'LIST') {
       const body = readRange(file, c.pos + 8, c.size);
       if (body.toString('latin1', 0, 4) === 'INFO') {
-        const nb = applyInfo(body, ch);
+        const nb = applyInfo(body, infoCh);
         pieces.push(chunkHead('LIST', nb.length), nb, Buffer.alloc(nb.length & 1));
         total += 8 + nb.length + (nb.length & 1);
         continue;

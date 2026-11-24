@@ -83,7 +83,7 @@ public static class TagWriter
                 id3.Flags &= ~TagLib.Id3v2.HeaderFlags.FooterPresent;
             }
         }
-        Repair(file.Tag, main != TagLib.TagTypes.None ? file.GetTag(main, false) : file.Tag, set, shown);
+        Repair(file.Tag, main != TagLib.TagTypes.None ? file.GetTag(main, false) : file.Tag, set, shown, (onDisk & main) == 0);
         Apply(file.Tag, set);
         if (cover != null || removeCover) SetCover(file.Tag, cover, removeCover);
         // tags TagLib makes up when it reads a file are not added to it: an MP3's ID3v1 (Japanese becomes '?'), a
@@ -95,10 +95,38 @@ public static class TagWriter
         if (file.GetTag(TagLib.TagTypes.RiffInfo, false) is TagLib.Riff.InfoTag info && !Unreadable(file.Tag.Album))
             info.SetValue(TagLib.ByteVector.FromString("IPRD", TagLib.StringType.Latin1), file.Tag.Album);
         file.Save();
+        if (file is TagLib.Riff.File) FixRiffSize(path);
     }
 
-    /// <summary>A value other players can't read: empty, U+FFFD, or characters lost as '?' (two or more).</summary>
-    static bool Unreadable(string s) => string.IsNullOrWhiteSpace(s) || s.Contains('\uFFFD') || s.Count(c => c == '?') >= 2;
+    /// <summary>
+    /// A value other players can't read: empty, U+FFFD, private-use characters (Shift-JIS RIFF INFO decoded as Big5 on
+    /// a Traditional Chinese Windows), or characters lost as '?' (two or more).
+    /// </summary>
+    static bool Unreadable(string s) => string.IsNullOrWhiteSpace(s) || s.Any(c => c == (char)0xFFFD || c >= (char)0xE000 && c <= (char)0xF8FF) || s.Count(c => c == '?') >= 2;
+
+    /// <summary>
+    /// TagLib appends a new ID3 chunk to a WAV that had no tag but leaves the RIFF size as it was (it compares the tag's
+    /// start with the size without the 8-byte header), so the chunk lies outside the RIFF form and other players
+    /// (foobar2000) don't see it. When the chunks walk cleanly to the end of the file, the size is set to cover them.
+    /// </summary>
+    static void FixRiffSize(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        var h = new byte[12];
+        if (fs.Length > uint.MaxValue || fs.Read(h, 0, 12) != 12 || Encoding.ASCII.GetString(h, 0, 4) != "RIFF" || BitConverter.ToUInt32(h, 4) + 8L >= fs.Length) return;
+        long at = 12;
+        while (at + 8 <= fs.Length)
+        {
+            fs.Position = at;
+            if (fs.Read(h, 0, 8) != 8 || h.Take(4).Any(c => c < 32 || c > 126)) return;
+            long n = BitConverter.ToUInt32(h, 4);
+            if (at + 8 + n > fs.Length) return;
+            at += 8 + n + (n & 1);
+        }
+        if (Math.Abs(at - fs.Length) > 1) return;
+        fs.Position = 4;
+        fs.Write(BitConverter.GetBytes((uint)(fs.Length - 8)), 0, 4);
+    }
 
     /// <summary>
     /// The editor sends only the fields that were changed, but MIKU shows the others as it reads them (TagReader: RIFF
@@ -106,22 +134,27 @@ public static class TagWriter
     /// A field the file's own tag (<paramref name="own"/>: the one other players read) has empty or garbled while MIKU
     /// shows it readable is written as MIKU shows it: foobar2000 then sees what MIKU showed, instead of nothing or
     /// garbled text. Numbers: the track only (a disc 1 or a year MIKU made up is not written).
+    /// Only the main tag is written: RIFF INFO keeps its own bytes (a code page MIKU may have read wrongly). A main
+    /// tag TagLib just made (<paramref name="made"/>) starts as a copy of the others: a garbled value copied into it is
+    /// cleared rather than written into the new tag when MIKU can't read it either.
     /// </summary>
-    static void Repair(TagLib.Tag all, TagLib.Tag own, IReadOnlyDictionary<string, string> set, Track shown)
+    static void Repair(TagLib.Tag all, TagLib.Tag own, IReadOnlyDictionary<string, string> set, Track shown, bool made)
     {
         if (shown == null) return;
+        var to = own ?? all;
         void Text(string key, string mine, string theirs, Action<string> write)
         {
-            if (set.ContainsKey(key) || Unreadable(mine) || !Unreadable(theirs)) return;
-            write(mine.Trim());
+            if (set.ContainsKey(key) || !Unreadable(theirs)) return;
+            if (!Unreadable(mine)) write(mine.Trim());
+            else if (made && !string.IsNullOrEmpty(theirs)) write(null);
         }
-        Text("title", shown.Title, own?.Title, v => all.Title = v);
-        Text("artist", shown.Artist, own?.JoinedPerformers, v => all.Performers = Split(v));
-        Text("albumArtist", shown.AlbumArtist, own?.JoinedAlbumArtists, v => all.AlbumArtists = Split(v));
-        Text("album", shown.Album, own?.Album, v => all.Album = v);
-        Text("genre", shown.Genre, own?.JoinedGenres, v => all.Genres = Split(v));
-        Text("composer", shown.Composer, own?.JoinedComposers, v => all.Composers = Split(v));
-        if (!set.ContainsKey("track") && shown.TrackNo > 0 && (own?.Track ?? 0) == 0) all.Track = (uint)shown.TrackNo;
+        Text("title", shown.Title, own?.Title, v => to.Title = v);
+        Text("artist", shown.Artist, own?.JoinedPerformers, v => to.Performers = v == null ? Array.Empty<string>() : Split(v));
+        Text("albumArtist", shown.AlbumArtist, own?.JoinedAlbumArtists, v => to.AlbumArtists = v == null ? Array.Empty<string>() : Split(v));
+        Text("album", shown.Album, own?.Album, v => to.Album = v);
+        Text("genre", shown.Genre, own?.JoinedGenres, v => to.Genres = v == null ? Array.Empty<string>() : Split(v));
+        Text("composer", shown.Composer, own?.JoinedComposers, v => to.Composers = v == null ? Array.Empty<string>() : Split(v));
+        if (!set.ContainsKey("track") && shown.TrackNo > 0 && (own?.Track ?? 0) == 0) to.Track = (uint)shown.TrackNo;
     }
 
     static string[] Split(string v) => (v ?? "").Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Distinct().ToArray();
