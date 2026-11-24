@@ -1,5 +1,6 @@
 // Search helpers for Japanese, Korean and Chinese names (used by the search page in views.js):
-// - romaji: "yoru ni kakeru", "itaiitsukara" or "i ta i i tsu ka ra" finds 夜に駆ける / 一体いつから. Each name gets a
+// - romaji: "yoru ni kakeru", "itaiitsukara" or "i ta i i tsu ka ra" finds 夜に駆ける / 一体いつから, and so do kana
+//   ("よるにかける") and a mix of kanji, kana and romaji ("夜ni駆ける", "天使tachi" finds 気ままな天使たち). Each name gets a
 //   romaji key once (cached); kanji are read with the dictionary in search-dict.js (IPADIC words + KANJIDIC readings).
 //   Keys and what is typed are both folded the same loose way: spaces, doubled consonants (っ) and long vowels (ー, ou,
 //   ei…) are ignored, and shi/si, chi/ti, tsu/tu, fu/hu, ji/zi… are the same.
@@ -77,6 +78,17 @@
   function foldQuery(q) {
     return squeeze(canon((q || '').normalize('NFKD').replace(MARKS, '').toLowerCase().replace(/[^a-z0-9]/g, '')).split(''));
   }
+  // what was typed in kanji, kana and romaji mixed ("天使tachi", "よるni駆ける") → the same spelling: the Japanese /
+  // Korean runs are read with the dictionary as a name is, the rest is folded as romaji
+  const JA_RUN = /([\p{Script=Han}々〆ヶぁ-ヿ가-힣]+)|([^\p{Script=Han}々〆ヶぁ-ヿ가-힣]+)/gu;
+  function foldMixed(q) {
+    q = (q || '').normalize('NFKC').toLowerCase();
+    if (!CJK.test(q)) return foldQuery(q);
+    let out = '';
+    for (const m of q.matchAll(JA_RUN)) out += m[1] ? key(m[1]).key : canon(m[2].normalize('NFKD').replace(MARKS, '').replace(/[^a-z0-9]/g, ''));
+    return squeeze(out.split(''));
+  }
+  const hasKana = s => /[ぁ-ゖァ-ヺ]/.test(s || '');
   function canon(s) {
     return s.replace(/tch/g, 'tty').replace(/sh/g, 'sy').replace(/ch/g, 'ty').replace(/ts/g, 't').replace(/dz/g, 'z').replace(/j/g, 'zy')
       .replace(/f/g, 'h').replace(/wo/g, 'o').replace(/c(?=t)/g, 't').replace(/yy+/g, 'y').replace(/([stz])yi/g, '$1i');
@@ -201,7 +213,7 @@
   }
 
   const hasJa = s => !!s && CJK.test(s);
-  const api = { key, keys, find, foldQuery, vfold, hasJa, _dict: dict, _use(d) { D = d; cache.clear(); } };
+  const api = { key, keys, find, foldQuery, foldMixed, hasKana, vfold, hasJa, _dict: dict, _use(d) { D = d; cache.clear(); } };
   root.SearchJa = api;
   if (typeof module === 'object' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

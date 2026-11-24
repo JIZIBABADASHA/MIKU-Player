@@ -582,10 +582,13 @@ const searchNorm = s => { s = (s || '').toLowerCase(); return /^[\x00-\x7f]*$/.t
 const searchText = item => { if (item._vs === undefined || item._vsOf !== item.s) { item._vsOf = item.s; item._vs = SearchJa.vfold(item.s); } return item._vs; };
 // romaji typed ("yoru ni kakeru", "itaiitsukara", "saranghae") also finds Japanese and Korean names: each name's romaji
 // key is made once per name (SearchJa caches it). The whole query without spaces is tried, and each word of 3+ letters.
+// Kana, and kanji / kana mixed with romaji ("よるにかける", "天使tachi"), are read into romaji the same way; kanji alone
+// are not (a Chinese name searched for would find others that only sound the same in Japanese).
 function searchRomaji(terms) {
-  if (!terms.length || !terms.every(t => /^[a-z0-9'\-.]+$/.test(t)) || !terms.some(t => /[a-z]/.test(t))) return null;
-  const whole = SearchJa.foldQuery(terms.join(''));
-  return whole.length >= 2 ? { whole, parts: terms.map(t => SearchJa.foldQuery(t)) } : null;
+  if (!terms.length || !terms.every(t => /^[a-z0-9'\-.]+$/.test(t) || SearchJa.hasJa(t))) return null;
+  if (!terms.some(t => /[a-z]/.test(t) || SearchJa.hasKana(t))) return null;
+  const whole = SearchJa.foldMixed(terms.join(''));
+  return whole.length >= 2 ? { whole, parts: terms.map(t => SearchJa.foldMixed(t)) } : null;
 }
 // how well a romaji key matches: the whole name, its start, inside it
 const romajiScore = (keys, q) => {
