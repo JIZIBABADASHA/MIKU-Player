@@ -980,14 +980,17 @@
 .theme-mode { flex: none; }
 .theme-mode button { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; }
 .theme-mode svg.i { width: 15px; height: 15px; }
-.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; padding: 10px 16px 4px; }
+.theme-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 16px 4px; }
+@media (max-width: 900px) { .theme-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .tp { position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; min-width: 0; cursor: pointer; border-radius: 12px; padding: 6px 6px 7px; background: transparent; border: 1px solid transparent; transition: background .2s, border-color .2s, transform .25s var(--ease-out); text-align: left; color: inherit; font: inherit; }
-.tp:hover { transform: translateY(-2px); background: rgba(var(--ink), .03); }
+.tp:hover { transform: translateY(-2px); background: rgba(var(--ink), .05); }
+/* 預覽框的外圈用「目前頁面」的字色（在 .tp 上算好再傳進去），夜裡深色的預覽在深色底上也看得到框 */
+.tp { --tp-ring: rgba(var(--ink), .3); --tp-ring-on: rgba(var(--teal-rgb), .95); }
 .tp .tp-screen {
   position: relative; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; display: grid;
   grid-template-columns: 26% 1fr; grid-template-rows: 1fr 18%;
   background: var(--app-bg, var(--bg)); background-attachment: scroll;
-  box-shadow: 0 0 0 1px rgba(127,127,127,.25), 0 6px 16px rgba(0,0,0,.16);
+  box-shadow: 0 0 0 1px var(--tp-ring), 0 6px 16px rgba(0,0,0,.16);
   color-scheme: inherit; font-family: var(--font);
 }
 .tp .tp-side { background: var(--sidebar-bg, var(--bg-2)); border-right: 1px solid var(--line); padding: 9% 9%; display: flex; flex-direction: column; gap: 7%; }
@@ -1012,7 +1015,8 @@
 .tp .tp-name small { color: var(--text-3); font-size: 10px; letter-spacing: .05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .tp .chk { position: absolute; top: 11px; right: 11px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--teal); color: var(--on-accent); box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 2px 6px rgba(0,0,0,.3); opacity: 0; transform: scale(.6); transition: opacity .2s, transform .3s var(--spring); pointer-events: none; }
 .tp .chk svg { width: 11px; height: 11px; stroke-width: 3; }
-.tp.on { border-color: var(--line-2); background: rgba(var(--ink), .05); }
+.tp.on { border-color: rgba(var(--ink), .32); background: rgba(var(--ink), .06); }
+.tp.on .tp-screen { box-shadow: 0 0 0 2px var(--tp-ring-on), 0 6px 16px rgba(0,0,0,.16); }
 .tp.on .chk { opacity: 1; transform: none; }
 .theme-desc { padding: 6px 22px 18px; color: var(--text-3); font-size: 12.5px; line-height: 1.6; }
 .theme-desc b { color: var(--text-2); font-weight: 650; margin-right: 8px; }
@@ -1961,7 +1965,7 @@
   --bg: #efe4cb; --bg-rgb: 239, 228, 203; --bg-2: #e9dcbf;
   --surface: #f6eedb; --surface-2: #e8dabd; --surface-3: #dac8a3;
   --ink: 28, 22, 17; --line: rgba(28,22,17,.13); --line-2: rgba(28,22,17,.3);
-  --text: #1c1611; --text-hi: #0d0a07; --text-sub: #3d3228; --text-2: #4f4236; --text-3: #6b5c4c;
+  --text: #1c1611; --text-hi: #0d0a07; --text-sub: #3d3228; --text-2: #4f4236; --text-3: #615343;
   --teal: #b3261e; --teal-rgb: 179, 38, 30; --teal-2: #8f1b14; --teal-dim: rgba(179,38,30,.12);
   --pink: #b3261e; --pink-dim: rgba(179,38,30,.12); --pink-line: rgba(179,38,30,.45); --pink-text: #8f1b14;
   --amber: #b9821f; --on-accent: #f6eedb;
@@ -1970,7 +1974,7 @@
   --shadow-rgb: 28, 22, 17; --sh: .32;
   --np-base: #e6d8ba; --np-ink: 28, 22, 17; --np-pill-ink: #f6eedb; --np-dim: 1.05;
   --np-filter: blur(44px) grayscale(1) sepia(.35) contrast(1.15) brightness(var(--np-dim));
-  --np-veil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.11 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"), linear-gradient(90deg, rgba(239,228,203,.72), rgba(239,228,203,.82));
+  --np-veil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.11 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"), #efe4cb;
   --np-calm: rgba(239,228,203,.86);
   --ph-s1: 38%; --ph-l1: 68%; --ph-s2: 44%; --ph-l2: 48%;
   --brand-ink: #efe4cb; --brand-track: #3a3027;
@@ -1983,26 +1987,26 @@
   color-scheme: light;
 }
 [data-theme="poster"]:where([data-mode="night"]) {
-  --bg: #17130f; --bg-rgb: 23, 19, 15; --bg-2: #1b1612;
-  --surface: #221c16; --surface-2: #2b241c; --surface-3: #3b3127;
-  --ink: 239, 228, 203; --line: rgba(239,228,203,.1); --line-2: rgba(239,228,203,.24);
-  --text: #efe4cb; --text-hi: #fff8e8; --text-sub: #d4c7aa; --text-2: #bfb194; --text-3: #978a6e;
-  --teal: #dc3d32; --teal-rgb: 220, 61, 50; --teal-2: #f0695e; --teal-dim: rgba(220,61,50,.16);
+  --bg: #2b241c; --bg-rgb: 43, 36, 28; --bg-2: #2f281f;
+  --surface: #332b22; --surface-2: #3c3329; --surface-3: #4b4033;
+  --ink: 239, 228, 203; --line: rgba(239,228,203,.12); --line-2: rgba(239,228,203,.28);
+  --text: #fdf8ee; --text-hi: #ffffff; --text-sub: #e6dbc2; --text-2: #d8cbae; --text-3: #bfb194;
+  --teal: #dc3d32; --teal-rgb: 220, 61, 50; --teal-2: #f47a6f; --teal-dim: rgba(220,61,50,.16);
   --pink: #e0473c; --pink-dim: rgba(224,71,60,.16); --pink-line: rgba(224,71,60,.5); --pink-text: #f58a80;
   --amber: #e0a94a; --on-accent: #fff8e8;
-  --play-bg: #c9352b; --play-ink: #fff8e8; --knob: #efe4cb; --knob-off: #17130f;
-  --bar-bg: #0f0c09; --pop-bg: #241d17; --drawer-bg: #1f1914; --toast-bg: #2a231c; --modal-bg: #221c16;
+  --play-bg: #c9352b; --play-ink: #fff8e8; --knob: #efe4cb; --knob-off: #2b241c;
+  --bar-bg: #1f1a14; --pop-bg: #3a3128; --drawer-bg: #352d24; --toast-bg: #41372c; --modal-bg: #332b22;
   --shadow-rgb: 0, 0, 0; --sh: 1;
-  --np-base: #100d0a; --np-ink: 239, 228, 203; --np-pill-ink: #17130f; --np-dim: .42;
-  --np-veil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"), radial-gradient(120% 90% at 30% 40%, rgba(23,19,15,.3), rgba(23,19,15,.8));
-  --np-calm: rgba(23,19,15,.82);
+  --np-base: #221c16; --np-ink: 253, 248, 238; --np-pill-ink: #2b241c; --np-dim: .42;
+  --np-veil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"), #2b241c;
+  --np-calm: rgba(43,36,28,.82);
   --ph-s1: 30%; --ph-l1: 30%; --ph-s2: 36%; --ph-l2: 18%;
-  --brand-ink: #efe4cb; --brand-track: #3b3127;
-  --hero-dim: .5; --hero-op: .55;
-  --ps-red: #c9352b; --ps-ink: #0f0c09; --ps-pill: #efe4cb; --ps-pill-ink: #17130f;
+  --brand-ink: #efe4cb; --brand-track: #4b4033;
+  --hero-dim: .55; --hero-op: .55;
+  --ps-red: #c9352b; --ps-ink: #17130f; --ps-pill: #efe4cb; --ps-pill-ink: #17130f;
   --ps-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --app-bg: var(--ps-grain), #17130f;
-  --sidebar-bg: var(--ps-grain), linear-gradient(166deg, #0f0c09 0 76%, #8f1d16 76% 100%);
+  --app-bg: var(--ps-grain), #2b241c;
+  --sidebar-bg: var(--ps-grain), linear-gradient(166deg, #1f1a14 0 76%, #8f1d16 76% 100%);
   color-scheme: dark;
 }
 /* 日：側欄和播放列是墨黑的，裡面的字用米色 */
@@ -2023,10 +2027,10 @@
 :root[data-theme="poster"] .nav-pill::before { display: none; }
 :root[data-theme="poster"] .nav a.on, :root[data-theme="poster"] .nav a.on svg.i, :root[data-theme="poster"] .nav a.on .count, :root[data-theme="poster"] .nav a.on:hover { color: var(--ps-pill-ink); }
 :root[data-theme="poster"] #topbar.solid { background: rgba(var(--bg-rgb), .95); }
-/* 標題：粗體窄字，大標題像海報上的紅色標籤 */
+/* 標題：粗體窄字；頁首大標題是墨色（夜是米色）的大字，下面一條短而粗的紅槓，左緣和下面的內容對齊 */
 :root[data-theme="poster"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .np-title) { font-family: var(--font-display); font-stretch: condensed; font-weight: 700; letter-spacing: .01em; }
-:root[data-theme="poster"] .page-head h1 { background: var(--ps-red); color: #f6eedb; padding: .04em .32em .08em; }
-:root[data-theme="poster"] .fcrumbs + .page-head h1 { padding: .04em .32em .08em; margin: 0; }
+:root[data-theme="poster"] .page-head h1 { color: var(--text); font-weight: 800; padding-bottom: 12px; background: linear-gradient(var(--ps-red), var(--ps-red)) left bottom / 1.3em 6px no-repeat; }
+:root[data-theme="poster"] .fcrumbs + .page-head h1 { padding: 0 0 12px; margin: 0; }
 :root[data-theme="poster"] .hero h1 { font-weight: 800; }
 :root[data-theme="poster"] .rail-head h2::before { content: ""; display: inline-block; width: 9px; height: .82em; margin-right: 12px; vertical-align: -.06em; background: var(--teal); transform: skewX(-18deg); }
 /* 搜尋與按鈕：直角、平塗，框線是墨色 */
@@ -2045,16 +2049,17 @@
 :root[data-theme="poster"] :is(.seg, .set-tabs) button { color: var(--text-2); }
 :root[data-theme="poster"] :is(.seg, .set-tabs) button.on { background: var(--ps-red); color: #f6eedb; box-shadow: none; font-weight: 700; }
 :root[data-theme="poster"] #sidebar .seg { box-shadow: inset 0 0 0 2px rgba(239,228,203,.5); background: transparent; }
-:root[data-theme="poster"] .switch { background: var(--surface-3); }
-:root[data-theme="poster"] .switch.on { background: var(--teal); }
-:root[data-theme="poster"] .switch::after { background: var(--surface); }
+:root[data-theme="poster"] .switch { background: transparent; box-shadow: inset 0 0 0 2px var(--text); }
+:root[data-theme="poster"] .switch::after { left: 4px; top: 4px; width: 16px; height: 16px; background: var(--text); }
+:root[data-theme="poster"] .switch.on { background: var(--teal); box-shadow: inset 0 0 0 2px var(--teal); }
+:root[data-theme="poster"] .switch.on::after { background: #f6eedb; }
 :root[data-theme="poster"] .slider .track { background: rgba(var(--ink), .2); }
 :root[data-theme="poster"] .slider .fill, :root[data-theme="poster"] .slider:hover .fill { background: var(--teal); }
 :root[data-theme="poster"] .slider .knob { border-radius: 0; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: var(--knob); box-shadow: none; }
 :root[data-theme="poster"] .seek .slider .knob, :root[data-theme="poster"] .np-seek .slider .knob { opacity: 1; transform: none; }
 :root[data-theme="poster"] .chip.on { background: var(--ps-red); border-color: var(--ps-red); color: #f6eedb; }
 :root[data-theme="poster"] .badge { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--line-2); font-weight: 700; }
-:root[data-theme="poster"] .badge.hi { background: var(--teal); color: #f6eedb; box-shadow: none; }
+:root[data-theme="poster"] .badge.hi { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
 :root[data-theme="poster"] .icon-btn.on { color: var(--teal); }
 :root[data-theme="poster"] .icon-btn.fav-on { color: var(--pink); }
 :root[data-theme="poster"] .msel-btn { background: var(--surface); border: 2px solid var(--text); box-shadow: none; font-weight: 600; }
@@ -2069,7 +2074,7 @@
 :root[data-theme="poster"] .card .art { box-shadow: 0 0 0 1px rgba(var(--ink), .16); }
 :root[data-theme="poster"] .card:hover .art { transform: translate(-3px, -3px); box-shadow: 0 0 0 1px rgba(var(--ink), .16), 8px 8px 0 var(--ps-red); }
 :root[data-theme="poster"] .card .t1 { font-weight: 700; }
-:root[data-theme="poster"] .card:hover .t1 { color: var(--teal); }
+:root[data-theme="poster"] .card:hover .t1 { color: var(--teal-2); }
 :root[data-theme="poster"] .card .play { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
 /* 列表與面板 */
 :root[data-theme="poster"] .thead { background: var(--bg); border-bottom: 2px solid var(--text); font-family: var(--font-display); font-stretch: condensed; font-weight: 700; letter-spacing: .06em; }
@@ -2091,17 +2096,34 @@
 /* 播放列：墨黑的一條，上緣粗紅線；播放鍵是紅色方塊 */
 :root[data-theme="poster"] #bar { border-top: 5px solid var(--ps-red); backdrop-filter: none; }
 :root[data-theme="poster"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: none; }
-/* 正在播放：封面印成單色的石版畫，一條斜切的紅色色帶從左下穿過封面後面 */
-:root[data-theme="poster"] .np-bg .layer.b.on { opacity: 0; }
-:root[data-theme="poster"] .np-bg .layer.b { animation: none; }
-:root[data-theme="poster"] .np-bg::before { content: ""; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: linear-gradient(118deg, transparent 0 14%, var(--ps-red) 14% 31%, transparent 31% 33%, var(--ps-stripe, #1c1611) 33% 36%, transparent 36%); opacity: .9; -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent 66%); mask-image: linear-gradient(180deg, #000 50%, transparent 66%); }
-:root[data-theme="poster"]:where([data-mode="night"]) .np-bg::before { --ps-stripe: rgba(239,228,203,.75); opacity: .8; }
+/* 正在播放：平塗的海報紙面（不放模糊的封面）。左上角一條朱紅大色帶加一條墨線，邊緣俐落，從上緣一路切到左緣；
+   歌詞關掉時，右下角再一組墨色帶加紅線呼應。外面一圈細細的海報框線。色帶只在角落，不碰到文字、進度條和按鈕。 */
+:root[data-theme="poster"] .np-bg .layer { display: none; }
+:root[data-theme="poster"] #np { --ps-a: 6vh; --ps-b: 25vh; --ps-c: 27.5vh; --ps-d: 30.5vh; }
+:root[data-theme="poster"] .np-bg::before { content: ""; position: absolute; z-index: 1; inset: 12px; pointer-events: none; border: 1.5px solid rgba(var(--np-ink), .5); background-origin: border-box; background-repeat: no-repeat; background-image: linear-gradient(122deg, transparent 0 var(--ps-a), var(--ps-red) var(--ps-a) var(--ps-b), transparent var(--ps-b) var(--ps-c), var(--ps-stripe, #1c1611) var(--ps-c) var(--ps-d), transparent var(--ps-d)); }
+:root[data-theme="poster"] #np::before { content: ""; position: absolute; z-index: 1; inset: 13.5px; pointer-events: none; background-repeat: no-repeat; background-image: linear-gradient(302deg, transparent 0 4vh, var(--ps-band2, #1c1611) 4vh 13vh, transparent 13vh 15vh, var(--ps-red) 15vh 17.5vh, transparent 17.5vh); opacity: 0; transition: opacity .6s var(--ease-out); }
+:root[data-theme="poster"] #np.nolyrics::before { opacity: 1; }
+:root[data-theme="poster"]:where([data-mode="night"]) #np { --ps-stripe: rgba(239,228,203,.82); --ps-band2: rgba(239,228,203,.72); }
+/* 角落的按鈕：實心的紙色方塊加墨色框，任何封面上都看得到 */
+:root[data-theme="poster"] .np-top :is(.icon-btn, .pill) { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 2px var(--text); font-weight: 700; }
+:root[data-theme="poster"] .np-top :is(.icon-btn, .pill):hover { background: var(--surface-2); }
+:root[data-theme="poster"] .np-top .pill.on { background: var(--ps-red); color: #f6eedb; box-shadow: inset 0 0 0 2px var(--ps-red); }
+:root[data-theme="poster"] .np-top .src:not(:empty) { background: var(--surface); color: var(--text-2); padding: 3px 8px; box-shadow: inset 0 0 0 1.5px var(--line-2); }
 :root[data-theme="poster"] .np-cover { box-shadow: 0 0 0 1px rgba(var(--np-ink), .2), 14px 14px 0 rgba(var(--np-ink), .9); }
 :root[data-theme="poster"]:where([data-mode="night"]) .np-cover { box-shadow: 0 0 0 1px rgba(239,228,203,.2), 14px 14px 0 #000; }
 :root[data-theme="poster"] .np-ctrl .icon-btn.on { color: var(--teal); }
 :root[data-theme="poster"] .pill.on { background: var(--ps-red); color: #f6eedb; }
 :root[data-theme="poster"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .4) var(--p, 0%)); }
 :root[data-theme="poster"] .scroll-bubble { background: var(--ps-red); color: #f6eedb; }
+/* 好讀優先：沒在唱的歌詞、翻譯、時間、播過的佇列都不要太淡 */
+:root[data-theme="poster"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="poster"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+:root[data-theme="poster"] .np-seek .times { color: rgba(var(--np-ink), .78); font-weight: 600; }
+:root[data-theme="poster"] .qrow.past { opacity: .8; }
+:root[data-theme="poster"] .nav-label .nav-edit { opacity: .85; }
+/* 夜：等化器的拖曳點用朱紅底，選中與關閉的點用深色字 */
+:root[data-theme="poster"]:where([data-mode="night"]) .eq-handle:not(.sel):not(.off) { background: var(--ps-red); }
+:root[data-theme="poster"]:where([data-mode="night"]) .eq-handle:is(.sel, .off) { color: #2b241c; }
 /* 外觀頁的小預覽 */
 .tp-screen[data-theme="poster"] .tp-side { border-right: 3px solid var(--ps-red); }
 .tp-screen[data-theme="poster"] .tp-side i.on { background: var(--ps-cream, #efe4cb); box-shadow: 2px 2px 0 var(--ps-red); }
@@ -2109,141 +2131,230 @@
 .tp-screen[data-theme="poster"] .tp-cards i { border-radius: 0; }
 
 
-/* ───────────────────── 12 · 巡音（夜：黑與金 · 日：珍珠白） ─────────────────────
-   從巡音的印象來的顏色和氣氛：柔和的玫瑰粉、黑、細細的金線，成熟、優雅。不用任何角色圖或標誌。
-   內容區右上角有幾縷像長髮飄動的粉色曲線和一條金線；側欄右邊一條金色細線；選中的東西是粉色的淡底加金色細框。 */
+/* ───────────────────── 12 · 巡音（重新設計：黑漆與金 · 裝飾藝術） ─────────────────────
+   從巡音的印象來的：成熟、冷靜、優雅。黑色漆面與金色的裝飾藝術線條（扇形放射線、菱形、雙線細框、面板四角的金色角飾），
+   玫瑰粉只用在像長髮的細曲線，青色是冷色點綴。夜：帶青色調的石板灰（不是近黑），象牙白的字；日：象牙白的紙面，黑漆側欄與播放列。
+   主要按鈕、選中的分段：夜是金底黑字，日是黑底金字。拖曳鈕是金色菱形。不用任何角色圖或標誌。 */
 [data-theme="luka"] {
-  --bg: #141017; --bg-rgb: 20, 16, 23; --bg-2: #18131c;
-  --surface: #1e1824; --surface-2: #272030; --surface-3: #352b3f;
-  --ink: 246, 232, 238; --line: rgba(236,206,220,.09); --line-2: rgba(236,206,220,.17);
-  --text: #f3e7ec; --text-hi: #fff8fb; --text-sub: #d6c3cc; --text-2: #bca8b3; --text-3: #92808b;
-  --teal: #f4a3c0; --teal-rgb: 244, 163, 192; --teal-2: #ffc4d8; --teal-dim: rgba(244,163,192,.14);
-  --pink: #ff8fb3; --pink-dim: rgba(255,143,179,.15); --pink-line: rgba(255,143,179,.5); --pink-text: #ffb0c9;
-  --amber: #d8b26a; --on-accent: #2a0f1c;
-  --play-bg: linear-gradient(160deg, #ffc3d7, #e98bb0); --play-ink: #2a0f1c; --knob: #fff8fb; --knob-off: #bca8b3;
-  --bar-bg: rgba(15,11,18,.97); --pop-bg: rgba(33,26,40,.98); --drawer-bg: rgba(26,20,31,.98); --toast-bg: rgba(38,30,45,.98); --modal-bg: #1e1824;
-  --shadow-rgb: 0, 0, 0; --sh: 1;
-  --np-base: #0e0a10; --np-ink: 246, 232, 238; --np-pill-ink: #2a0f1c; --np-dim: .42;
-  --np-filter: blur(70px) saturate(1.15) brightness(var(--np-dim));
-  --np-veil: radial-gradient(55% 65% at 30% 46%, rgba(244,163,192,.16), transparent 70%), radial-gradient(120% 90% at 30% 40%, rgba(20,16,23,.3), rgba(20,16,23,.8));
-  --np-calm: rgba(20,16,23,.62);
-  --ph-s1: 40%; --ph-l1: 34%; --ph-s2: 44%; --ph-l2: 20%;
-  --brand-ink: #f3e7ec; --brand-track: #352b3f;
-  --hero-dim: .5; --hero-op: .55;
-  --lk-gold: #d8b26a; --lk-gold-rgb: 216, 178, 106; --lk-label: #cfae6e;
-  --lk-strands: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='760' height='300' viewBox='0 0 760 300'%3E%3Cpath d='M780 -30 C610 20 500 -70 360 20 S120 140 -40 100' fill='none' stroke='%23f4a3c0' stroke-width='2.6' stroke-linecap='round' opacity='0.55'/%3E%3Cpath d='M780 -6 C610 44 500 -46 360 44 S120 164 -40 124' fill='none' stroke='%23f4a3c0' stroke-width='1.4' stroke-linecap='round' opacity='0.4'/%3E%3Cpath d='M780 18 C610 68 500 -22 360 68 S120 188 -40 148' fill='none' stroke='%23f4a3c0' stroke-width='3.2' stroke-linecap='round' opacity='0.32'/%3E%3Cpath d='M780 44 C610 94 500 4 360 94 S120 214 -40 174' fill='none' stroke='%23f4a3c0' stroke-width='1.2' stroke-linecap='round' opacity='0.5'/%3E%3Cpath d='M780 70 C610 120 500 30 360 120 S120 240 -40 200' fill='none' stroke='%23f4a3c0' stroke-width='2.2' stroke-linecap='round' opacity='0.26'/%3E%3Cpath d='M780 96 C610 146 500 56 360 146 S120 266 -40 226' fill='none' stroke='%23f4a3c0' stroke-width='1.6' stroke-linecap='round' opacity='0.2'/%3E%3Cpath d='M780 124 C610 174 500 84 360 174 S120 294 -40 254' fill='none' stroke='%23f4a3c0' stroke-width='2.8' stroke-linecap='round' opacity='0.14'/%3E%3Cpath d='M780 6 C610 62 490 -26 350 66 S110 184 -40 148' fill='none' stroke='%23d8b26a' stroke-width='1.1' opacity='.75'/%3E%3C/svg%3E");
+  --bg: #1c2428; --bg-rgb: 28, 36, 40; --bg-2: #20292d;
+  --surface: #243035; --surface-2: #2c393f; --surface-3: #37454c;
+  --ink: 244, 239, 230; --line: rgba(220,187,118,.13); --line-2: rgba(220,187,118,.24);
+  --text: #f6f1e8; --text-hi: #fffdf8; --text-sub: #e2dacd; --text-2: #cfc7ba; --text-3: #b5ada1;
+  --teal: #dcbb76; --teal-rgb: 220, 187, 118; --teal-2: #f0d59c; --teal-dim: rgba(220,187,118,.15);
+  --pink: #f28db2; --pink-dim: rgba(242,141,178,.15); --pink-line: rgba(242,141,178,.5); --pink-text: #ffb1cc;
+  --amber: #e7b55c; --on-accent: #1d1a12;
+  --play-bg: linear-gradient(160deg, #f4dfaa, #c99c4c); --play-ink: #1d1a12; --knob: #fffdf8; --knob-off: #cfc7ba;
+  --bar-bg: #151b1e; --pop-bg: rgba(38,50,55,.985); --drawer-bg: rgba(32,41,45,.985); --toast-bg: rgba(44,57,63,.985); --modal-bg: #243035;
+  --shadow-rgb: 4, 8, 10; --sh: .9;
+  --np-base: #121a1d; --np-ink: 246, 241, 232; --np-pill-ink: #1d1a12; --np-dim: .46;
+  --np-filter: blur(64px) saturate(.9) brightness(var(--np-dim));
+  --np-veil: radial-gradient(120% 90% at 50% 40%, rgba(28,36,40,.38), rgba(28,36,40,.84));
+  --np-calm: rgba(28,36,40,.62);
+  --ph-s1: 26%; --ph-l1: 34%; --ph-s2: 30%; --ph-l2: 22%;
+  --brand-ink: #f6f1e8; --brand-track: #37454c;
+  --hero-dim: .52; --hero-op: .5;
+  --lk-gold: #dcbb76; --lk-gold-rgb: 220, 187, 118; --lk-label: #dcbb76; --lk-rose-rgb: 242, 141, 178; --lk-cyan: #79cfcf;
+  --lk-lacquer: #141a1d; --lk-fan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='380' viewBox='0 0 560 380'%3E%3Cg fill='none' stroke='%23dcbb76' stroke-linecap='round'%3E%3Cpath d='M560 64 L560 312' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M553.3 63.6 L533.9 248.6' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M546.7 62.6 L495.1 305.2' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M540.2 60.9 L482.7 237.8' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M534 58.5 L433.1 285' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M528 55.4 L435 216.5' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M522.4 51.8 L376.6 252.4' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M517.2 47.6 L392.7 185.8' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M512.4 42.8 L328.1 208.8' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M508.2 37.6 L357.7 146.9' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M504.6 32 L289.8 156' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M501.5 26 L331.6 101.7' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M499.1 19.8 L263.3 96.4' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M497.4 13.3 L315.5 52' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M496.4 6.7 L249.7 32.6' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M496 0 L310 0' stroke-width='0.8' opacity='0.41250000000000003'/%3E%3Cpath d='M560 64 A64 64 0 0 1 496 0' stroke-width='1.2' opacity='0.75'/%3E%3Cpath d='M560 118 A118 118 0 0 1 442 0' stroke-width='0.8' opacity='0.525'/%3E%3Cpath d='M560 176 A176 176 0 0 1 384 0' stroke-width='0.8' opacity='0.45'/%3E%3Cpath d='M560 324 A324 324 0 0 1 236 0' stroke-width='1.3' opacity='0.675'/%3E%3Cpath d='M560 334 A334 334 0 0 1 226 0' stroke-width='0.7' opacity='0.45'/%3E%3Cpath d='M506 337.3 L509.5 340.8 L506 344.3 L502.5 340.8 Z' fill='%23dcbb76' stroke='none' opacity='0.75'/%3E%3Cpath d='M403.4 303.9 L406.9 307.4 L403.4 310.9 L399.9 307.4 Z' fill='%23dcbb76' stroke='none' opacity='0.75'/%3E%3Cpath d='M316 240.5 L319.5 244 L316 247.5 L312.5 244 Z' fill='%23dcbb76' stroke='none' opacity='0.75'/%3E%3Cpath d='M252.6 153.1 L256.1 156.6 L252.6 160.1 L249.1 156.6 Z' fill='%23dcbb76' stroke='none' opacity='0.75'/%3E%3Cpath d='M219.2 50.5 L222.7 54 L219.2 57.5 L215.7 54 Z' fill='%23dcbb76' stroke='none' opacity='0.75'/%3E%3C/g%3E%3Cg fill='none' stroke='%23f28db2' stroke-linecap='round'%3E%3Cpath d='M580 40 C420 110, 300 10, 180 130 S0 300, -20 250' stroke-width='2.4' opacity='0.7'/%3E%3Cpath d='M580 56 C420 126, 300 26, 180 146 S0 316, -20 266' stroke-width='1.2' opacity='0.56'/%3E%3Cpath d='M580 70 C420 140, 300 40, 180 160 S0 330, -20 280' stroke-width='3' opacity='0.42'/%3E%3Cpath d='M580 86 C420 156, 300 56, 180 176 S0 346, -20 296' stroke-width='1.1' opacity='0.525'/%3E%3Cpath d='M580 102 C420 172, 300 72, 180 192 S0 362, -20 312' stroke-width='2' opacity='0.35'/%3E%3Cpath d='M580 120 C420 190, 300 90, 180 210 S0 380, -20 330' stroke-width='1.4' opacity='0.28'/%3E%3C/g%3E%3C/svg%3E"); --lk-hair: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='1000' viewBox='0 0 240 1000' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M6 -20 C66 170, -15 360, 51 540 S12 860, -4 1020' stroke='%23f28db2' stroke-width='2.6' opacity='0.62' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M20 -20 C90 170, -4.5 360, 72.5 540 S27 860, 10 1020' stroke='%23f28db2' stroke-width='1.2' opacity='0.527' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M34 -20 C86 170, 15.8 360, 73 540 S39.2 860, 24 1020' stroke='%23f28db2' stroke-width='3' opacity='0.37200000000000005' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M50 -20 C130 170, 22 360, 110 540 S58 860, 40 1020' stroke='%23f28db2' stroke-width='1.1' opacity='0.496' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M66 -20 C124 170, 45.7 360, 109.5 540 S71.8 860, 56 1020' stroke='%23f28db2' stroke-width='2' opacity='0.31' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M84 -20 C158 170, 58.1 360, 139.5 540 S91.4 860, 74 1020' stroke='%23f28db2' stroke-width='1.4' opacity='0.26' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M104 -20 C168 170, 81.6 360, 152 540 S110.4 860, 94 1020' stroke='%23f28db2' stroke-width='2.4' opacity='0.18600000000000003' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M126 -20 C210 170, 96.6 360, 189 540 S134.4 860, 116 1020' stroke='%23f28db2' stroke-width='1' opacity='0.18600000000000003' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M28 -20 C96 180, 4 350, 82 530 S44 860, 18 1020' stroke='%23dcbb76' stroke-width='1.1' opacity='0.7' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E"); --lk-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='10' viewBox='0 0 120 10'%3E%3Cpath d='M0 5 H96' stroke='%23dcbb76' stroke-width='1.2'/%3E%3Cpath d='M0 8 H70' stroke='%23dcbb76' stroke-width='.7' opacity='.6'/%3E%3Cpath d='M106 0.8 L110.2 5 L106 9.2 L101.8 5 Z' fill='%23dcbb76'/%3E%3Ccircle cx='117' cy='5' r='1.6' fill='%23dcbb76'/%3E%3C/svg%3E");
   --font-display: "Didot", "Bodoni 72", "Bodoni MT", "Georgia", "Noto Serif TC", "Songti TC", "PMingLiU", serif;
-  --app-bg: radial-gradient(900px 600px at 100% -10%, rgba(244,163,192,.12), transparent 60%), radial-gradient(700px 520px at -8% 110%, rgba(216,178,106,.07), transparent 60%), #141017;
-  --sidebar-bg: linear-gradient(180deg, #1a151e 0%, #141017 60%, #110d14 100%);
+  --app-bg: radial-gradient(1000px 640px at 100% -10%, rgba(121,207,207,.08), transparent 60%), radial-gradient(800px 560px at -10% 110%, rgba(242,141,178,.06), transparent 60%), #1c2428;
+  --sidebar-bg: linear-gradient(180deg, #161c1f, #121719);
   color-scheme: dark;
 }
 [data-theme="luka"]:where([data-mode="day"]) {
-  --bg: #fbf6f6; --bg-rgb: 251, 246, 246; --bg-2: #f8eff1;
-  --surface: #ffffff; --surface-2: #f6ebef; --surface-3: #ecdae1;
-  --ink: 42, 26, 36; --line: rgba(70,35,52,.09); --line-2: rgba(70,35,52,.17);
-  --text: #2a1d25; --text-hi: #160d13; --text-sub: #5a4651; --text-2: #6c5662; --text-3: #76606c;
-  --teal: #c4527e; --teal-rgb: 196, 82, 126; --teal-2: #a43e66; --teal-dim: rgba(196,82,126,.12);
-  --pink: #c23d6e; --pink-dim: rgba(194,61,110,.11); --pink-line: rgba(194,61,110,.42); --pink-text: #a3315c;
-  --amber: #a8822f; --on-accent: #ffffff;
-  --play-bg: linear-gradient(160deg, #cf6690, #a43e66); --play-ink: #ffffff; --knob: #ffffff; --knob-off: #ffffff;
-  --bar-bg: #1b1419; --pop-bg: rgba(255,255,255,.98); --drawer-bg: rgba(255,251,252,.98); --toast-bg: #ffffff; --modal-bg: #fffbfc;
-  --shadow-rgb: 120, 60, 90; --sh: .35;
-  --np-base: #f6ecef; --np-ink: 42, 26, 36; --np-pill-ink: #ffffff; --np-dim: 1.1;
-  --np-filter: blur(70px) saturate(1.1) brightness(var(--np-dim));
-  --np-veil: radial-gradient(55% 65% at 30% 46%, rgba(244,163,192,.2), transparent 70%), linear-gradient(90deg, rgba(251,246,246,.7), rgba(251,246,246,.86));
-  --np-calm: rgba(251,246,246,.72);
-  --ph-s1: 50%; --ph-l1: 84%; --ph-s2: 44%; --ph-l2: 70%;
-  --brand-ink: #2a1d25; --brand-track: #ecdae1;
-  --hero-dim: 1.12; --hero-op: .42;
-  --lk-gold: #b08a3e; --lk-gold-rgb: 176, 138, 62; --lk-label: #8a6a2a;
-  --lk-strands: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='760' height='300' viewBox='0 0 760 300'%3E%3Cpath d='M780 -30 C610 20 500 -70 360 20 S120 140 -40 100' fill='none' stroke='%23e58bab' stroke-width='2.6' stroke-linecap='round' opacity='0.55'/%3E%3Cpath d='M780 -6 C610 44 500 -46 360 44 S120 164 -40 124' fill='none' stroke='%23e58bab' stroke-width='1.4' stroke-linecap='round' opacity='0.4'/%3E%3Cpath d='M780 18 C610 68 500 -22 360 68 S120 188 -40 148' fill='none' stroke='%23e58bab' stroke-width='3.2' stroke-linecap='round' opacity='0.32'/%3E%3Cpath d='M780 44 C610 94 500 4 360 94 S120 214 -40 174' fill='none' stroke='%23e58bab' stroke-width='1.2' stroke-linecap='round' opacity='0.5'/%3E%3Cpath d='M780 70 C610 120 500 30 360 120 S120 240 -40 200' fill='none' stroke='%23e58bab' stroke-width='2.2' stroke-linecap='round' opacity='0.26'/%3E%3Cpath d='M780 96 C610 146 500 56 360 146 S120 266 -40 226' fill='none' stroke='%23e58bab' stroke-width='1.6' stroke-linecap='round' opacity='0.2'/%3E%3Cpath d='M780 124 C610 174 500 84 360 174 S120 294 -40 254' fill='none' stroke='%23e58bab' stroke-width='2.8' stroke-linecap='round' opacity='0.14'/%3E%3Cpath d='M780 6 C610 62 490 -26 350 66 S110 184 -40 148' fill='none' stroke='%23b08a3e' stroke-width='1.1' opacity='.75'/%3E%3C/svg%3E");
-  --app-bg: radial-gradient(900px 600px at 100% -10%, rgba(244,163,192,.2), transparent 60%), radial-gradient(700px 520px at -8% 110%, rgba(216,178,106,.1), transparent 60%), #fbf6f6;
-  --sidebar-bg: linear-gradient(180deg, #fffafb 0%, #fbf3f5 60%, #f7ecf0 100%);
+  --bg: #f4efe5; --bg-rgb: 244, 239, 229; --bg-2: #efe8dc;
+  --surface: #fcf9f3; --surface-2: #f3ede2; --surface-3: #e5dccb;
+  --ink: 26, 28, 30; --line: rgba(130,100,40,.15); --line-2: rgba(130,100,40,.28);
+  --text: #191b1d; --text-hi: #0b0c0d; --text-sub: #3d3b37; --text-2: #4b4741; --text-3: #5f5a52;
+  --teal: #1d6268; --teal-rgb: 29, 98, 104; --teal-2: #164e53; --teal-dim: rgba(29,98,104,.1);
+  --pink: #b8466f; --pink-dim: rgba(184,70,111,.1); --pink-line: rgba(184,70,111,.42); --pink-text: #9c3a5f;
+  --amber: #946f26; --on-accent: #ffffff;
+  --play-bg: linear-gradient(160deg, #2b3034, #101214); --play-ink: #e8c987; --knob: #ffffff; --knob-off: #ffffff;
+  --bar-bg: #15191b; --pop-bg: rgba(253,250,244,.985); --drawer-bg: rgba(252,249,243,.985); --toast-bg: #fcf9f3; --modal-bg: #fcf9f3;
+  --shadow-rgb: 70, 52, 20; --sh: .4;
+  --np-base: #efe8dc; --np-ink: 25, 27, 29; --np-pill-ink: #e8c987; --np-dim: 1.06;
+  --np-filter: blur(64px) saturate(.8) brightness(var(--np-dim));
+  --np-veil: linear-gradient(90deg, rgba(244,239,229,.76), rgba(244,239,229,.88));
+  --np-calm: rgba(244,239,229,.74);
+  --ph-s1: 30%; --ph-l1: 80%; --ph-s2: 26%; --ph-l2: 66%;
+  --brand-ink: #191b1d; --brand-track: #e5dccb;
+  --hero-dim: 1.1; --hero-op: .4;
+  --lk-gold: #a5823a; --lk-gold-rgb: 165, 130, 58; --lk-label: #e2c27e; --lk-rose-rgb: 199, 90, 131; --lk-cyan: #1d6268;
+  --lk-fan: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='560' height='380' viewBox='0 0 560 380'%3E%3Cg fill='none' stroke='%23a5823a' stroke-linecap='round'%3E%3Cpath d='M560 64 L560 312' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M553.3 63.6 L533.9 248.6' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M546.7 62.6 L495.1 305.2' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M540.2 60.9 L482.7 237.8' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M534 58.5 L433.1 285' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M528 55.4 L435 216.5' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M522.4 51.8 L376.6 252.4' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M517.2 47.6 L392.7 185.8' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M512.4 42.8 L328.1 208.8' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M508.2 37.6 L357.7 146.9' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M504.6 32 L289.8 156' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M501.5 26 L331.6 101.7' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M499.1 19.8 L263.3 96.4' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M497.4 13.3 L315.5 52' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M496.4 6.7 L249.7 32.6' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M496 0 L310 0' stroke-width='0.8' opacity='0.385'/%3E%3Cpath d='M560 64 A64 64 0 0 1 496 0' stroke-width='1.2' opacity='0.7'/%3E%3Cpath d='M560 118 A118 118 0 0 1 442 0' stroke-width='0.8' opacity='0.49'/%3E%3Cpath d='M560 176 A176 176 0 0 1 384 0' stroke-width='0.8' opacity='0.42'/%3E%3Cpath d='M560 324 A324 324 0 0 1 236 0' stroke-width='1.3' opacity='0.63'/%3E%3Cpath d='M560 334 A334 334 0 0 1 226 0' stroke-width='0.7' opacity='0.42'/%3E%3Cpath d='M506 337.3 L509.5 340.8 L506 344.3 L502.5 340.8 Z' fill='%23a5823a' stroke='none' opacity='0.7'/%3E%3Cpath d='M403.4 303.9 L406.9 307.4 L403.4 310.9 L399.9 307.4 Z' fill='%23a5823a' stroke='none' opacity='0.7'/%3E%3Cpath d='M316 240.5 L319.5 244 L316 247.5 L312.5 244 Z' fill='%23a5823a' stroke='none' opacity='0.7'/%3E%3Cpath d='M252.6 153.1 L256.1 156.6 L252.6 160.1 L249.1 156.6 Z' fill='%23a5823a' stroke='none' opacity='0.7'/%3E%3Cpath d='M219.2 50.5 L222.7 54 L219.2 57.5 L215.7 54 Z' fill='%23a5823a' stroke='none' opacity='0.7'/%3E%3C/g%3E%3Cg fill='none' stroke='%23c75a83' stroke-linecap='round'%3E%3Cpath d='M580 40 C420 110, 300 10, 180 130 S0 300, -20 250' stroke-width='2.4' opacity='0.55'/%3E%3Cpath d='M580 56 C420 126, 300 26, 180 146 S0 316, -20 266' stroke-width='1.2' opacity='0.44'/%3E%3Cpath d='M580 70 C420 140, 300 40, 180 160 S0 330, -20 280' stroke-width='3' opacity='0.33'/%3E%3Cpath d='M580 86 C420 156, 300 56, 180 176 S0 346, -20 296' stroke-width='1.1' opacity='0.413'/%3E%3Cpath d='M580 102 C420 172, 300 72, 180 192 S0 362, -20 312' stroke-width='2' opacity='0.275'/%3E%3Cpath d='M580 120 C420 190, 300 90, 180 210 S0 380, -20 330' stroke-width='1.4' opacity='0.22'/%3E%3C/g%3E%3C/svg%3E"); --lk-hair: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='1000' viewBox='0 0 240 1000' preserveAspectRatio='none'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M6 -20 C66 170, -15 360, 51 540 S12 860, -4 1020' stroke='%23c75a83' stroke-width='2.6' opacity='0.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M20 -20 C90 170, -4.5 360, 72.5 540 S27 860, 10 1020' stroke='%23c75a83' stroke-width='1.2' opacity='0.425' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M34 -20 C86 170, 15.8 360, 73 540 S39.2 860, 24 1020' stroke='%23c75a83' stroke-width='3' opacity='0.3' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M50 -20 C130 170, 22 360, 110 540 S58 860, 40 1020' stroke='%23c75a83' stroke-width='1.1' opacity='0.4' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M66 -20 C124 170, 45.7 360, 109.5 540 S71.8 860, 56 1020' stroke='%23c75a83' stroke-width='2' opacity='0.25' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M84 -20 C158 170, 58.1 360, 139.5 540 S91.4 860, 74 1020' stroke='%23c75a83' stroke-width='1.4' opacity='0.21' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M104 -20 C168 170, 81.6 360, 152 540 S110.4 860, 94 1020' stroke='%23c75a83' stroke-width='2.4' opacity='0.15' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M126 -20 C210 170, 96.6 360, 189 540 S134.4 860, 116 1020' stroke='%23c75a83' stroke-width='1' opacity='0.15' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M28 -20 C96 180, 4 350, 82 530 S44 860, 18 1020' stroke='%23a5823a' stroke-width='1.1' opacity='0.65' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E"); --lk-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='10' viewBox='0 0 120 10'%3E%3Cpath d='M0 5 H96' stroke='%23a5823a' stroke-width='1.2'/%3E%3Cpath d='M0 8 H70' stroke='%23a5823a' stroke-width='.7' opacity='.6'/%3E%3Cpath d='M106 0.8 L110.2 5 L106 9.2 L101.8 5 Z' fill='%23a5823a'/%3E%3Ccircle cx='117' cy='5' r='1.6' fill='%23a5823a'/%3E%3C/svg%3E");
+  --app-bg: radial-gradient(1000px 640px at 100% -10%, rgba(165,130,58,.1), transparent 60%), #f4efe5;
   color-scheme: light;
 }
-/* 日：播放列是黑色的，上緣一條金線（黑與金） */
-:root[data-theme="luka"]:where([data-mode="day"]) #bar {
-  color: #f3e7ec; --text: #f3e7ec; --text-hi: #fff8fb; --text-sub: #d6c3cc; --text-2: #c7b3be; --text-3: #9c8995;
-  --ink: 246, 232, 238; --line: rgba(236,206,220,.1); --line-2: rgba(236,206,220,.2);
-  --surface: #272030; --surface-2: #272030; --surface-3: #352b3f; --teal: #f4a3c0; --teal-rgb: 244, 163, 192; --teal-2: #ffc4d8;
-  --knob: #fff8fb; --knob-off: #1b1419; --bg-rgb: 27, 20, 25;
+/* 日：側欄和播放列是黑漆的，字是象牙白，強調是金色 */
+:root[data-theme="luka"]:where([data-mode="day"]) :is(#sidebar, #bar) {
+  color: #f6f1e8; --text: #f6f1e8; --text-hi: #fffdf8; --text-sub: #e2dacd; --text-2: #d3cbbe; --text-3: #b8b1a5;
+  --ink: 244, 239, 230; --line: rgba(226,194,126,.14); --line-2: rgba(226,194,126,.26);
+  --surface: #232a2e; --surface-2: #2a3236; --surface-3: #353f44; --bg-rgb: 21, 25, 27;
+  --teal: #e2c27e; --teal-rgb: 226, 194, 126; --teal-2: #f0d59c; --on-accent: #1d1a12;
+  --lk-gold: #e2c27e; --lk-gold-rgb: 226, 194, 126; --knob: #fffdf8; --knob-off: #15191b;
+  --play-bg: linear-gradient(160deg, #f4dfaa, #c99c4c); --play-ink: #1d1a12; --brand-ink: #f6f1e8; --brand-track: #353f44;
 }
-.tp-screen[data-theme="luka"][data-mode="day"] .tp-bar { --ink: 246, 232, 238; }
+:root[data-theme="luka"]:where([data-mode="day"]) #sidebar { --sidebar-bg: linear-gradient(180deg, #181c1e, #121516); }
+.tp-screen[data-theme="luka"][data-mode="day"] .tp-side { background: #15191b; --ink: 244, 239, 230; }
+.tp-screen[data-theme="luka"][data-mode="day"] .tp-bar { --ink: 244, 239, 230; }
 
-/* 側欄：右邊一條金色細線；選中的是粉色淡底、金色細框，左邊一顆小小的金色菱形 */
-:root[data-theme="luka"] #sidebar { border-right: 1px solid rgba(var(--lk-gold-rgb), .4); }
+/* 側欄：黑漆，右邊雙金線；小標是金色、字距拉開；選中的是金色細框，左邊一顆金色菱形 */
+:root[data-theme="luka"] #sidebar { background: var(--sidebar-bg); box-shadow: inset -1px 0 0 rgba(var(--lk-gold-rgb), .55), inset -4px 0 0 rgba(var(--lk-gold-rgb), .0), inset -5px 0 0 rgba(var(--lk-gold-rgb), .25); border-right: 0; }
 :root[data-theme="luka"] .nav a { color: var(--text-2); }
-:root[data-theme="luka"] .nav a:hover { background: rgba(var(--teal-rgb), .07); color: var(--text); }
-:root[data-theme="luka"] .nav-label { color: var(--lk-label); font-weight: 600; letter-spacing: .2em; }
-:root[data-theme="luka"] .nav-pill { background: rgba(var(--teal-rgb), .13); border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .45); }
-:root[data-theme="luka"] .nav-pill::before { left: -3px; top: 50%; bottom: auto; width: 6px; height: 6px; margin-top: -3px; border-radius: 0; background: var(--lk-gold); box-shadow: none; transform: rotate(45deg); }
+:root[data-theme="luka"] .nav a:hover { background: rgba(var(--lk-gold-rgb), .08); color: var(--text); }
+:root[data-theme="luka"] .nav-label { color: var(--lk-label); font-weight: 600; letter-spacing: .26em; }
+:root[data-theme="luka"] .nav-pill { background: rgba(var(--lk-gold-rgb), .12); border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .55); }
+:root[data-theme="luka"] .nav-pill::before { left: -4px; top: 50%; bottom: auto; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 0; background: var(--lk-gold); box-shadow: none; transform: rotate(45deg); }
 :root[data-theme="luka"] .nav a.on { color: var(--text-hi); }
-:root[data-theme="luka"] .nav a.on svg.i { color: var(--teal); }
-/* 內容區右上角：幾縷飄動的粉色曲線和一條金線，往左、往下淡掉 */
+:root[data-theme="luka"] .nav a.on svg.i { color: var(--lk-gold); }
+:root[data-theme="luka"] .seg-side button.on, :root[data-theme="luka"] #sidebar .seg button.on { color: var(--on-accent); }
+/* 內容區右上角：金色的裝飾藝術扇形放射線，玫瑰粉的髮絲曲線從中穿過 */
 :root[data-theme="luka"] #main { isolation: isolate; }
-:root[data-theme="luka"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: min(760px, 70%); height: 300px; z-index: -1; pointer-events: none; background: var(--lk-strands) right top / 760px 300px no-repeat; opacity: .75; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(180deg, #000 30%, transparent 92%); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 45%), linear-gradient(180deg, #000 30%, transparent 92%); mask-composite: intersect; }
-:root[data-theme="luka"] #topbar.solid { background: rgba(var(--bg-rgb), .9); }
-:root[data-theme="luka"] .search { background: var(--surface); border: 1px solid var(--line-2); }
-:root[data-theme="luka"] .search:focus-within { border-color: rgba(var(--lk-gold-rgb), .7); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .14); }
+:root[data-theme="luka"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: 560px; max-width: 72%; height: 380px; z-index: -1; pointer-events: none; background: var(--lk-fan) right top / 560px 380px no-repeat; -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%); }
+:root[data-theme="luka"] #topbar.solid { background: rgba(var(--bg-rgb), .92); }
+:root[data-theme="luka"] .search { background: var(--surface); border: 1px solid var(--line-2); border-radius: 2px; }
+:root[data-theme="luka"] .search:focus-within { border-color: rgba(var(--lk-gold-rgb), .8); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .16); }
 :root[data-theme="luka"] .round-btn { background: var(--surface); border: 1px solid var(--line-2); }
-/* 標題：細緻的襯線字 */
-:root[data-theme="luka"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .np-title) { font-family: var(--font-display); font-weight: 600; letter-spacing: .02em; }
-:root[data-theme="luka"]:where(:not([data-mode="day"])) .page-head h1 { text-shadow: 0 0 26px rgba(244,163,192,.22); }
+/* 標題：襯線字；頁首大標題下面一條金線加菱形 */
+:root[data-theme="luka"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .np-title) { font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; }
+:root[data-theme="luka"] .page-head h1 { padding-bottom: 16px; background: var(--lk-rule) left bottom / 120px 10px no-repeat; }
+:root[data-theme="luka"] .fcrumbs + .page-head h1 { padding: 0 0 16px; margin: 0; }
 :root[data-theme="luka"] .rail-head h2::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 13px; vertical-align: .2em; background: var(--lk-gold); transform: rotate(45deg); }
-/* 卡片 */
-:root[data-theme="luka"] .card .art { border-radius: 8px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb), calc(.25 * var(--sh))), 0 10px 24px -10px rgba(var(--shadow-rgb), calc(.8 * var(--sh))); }
-:root[data-theme="luka"] .card:hover .art { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .85), 0 16px 34px -10px rgba(var(--teal-rgb), .4); }
+/* 方角為主，只有小圓角；面板四角有金色的角飾 */
+:root[data-theme="luka"] :is(.btn, .seg, .seg button, .set-tabs, .set-tabs button, .chip, .badge, .sig, .out-btn, select.sel, input.inp, .msel-btn, .msel-menu, .row, .qrow, .ft-head, .ft-h, .ft-tab, .pop, .modal, .toast) { border-radius: 2px; }
+:root[data-theme="luka"] :is(.sect, .dsp-card) {
+  border-radius: 3px; border: 1px solid var(--line-2);
+  background:
+    linear-gradient(var(--lk-gold), var(--lk-gold)) left 7px top 7px / 16px 1.5px no-repeat, linear-gradient(var(--lk-gold), var(--lk-gold)) left 7px top 7px / 1.5px 16px no-repeat,
+    linear-gradient(var(--lk-gold), var(--lk-gold)) right 7px top 7px / 16px 1.5px no-repeat, linear-gradient(var(--lk-gold), var(--lk-gold)) right 7px top 7px / 1.5px 16px no-repeat,
+    linear-gradient(var(--lk-gold), var(--lk-gold)) left 7px bottom 7px / 16px 1.5px no-repeat, linear-gradient(var(--lk-gold), var(--lk-gold)) left 7px bottom 7px / 1.5px 16px no-repeat,
+    linear-gradient(var(--lk-gold), var(--lk-gold)) right 7px bottom 7px / 16px 1.5px no-repeat, linear-gradient(var(--lk-gold), var(--lk-gold)) right 7px bottom 7px / 1.5px 16px no-repeat,
+    var(--surface);
+  box-shadow: 0 14px 30px -20px rgba(var(--shadow-rgb), calc(.9 * var(--sh)));
+}
+/* 卡片：封面方角，滑過時出現金色的雙線細框 */
+:root[data-theme="luka"] .card .art { border-radius: 2px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb), calc(.25 * var(--sh))), 0 10px 24px -10px rgba(var(--shadow-rgb), calc(.8 * var(--sh))); }
+:root[data-theme="luka"] .card:hover .art { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .9), 0 0 0 4px rgb(var(--bg-rgb)), 0 0 0 5px rgba(var(--lk-gold-rgb), .5), 0 16px 34px -12px rgba(var(--shadow-rgb), calc(1 * var(--sh))); }
 :root[data-theme="luka"] .card:hover .t1 { color: var(--teal-2); }
-:root[data-theme="luka"] .card .play { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .6), 0 8px 20px rgba(var(--teal-rgb), .4); }
-/* 按鈕與控制項：分段按鈕是實心的底，選中的是粉色淡底加金色細框 */
-:root[data-theme="luka"] .btn { border-radius: 19px; }
-:root[data-theme="luka"] .btn.primary { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .5), 0 6px 16px -4px rgba(var(--teal-rgb), .5); }
-:root[data-theme="luka"] .page-head .tools > .btn.small { border-radius: 10px; }
+:root[data-theme="luka"] .card .play { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .7), 0 8px 20px rgba(var(--shadow-rgb), .4); }
+/* 按鈕：主要的夜是金底黑字、日是黑底金字；分段按鈕選中的一樣 */
+:root[data-theme="luka"] .btn.primary { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .7); }
 :root[data-theme="luka"] .page-head .tools > .btn.small:not(.primary) { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line-2); }
-:root[data-theme="luka"] :is(.seg, .set-tabs) { background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--line-2); }
-:root[data-theme="luka"] :is(.seg, .set-tabs) button.on { background: rgba(var(--teal-rgb), .16); color: var(--text-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .6); }
-:root[data-theme="luka"] .switch.on { background: var(--teal); }
+:root[data-theme="luka"] :is(.seg, .set-tabs) { background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--line-2); padding: 3px; }
+:root[data-theme="luka"] :is(.seg, .set-tabs) button.on { background: var(--play-bg); color: var(--play-ink); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .7); }
+:root[data-theme="luka"] .switch { border-radius: 2px; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="luka"] .switch::after { border-radius: 1px; background: var(--text-2); }
+:root[data-theme="luka"] .switch.on { background: var(--teal); box-shadow: none; }
+:root[data-theme="luka"] .switch.on::after { background: var(--on-accent); }
+:root[data-theme="luka"]:where([data-mode="day"]) .switch.on::after { background: #ffffff; }
 :root[data-theme="luka"]:where([data-mode="day"]) .eq-handle.sel { color: var(--teal-2); }
-:root[data-theme="luka"] .slider .fill, :root[data-theme="luka"] .slider:hover .fill { background: linear-gradient(90deg, var(--teal), var(--lk-gold)); }
-:root[data-theme="luka"] .seek .slider .knob, :root[data-theme="luka"] .np-seek .slider .knob { background: var(--lk-gold); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .22); }
-:root[data-theme="luka"] .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
-:root[data-theme="luka"] .chip.on { border-color: rgba(var(--lk-gold-rgb), .7); color: var(--teal-2); }
-:root[data-theme="luka"] .badge.hi { background: rgba(var(--teal-rgb), .14); color: var(--teal-2); }
+:root[data-theme="luka"] .slider .fill, :root[data-theme="luka"] .slider:hover .fill { background: linear-gradient(90deg, rgba(var(--lk-rose-rgb), .9), var(--lk-gold)); }
+:root[data-theme="luka"] .slider .knob { border-radius: 1px; background: var(--lk-gold); }
+:root[data-theme="luka"] .slider:hover .knob, :root[data-theme="luka"] .slider.drag .knob { transform: rotate(45deg); }
+:root[data-theme="luka"] .seek .slider .knob, :root[data-theme="luka"] .np-seek .slider .knob { opacity: 1; transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .22); }
+:root[data-theme="luka"] .seek .slider .knob { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+:root[data-theme="luka"] .chip.on { border-color: rgba(var(--lk-gold-rgb), .8); color: var(--teal-2); }
+:root[data-theme="luka"] .badge.hi { background: rgba(var(--lk-gold-rgb), .16); color: var(--teal-2); }
 :root[data-theme="luka"] .icon-btn.on { color: var(--teal-2); }
 :root[data-theme="luka"] .icon-btn.fav-on { color: var(--pink); }
-:root[data-theme="luka"] .msel-btn { background: var(--surface); border-color: rgba(var(--lk-gold-rgb), .45); }
+:root[data-theme="luka"] .msel-btn { background: var(--surface); border-color: rgba(var(--lk-gold-rgb), .5); }
 :root[data-theme="luka"] .msel-btn::before { background: var(--lk-gold); box-shadow: none; border-radius: 0; transform: rotate(45deg); width: 6px; height: 6px; }
-:root[data-theme="luka"] .msel-chev { color: var(--teal-2); background: rgba(var(--teal-rgb), .12); }
-:root[data-theme="luka"] .msel-opt.on::before { background: var(--lk-gold); box-shadow: none; }
+:root[data-theme="luka"] .msel-chev { color: var(--teal-2); background: rgba(var(--lk-gold-rgb), .14); border-radius: 1px; }
+:root[data-theme="luka"] .msel-opt.on::before { background: var(--lk-gold); box-shadow: none; border-radius: 0; transform: rotate(45deg); }
 /* 列表與面板 */
-:root[data-theme="luka"] .thead { background: rgba(var(--bg-rgb), .95); }
-:root[data-theme="luka"] .row:hover { background: rgba(var(--teal-rgb), .06); }
-:root[data-theme="luka"] .row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .13), rgba(var(--teal-rgb), 0) 70%); box-shadow: inset 2px 0 0 var(--lk-gold); }
+:root[data-theme="luka"] .thead { background: rgba(var(--bg-rgb), .96); border-bottom: 1px solid rgba(var(--lk-gold-rgb), .35); }
+:root[data-theme="luka"] .row:hover { background: rgba(var(--lk-gold-rgb), .07); }
+:root[data-theme="luka"] .row.playing { background: linear-gradient(90deg, rgba(var(--lk-gold-rgb), .15), rgba(var(--lk-gold-rgb), 0) 70%); box-shadow: inset 2px 0 0 var(--lk-gold); }
 :root[data-theme="luka"] .row.playing .tt div:first-child, :root[data-theme="luka"] .qrow.cur .t { color: var(--teal-2); }
-:root[data-theme="luka"] .eq i { background: var(--teal); }
-:root[data-theme="luka"] .ft-h.on { color: var(--teal-2); background: rgba(var(--teal-rgb), .14); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .5); }
-:root[data-theme="luka"] .ft-tab { background: var(--lk-gold); color: #1b1419; }
-:root[data-theme="luka"] .sect, :root[data-theme="luka"] .dsp-card { border-radius: 14px; border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(var(--lk-gold-rgb), .28), 0 12px 28px -18px rgba(var(--shadow-rgb), calc(.7 * var(--sh))); }
-:root[data-theme="luka"] .drawer, :root[data-theme="luka"] .pop, :root[data-theme="luka"] .modal { border: 1px solid rgba(var(--lk-gold-rgb), .3); }
-:root[data-theme="luka"] .toast { border-left: 2px solid var(--lk-gold); }
-:root[data-theme="luka"] .hero .cover { border-radius: 10px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .7), 0 0 0 6px rgba(var(--lk-gold-rgb), .08), 0 26px 54px -12px rgba(var(--shadow-rgb), calc(1.1 * var(--sh))); }
+:root[data-theme="luka"] .eq i { background: var(--lk-gold); }
+:root[data-theme="luka"] .ft-h.on { color: var(--teal-2); background: rgba(var(--lk-gold-rgb), .14); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .55); }
+:root[data-theme="luka"] .ft-tab { background: var(--play-bg); color: var(--play-ink); }
+:root[data-theme="luka"] .drawer, :root[data-theme="luka"] .pop, :root[data-theme="luka"] .modal { border: 1px solid rgba(var(--lk-gold-rgb), .4); }
+:root[data-theme="luka"] .toast { border-left: 3px solid var(--lk-gold); }
+:root[data-theme="luka"] .hero .cover { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .9), 0 0 0 6px rgb(var(--bg-rgb)), 0 0 0 7px rgba(var(--lk-gold-rgb), .5), 0 26px 54px -12px rgba(var(--shadow-rgb), calc(1.1 * var(--sh))); }
 :root[data-theme="luka"] .hero.artist .cover { border-radius: 50%; }
-:root[data-theme="luka"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .35), rgba(var(--bg-rgb), .75) 60%, rgba(var(--bg-rgb), 0)); }
-:root[data-theme="luka"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
-:root[data-theme="luka"] #bar { border-top: 1px solid rgba(var(--lk-gold-rgb), .5); backdrop-filter: none; }
-:root[data-theme="luka"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(216,178,106,.7), 0 6px 18px rgba(244,163,192,.3); }
-:root[data-theme="luka"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--teal-rgb), .22); }
-/* 正在播放：封面後面淡淡的粉色光，左下有幾縷飄動的粉色曲線；封面有一圈金色細框 */
+:root[data-theme="luka"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .35), rgba(var(--bg-rgb), .78) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="luka"] .hero-bg { filter: saturate(.7); -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+:root[data-theme="luka"] #bar { background: var(--bar-bg); border-top: 1px solid rgba(var(--lk-gold-rgb), .6); box-shadow: inset 0 3px 0 -2px rgba(var(--lk-gold-rgb), .25); backdrop-filter: none; }
+:root[data-theme="luka"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .8), 0 0 0 4px rgba(var(--lk-gold-rgb), .14); }
+:root[data-theme="luka"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--lk-gold-rgb), .3); border-radius: 0; }
+/* 正在播放：兩側像長髮垂下的玫瑰粉細曲線和一條金線，只在畫面邊緣，不碰到封面、文字和按鈕；封面是金色雙線框 */
 :root[data-theme="luka"] .np-bg .layer.b.on { opacity: 0; }
 :root[data-theme="luka"] .np-bg .layer.b { animation: none; }
-:root[data-theme="luka"] .np-bg::before { content: ""; position: absolute; z-index: 1; left: 0; bottom: 0; width: min(1000px, 90%); height: 400px; pointer-events: none; background: var(--lk-strands) right top / 1000px 400px no-repeat; transform: scale(-1, -1); opacity: .6; -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%); }
-:root[data-theme="luka"] .np-cover { border-radius: 10px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .75), 0 0 0 8px rgba(var(--lk-gold-rgb), .08), 0 40px 80px -20px rgba(0,0,0,.7); }
-:root[data-theme="luka"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .75), 0 0 0 8px rgba(var(--lk-gold-rgb), .1), 0 30px 60px -18px rgba(120,60,90,.4); }
+:root[data-theme="luka"] #np { --lk-side: min(16vw, 230px); }
+:root[data-theme="luka"] #np:not(.nolyrics) { --lk-side: calc(6vw - 6px); }
+:root[data-theme="luka"] #np::before, :root[data-theme="luka"] .np-bg::before { content: ""; position: absolute; z-index: 1; top: 0; bottom: 0; width: var(--lk-side); pointer-events: none; background: var(--lk-hair) left top / 240px 100% no-repeat; -webkit-mask-image: linear-gradient(90deg, #000 30%, transparent), linear-gradient(180deg, transparent 0 60px, #000 140px, #000 90%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, #000 30%, transparent), linear-gradient(180deg, transparent 0 60px, #000 140px, #000 90%, transparent); mask-composite: intersect; transition: width .6s var(--ease-out); }
+:root[data-theme="luka"] .np-bg::before { left: 0; }
+:root[data-theme="luka"] #np::before { right: 0; transform: scaleX(-1); }
+:root[data-theme="luka"] .np-cover { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .9), 0 0 0 7px rgba(var(--np-base-rgb, 18, 26, 29), .0), 0 0 0 8px rgba(var(--lk-gold-rgb), .45), 0 40px 80px -24px rgba(0,0,0,.7); }
+:root[data-theme="luka"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .9), 0 0 0 8px rgba(var(--lk-gold-rgb), .0), 0 0 0 9px rgba(var(--lk-gold-rgb), .45), 0 30px 60px -20px rgba(70,52,20,.35); }
 :root[data-theme="luka"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
 :root[data-theme="luka"] .pill.on { background: var(--play-bg); color: var(--play-ink); }
-:root[data-theme="luka"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .4) var(--p, 0%)); }
-:root[data-theme="luka"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 0 22px rgba(244,163,192,.3); }
+:root[data-theme="luka"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); }
+:root[data-theme="luka"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 0 22px rgba(220,187,118,.25); }
+/* 好讀優先：沒在唱的歌詞、翻譯、時間、歌詞來源、播過的佇列都不要太淡 */
+:root[data-theme="luka"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="luka"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+:root[data-theme="luka"] .np-seek .times { color: rgba(var(--np-ink), .8); font-weight: 600; }
+:root[data-theme="luka"] .np-top .src { color: rgba(var(--np-ink), .78); }
+:root[data-theme="luka"] .qrow.past { opacity: .8; }
+:root[data-theme="luka"] .nav-label .nav-edit { opacity: .85; }
 /* 外觀頁的小預覽 */
-.tp-screen[data-theme="luka"] .tp-side { border-right: 1px solid rgba(var(--lk-gold-rgb), .5); }
-.tp-screen[data-theme="luka"] .tp-side i.on { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .6); }
-.tp-screen[data-theme="luka"] .tp-bar { border-top-color: rgba(var(--lk-gold-rgb), .6); }
+.tp-screen[data-theme="luka"] .tp-side { box-shadow: inset -1px 0 0 rgba(var(--lk-gold-rgb), .7); }
+.tp-screen[data-theme="luka"] .tp-side i.on { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .7); border-radius: 1px; }
+.tp-screen[data-theme="luka"] .tp-bar { border-top: 1px solid rgba(var(--lk-gold-rgb), .7); }
+.tp-screen[data-theme="luka"] .tp-cards i { border-radius: 1px; }
+
+
+/* ═════════════════════════════ 第四輪：普普 ═════════════════════════════
+   正在播放整面都是漫畫網點，但字一律放在實心的漫畫格上（歌名到播放鍵一格、歌詞一格），角落的按鈕是實心的貼紙；
+   開關：關是灰底、白色圓鈕加黑框，開是黃底、黑色圓鈕；夜版的底色提亮成帶紫的深灰，字更亮。 */
+
+/* 夜：底色從近黑提亮，字更亮（參考玻璃夜的亮度） */
+[data-theme="pop"]:where([data-mode="night"]) {
+  --bg: #25242d; --bg-rgb: 37, 36, 45; --bg-2: #292831;
+  --surface: #2c2b35; --surface-2: #35343f; --surface-3: #43424e;
+  --text: #fdfaf2; --text-hi: #ffffff; --text-sub: #e8e4d8; --text-2: #d6d2c6; --text-3: #bbb7ab;
+  --knob-off: #25242d;
+  --bar-bg: #201f27; --pop-bg: #2f2e38; --drawer-bg: #2a2933; --toast-bg: #2f2e38; --modal-bg: #2c2b35;
+  --np-base: #1b1a21; --brand-track: #43424e;
+  --pop-panel: #2c2b35;
+}
+:root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #25242d; --sidebar-bg: #201f27; }
+
+/* 開關：關＝灰底、白色圓鈕加黑框；開＝黃底、黑色圓鈕。夜：關是深灰底、米色圓鈕 */
+:root[data-theme="pop"] .switch { background: #d6d2c4; box-shadow: inset 0 0 0 2px var(--pop-line); }
+:root[data-theme="pop"] .switch::after { left: 5px; top: 5px; width: 14px; height: 14px; background: #ffffff; box-shadow: 0 0 0 2px #111111; }
+:root[data-theme="pop"] .switch.on { background: var(--pop-yellow); }
+:root[data-theme="pop"] .switch.on::after { background: #111111; box-shadow: 0 0 0 2px #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch { background: #4b4a57; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch::after { background: #f5f1e6; box-shadow: 0 0 0 2px #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch.on { background: var(--pop-yellow); box-shadow: inset 0 0 0 2px #111111; }
+
+/* 正在播放：整面漫畫網點（封面的顏色在網點下面淡淡透出來），角落的網點漸層拿掉 */
+[data-theme="pop"] { --np-veil: radial-gradient(rgba(17,17,17,.14) 1.5px, transparent 2.1px) 0 0 / 13px 13px, linear-gradient(90deg, rgba(255,253,246,.62), rgba(255,253,246,.8)); }
+[data-theme="pop"]:where([data-mode="night"]) { --np-veil: radial-gradient(rgba(255,210,63,.17) 1.5px, transparent 2.1px) 0 0 / 13px 13px, radial-gradient(120% 90% at 30% 40%, rgba(37,36,45,.45), rgba(37,36,45,.86)); }
+:root[data-theme="pop"] .np-bg::before { display: none; }
+:root[data-theme="pop"] #np .np-wrap::before { display: none; }
+/* 歌名、歌手、格式、進度條、時間、按鈕：一個實心的漫畫格（白底／夜是深灰底），粗黑框加錯開的硬陰影 */
+:root[data-theme="pop"] .np-cover { width: clamp(180px, min(calc(100vh - var(--bar) - 372px), 100%), 520px); }
+:root[data-theme="pop"] #np .np-info { width: clamp(260px, min(calc(100vh - var(--bar) - 372px), 100%), 520px); margin-top: 24px; padding: 14px 18px 10px; background: var(--pop-panel); border: 3px solid var(--pop-line); border-radius: 12px; box-shadow: 8px 8px 0 var(--pop-shadow); }
+:root[data-theme="pop"] #np .np-seek { margin-top: 16px; }
+:root[data-theme="pop"] #np .np-seek .times { color: rgba(var(--np-ink), .78); font-weight: 600; }
+:root[data-theme="pop"] #np .np-artist { color: rgba(var(--np-ink), .78); }
+:root[data-theme="pop"] #np .np-ctrl { margin-top: 6px; }
+/* 歌詞：另一個實心的漫畫格；歌詞關掉時一起淡出 */
+:root[data-theme="pop"] #np .np-right { padding: 16px 6px 16px 10px; background: var(--pop-panel); border: 3px solid var(--pop-line); border-radius: 14px; box-shadow: 8px 8px 0 var(--pop-shadow); transition: opacity .35s var(--ease); }
+:root[data-theme="pop"] #np.nolyrics .np-right { opacity: 0; }
+:root[data-theme="pop"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="pop"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+/* 角落的按鈕：實心的貼紙（白底／夜是深灰底、粗框、硬陰影），選中的是黃色 */
+:root[data-theme="pop"] .np-top :is(.icon-btn, .pill) { background: var(--pop-panel); color: rgb(var(--np-ink)); border-radius: 8px; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); font-weight: 800; }
+:root[data-theme="pop"] .np-top :is(.icon-btn, .pill):hover { background: var(--surface-3); }
+:root[data-theme="pop"] .np-top .pill.on { background: var(--pop-yellow); color: #111111; box-shadow: inset 0 0 0 2px #111111, 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .np-top .src:not(:empty) { background: var(--pop-panel); color: rgb(var(--np-ink)); padding: 3px 8px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px var(--pop-line); font-weight: 600; }
+
+/* 好讀優先：播過的佇列、側欄的數字、黃底上的愛心、夜裡的格式標籤 */
+:root[data-theme="pop"] .qrow.past { opacity: .8; }
+:root[data-theme="pop"] .nav-label .nav-edit { color: var(--text); opacity: .85; }
+:root[data-theme="pop"]:where(:not([data-mode="night"])) #sidebar .nav a em { color: #3a372d; }
+:root[data-theme="pop"] .row.playing .icon-btn.fav-on { color: #c0122a; }
+:root[data-theme="pop"]:where([data-mode="night"]) :is(.badge.hi, .badge.dsd) { color: #111111; }

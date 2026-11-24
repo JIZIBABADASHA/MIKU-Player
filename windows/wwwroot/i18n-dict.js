@@ -595,3 +595,26 @@ Object.assign(I18N_DICT.ja, {
   "珍珠白的底、玫瑰粉與細金線，黑色播放列，優雅成熟。": "パールホワイトにローズピンクと細い金の線、黒いプレーヤーバー。上品で大人っぽく。",
   "黑與金：深色的夜、柔和的玫瑰粉，飄動的粉色曲線與細細的金線。": "黒と金：深い夜、やわらかなローズピンク、なびくピンクの曲線と細い金の線。",
 });
+
+/* New picker descriptions: 復古海報、巡音、普普. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "三〇年代石版印刷海報：米色紙紋、朱紅與墨黑的斜切色塊、方框開關，粗體窄字標題。": "三〇年代石版印刷海报：米色纸纹、朱红与墨黑的斜切色块、方框开关，粗体窄字标题。",
+  "海報的夜版：深棕色的印刷紙面、朱紅色塊與米色大字，石版印刷的顆粒。": "海报的夜版：深棕色的印刷纸面、朱红色块与米色大字，石版印刷的颗粒。",
+  "象牙白的紙面配黑漆側欄與播放列，金色扇形與菱形裝飾，玫瑰粉的細長曲線。": "象牙白的纸面配黑漆侧栏与播放栏，金色扇形与菱形装饰，玫瑰粉的细长曲线。",
+  "黑漆與金：帶青色調的石板灰、金色裝飾藝術線條與菱形拖曳鈕，兩側飄著玫瑰粉長髮曲線。": "黑漆与金：带青色调的石板灰、金色装饰艺术线条与菱形拖曳钮，两侧飘着玫瑰粉长发曲线。",
+  "漫畫風的夜版：深灰底、奶油色粗框、硬陰影，正在播放整面黃色網點。": "漫画风的夜版：深灰底、奶油色粗框、硬阴影，正在播放整面黄色网点。",
+});
+Object.assign(I18N_DICT.en, {
+  "三〇年代石版印刷海報：米色紙紋、朱紅與墨黑的斜切色塊、方框開關，粗體窄字標題。": "1930s lithograph poster: cream paper grain, diagonal blocks of vermilion and ink black, square switches and bold condensed titles.",
+  "海報的夜版：深棕色的印刷紙面、朱紅色塊與米色大字，石版印刷的顆粒。": "The poster after dark: deep brown printed paper, vermilion blocks and large cream type with lithograph grain.",
+  "象牙白的紙面配黑漆側欄與播放列，金色扇形與菱形裝飾，玫瑰粉的細長曲線。": "Ivory paper with a black lacquer sidebar and player bar, gold Art Deco fans and diamonds, slender rose-pink curves.",
+  "黑漆與金：帶青色調的石板灰、金色裝飾藝術線條與菱形拖曳鈕，兩側飄著玫瑰粉長髮曲線。": "Black lacquer and gold: teal-tinted slate, gold Art Deco lines and diamond handles, with rose-pink strands of hair drifting at the sides.",
+  "漫畫風的夜版：深灰底、奶油色粗框、硬陰影，正在播放整面黃色網點。": "Comic style after dark: dark grey, thick cream outlines, hard shadows and yellow halftone dots across Now Playing.",
+});
+Object.assign(I18N_DICT.ja, {
+  "三〇年代石版印刷海報：米色紙紋、朱紅與墨黑的斜切色塊、方框開關，粗體窄字標題。": "1930年代のリトグラフポスター：クリーム色の紙、朱色と墨色の斜めの色面、四角いスイッチ、太い長体の見出し。",
+  "海報的夜版：深棕色的印刷紙面、朱紅色塊與米色大字，石版印刷的顆粒。": "ポスターの夜版：こげ茶の印刷用紙、朱色の色面とクリーム色の大きな文字、リトグラフの粒子。",
+  "象牙白的紙面配黑漆側欄與播放列，金色扇形與菱形裝飾，玫瑰粉的細長曲線。": "アイボリーの紙に黒漆のサイドバーとプレーヤーバー、金の扇とひし形の装飾、ローズピンクの細い曲線。",
+  "黑漆與金：帶青色調的石板灰、金色裝飾藝術線條與菱形拖曳鈕，兩側飄著玫瑰粉長髮曲線。": "黒漆と金：青みがかったスレートグレー、金のアール・デコの線とひし形のつまみ、両側にローズピンクの長い髪のような曲線。",
+  "漫畫風的夜版：深灰底、奶油色粗框、硬陰影，正在播放整面黃色網點。": "コミック風の夜版：ダークグレーの地、クリーム色の太い枠、くっきりした影、再生画面いっぱいの黄色い網点。",
+});
