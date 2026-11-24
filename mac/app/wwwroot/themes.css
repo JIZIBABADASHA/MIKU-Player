@@ -5481,3 +5481,540 @@
   /* 沒開歌詞時封面在中間：小字跟著封面左緣 */
   :root[data-theme="washi"] #np.nolyrics .np-left::before { right: calc(50% + clamp(180px, min(calc(100vh - var(--bar) - 330px), 100%), 540px) / 2 + 18px); }
 }
+
+/* ═════════════════════════════ 木質調（wood）· 胡桃木音響櫃 ═════════════════════════════
+   像一台七〇年代的類比音響：胡桃木的櫃身、黃銅的按鍵與旋鈕、暖色的燈。
+   · 專輯封面像裝在細木框裡的照片：框有斜接的四角、木紋、受光面與背光面，內側一圈黃銅細邊。
+   · 按鈕是凸起的黃銅鍵（上緣一道反光、下緣一道深邊，按下去會沉下去）；次要按鈕是深色木鍵配黃銅細框。
+   · 分段按鈕是一條凹槽，選中的那一格是凸起的黃銅鍵、深色字（實心底，一眼看得出來）。
+   · 開關是實體的撥動開關：方形的槽、帶止滑紋的撥桿；關著是深槽＋「O」記號，開著是黃銅槽＋「I」記號。
+   · 標題用襯線字（Mac：Iowan Old Style／Hoefler Text／宋體；Windows：Georgia／游明朝／新細明體）。
+   · 裝飾：黃銅的菱形與細線（標題下、首頁每排標題後面）、設定面板四角的小螺絲、側欄右緣的木頭側板與黃銅鑲線。
+     木紋只在側板、相框這些沒有字的地方明顯；字的後面都是平滑的底色。
+   · 設定頁的滑桿是凹槽＋黃銅推桿帽（像混音台），播放鍵是車了同心紋的黃銅旋鈕。
+   · 正在播放：封面裝在較寬的木框裡，畫面左右兩邊是胡桃木側板＋黃銅鑲線（只在最邊緣，不碰到任何字或按鈕）；
+     四個角落按鈕都是實心底＋黃銅框，淺色封面上也看得清楚。
+   夜版從接近全黑的 #1d1915 提亮成溫暖的胡桃棕（頁面 OKLab L≈0.27，卡片 0.30）。
+   這一份檔案就是整個主題的「個性」，要退回舊樣子時整份拿掉即可。 */
+
+
+/* ───────────── 1 · 色彩（夜，主題原本的版本） ─────────────
+   底是帶棕的暖灰，卡片亮一階；主文字對卡片 13:1，第二層 8.6:1，第三層 6.8:1。黃銅 #d4ab6a 用在填色（上面放深色字），
+   當文字用時改亮一階的 #ecca92。赤陶色只做點綴（最愛、播放頭）。 */
+[data-theme="wood"]:where(:not([data-mode="day"])) {
+  --bg: #30251c; --bg-rgb: 48, 37, 28; --bg-2: #2b2119;
+  --surface: #372a20; --surface-2: #42342a; --surface-3: #4e3e31;
+  --ink: 255, 240, 220; --line: rgba(255,236,210,.09); --line-2: rgba(255,236,210,.17);
+  --text: #fffaf1; --text-hi: #ffffff; --text-sub: #ecdcc4; --text-2: #dccab0; --text-3: #c7b398;
+  --teal: #d4ab6a; --teal-rgb: 212, 171, 106; --teal-2: #ecca92; --teal-dim: rgba(212,171,106,.16);
+  --pink: #e07f5f; --pink-dim: rgba(224,127,95,.18); --pink-line: rgba(224,127,95,.5); --pink-text: #f3a98f;
+  --amber: #c9c07f; --on-accent: #2a1a0a;
+  --play-bg: #d4ab6a; --play-ink: #2a1a0a; --knob: #f6e6c6; --knob-off: #e9d6b4;
+  --bar-bg: #271d15; --pop-bg: #3d3026; --drawer-bg: #352920; --toast-bg: #47392c; --modal-bg: #382b21;
+  --tip-bg: #f6e6c6; --tip-ink: #2a1a0a;
+  --shadow-rgb: 12, 7, 3; --sh: .8;
+  --np-base: #2c2119; --np-ink: 255, 246, 232; --np-pill-ink: #2a1a0a; --np-dim: .62;
+  --np-filter: blur(70px) saturate(.7) sepia(.6) brightness(var(--np-dim));
+  --np-veil: radial-gradient(120% 95% at 50% 44%, rgba(96,62,34,.26), rgba(40,27,16,.74));
+  /* 正在播放畫面的左右兩邊：胡桃木側板＋黃銅鑲線（和側欄同一座櫃子） */
+  --wd-np-cheeks:
+    linear-gradient(#e9c88e, #b48a4f) left 12px top 0 / 1px 100% no-repeat, linear-gradient(#e9c88e, #b48a4f) right 12px top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)) left 13px top 0 / 1px 100% no-repeat, linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)) right 13px top 0 / 1px 100% no-repeat,
+    var(--wd-cheek-n) left top / 12px 900px repeat-y, var(--wd-cheek-n) right top / 12px 900px repeat-y,
+    linear-gradient(90deg, #5a3a25, #46301f) left top / 12px 100% no-repeat, linear-gradient(90deg, #46301f, #5a3a25) right top / 12px 100% no-repeat;
+  --np-calm: rgba(36,26,18,.46);
+  --ph-s1: 26%; --ph-l1: 30%; --ph-s2: 24%; --ph-l2: 20%;
+  --brand-ink: #fff3df; --brand-track: #6a4c35;
+  --hero-dim: .55;
+  --app-bg: radial-gradient(1100px 600px at 75% -20%, rgba(236,196,136,.07), transparent 60%), #30251c;
+  --sidebar-bg: var(--wd-grain-n), linear-gradient(180deg, #5a3b27, #4c3120 55%, #432b1c);
+  --font-display: "Iowan Old Style", "Hoefler Text", Georgia, "Songti TC", "Hiragino Mincho ProN", "Yu Mincho", "游明朝", "PMingLiU", "Microsoft JhengHei UI", serif;
+  color-scheme: dark;
+  /* 這個主題自己的值 */
+  --wd-brass: linear-gradient(180deg, #f2d7a2 0%, #dcb676 46%, #c49a58 100%);          /* 凸起的黃銅鍵 */
+  --wd-brass-on: linear-gradient(180deg, #c49a58 0%, #d8b272 55%, #e6c58c 100%);       /* 按下去的黃銅鍵（光反過來） */
+  --wd-brass-hover: linear-gradient(180deg, #f8e2b4 0%, #e5c084 46%, #cea562 100%);
+  --wd-brass-ink: #2a1a0a;                    /* 黃銅上的字 */
+  --wd-brass-edge: #5c3c1c;                   /* 黃銅鍵的外緣 */
+  --wd-brass-line: rgba(226,188,124,.5);      /* 黃銅細線（分隔、框） */
+  --wd-orn: #d4ab6a;                          /* 菱形與細線裝飾 */
+  --wd-key: linear-gradient(180deg, #514033 0%, #45362a 100%);   /* 深色木鍵 */
+  --wd-key-hover: linear-gradient(180deg, #5c4a3b 0%, #4f3e30 100%);
+  --wd-key-edge: rgba(226,188,124,.42);
+  --wd-key-hi: rgba(255,232,196,.14);
+  --wd-drop: rgba(10,6,2,.55);                /* 凸起元件下緣的實邊 */
+  --wd-well: #2a2018;                         /* 凹槽 */
+  --wd-well-sh: inset 0 2px 3px rgba(0,0,0,.42), inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 0 rgba(255,230,190,.07);
+  --wd-frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cdefs%3E%3ClinearGradient id='t' x1='0' y1='0' x2='0' y2='16' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%239a6a45'/%3E%3Cstop offset='0.3333333333333333' stop-color='%237d5233'/%3E%3Cstop offset='0.6666666666666666' stop-color='%2364401f'/%3E%3Cstop offset='1' stop-color='%2352331a'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='16' y2='0' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%239a6a45'/%3E%3Cstop offset='0.3333333333333333' stop-color='%237d5233'/%3E%3Cstop offset='0.6666666666666666' stop-color='%2364401f'/%3E%3Cstop offset='1' stop-color='%2352331a'/%3E%3C/linearGradient%3E%3ClinearGradient id='b' x1='0' y1='48' x2='0' y2='32' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%235a3920'/%3E%3Cstop offset='0.3333333333333333' stop-color='%234b2f1a'/%3E%3Cstop offset='0.6666666666666666' stop-color='%233f2715'/%3E%3Cstop offset='1' stop-color='%23352013'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='48' y1='0' x2='32' y2='0' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%235a3920'/%3E%3Cstop offset='0.3333333333333333' stop-color='%234b2f1a'/%3E%3Cstop offset='0.6666666666666666' stop-color='%233f2715'/%3E%3Cstop offset='1' stop-color='%23352013'/%3E%3C/linearGradient%3E%3ClinearGradient id='m' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23f1d39a'/%3E%3Cstop offset='1' stop-color='%23a97c3c'/%3E%3C/linearGradient%3E%3CclipPath id='ct'%3E%3Cpath d='M0 0H48L32 16H16z'/%3E%3C/clipPath%3E%3CclipPath id='cl'%3E%3Cpath d='M0 0L16 16V32L0 48z'/%3E%3C/clipPath%3E%3CclipPath id='cb'%3E%3Cpath d='M0 48H48L32 32H16z'/%3E%3C/clipPath%3E%3CclipPath id='cr'%3E%3Cpath d='M48 0V48L32 32V16z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M0 0H48L32 16H16z' fill='url(%23t)'/%3E%3Cpath d='M0 0L16 16V32L0 48z' fill='url(%23l)'/%3E%3Cpath d='M0 48H48L32 32H16z' fill='url(%23b)'/%3E%3Cpath d='M48 0V48L32 32V16z' fill='url(%23r)'/%3E%3Cg clip-path='url(%23ct)'%3E%3Cpath d='M0 3.2H48' stroke='rgba(28,14,4,.38)' stroke-width='0.7'/%3E%3Cpath d='M0 4.6H48' stroke='rgba(255,214,160,.13)' stroke-width='0.5'/%3E%3Cpath d='M0 6.4H48' stroke='rgba(28,14,4,.3)' stroke-width='0.9'/%3E%3Cpath d='M0 8.3H48' stroke='rgba(255,214,160,.10)' stroke-width='0.5'/%3E%3Cpath d='M0 9.6H48' stroke='rgba(28,14,4,.34)' stroke-width='0.7'/%3E%3Cpath d='M0 11.2H48' stroke='rgba(28,14,4,.25)' stroke-width='0.5'/%3E%3C/g%3E%3Cg clip-path='url(%23cl)'%3E%3Cpath d='M3.2 0V48' stroke='rgba(28,14,4,.38)' stroke-width='0.7'/%3E%3Cpath d='M4.6 0V48' stroke='rgba(255,214,160,.13)' stroke-width='0.5'/%3E%3Cpath d='M6.4 0V48' stroke='rgba(28,14,4,.3)' stroke-width='0.9'/%3E%3Cpath d='M8.3 0V48' stroke='rgba(255,214,160,.10)' stroke-width='0.5'/%3E%3Cpath d='M9.6 0V48' stroke='rgba(28,14,4,.34)' stroke-width='0.7'/%3E%3Cpath d='M11.2 0V48' stroke='rgba(28,14,4,.25)' stroke-width='0.5'/%3E%3C/g%3E%3Cg clip-path='url(%23cb)'%3E%3Cpath d='M0 44.8H48' stroke='rgba(28,14,4,.38)' stroke-width='0.7'/%3E%3Cpath d='M0 43.4H48' stroke='rgba(255,214,160,.13)' stroke-width='0.5'/%3E%3Cpath d='M0 41.6H48' stroke='rgba(28,14,4,.3)' stroke-width='0.9'/%3E%3Cpath d='M0 39.7H48' stroke='rgba(255,214,160,.10)' stroke-width='0.5'/%3E%3Cpath d='M0 38.4H48' stroke='rgba(28,14,4,.34)' stroke-width='0.7'/%3E%3Cpath d='M0 36.8H48' stroke='rgba(28,14,4,.25)' stroke-width='0.5'/%3E%3C/g%3E%3Cg clip-path='url(%23cr)'%3E%3Cpath d='M44.8 0V48' stroke='rgba(28,14,4,.38)' stroke-width='0.7'/%3E%3Cpath d='M43.4 0V48' stroke='rgba(255,214,160,.13)' stroke-width='0.5'/%3E%3Cpath d='M41.6 0V48' stroke='rgba(28,14,4,.3)' stroke-width='0.9'/%3E%3Cpath d='M39.7 0V48' stroke='rgba(255,214,160,.10)' stroke-width='0.5'/%3E%3Cpath d='M38.4 0V48' stroke='rgba(28,14,4,.34)' stroke-width='0.7'/%3E%3Cpath d='M36.8 0V48' stroke='rgba(28,14,4,.25)' stroke-width='0.5'/%3E%3C/g%3E%3Cpath d='M0 0L16 16M48 0L32 16M0 48L16 32M48 48L32 32' stroke='rgba(20,10,3,.55)' stroke-width='.8'/%3E%3Crect x='.6' y='.6' width='46.8' height='46.8' fill='none' stroke='%231a0f07' stroke-width='1.2'/%3E%3Crect x='1.6' y='1.6' width='44.8' height='44.8' fill='none' stroke='rgba(255,222,175,.22)' stroke-width='.8'/%3E%3Crect x='12.9' y='12.9' width='22.2' height='22.2' fill='none' stroke='url(%23m)' stroke-width='1.6'/%3E%3Crect x='14.85' y='14.85' width='18.3' height='18.3' fill='none' stroke='%23160c05' stroke-width='2.3'/%3E%3C/svg%3E");
+  --wd-wood-ring: linear-gradient(135deg, #9a6a45, #6e4629 45%, #3f2715);   /* 圓形照片的木框 */
+  --wd-slip: #d9b26f;                         /* 木框內側的黃銅細邊 */
+  --wd-screw: radial-gradient(circle at 42% 38%, #f6e2b2 0 .7px, #cfa766 1.5px, #8c6838 2.4px, rgba(15,8,2,.55) 2.9px, transparent 3.4px);
+  --wd-lamp: #ffb54d;                         /* 指示燈 */
+  --wd-sel: rgba(212,171,106,.15);            /* 選中列的淡黃銅底 */
+  /* 開關 */
+  --wd-sw-off: linear-gradient(180deg, #1f1710, #2b2118);
+  --wd-sw-off-edge: rgba(240,218,180,.55);
+  --wd-sw-mark-off: #eedcbc;
+  --wd-sw-cap-off: linear-gradient(180deg, #fff4dc, #e3cb9f);
+  --wd-sw-grip-off: rgba(100,66,26,.45);
+  --wd-sw-on: linear-gradient(180deg, #b98d4c, #ddb878);
+  --wd-sw-on-edge: #f0d29c;
+  --wd-sw-mark-on: #3a2412;
+  --wd-sw-cap-on: linear-gradient(180deg, #5c3d25, #3a2514);
+  --wd-sw-grip-on: rgba(240,206,150,.5);
+  /* 正在播放的角落按鈕 */
+  --wd-np-btn: #2e2219; --wd-np-btn-hover: #46362a; --wd-np-btn-ink: #fff3df; --wd-np-btn-edge: #d4ab6a;
+}
+
+
+/* ───────────── 2 · 色彩（日） ─────────────
+   亞麻白的房間、淺橡木側板；黃銅換成深一點的古銅，當文字時用 #7a521c。主文字對卡片 16:1，第二層 8.3:1，第三層 6.2:1。 */
+[data-theme="wood"]:where([data-mode="day"]) {
+  --bg: #f1e9db; --bg-rgb: 241, 233, 219; --bg-2: #ece2d1;
+  --surface: #fcf8f0; --surface-2: #efe6d6; --surface-3: #e2d5bf;
+  --ink: 60, 40, 20; --line: rgba(60,40,20,.11); --line-2: rgba(60,40,20,.2);
+  --text: #24190e; --text-hi: #150e06; --text-sub: #4a3a28; --text-2: #5a4733; --text-3: #6e5a43;
+  --teal: #b8873f; --teal-rgb: 184, 135, 63; --teal-2: #7a521c; --teal-dim: rgba(184,135,63,.16);
+  --pink: #b4532f; --pink-dim: rgba(180,83,47,.12); --pink-line: rgba(180,83,47,.45); --pink-text: #9c4122;
+  --amber: #8f8a4a; --on-accent: #2a1a08;
+  --play-bg: #c99a52; --play-ink: #2a1a08; --knob: #fff8ea; --knob-off: #6b4a2d;
+  --bar-bg: #e9dfcc; --pop-bg: #fdf9f2; --drawer-bg: #faf5ec; --toast-bg: #fffbf4; --modal-bg: #fcf8f0;
+  --tip-bg: #2e2116; --tip-ink: #fff3df;
+  --shadow-rgb: 70, 48, 24; --sh: .5;
+  --np-base: #efe6d6; --np-ink: 40, 26, 12; --np-pill-ink: #2a1a08; --np-dim: 1.08;
+  --np-filter: blur(70px) saturate(.7) sepia(.5) brightness(var(--np-dim));
+  --np-veil: radial-gradient(120% 95% at 50% 44%, rgba(248,240,226,.5), rgba(238,226,206,.88));
+  --wd-np-cheeks:
+    linear-gradient(#a87b3a, #7c5524) left 12px top 0 / 1px 100% no-repeat, linear-gradient(#a87b3a, #7c5524) right 12px top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(255,250,236,.7), rgba(255,250,236,.7)) left 13px top 0 / 1px 100% no-repeat, linear-gradient(rgba(255,250,236,.7), rgba(255,250,236,.7)) right 13px top 0 / 1px 100% no-repeat,
+    var(--wd-cheek-d) left top / 12px 900px repeat-y, var(--wd-cheek-d) right top / 12px 900px repeat-y,
+    linear-gradient(90deg, #d2b07e, #c39f6c) left top / 12px 100% no-repeat, linear-gradient(90deg, #c39f6c, #d2b07e) right top / 12px 100% no-repeat;
+  --np-calm: rgba(242,232,214,.7);
+  --ph-s1: 30%; --ph-l1: 76%; --ph-s2: 28%; --ph-l2: 62%;
+  --brand-ink: #24190e; --brand-track: #c9b08c;
+  --hero-dim: 1.1; --hero-op: .45;
+  --app-bg: radial-gradient(1100px 600px at 75% -20%, rgba(226,186,128,.22), transparent 60%), #f1e9db;
+  --sidebar-bg: var(--wd-grain-d), linear-gradient(180deg, #e9d4b0, #e0c69c 55%, #d9bd90);
+  --font-display: "Iowan Old Style", "Hoefler Text", Georgia, "Songti TC", "Hiragino Mincho ProN", "Yu Mincho", "游明朝", "PMingLiU", "Microsoft JhengHei UI", serif;
+  color-scheme: light;
+  --wd-brass: linear-gradient(180deg, #edcf93 0%, #d5ac65 48%, #bd9049 100%);
+  --wd-brass-on: linear-gradient(180deg, #bd9049 0%, #cfa45e 55%, #dfbb79 100%);
+  --wd-brass-hover: linear-gradient(180deg, #f4dba6 0%, #ddb872 48%, #c69a52 100%);
+  --wd-brass-ink: #2a1a08;
+  --wd-brass-edge: #6e4a22;
+  --wd-brass-line: rgba(150,104,44,.45);
+  --wd-orn: #a87b3a;
+  --wd-key: linear-gradient(180deg, #fffdf8 0%, #f2e9da 100%);
+  --wd-key-hover: linear-gradient(180deg, #fffefb 0%, #f7efe2 100%);
+  --wd-key-edge: rgba(120,84,40,.42);
+  --wd-key-hi: rgba(255,255,255,.9);
+  --wd-drop: rgba(110,76,36,.32);
+  --wd-well: #e9dfcd;
+  --wd-well-sh: inset 0 2px 3px rgba(90,60,24,.2), inset 0 0 0 1px rgba(90,60,24,.16), 0 1px 0 rgba(255,255,255,.7);
+  --wd-frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cdefs%3E%3ClinearGradient id='t' x1='0' y1='0' x2='0' y2='16' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23dcb988'/%3E%3Cstop offset='0.3333333333333333' stop-color='%23c9a06c'/%3E%3Cstop offset='0.6666666666666666' stop-color='%23b88f5c'/%3E%3Cstop offset='1' stop-color='%23a98150'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='0' y1='0' x2='16' y2='0' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23dcb988'/%3E%3Cstop offset='0.3333333333333333' stop-color='%23c9a06c'/%3E%3Cstop offset='0.6666666666666666' stop-color='%23b88f5c'/%3E%3Cstop offset='1' stop-color='%23a98150'/%3E%3C/linearGradient%3E%3ClinearGradient id='b' x1='0' y1='48' x2='0' y2='32' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23b38957'/%3E%3Cstop offset='0.3333333333333333' stop-color='%23a27a4b'/%3E%3Cstop offset='0.6666666666666666' stop-color='%2393693f'/%3E%3Cstop offset='1' stop-color='%23865e37'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='48' y1='0' x2='32' y2='0' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23b38957'/%3E%3Cstop offset='0.3333333333333333' stop-color='%23a27a4b'/%3E%3Cstop offset='0.6666666666666666' stop-color='%2393693f'/%3E%3Cstop offset='1' stop-color='%23865e37'/%3E%3C/linearGradient%3E%3ClinearGradient id='m' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23e9c886'/%3E%3Cstop offset='1' stop-color='%239a6e30'/%3E%3C/linearGradient%3E%3CclipPath id='ct'%3E%3Cpath d='M0 0H48L32 16H16z'/%3E%3C/clipPath%3E%3CclipPath id='cl'%3E%3Cpath d='M0 0L16 16V32L0 48z'/%3E%3C/clipPath%3E%3CclipPath id='cb'%3E%3Cpath d='M0 48H48L32 32H16z'/%3E%3C/clipPath%3E%3CclipPath id='cr'%3E%3Cpath d='M48 0V48L32 32V16z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cpath d='M0 0H48L32 16H16z' fill='url(%23t)'/%3E%3Cpath d='M0 0L16 16V32L0 48z' fill='url(%23l)'/%3E%3Cpath d='M0 48H48L32 32H16z' fill='url(%23b)'/%3E%3Cpath d='M48 0V48L32 32V16z' fill='url(%23r)'/%3E%3Cg clip-path='url(%23ct)'%3E%3Cpath d='M0 3.2H48' stroke='rgba(110,68,28,.30)' stroke-width='0.7'/%3E%3Cpath d='M0 4.6H48' stroke='rgba(255,246,225,.30)' stroke-width='0.5'/%3E%3Cpath d='M0 6.4H48' stroke='rgba(110,68,28,.24)' stroke-width='0.9'/%3E%3Cpath d='M0 8.3H48' stroke='rgba(255,246,225,.22)' stroke-width='0.5'/%3E%3Cpath d='M0 9.6H48' stroke='rgba(110,68,28,.28)' stroke-width='0.7'/%3E%3Cpath d='M0 11.2H48' stroke='rgba(110,68,28,.2)' stroke-width='0.5'/%3E%3C/g%3E%3Cg clip-path='url(%23cl)'%3E%3Cpath d='M3.2 0V48' stroke='rgba(110,68,28,.30)' stroke-width='0.7'/%3E%3Cpath d='M4.6 0V48' stroke='rgba(255,246,225,.30)' stroke-width='0.5'/%3E%3Cpath d='M6.4 0V48' stroke='rgba(110,68,28,.24)' stroke-width='0.9'/%3E%3Cpath d='M8.3 0V48' stroke='rgba(255,246,225,.22)' stroke-width='0.5'/%3E%3Cpath d='M9.6 0V48' stroke='rgba(110,68,28,.28)' stroke-width='0.7'/%3E%3Cpath d='M11.2 0V48' stroke='rgba(110,68,28,.2)' stroke-width='0.5'/%3E%3C/g%3E%3Cg clip-path='url(%23cb)'%3E%3Cpath d='M0 44.8H48' stroke='rgba(110,68,28,.30)' stroke-width='0.7'/%3E%3Cpath d='M0 43.4H48' stroke='rgba(255,246,225,.30)' stroke-width='0.5'/%3E%3Cpath d='M0 41.6H48' stroke='rgba(110,68,28,.24)' stroke-width='0.9'/%3E%3Cpath d='M0 39.7H48' stroke='rgba(255,246,225,.22)' stroke-width='0.5'/%3E%3Cpath d='M0 38.4H48' stroke='rgba(110,68,28,.28)' stroke-width='0.7'/%3E%3Cpath d='M0 36.8H48' stroke='rgba(110,68,28,.2)' stroke-width='0.5'/%3E%3C/g%3E%3Cg clip-path='url(%23cr)'%3E%3Cpath d='M44.8 0V48' stroke='rgba(110,68,28,.30)' stroke-width='0.7'/%3E%3Cpath d='M43.4 0V48' stroke='rgba(255,246,225,.30)' stroke-width='0.5'/%3E%3Cpath d='M41.6 0V48' stroke='rgba(110,68,28,.24)' stroke-width='0.9'/%3E%3Cpath d='M39.7 0V48' stroke='rgba(255,246,225,.22)' stroke-width='0.5'/%3E%3Cpath d='M38.4 0V48' stroke='rgba(110,68,28,.28)' stroke-width='0.7'/%3E%3Cpath d='M36.8 0V48' stroke='rgba(110,68,28,.2)' stroke-width='0.5'/%3E%3C/g%3E%3Cpath d='M0 0L16 16M48 0L32 16M0 48L16 32M48 48L32 32' stroke='rgba(90,56,22,.45)' stroke-width='.8'/%3E%3Crect x='.6' y='.6' width='46.8' height='46.8' fill='none' stroke='%236b4a2b' stroke-width='1.2'/%3E%3Crect x='1.6' y='1.6' width='44.8' height='44.8' fill='none' stroke='rgba(255,248,230,.45)' stroke-width='.8'/%3E%3Crect x='12.9' y='12.9' width='22.2' height='22.2' fill='none' stroke='url(%23m)' stroke-width='1.6'/%3E%3Crect x='14.85' y='14.85' width='18.3' height='18.3' fill='none' stroke='%234a3120' stroke-width='2.3'/%3E%3C/svg%3E");
+  --wd-wood-ring: linear-gradient(135deg, #dcb988, #b88f5c 45%, #865e37);
+  --wd-slip: #b98a45;
+  --wd-screw: radial-gradient(circle at 42% 38%, #fff3d4 0 .7px, #d0a764 1.5px, #8c6534 2.4px, rgba(80,50,20,.4) 2.9px, transparent 3.4px);
+  --wd-lamp: #e08a1e;
+  --wd-sel: rgba(184,135,63,.15);
+  --wd-sw-off: linear-gradient(180deg, #e2d5bf, #efe6d6);
+  --wd-sw-off-edge: #8d6c47;
+  --wd-sw-mark-off: #6b4a2d;
+  --wd-sw-cap-off: linear-gradient(180deg, #7b5434, #563720);
+  --wd-sw-grip-off: rgba(240,210,160,.45);
+  --wd-sw-on: linear-gradient(180deg, #7d5420, #9a6c2e);
+  --wd-sw-on-edge: #5e3d14;
+  --wd-sw-mark-on: #fff3dc;
+  --wd-sw-cap-on: linear-gradient(180deg, #fffaf0, #ecdcbc);
+  --wd-sw-grip-on: rgba(110,74,30,.45);
+  --wd-np-btn: #fffaf0; --wd-np-btn-hover: #f1e4cc; --wd-np-btn-ink: #2a1a08; --wd-np-btn-edge: #8a6236;
+}
+/* 兩個版本共用的圖：菱形、菱形＋雙線、木紋（只用在沒有字的地方，或淡到不影響字） */
+[data-theme="wood"] {
+  --wd-lozenge: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M5 .6L9.4 5L5 9.4L.6 5z' fill='%23000'/%3E%3C/svg%3E");
+  --wd-grain-n: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='1200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.2 0.004' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.05 0 0 0 0 0.025 0 0 0 0 0.01 0 0 0 -0.6 0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --wd-cheek-n: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='900'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.35 0.006' numOctaves='2' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 0.04 0 0 0 0 0.02 0 0 0 0 0.006 0 0 0 -1.1 0.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --wd-grain-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='1200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.2 0.004' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.25 0 0 0 0 0.1 0 0 0 -0.2 0.08'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --wd-cheek-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='900'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.35 0.006' numOctaves='2' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.2 0 0 0 0 0.07 0 0 0 -1 0.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
+
+/* ───────────── 3 · 字體：標題用襯線字，歌詞與內文維持易讀的原字體 ───────────── */
+:root[data-theme="wood"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .modal-head h2, .np-title) { font-family: var(--font-display); }
+:root[data-theme="wood"] :is(.page-head h1, .hero h1) { font-weight: 700; letter-spacing: 0; color: var(--text); }
+:root[data-theme="wood"] :is(.rail-head h2, .sect h2, .drawer-head h2) { font-weight: 700; letter-spacing: .005em; color: var(--text); }
+:root[data-theme="wood"] :is(.ly-line, .ly-plain) { font-family: var(--font); }
+:root[data-theme="wood"] .page-head .sub { color: var(--text-2); }
+:root[data-theme="wood"] .rail-head a { color: var(--text-2); }
+:root[data-theme="wood"] .rail-head a:hover { color: var(--teal-2); }
+
+
+/* ───────────── 4 · 黃銅裝飾：頁面標題下「—◆—」、首頁每排標題後的菱形＋細線 ─────────────
+   都用遮罩畫，顏色跟著 --wd-orn；只在標題下方的留白裡，不碰到字。 */
+:root[data-theme="wood"] .page-head h1 { position: relative; }
+:root[data-theme="wood"] .page-head h1::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 9px; pointer-events: none;
+  background: var(--wd-orn); opacity: .8;
+  -webkit-mask: var(--wd-lozenge) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, #000) left center / calc(50% - 9px) 1px no-repeat, linear-gradient(90deg, #000, transparent) right center / calc(50% - 9px) 1px no-repeat;
+  mask: var(--wd-lozenge) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, #000) left center / calc(50% - 9px) 1px no-repeat, linear-gradient(90deg, #000, transparent) right center / calc(50% - 9px) 1px no-repeat;
+}
+:root[data-theme="wood"] .rail-head::after {
+  content: ""; order: 1; flex: 1 1 0; min-width: 24px; height: 10px; align-self: center; margin-left: 6px; pointer-events: none;
+  background: var(--wd-orn); opacity: .6;
+  -webkit-mask: var(--wd-lozenge) left center / 9px 9px no-repeat, linear-gradient(90deg, #000, transparent) left 14px center / calc(100% - 14px) 1px no-repeat;
+  mask: var(--wd-lozenge) left center / 9px 9px no-repeat, linear-gradient(90deg, #000, transparent) left 14px center / calc(100% - 14px) 1px no-repeat;
+}
+:root[data-theme="wood"] .rail-head .rail-nav { order: 2; margin-left: 0; }
+
+
+/* ───────────── 5 · 側欄：胡桃木櫃的側板 ─────────────
+   板面是平滑的胡桃木（木紋淡到不影響字），最右邊一條較深的木頭側板（木紋明顯、沒有字），中間一條黃銅鑲線。
+   選中的項目是一塊黃銅名牌：實心黃銅底、深色字，兩端各一顆小螺絲。 */
+:root[data-theme="wood"] #sidebar {
+  border-right: 1px solid #1c120b;
+  background:
+    linear-gradient(#e9c88e, #b48a4f) right 7px top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)) right 8px top 0 / 1px 100% no-repeat,
+    var(--wd-cheek-n) right top / 7px 900px repeat-y,
+    linear-gradient(90deg, #3f2717, #4d3120) right top / 7px 100% no-repeat,
+    var(--sidebar-bg);
+  box-shadow: none;
+}
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar {
+  border-right: 1px solid #9c7a52;
+  background:
+    linear-gradient(#a87b3a, #7c5524) right 7px top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(255,250,236,.7), rgba(255,250,236,.7)) right 8px top 0 / 1px 100% no-repeat,
+    var(--wd-cheek-d) right top / 7px 900px repeat-y,
+    linear-gradient(90deg, #c9a571, #b99260) right top / 7px 100% no-repeat,
+    var(--sidebar-bg);
+}
+:root[data-theme="wood"] .nav a { color: #f6ead6; border-radius: 4px; }
+:root[data-theme="wood"] .nav a .count { color: #dcc7a6; font-style: normal; }
+:root[data-theme="wood"] .nav-label { color: #dcc7a6; letter-spacing: .18em; font-weight: 600; }
+:root[data-theme="wood"] .nav a:hover { background: rgba(255,230,190,.08); color: #ffffff; }
+:root[data-theme="wood"] .nav a svg.i { color: #ecd8b6; }
+:root[data-theme="wood"] .nav a.on, :root[data-theme="wood"] .nav a.on:hover { color: var(--wd-brass-ink); background: transparent; font-weight: 600; }
+/* 名牌滑過去的途中，新選中項目的字先維持淺色，名牌到了才換成深色（不會有深字壓在木頭上的一瞬間） */
+:root[data-theme="wood"] .nav a.on { transition: background .18s var(--ease), color .2s var(--ease) .26s; }
+:root[data-theme="wood"] .nav a.on .count, :root[data-theme="wood"] .nav a.on svg.i { color: var(--wd-brass-ink); filter: none; }
+:root[data-theme="wood"] .nav-pill {
+  border-radius: 4px; background: var(--wd-brass);
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.75), inset 0 -1px 0 rgba(110,70,25,.35), 0 2px 0 1px rgba(20,10,3,.3);
+}
+/* 名牌兩端的小螺絲（原本左邊的亮條拿掉） */
+:root[data-theme="wood"] .nav-pill::before {
+  left: 0; right: 0; top: 0; bottom: 0; width: auto; border-radius: 0; box-shadow: none;
+  background: var(--wd-screw) left 2px center / 7px 7px no-repeat, var(--wd-screw) right 2px center / 7px 7px no-repeat;
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a { color: #2e2013; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a .count, :root[data-theme="wood"]:where([data-mode="day"]) .nav-label { color: #4f3820; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a svg.i { color: #4a3420; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a:hover { background: rgba(255,250,238,.4); color: #150e06; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a.on, :root[data-theme="wood"]:where([data-mode="day"]) .nav a.on:hover { color: var(--wd-brass-ink); background: transparent; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar { --text-3: #4f3820; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar .nav-label { color: #4f3820; }
+/* 側欄裡的分段按鈕（本地／遠端）也是黃銅鍵（蓋過舊版白天的淡色底） */
+:root[data-theme="wood"] #sidebar .seg button.on { background: var(--wd-brass); color: var(--wd-brass-ink); }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-pill { box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,250,232,.8), inset 0 -1px 0 rgba(110,70,25,.3), 0 2px 0 1px rgba(90,60,25,.18); }
+:root[data-theme="wood"] .nav-edit { border-radius: 4px; color: #dcc7a6; opacity: .9; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-edit { color: #4f3820; }
+
+
+/* ───────────── 6 · 頂列：搜尋框是凹槽，上一頁／下一頁是小的木鍵 ───────────── */
+:root[data-theme="wood"] #topbar.solid { background: rgba(var(--bg-rgb), .94); border-bottom-color: var(--wd-brass-line); }
+:root[data-theme="wood"] .search {
+  border-radius: 6px; background: var(--wd-well); border: 1px solid var(--line-2); box-shadow: var(--wd-well-sh);
+}
+:root[data-theme="wood"] .search:focus-within { background: var(--wd-well); border-color: var(--teal); box-shadow: var(--wd-well-sh), 0 0 0 1px var(--teal); }
+:root[data-theme="wood"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="wood"] .search kbd { border-radius: 3px; color: var(--text-2); border-color: var(--line-2); background: var(--surface); }
+:root[data-theme="wood"] .round-btn {
+  background: var(--wd-key); color: var(--text);
+  box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] .round-btn:hover { background: var(--wd-key-hover); color: var(--text-hi); }
+:root[data-theme="wood"] .round-btn:disabled { opacity: .5; }
+:root[data-theme="wood"] .round-btn:active { transform: translateY(1px); box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 2px rgba(0,0,0,.3); }
+
+
+/* ───────────── 7 · 專輯卡：裝在細木框裡的照片 ─────────────
+   框用 border-image 畫（斜接四角、木紋、黃銅內緣），外面一道淡淡的落影；滑過時整張微微抬起。
+   演出者是圓形照片：圓的木框（左上受光、右下背光）＋黃銅細邊。 */
+:root[data-theme="wood"] .card .art {
+  border-radius: 0; border: 7px solid transparent; border-image: var(--wd-frame) 16 / 7px stretch;
+  box-shadow: 0 10px 18px -10px rgba(var(--shadow-rgb), .75), 0 2px 3px rgba(var(--shadow-rgb), .3);
+}
+:root[data-theme="wood"] .card:hover .art { box-shadow: 0 18px 26px -12px rgba(var(--shadow-rgb), .8), 0 3px 4px rgba(var(--shadow-rgb), .3); }
+:root[data-theme="wood"] .card.artist .art {
+  border-radius: 50%; border: 6px solid transparent; border-image: none;
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    radial-gradient(closest-side, transparent calc(100% - 6px), var(--wd-slip) calc(100% - 6px) calc(100% - 4.6px), transparent calc(100% - 4.6px)) border-box,
+    var(--wd-wood-ring) border-box;
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .card .art { box-shadow: 0 10px 18px -10px rgba(70,48,24,.45), 0 2px 3px rgba(70,48,24,.16); }
+:root[data-theme="wood"]:where([data-mode="day"]) .card:hover .art { box-shadow: 0 18px 26px -12px rgba(70,48,24,.5), 0 3px 4px rgba(70,48,24,.18); }
+:root[data-theme="wood"] .card .t1 { color: var(--text); }
+:root[data-theme="wood"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="wood"] .card .t2 { color: var(--text-sub); }
+/* 封面上的播放鍵：黃銅旋鈕 */
+:root[data-theme="wood"] .card .play {
+  background: var(--wd-brass); color: var(--wd-brass-ink);
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 var(--wd-drop), 0 6px 12px rgba(0,0,0,.35);
+}
+:root[data-theme="wood"] .card .play:hover { background: var(--wd-brass-hover); }
+:root[data-theme="wood"] .scroll-bubble { background: var(--wd-brass); color: var(--wd-brass-ink); border-radius: 4px; box-shadow: 0 0 0 1px var(--wd-brass-edge); }
+
+
+/* ───────────── 8 · 曲目表 ─────────────
+   表頭下緣一條黃銅細線；播放中的那一列左邊是一盞暖色的指示燈＋淡黃銅底。 */
+:root[data-theme="wood"] .thead {
+  background: var(--bg); color: var(--text-2); letter-spacing: .08em; backdrop-filter: none;
+  border-bottom: 1px solid var(--wd-brass-line);
+}
+:root[data-theme="wood"] .row { border-radius: 4px; }
+:root[data-theme="wood"] .row:hover { background: rgba(var(--ink), .06); }
+:root[data-theme="wood"] .row.sel { background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="wood"] .row .tt div:first-child { color: var(--text); font-weight: 600; }
+:root[data-theme="wood"] .row .tt .a { color: var(--text-sub); font-weight: 500; }
+:root[data-theme="wood"] :is(.row .al, .row .d, .row .fmt) { color: var(--text-2); }
+:root[data-theme="wood"] .row .n .pi { color: var(--teal-2); }
+:root[data-theme="wood"] .row.playing { background: linear-gradient(90deg, var(--wd-sel), transparent 75%); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="wood"] .row.playing .tt div:first-child { color: var(--teal-2); }
+:root[data-theme="wood"] .row .thumb { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--shadow-rgb), .45); }
+:root[data-theme="wood"] .qrow { border-radius: 4px; }
+:root[data-theme="wood"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="wood"] .qrow.past { opacity: .74; }
+:root[data-theme="wood"] .qrow.past .a { color: var(--text-sub); }
+
+
+/* ───────────── 9 · 按鈕：凸起的黃銅鍵 ─────────────
+   主要按鈕：黃銅漸層、上緣反光、下緣一道實邊（凸起），按下時沉下 1px、光線反過來。
+   一般按鈕：深色木鍵（日版是象牙白的鍵）＋黃銅細框。 */
+:root[data-theme="wood"] .btn {
+  border-radius: 5px; background: var(--wd-key); color: var(--text); border: 0;
+  box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] .btn:hover { background: var(--wd-key-hover); transform: none; box-shadow: 0 0 0 1px var(--teal), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .btn:active { transform: translateY(2px); box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 2px 3px rgba(0,0,0,.3); }
+:root[data-theme="wood"] .btn.primary {
+  background: var(--wd-brass); color: var(--wd-brass-ink); font-weight: 700;
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), inset 0 -1px 0 rgba(110,70,25,.3), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] .btn.primary:hover { background: var(--wd-brass-hover); box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,250,232,.9), inset 0 -1px 0 rgba(110,70,25,.3), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .btn.primary:active { background: var(--wd-brass-on); box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 2px 3px rgba(80,48,14,.4); }
+:root[data-theme="wood"] .btn.ghost { background: transparent; box-shadow: none; color: var(--text-2); }
+:root[data-theme="wood"] .btn.ghost:hover { background: rgba(var(--ink), .07); color: var(--text); box-shadow: none; }
+:root[data-theme="wood"] .btn.bp-apply { background: var(--wd-key); color: var(--text); box-shadow: 0 0 0 1px var(--teal), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .btn.bp-apply svg.i { color: var(--teal-2); }
+:root[data-theme="wood"] .page-head .tools > .btn.small { border-radius: 5px; }
+:root[data-theme="wood"] .page-head .tools > .btn.small:not(.primary) { background: var(--wd-key); border: 0; }
+:root[data-theme="wood"] .page-head .tools > .btn.small:not(.primary):hover { background: var(--wd-key-hover); }
+:root[data-theme="wood"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="wood"] .icon-btn.fav-on { color: var(--pink); }
+
+
+/* ───────────── 10 · 分段按鈕與設定分頁：凹槽裡一排鍵，選中的是凸起的黃銅鍵 ───────────── */
+:root[data-theme="wood"] .seg, :root[data-theme="wood"] .set-tabs {
+  border-radius: 6px; background: var(--wd-well); border: 0; box-shadow: var(--wd-well-sh); backdrop-filter: none;
+}
+:root[data-theme="wood"] .set-tabs { padding: 4px; }
+:root[data-theme="wood"] :is(.seg, .set-tabs) button { border-radius: 4px; color: var(--text-2); }
+:root[data-theme="wood"] :is(.seg, .set-tabs) button:hover { color: var(--text); background: rgba(var(--ink), .06); }
+:root[data-theme="wood"] :is(.seg, .set-tabs) button.on {
+  background: var(--wd-brass); color: var(--wd-brass-ink); font-weight: 600;
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 1px 0 1px rgba(10,6,2,.25);
+}
+/* 選中的記號滑動時（core.js Glide 的替身）：滑過去的途中字先用一般的亮色，到了才換成黃銅上的深色字 */
+:root[data-theme="wood"] :is(.seg, .set-tabs, .chips) > .glide-pill { border-radius: 4px !important; }
+:root[data-theme="wood"] .glide-run > :is(button, a).on { color: var(--text); }
+:root[data-theme="wood"] .chip { border-radius: 4px; background: var(--wd-key); border-color: var(--wd-key-edge); color: var(--text-2); }
+:root[data-theme="wood"] .chip:hover { background: var(--wd-key-hover); color: var(--text); }
+:root[data-theme="wood"] .chip.on { background: var(--wd-brass); border-color: var(--wd-brass-edge); color: var(--wd-brass-ink); }
+:root[data-theme="wood"] .badge { border-radius: 3px; background: rgba(var(--ink), .1); color: var(--text-sub); }
+:root[data-theme="wood"] .badge.hi { background: rgba(var(--teal-rgb), .2); color: var(--teal-2); }
+
+
+/* ───────────── 11 · 開關：實體的撥動開關 ─────────────
+   方形的槽（凹進去）、撥桿是有止滑紋的方塊。
+   關：深色凹槽＋淺色外框，撥桿在左、象牙色，右邊一個「O」；開：黃銅色的槽，撥桿在右、深胡桃色，左邊一條「I」。
+   （日版顏色反過來：關是淺槽＋深色撥桿，開是古銅槽＋象牙色撥桿。） */
+:root[data-theme="wood"] .switch {
+  border-radius: 5px; background: var(--wd-sw-off);
+  box-shadow: 0 0 0 1.5px var(--wd-sw-off-edge), inset 0 2px 3px rgba(0,0,0,.35);
+}
+:root[data-theme="wood"] .switch::before {
+  content: ""; position: absolute; top: 50%; right: 6px; width: 8px; height: 8px; margin-top: -4px; box-sizing: border-box;
+  border: 1.5px solid var(--wd-sw-mark-off); border-radius: 50%;
+}
+:root[data-theme="wood"] .switch::after {
+  left: 3px; top: 3px; width: 16px; height: 18px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent 4px, var(--wd-sw-grip-off) 4px 5px, transparent 5px 7.5px, var(--wd-sw-grip-off) 7.5px 8.5px, transparent 8.5px 11px, var(--wd-sw-grip-off) 11px 12px, transparent 12px) center / 100% 10px no-repeat, var(--wd-sw-cap-off);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(90,60,25,.35);
+}
+:root[data-theme="wood"] .switch.on { background: var(--wd-sw-on); box-shadow: 0 0 0 1.5px var(--wd-sw-on-edge), inset 0 2px 3px rgba(60,35,8,.35); }
+:root[data-theme="wood"] .switch.on::before { right: auto; left: 8px; width: 2px; height: 10px; margin-top: -5px; border: 0; border-radius: 1px; background: var(--wd-sw-mark-on); }
+:root[data-theme="wood"] .switch.on::after {
+  transform: translateX(20px);
+  background: linear-gradient(90deg, transparent 4px, var(--wd-sw-grip-on) 4px 5px, transparent 5px 7.5px, var(--wd-sw-grip-on) 7.5px 8.5px, transparent 8.5px 11px, var(--wd-sw-grip-on) 11px 12px, transparent 12px) center / 100% 10px no-repeat, var(--wd-sw-cap-on);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,235,200,.25), inset 0 -1px 0 rgba(0,0,0,.35);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .switch { box-shadow: 0 0 0 1.5px var(--wd-sw-off-edge), inset 0 2px 3px rgba(90,60,24,.2); }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch::after { box-shadow: 0 1px 2px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,230,190,.3), inset 0 -1px 0 rgba(0,0,0,.25); }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch.on { box-shadow: 0 0 0 1.5px var(--wd-sw-on-edge), inset 0 2px 3px rgba(40,22,4,.35); }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch.on::after { box-shadow: 0 1px 2px rgba(40,22,4,.45), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(120,80,30,.3); }
+
+
+/* ───────────── 12 · 設定頁：每個面板像音響的面板，四角各一顆小螺絲 ───────────── */
+:root[data-theme="wood"] .sect {
+  border-radius: 6px; border: 1px solid var(--wd-key-edge);
+  background:
+    var(--wd-screw) left 6px top 6px / 8px 8px no-repeat, var(--wd-screw) right 6px top 6px / 8px 8px no-repeat,
+    var(--wd-screw) left 6px bottom 6px / 8px 8px no-repeat, var(--wd-screw) right 6px bottom 6px / 8px 8px no-repeat,
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,236,200,.05), 0 2px 0 rgba(var(--shadow-rgb), .2);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .sect { box-shadow: inset 0 1px 0 #fff, 0 2px 0 rgba(90,60,24,.08); }
+:root[data-theme="wood"] .field { border-top-color: var(--line); }
+:root[data-theme="wood"] :is(.sect .hint, .field .lbl small) { color: var(--text-3); }
+:root[data-theme="wood"] .dsp-card { border-radius: 6px; border-color: var(--wd-key-edge); background: var(--surface); }
+:root[data-theme="wood"] :is(select.sel, input.inp) { border-radius: 5px; background-color: var(--wd-well); border-color: var(--line-2); box-shadow: var(--wd-well-sh); }
+/* 下拉選單按鈕：木鍵＋前面一盞暖色指示燈 */
+:root[data-theme="wood"] .msel-btn {
+  border-radius: 5px; background: var(--wd-key); border: 0; color: var(--text);
+  box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] :is(.msel-btn:hover, .msel-btn:focus-visible, .msel.open .msel-btn) { box-shadow: 0 0 0 1px var(--teal), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .msel-btn::before { width: 7px; height: 7px; background: radial-gradient(circle at 40% 35%, #fff2cc, var(--wd-lamp) 60%); box-shadow: 0 0 6px rgba(255,170,60,.55); }
+:root[data-theme="wood"] .msel-chev { border-radius: 3px; color: var(--teal-2); background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="wood"] .msel-menu { border-radius: 6px; border-color: var(--wd-key-edge); }
+:root[data-theme="wood"] .msel-opt { border-radius: 4px; }
+:root[data-theme="wood"] .msel-opt.on { background: var(--wd-sel); }
+:root[data-theme="wood"] .msel-opt.on::before { border-radius: 1px; box-shadow: none; background: var(--teal); }
+:root[data-theme="wood"] .msel-opt.on .msel-ck { background: var(--wd-brass); color: var(--wd-brass-ink); }
+:root[data-theme="wood"]:where([data-mode="day"]) .eq-handle.off { background: #cdbfa8; }
+:root[data-theme="wood"] .eq-graph { border-radius: 4px; background: var(--wd-well); box-shadow: var(--wd-well-sh); }
+
+
+/* ───────────── 13 · 選單、抽屜、對話框、提示 ───────────── */
+:root[data-theme="wood"] :is(.pop, .drawer, .modal) { border-radius: 8px; border-color: var(--wd-key-edge); }
+:root[data-theme="wood"] .menu button { border-radius: 4px; }
+:root[data-theme="wood"] .menu button.is-selected { background: var(--wd-sel); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="wood"] .menu button.is-selected svg.i { color: var(--teal-2); }
+:root[data-theme="wood"] .toast { border-radius: 6px; border-color: var(--wd-key-edge); border-left: 3px solid var(--teal); }
+:root[data-theme="wood"] .slider .hover-tip { border-radius: 3px; }
+:root[data-theme="wood"] ::-webkit-scrollbar-thumb { border-radius: 3px; }
+
+
+/* ───────────── 14 · 專輯頁的大封面：一樣裝在木框裡 ───────────── */
+:root[data-theme="wood"] .hero:not(.artist) .cover {
+  border-radius: 0; border: 12px solid transparent; border-image: var(--wd-frame) 16 / 12px stretch;
+  box-shadow: 0 24px 44px -18px rgba(var(--shadow-rgb), .75);
+}
+:root[data-theme="wood"] .hero.artist .cover {
+  border: 8px solid transparent;
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    radial-gradient(closest-side, transparent calc(100% - 8px), var(--wd-slip) calc(100% - 8px) calc(100% - 6.2px), transparent calc(100% - 6.2px)) border-box,
+    var(--wd-wood-ring) border-box;
+}
+:root[data-theme="wood"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .72) 60%, var(--bg)); }
+:root[data-theme="wood"] .hero .kind { color: var(--text-2); letter-spacing: .16em; }
+:root[data-theme="wood"] .hero .facts { color: var(--text-2); }
+
+
+/* ───────────── 15 · 播放列：音響的面板 ─────────────
+   上緣一道黃銅細線＋一道暗縫；播放鍵是車了同心紋的黃銅旋鈕；進度條是黃銅色。 */
+:root[data-theme="wood"] #bar {
+  backdrop-filter: none; border-top: 1px solid #c9a063;
+  background: linear-gradient(180deg, rgba(0,0,0,.28), transparent 3px), linear-gradient(180deg, #2c2119, #231a12);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) #bar {
+  border-top: 1px solid #a87b3a;
+  background: linear-gradient(180deg, rgba(255,255,255,.65), transparent 2px), linear-gradient(180deg, #ece2d0, #e4d7c1);
+}
+:root[data-theme="wood"] .playbtn {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,250,235,.0) 0 1.5px, rgba(255,250,235,.16) 1.5px 2px, rgba(90,55,15,.06) 2px 3px),
+    radial-gradient(circle at 50% 30%, #f8e4b6, #ddb775 48%, #b98d4b 100%);
+  color: var(--wd-brass-ink);
+}
+:root[data-theme="wood"] #bar .playbtn, :root[data-theme="wood"] .np-ctrl .playbtn {
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,250,232,.85), inset 0 -2px 3px rgba(110,70,25,.35), 0 2px 0 var(--wd-drop), 0 5px 12px rgba(var(--shadow-rgb), .4);
+}
+:root[data-theme="wood"] .playbtn:hover {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,250,235,.0) 0 1.5px, rgba(255,250,235,.2) 1.5px 2px, rgba(90,55,15,.06) 2px 3px),
+    radial-gradient(circle at 50% 30%, #fff0cc, #e6c383 48%, #c49852 100%);
+}
+:root[data-theme="wood"] .np-mini .art { border-radius: 0; border: 4px solid transparent; border-image: var(--wd-frame) 16 / 4px stretch; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), .4); }
+:root[data-theme="wood"] .slider .track { background: rgba(var(--ink), .16); border-radius: 2px; }
+:root[data-theme="wood"] .slider .fill, :root[data-theme="wood"] .slider:hover .fill { background: linear-gradient(180deg, #ecca8e, #c49a58); border-radius: 2px; }
+:root[data-theme="wood"]:where([data-mode="day"]) .slider .fill, :root[data-theme="wood"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(180deg, #c99a52, #946726); }
+:root[data-theme="wood"] .slider .knob { background: var(--wd-brass); box-shadow: 0 0 0 1px var(--wd-brass-edge), 0 1px 3px rgba(0,0,0,.4); }
+/* 設定頁的滑桿（緩衝大小、文字大小…）：凹槽＋黃銅的推桿帽（像混音台的推桿），中間一道刻線 */
+:root[data-theme="wood"] .range { height: 6px; border-radius: 3px; background: var(--wd-well); box-shadow: var(--wd-well-sh); }
+:root[data-theme="wood"] .range::-webkit-slider-thumb {
+  width: 14px; height: 20px; border-radius: 3px;
+  background: linear-gradient(transparent 9px, var(--wd-brass-ink) 9px 11px, transparent 11px), var(--wd-brass);
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 4px; background: var(--wd-well); box-shadow: var(--wd-well-sh); color: var(--text-2); }
+:root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn):hover { color: var(--text); }
+:root[data-theme="wood"] .seek { color: var(--text-2); }
+:root[data-theme="wood"]:where([data-mode="day"]) #bar { --text-3: #5e4a34; }
+
+
+/* ───────────── 16 · 正在播放：同一座音響櫃 ─────────────
+   封面裝在較寬的木框裡（框只在封面上，不會碰到文字、進度條或按鈕）；標題用襯線字。
+   左上的收起鈕和右上的「歌詞不對？」「翻譯」「歌詞」都是實心底＋黃銅框；選中的是黃銅鍵＋深色字。 */
+:root[data-theme="wood"] #np::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--wd-np-cheeks); }
+:root[data-theme="wood"] #np .np-cover {
+  border-radius: 0; border: 16px solid transparent; border-image: var(--wd-frame) 16 / 16px stretch;
+  background: var(--surface-2);
+  box-shadow: 0 30px 60px -20px rgba(var(--shadow-rgb), .8), 0 4px 8px rgba(var(--shadow-rgb), .35);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) #np .np-cover { box-shadow: 0 30px 60px -22px rgba(70,48,24,.55), 0 4px 8px rgba(70,48,24,.2); }
+/* 窄或矮的視窗裡封面變小（responsive.css）：木框跟著變細 */
+@media (orientation: landscape) and (max-height: 620px) { :root[data-theme="wood"] #np .np-cover { border-width: 9px; border-image-width: 9px; } }
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {
+  :root[data-theme="wood"] #np:not(.nolyrics) .np-cover { border-width: 5px; border-image-width: 5px; }
+}
+:root[data-theme="wood"] .np-title { font-weight: 700; letter-spacing: 0; }
+:root[data-theme="wood"] .np-artist { color: rgba(var(--np-ink), .84); }
+:root[data-theme="wood"] .np-badges .badge { border-radius: 3px; background: var(--wd-np-btn); color: var(--wd-np-btn-ink); box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .55); }
+:root[data-theme="wood"] .np-badges .badge.hi { color: var(--teal-2); }
+:root[data-theme="wood"]:where([data-mode="day"]) .np-badges .badge.hi { color: #6a4512; }
+:root[data-theme="wood"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
+:root[data-theme="wood"] .np-seek .times { color: rgba(var(--np-ink), .82); }
+:root[data-theme="wood"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .9); }
+:root[data-theme="wood"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="wood"]:where([data-mode="day"]) .np-ctrl .icon-btn.on { color: #6a4512; }
+:root[data-theme="wood"] .np-top :is(.icon-btn, .pill) {
+  background: var(--wd-np-btn); color: var(--wd-np-btn-ink); border: 0;
+  box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 rgba(255,240,210,.12), 0 2px 0 rgba(10,6,2,.35), 0 4px 12px rgba(0,0,0,.25);
+}
+:root[data-theme="wood"] .np-top .pill { border-radius: 6px; }
+:root[data-theme="wood"] .np-top :is(.icon-btn, .pill):hover { background: var(--wd-np-btn-hover); color: var(--wd-np-btn-ink); }
+:root[data-theme="wood"] .np-top .pill.on, :root[data-theme="wood"] .np-top .pill.on:hover {
+  background: var(--wd-brass); color: var(--wd-brass-ink);
+  box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(10,6,2,.35), 0 4px 12px rgba(0,0,0,.25);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .np-top :is(.icon-btn, .pill) { box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 #fff, 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
+:root[data-theme="wood"]:where([data-mode="day"]) .np-top .pill.on { box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
+:root[data-theme="wood"] .np-top .src { padding: 3px 8px; border-radius: 3px; color: var(--wd-np-btn-ink); background: var(--wd-np-btn); opacity: .92; }
+:root[data-theme="wood"] .np-top .src:empty { padding: 0; background: none; }
+/* 歌詞：還沒唱到、已經唱過的行不要淡到看不清楚，翻譯行也深一點 */
+:root[data-theme="wood"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .64; }
+:root[data-theme="wood"]:where([data-mode="day"]) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root[data-theme="wood"] .ly-line { border-radius: 4px; }
+:root[data-theme="wood"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
+:root[data-theme="wood"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+
+
+/* ───────────── 17 · 動態：按鍵下沉的動畫在「減少動態」時關掉 ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="wood"] :is(.btn, .round-btn, .playbtn):active { transform: none; }
+  :root[data-theme="wood"] .nav a.on { transition-delay: 0s; }
+}

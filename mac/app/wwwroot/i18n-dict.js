@@ -731,6 +731,20 @@ Object.assign(I18N_DICT.ja, {
   "藍染的夜紙、月白色的字與明朝體，淡墨框，選中處蓋朱印，月亮掛在青海波上。": "藍染の夜の紙、月白の明朝体の文字、淡い墨の枠。選択中の項目には朱印、青海波の上に月。",
 });
 
+/* New picker descriptions: 木質調. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "淺橡木側板、亞麻白的房間；封面裝在木框裡，黃銅按鍵與撥動開關，襯線標題。": "浅橡木侧板、亚麻白的房间；封面装在木框里，黄铜按键与拨动开关，衬线标题。",
+  "胡桃木音響櫃：溫暖的深棕、木框封面、黃銅旋鈕與撥動開關，襯線標題。": "胡桃木音响柜：温暖的深棕、木框封面、黄铜旋钮与拨动开关，衬线标题。",
+});
+Object.assign(I18N_DICT.en, {
+  "淺橡木側板、亞麻白的房間；封面裝在木框裡，黃銅按鍵與撥動開關，襯線標題。": "Light oak side panels in a linen-white room; covers in wooden frames, brass buttons and toggle switches, serif titles.",
+  "胡桃木音響櫃：溫暖的深棕、木框封面、黃銅旋鈕與撥動開關，襯線標題。": "A walnut hi-fi cabinet: warm dark brown, framed covers, brass knobs and toggle switches, serif titles.",
+});
+Object.assign(I18N_DICT.ja, {
+  "淺橡木側板、亞麻白的房間；封面裝在木框裡，黃銅按鍵與撥動開關，襯線標題。": "明るいオークの側板とリネンホワイトの部屋。ジャケットは木の額縁に、真鍮のボタンとトグルスイッチ、セリフ体の見出し。",
+  "胡桃木音響櫃：溫暖的深棕、木框封面、黃銅旋鈕與撥動開關，襯線標題。": "ウォールナットのオーディオキャビネット：暖かいこげ茶、額縁に入ったジャケット、真鍮のつまみとトグルスイッチ、セリフ体の見出し。",
+});
+
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {
   '輸出模式': 'Output mode', 'Core Audio（共享）': 'Core Audio (shared)', 'Core Audio 獨佔': 'Core Audio exclusive',
