@@ -2858,3 +2858,467 @@
 /* 沒在唱的歌詞行：比全站的 60% 再清楚一點，翻譯行也是 */
 :root[data-theme="glass"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .72; }
 :root[data-theme="glass"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
+
+/* ═════════════════════════════ 未來（miku）· 數位儀表感 ═════════════════════════════
+   像一台乾淨的合成器／音量表面板，而不是霓虹科幻（霓虹賽博才有發光）：
+   · 面板是方角，右上角切一刀（切角），細框線；不用圓滾滾的卡片，也不用發光。
+   · 選中的項目用蔥綠的「刻度條」標示：像音量表一格一格的燈，最上面一格是櫻桃粉（峰值）。
+   · 頁面標題與區塊標題前面有小小的數字標籤（01、02…，等寬數字），像儀器面板上的通道編號。
+   · 側欄右緣是一排刻度尺；內容區右上角是很淡的示波器方格；側欄底部保留淡淡的六角格紋。
+   · 開關像儀器的滑動開關：方形滑鈕帶止滑紋，關的時候有外框和「O」記號，開的時候是蔥綠底和「I」記號。
+   · 正在播放：封面裝在帶刻度的邊框裡，左上角四個按鈕都是實心底，任何封面上都看得清楚。
+   字體：標題用 DIN 系的 Bahnschrift（Windows）／DIN Alternate（Mac）；小數字用 Bahnschrift（Windows）／SF Mono（Mac）的等寬數字；
+   中文日文自動改用正黑體／蘋方；歌詞維持原本易讀的字體。
+   這一份檔案就是整個主題的「個性」，要退回舊樣子時整份拿掉即可。 */
+
+
+/* ───────────── 1 · 色彩（白天，主題原本的版本） ─────────────
+   底是很淡的水色，卡片純白；文字是深青墨色，第二、三層文字也夠深。蔥綠 #39c5bb 用在填色（上面放深色字），
+   要當文字或細圖示時改用深一階的 #087570。櫻桃粉只做點綴：播放頭、最愛、刻度條的峰值格。 */
+[data-theme="miku"]:where(:not([data-mode="night"])) {
+  --bg: #edf5f5; --bg-rgb: 237, 245, 245; --bg-2: #ffffff;
+  --surface: #ffffff; --surface-2: #e2eeee; --surface-3: #cadede;
+  --ink: 15, 56, 60; --line: rgba(15,70,74,.11); --line-2: rgba(15,70,74,.19);
+  --text: #0f2a2d; --text-hi: #061a1c; --text-sub: #2c474a; --text-2: #3d595c; --text-3: #526d6f;
+  --teal: #2cbcb4; --teal-rgb: 44, 188, 180; --teal-2: #087570; --teal-dim: rgba(44,188,180,.16);
+  --pink: #e23585; --pink-dim: rgba(226,53,133,.11); --pink-line: rgba(226,53,133,.45); --pink-text: #c2185b;
+  --on-accent: #062f2d;
+  --play-bg: #39c5bb; --play-ink: #062f2d; --knob: #ffffff; --knob-off: #ffffff;
+  --bar-bg: #1f282b; --pop-bg: #ffffff; --drawer-bg: #fbfefe; --toast-bg: #1f282b; --modal-bg: #fbfefe;
+  --np-base: #e6f3f3; --np-ink: 15, 42, 45; --np-pill-ink: #062f2d;
+  --tip-bg: #0f2a2d; --tip-ink: #e9fbf9;
+  --app-bg: radial-gradient(820px 520px at 100% -10%, rgba(57,197,187,.14), transparent 62%), linear-gradient(180deg, #f2f8f8, #e9f3f3);
+  --sidebar-bg: linear-gradient(180deg, #fbfdfd, #f1f7f7);
+  --font-display: "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", "Avenir Next", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif;
+  /* 這個主題自己的值 */
+  --mk-edge: #b4cfce;          /* 面板、按鈕的細框 */
+  --mk-edge-2: #6f8f90;        /* 要看得見的框（開關關著、輸入框） */
+  --mk-tick: rgba(12,92,96,.34);   /* 刻度尺 */
+  --mk-grid: rgba(12,92,96,.075);  /* 方格 */
+  --mk-lcd: #10292c; --mk-lcd-ink: #6ee6dc;   /* 數字標籤：深色小螢幕、蔥綠數字 */
+  --mk-sel: #d7f1ee;           /* 選中項目的淡蔥綠底 */
+  --mk-digits: "Bahnschrift", ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", "Menlo", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", sans-serif;
+  --np-calm: rgba(238,247,247,.84);
+  /* 封面的刻度錶框（正在播放、專輯頁）：白框、深青刻度（每 12 px 一道，每 48 px 一道長的）、四角蔥綠 */
+  --mk-bezel-bg: #ffffff;
+  --mk-bezel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect width='72' height='72' fill='%23ffffff'/%3E%3Crect x='.5' y='.5' width='71' height='71' fill='none' stroke='%232c4f52' stroke-opacity='0.55'/%3E%3Crect x='11.5' y='11.5' width='49' height='49' fill='none' stroke='%232c4f52' stroke-opacity='0.33'/%3E%3Cpath d='M18 1v6.5M18 71v-6.5M1 18h6.5M71 18h-6.5M30 1v3.5M30 71v-3.5M1 30h3.5M71 30h-3.5M42 1v3.5M42 71v-3.5M1 42h3.5M71 42h-3.5M54 1v3.5M54 71v-3.5M1 54h3.5M71 54h-3.5' stroke='%232c4f52' stroke-opacity='0.7' stroke-width='1.2'/%3E%3Cpath d='M1.5 1.5h10M1.5 1.5v10M70.5 1.5h-10M70.5 1.5v10M1.5 70.5h10M1.5 70.5v-10M70.5 70.5h-10M70.5 70.5v-10' stroke='%232cbcb4' stroke-width='3'/%3E%3C/svg%3E");
+}
+
+/* ───────────── 2 · 色彩（夜） ─────────────
+   以前夜裡是接近全黑的 #0b1619；現在提亮成帶青色的墨綠灰（頁面 OKLab L≈0.28，卡片 0.30），
+   文字更亮：主文字對卡片 13:1 以上，第二層 9:1，第三層 7:1。不用星點、不發光。 */
+[data-theme="miku"]:where([data-mode="night"]) {
+  --bg: #172d30; --bg-rgb: 23, 45, 48; --bg-2: #14292c;
+  --surface: #1a3235; --surface-2: #223e42; --surface-3: #2d4d52;
+  --ink: 225, 248, 246; --line: rgba(190,240,236,.11); --line-2: rgba(190,240,236,.19);
+  --text: #f5fefd; --text-hi: #ffffff; --text-sub: #d5ebea; --text-2: #c6dfde; --text-3: #a7c6c5;
+  --teal: #39c5bb; --teal-rgb: 57, 197, 187; --teal-2: #7fe3db; --teal-dim: rgba(57,197,187,.18);
+  --pink: #f0529a; --pink-dim: rgba(240,82,154,.18); --pink-line: rgba(240,82,154,.55); --pink-text: #ff9ccb;
+  --on-accent: #062f2d;
+  --play-bg: #39c5bb; --play-ink: #062f2d; --knob: #ffffff; --knob-off: #c6dfde;
+  --bar-bg: #102326; --pop-bg: #1f3a3e; --drawer-bg: #1a3336; --toast-bg: #24444a; --modal-bg: #1b3437;
+  --shadow-rgb: 2, 14, 16; --sh: .8;
+  --np-base: #102427; --np-ink: 240, 252, 251; --np-pill-ink: #062f2d; --np-dim: .55;
+  --tip-bg: #e9fbf9; --tip-ink: #0f2a2d;
+  --np-veil: var(--hex-ns) 0 0 / 42px 72px, radial-gradient(120% 90% at 30% 40%, rgba(16,36,39,0), rgba(16,36,39,.4)), linear-gradient(rgba(16,36,39,.42), rgba(16,36,39,.42));
+  --app-bg: radial-gradient(820px 520px at 100% -10%, rgba(57,197,187,.13), transparent 62%), linear-gradient(180deg, #183033, #162b2e);
+  --sidebar-bg: linear-gradient(180deg, #152b2e, #13272a);
+  --hero-dim: .62;
+  --brand-ink: #f5fefd; --brand-track: #2d4d52;
+  --font-display: "Bahnschrift", "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", "Avenir Next", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif;
+  --mk-edge: #35585c;
+  --mk-edge-2: #86a9a9;
+  --mk-tick: rgba(170,235,230,.30);
+  --mk-grid: rgba(170,235,230,.06);
+  --mk-lcd: #0c1e20; --mk-lcd-ink: #7fe9df;
+  --mk-sel: rgba(57,197,187,.20);
+  --mk-digits: "Bahnschrift", ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", "Menlo", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", sans-serif;
+  --np-calm: rgba(16,36,39,.62);
+  --mk-bezel-bg: #0f2427;
+  --mk-bezel: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Crect width='72' height='72' fill='%230f2427'/%3E%3Crect x='.5' y='.5' width='71' height='71' fill='none' stroke='%23bdf0ec' stroke-opacity='0.4'/%3E%3Crect x='11.5' y='11.5' width='49' height='49' fill='none' stroke='%23bdf0ec' stroke-opacity='0.24'/%3E%3Cpath d='M18 1v6.5M18 71v-6.5M1 18h6.5M71 18h-6.5M30 1v3.5M30 71v-3.5M1 30h3.5M71 30h-3.5M42 1v3.5M42 71v-3.5M1 42h3.5M71 42h-3.5M54 1v3.5M54 71v-3.5M1 54h3.5M71 54h-3.5' stroke='%23bdf0ec' stroke-opacity='0.6' stroke-width='1.2'/%3E%3Cpath d='M1.5 1.5h10M1.5 1.5v10M70.5 1.5h-10M70.5 1.5v10M1.5 70.5h10M1.5 70.5v-10M70.5 70.5h-10M70.5 70.5v-10' stroke='%2339c5bb' stroke-width='3'/%3E%3C/svg%3E");
+}
+
+
+/* ───────────── 3 · 切角：右上角切一刀，斜邊也畫上細框 ─────────────
+   每個元件設 --mk-cut（切多大）與 --mk-bc（框線顏色）；--mk-diag 是斜邊那一小段框線，放在背景的第一層。
+   （切角用 clip-path，外面的陰影會被切掉，所以這些元件都不用外陰影；鍵盤焦點框改畫在裡面。） */
+:root[data-theme="miku"] :is(.sect, .btn, .search, .set-tabs, .seg, .msel-btn, .dsp-card, .np-top .pill, .np-top .icon-btn, .chip, .page-head .tools > .btn.small) {
+  --mk-diag: linear-gradient(to bottom left, transparent calc(50% - .6px), var(--mk-bc) calc(50% - .6px), var(--mk-bc) calc(50% + .9px), transparent calc(50% + .9px)) right top / var(--mk-cut) var(--mk-cut) no-repeat border-box;
+  clip-path: polygon(0 0, calc(100% - var(--mk-cut)) 0, 100% var(--mk-cut), 100% 100%, 0 100%);
+}
+:root[data-theme="miku"] :is(.btn, .search, .msel-btn, .chip, .np-top .pill, .np-top .icon-btn):focus-visible { outline-offset: -3px; }
+
+
+/* ───────────── 4 · 字體：標題與數字用 DIN 系，歌詞與內文維持易讀的原字體 ───────────── */
+:root[data-theme="miku"] :is(.ly-line, .ly-plain) { font-family: "Segoe UI Variable Display", "Segoe UI", "Avenir Next", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif; }
+:root[data-theme="miku"] :is(.page-head .sub, .nav a .count, .row .d, .row .fmt, .seek .time, .np-seek .times, .badge, .thead) { font-family: var(--mk-digits); font-variant-numeric: tabular-nums; }
+:root[data-theme="miku"] .nav a .count { font-style: normal; }
+
+
+/* ───────────── 5 · 數字標籤：頁面標題 01、區塊標題 02、03… ─────────────
+   每一頁（#view）從 01 開始數；深色小螢幕配蔥綠數字，右上角同樣切角。 */
+:root[data-theme="miku"] #view { counter-reset: mk-ch; }
+:root[data-theme="miku"] :is(.page-head h1, .rail-head h2, .sect h2) { counter-increment: mk-ch; }
+:root[data-theme="miku"] :is(.page-head h1, .rail-head h2, .sect h2)::before {
+  content: counter(mk-ch, decimal-leading-zero);
+  display: inline-block; vertical-align: .22em; box-sizing: border-box;
+  width: auto; height: auto; border-radius: 0; box-shadow: none;
+  margin-right: 10px; padding: 3px 7px 3px 6px;
+  font: 700 11px/1 var(--mk-digits); font-variant-numeric: tabular-nums; letter-spacing: .08em; text-shadow: none;
+  color: var(--mk-lcd-ink); background: var(--mk-lcd);
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 0 100%);
+}
+/* 頁面標題的標籤大一號，右邊多一格櫻桃粉（峰值燈） */
+:root[data-theme="miku"] .page-head h1::before {
+  font-size: 13px; padding: 4px 12px 4px 7px; vertical-align: .38em; margin-right: 12px;
+  background: linear-gradient(var(--pink), var(--pink)) right 4px center / 3px 9px no-repeat, var(--mk-lcd);
+}
+:root[data-theme="miku"] .sect h2::before { vertical-align: .12em; }
+/* 夜：深色小螢幕外加一圈淡蔥綠細框，才不會沉進底色 */
+:root[data-theme="miku"]:where([data-mode="night"]) :is(.page-head h1, .rail-head h2, .sect h2)::before { box-shadow: inset 0 0 0 1px rgba(127,227,219,.32); }
+:root[data-theme="miku"] .page-head h1 { font-weight: 700; color: var(--text); text-shadow: none; letter-spacing: 0; }
+:root[data-theme="miku"] :is(.rail-head h2, .sect h2) { font-weight: 650; color: var(--text); }
+:root[data-theme="miku"] .page-head .sub { color: var(--text-2); }
+:root[data-theme="miku"] .rail-head a { color: var(--text-2); }
+:root[data-theme="miku"] .rail-head a:hover { color: var(--teal-2); }
+/* 首頁每一排的標題後面拉一條很淡的刻度尺，一直到左右切換鈕前（像面板上分區的刻度） */
+:root[data-theme="miku"] .rail-head::after {
+  content: ""; order: 1; flex: 1 1 0; min-width: 24px; height: 5px; align-self: center; margin-left: 4px;
+  background: linear-gradient(var(--mk-tick), var(--mk-tick)) left bottom / 100% 1px no-repeat,
+              repeating-linear-gradient(90deg, var(--mk-tick) 0 1px, transparent 1px 8px) left bottom / 100% 5px no-repeat;
+  opacity: .8;
+}
+:root[data-theme="miku"] .rail-head .rail-nav { order: 2; margin-left: 0; }
+
+
+/* ───────────── 6 · 側欄：右緣刻度尺、底部淡六角格紋、選中項目是帶刻度燈的方塊 ───────────── */
+:root[data-theme="miku"] #sidebar {
+  border-right: 1px solid var(--mk-edge);
+  background:
+    repeating-linear-gradient(180deg, var(--mk-tick) 0 1px, transparent 1px 8px) right top / 4px 100% no-repeat,
+    repeating-linear-gradient(180deg, var(--mk-tick) 0 1px, transparent 1px 40px) right top / 10px 100% no-repeat,
+    var(--sidebar-bg);
+}
+:root[data-theme="miku"] #sidebar::after { opacity: .5; }
+:root[data-theme="miku"] .nav-edit { opacity: .85; border-radius: 2px; }
+:root[data-theme="miku"] .nav-label { color: var(--text-3); font-family: var(--mk-digits); font-weight: 700; letter-spacing: .16em; }
+:root[data-theme="miku"] .nav a { border-radius: 2px; color: var(--text-2); }
+:root[data-theme="miku"] .nav a:hover { background: rgba(var(--teal-rgb), .10); color: var(--text); }
+:root[data-theme="miku"] .nav a.on, :root[data-theme="miku"] .nav a.on:hover, :root[data-theme="miku"] .nav a.on .count { color: var(--text); }
+:root[data-theme="miku"] .nav a.on { font-weight: 600; }
+:root[data-theme="miku"] .nav a.on svg.i { color: var(--teal-2); filter: none; }
+/* 選中：淡蔥綠方塊，右上切角，左邊一支四格的刻度燈（最上面一格粉紅） */
+:root[data-theme="miku"] .nav-pill {
+  border-radius: 0; box-shadow: none;
+  background: linear-gradient(to bottom left, transparent calc(50% - .6px), rgba(var(--teal-rgb), .7) calc(50% - .6px), rgba(var(--teal-rgb), .7) calc(50% + .9px), transparent calc(50% + .9px)) right top / 8px 8px no-repeat, var(--mk-sel);
+  border: 1px solid rgba(var(--teal-rgb), .7);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+:root[data-theme="miku"] .nav-pill::before {
+  display: block; left: 3px; top: 7px; bottom: 7px; width: 4px; border-radius: 0; box-shadow: none;
+  background: linear-gradient(var(--pink), var(--pink)) top / 100% 4px no-repeat,
+              repeating-linear-gradient(180deg, var(--teal) 0 4px, transparent 4px 6px);
+}
+
+
+/* ───────────── 7 · 內容區：右上角很淡的示波器方格（取代鋼琴捲軸） ───────────── */
+:root[data-theme="miku"] #main::before {
+  height: 200px; opacity: 1;
+  background:
+    linear-gradient(90deg, var(--mk-grid) 1px, transparent 1px) right top / 24px 24px,
+    linear-gradient(180deg, var(--mk-grid) 1px, transparent 1px) right top / 24px 24px,
+    linear-gradient(90deg, var(--mk-grid) 1px, transparent 1px) right top / 120px 120px,
+    linear-gradient(180deg, var(--mk-grid) 1px, transparent 1px) right top / 120px 120px;
+}
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #topbar.solid { background: rgba(237,245,245,.9); }
+:root[data-theme="miku"]:where([data-mode="night"]) #topbar.solid { background: rgba(23,45,48,.9); }
+
+/* 頂列：搜尋框、上一頁／下一頁都改成方形儀表按鍵 */
+:root[data-theme="miku"] .search {
+  --mk-cut: 9px; --mk-bc: var(--mk-edge-2);
+  border-radius: 0; border: 1px solid var(--mk-bc); box-shadow: none;
+  background: var(--mk-diag), var(--surface);
+}
+:root[data-theme="miku"] .search:focus-within { --mk-bc: var(--teal); border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); background: var(--mk-diag), var(--surface); }
+:root[data-theme="miku"] .search kbd { border-radius: 2px; font-family: var(--mk-digits); color: var(--text-2); border-color: var(--mk-edge); }
+:root[data-theme="miku"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="miku"] .round-btn { border-radius: 3px; background: var(--surface); border: 1px solid var(--mk-edge); color: var(--text-2); }
+:root[data-theme="miku"] .round-btn:hover { border-color: var(--teal); color: var(--text); background: var(--surface); }
+
+
+/* ───────────── 8 · 專輯卡：方形封面、細框；滑過時蔥綠框 ───────────── */
+:root[data-theme="miku"] .card .art { border-radius: 2px; }
+:root[data-theme="miku"] .card.artist .art { border-radius: 50%; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card .art { box-shadow: 0 0 0 1px rgba(15,70,74,.14), 0 10px 18px -12px rgba(15,70,74,.45); }
+:root[data-theme="miku"]:where([data-mode="night"]) .card .art { box-shadow: 0 0 0 1px rgba(190,240,236,.14), 0 12px 22px -14px rgba(0,0,0,.7); }
+:root[data-theme="miku"] .card:hover .art { box-shadow: 0 0 0 2px var(--teal), 0 14px 24px -14px rgba(var(--shadow-rgb), .55); }
+:root[data-theme="miku"] .card .t1 { color: var(--text); }
+:root[data-theme="miku"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="miku"] .card .t2 { color: var(--text-sub); }
+:root[data-theme="miku"] .card .play { border-radius: 3px; background: var(--teal); color: var(--on-accent); box-shadow: 0 0 0 1px rgba(6,47,45,.35), 0 6px 14px rgba(var(--shadow-rgb), .3); }
+:root[data-theme="miku"] .card .play:hover { background: #5fd6cd; }
+/* 快速捲動時的字母泡泡：蔥綠底配深色字 */
+:root[data-theme="miku"] .scroll-bubble { background: #39c5bb; color: #062f2d; border-radius: 3px; }
+
+
+/* ───────────── 9 · 曲目表：表頭下緣是刻度尺；播放中那一列左邊亮起刻度燈 ───────────── */
+:root[data-theme="miku"] .thead {
+  font-size: 12px; letter-spacing: .1em; color: var(--text-2); backdrop-filter: none;
+  border-bottom: 1px solid var(--mk-edge);
+  background: repeating-linear-gradient(90deg, var(--mk-tick) 0 1px, transparent 1px 8px) left bottom / 100% 4px no-repeat, var(--bg);
+}
+:root[data-theme="miku"] .row { border-radius: 2px; }
+:root[data-theme="miku"] .row .n .pi { color: var(--teal-2); }
+:root[data-theme="miku"] .row:hover { background: rgba(var(--teal-rgb), .09); box-shadow: none; }
+:root[data-theme="miku"] .row.sel { background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="miku"] .row .tt div:first-child { color: var(--text); }
+:root[data-theme="miku"] .row:hover .tt div:first-child { color: var(--text-hi); }
+:root[data-theme="miku"] .row .tt .a { color: var(--text-sub); }
+:root[data-theme="miku"] .row .al, :root[data-theme="miku"] .row .d, :root[data-theme="miku"] .row .fmt { color: var(--text-2); }
+:root[data-theme="miku"] .row.playing {
+  background: linear-gradient(var(--pink), var(--pink)) left 0 top 10px / 3px 5px no-repeat,
+              repeating-linear-gradient(180deg, var(--teal) 0 5px, transparent 5px 7px) left 0 top 17px / 3px calc(100% - 27px) no-repeat,
+              linear-gradient(90deg, rgba(var(--teal-rgb), .16), rgba(var(--teal-rgb), .03) 70%);
+}
+:root[data-theme="miku"] .row.playing .tt div:first-child { color: var(--teal-2); text-shadow: none; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row.playing .tt div:first-child { color: #05625d; }
+:root[data-theme="miku"] .eq i { box-shadow: none; border-radius: 0; }
+:root[data-theme="miku"] .qrow { border-radius: 2px; }
+:root[data-theme="miku"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="miku"] .qrow.past { opacity: .76; }
+:root[data-theme="miku"] .qrow.past .a { color: var(--text-sub); }
+
+
+/* ───────────── 10 · 按鈕、分段按鈕、晶片：方形切角；選中的下面有一條刻度燈 ───────────── */
+:root[data-theme="miku"] .btn {
+  --mk-cut: 7px; --mk-bc: var(--mk-edge-2);
+  border-radius: 0; border: 1px solid var(--mk-bc); color: var(--text); box-shadow: none;
+  background: var(--mk-diag), var(--surface);
+}
+:root[data-theme="miku"] .btn:hover { --mk-bc: var(--teal); border-color: var(--teal); background: var(--mk-diag), var(--surface); box-shadow: none; }
+:root[data-theme="miku"] .btn.primary { --mk-bc: #0f6f6a; border-color: var(--mk-bc); color: #062f2d; font-weight: 650; background: var(--mk-diag), #39c5bb; box-shadow: none; }
+:root[data-theme="miku"] .btn.primary:hover { background: var(--mk-diag), #55d3ca; box-shadow: none; }
+:root[data-theme="miku"] .btn.ghost { --mk-bc: transparent; border-color: transparent; background: transparent; color: var(--text-2); }
+:root[data-theme="miku"] .btn.ghost:hover { background: rgba(var(--teal-rgb), .1); color: var(--text); }
+:root[data-theme="miku"] .btn.bp-apply { --mk-bc: var(--teal); border-color: var(--teal); background: var(--mk-diag), rgba(var(--teal-rgb), .12); box-shadow: none; }
+:root[data-theme="miku"] .btn.bp-apply svg.i { color: var(--teal-2); }
+:root[data-theme="miku"] .page-head .tools > .btn.small { border-radius: 0; }
+:root[data-theme="miku"] .page-head .tools > .btn.small:not(.primary) { --mk-cut: 7px; --mk-bc: var(--mk-edge-2); background: var(--mk-diag), var(--surface); border: 1px solid var(--mk-bc); }
+:root[data-theme="miku"] .page-head .tools > .btn.small:not(.primary):hover { --mk-bc: var(--teal); border-color: var(--teal); background: var(--mk-diag), var(--surface); }
+
+/* 分段按鈕：外框方形；選中的是淡蔥綠底＋下緣一條分格的刻度燈（最右一格粉紅），字是深色 */
+/* （外框用內陰影畫，不用 border：分段按鈕的高度不變，頁首也不會被撐高） */
+:root[data-theme="miku"] .seg {
+  --mk-cut: 7px; --mk-bc: var(--mk-edge-2);
+  border-radius: 0; padding: 3px; box-shadow: inset 0 0 0 1px var(--mk-bc);
+  background: var(--mk-diag), var(--surface);
+}
+:root[data-theme="miku"] .seg button { border-radius: 0; color: var(--text-2); }
+:root[data-theme="miku"] .seg button:hover { color: var(--text); background: rgba(var(--teal-rgb), .08); }
+:root[data-theme="miku"] .seg button.on, :root[data-theme="miku"] .set-tabs button.on {
+  color: var(--text); box-shadow: none; border-radius: 0;
+  background: linear-gradient(var(--pink), var(--pink)) right 6px bottom 3px / 5px 3px no-repeat,
+              repeating-linear-gradient(90deg, var(--teal) 0 5px, transparent 5px 7px) left 6px bottom 3px / calc(100% - 19px) 3px no-repeat,
+              var(--mk-sel);
+}
+/* 選中的記號移動時（core.js Glide 的替身）也是方的 */
+:root[data-theme="miku"] :is(.seg, .set-tabs, .chips) > .glide-pill { border-radius: 0 !important; }
+
+/* 設定頁上方的分頁列 */
+:root[data-theme="miku"] .set-tabs {
+  --mk-cut: 9px; --mk-bc: var(--mk-edge-2);
+  border-radius: 0; border: 1px solid var(--mk-bc); padding: 4px;
+  background: var(--mk-diag), rgba(var(--bg-rgb), .94);
+}
+:root[data-theme="miku"] .set-tabs button { border-radius: 0; color: var(--text-2); }
+:root[data-theme="miku"] .set-tabs button:hover { color: var(--text); }
+
+:root[data-theme="miku"] .chip { --mk-cut: 6px; --mk-bc: var(--mk-edge); border-radius: 0; border-color: var(--mk-bc); background: var(--mk-diag), var(--surface-2); color: var(--text-2); }
+:root[data-theme="miku"] .chip:hover { background: var(--mk-diag), var(--surface-3); color: var(--text); }
+:root[data-theme="miku"] .chip.on { --mk-bc: var(--teal); border-color: var(--teal); color: var(--text); background: var(--mk-diag), var(--mk-sel); }
+
+:root[data-theme="miku"] .badge { border-radius: 2px; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .badge { background: #e2eeee; color: #2c474a; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .badge.hi { background: rgba(44,188,180,.18); color: #075f5b; }
+:root[data-theme="miku"]:where([data-mode="night"]) .badge { background: rgba(190,240,236,.12); color: #d5ebea; }
+:root[data-theme="miku"]:where([data-mode="night"]) .badge.hi { background: rgba(57,197,187,.22); color: #a6f3ec; }
+
+:root[data-theme="miku"] .icon-btn { border-radius: 3px; }
+:root[data-theme="miku"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="miku"] .icon-btn.fav-on { color: var(--pink); filter: none; }
+
+
+/* ───────────── 11 · 開關：儀器的滑動開關 ─────────────
+   方形軌道、方形滑鈕帶兩道止滑紋。關：淺底＋看得見的外框，右邊有一個「O」；開：蔥綠底、深色滑鈕，左邊一條「I」。 */
+:root[data-theme="miku"] .switch {
+  border-radius: 3px; background: var(--surface-2);
+  box-shadow: inset 0 0 0 1.5px var(--mk-edge-2);
+}
+:root[data-theme="miku"] .switch::after {
+  border-radius: 2px; box-shadow: none;
+  background: linear-gradient(90deg, transparent 6px, rgba(255,255,255,.6) 6px 7px, transparent 7px 11px, rgba(255,255,255,.6) 11px 12px, transparent 12px), #4b6668;
+}
+:root[data-theme="miku"] .switch::before {
+  content: ""; position: absolute; top: 50%; right: 7px; width: 7px; height: 7px; margin-top: -3.5px; box-sizing: border-box;
+  border: 1.5px solid var(--mk-edge-2); border-radius: 50%;
+}
+:root[data-theme="miku"] .switch.on { background: var(--teal); box-shadow: inset 0 0 0 1.5px #0f6f6a; }
+:root[data-theme="miku"] .switch.on::after {
+  background: linear-gradient(90deg, transparent 6px, rgba(160,240,232,.7) 6px 7px, transparent 7px 11px, rgba(160,240,232,.7) 11px 12px, transparent 12px), #0f2a2d;
+}
+:root[data-theme="miku"] .switch.on::before { right: auto; left: 8px; width: 2px; height: 10px; margin-top: -5px; border: 0; border-radius: 0; background: #062f2d; }
+:root[data-theme="miku"]:where([data-mode="night"]) .switch::after {
+  background: linear-gradient(90deg, transparent 6px, rgba(15,42,45,.45) 6px 7px, transparent 7px 11px, rgba(15,42,45,.45) 11px 12px, transparent 12px), #c6dfde;
+}
+:root[data-theme="miku"]:where([data-mode="night"]) .switch.on { box-shadow: inset 0 0 0 1.5px #7fe3db; }
+:root[data-theme="miku"]:where([data-mode="night"]) .switch.on::after {
+  background: linear-gradient(90deg, transparent 6px, rgba(127,227,219,.7) 6px 7px, transparent 7px 11px, rgba(127,227,219,.7) 11px 12px, transparent 12px), #0c1e20;
+}
+
+
+/* ───────────── 12 · 設定頁的面板：方形、右上切角、細框，不用陰影 ───────────── */
+:root[data-theme="miku"] .sect {
+  --mk-cut: 14px; --mk-bc: var(--mk-edge);
+  border-radius: 0; border: 1px solid var(--mk-bc); box-shadow: none;
+  background: var(--mk-diag), var(--surface);
+}
+:root[data-theme="miku"] .sect .hint, :root[data-theme="miku"] .field .lbl small { color: var(--text-3); }
+:root[data-theme="miku"] .dsp-card { --mk-cut: 10px; --mk-bc: var(--mk-edge); border-radius: 0; border: 1px solid var(--mk-bc); background: var(--mk-diag), var(--surface); }
+:root[data-theme="miku"] select.sel, :root[data-theme="miku"] input.inp { border-radius: 2px; border-color: var(--mk-edge-2); background-color: var(--surface); }
+/* 下拉選單按鈕：前面的小圓點改成方形指示燈 */
+:root[data-theme="miku"] .msel-btn {
+  --mk-cut: 7px; --mk-bc: var(--mk-edge-2);
+  border-radius: 0; border: 1px solid var(--mk-bc); box-shadow: none;
+  background: var(--mk-diag), var(--surface);
+}
+:root[data-theme="miku"] .msel-btn:hover, :root[data-theme="miku"] .msel-btn:focus-visible, :root[data-theme="miku"] .msel.open .msel-btn { --mk-bc: var(--teal); border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+:root[data-theme="miku"] .msel-btn::before { border-radius: 1px; width: 6px; height: 6px; box-shadow: none; background: var(--teal); }
+:root[data-theme="miku"] .msel-chev { border-radius: 2px; color: var(--teal-2); }
+:root[data-theme="miku"] .msel-menu { border-radius: 3px; border-color: var(--mk-edge-2); }
+:root[data-theme="miku"] .msel-opt { border-radius: 2px; }
+:root[data-theme="miku"] .msel-opt.on { background: var(--mk-sel); }
+:root[data-theme="miku"] .msel-opt.on::before { border-radius: 0; box-shadow: none; background: repeating-linear-gradient(180deg, var(--teal) 0 4px, transparent 4px 6px); }
+:root[data-theme="miku"] .msel-opt.on .msel-ck { border-radius: 2px; }
+/* 等化器：示波器方格 */
+:root[data-theme="miku"] .eq-graph {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--mk-grid) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(180deg, var(--mk-grid) 1px, transparent 1px) 0 0 / 24px 24px, var(--surface-2);
+}
+:root[data-theme="miku"]:where([data-mode="night"]) .eq-handle { box-shadow: 0 0 0 3px rgba(12,30,32,.8); }
+:root[data-theme="miku"]:where([data-mode="night"]) .eq-graph { background: linear-gradient(90deg, rgba(170,235,230,.08) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(180deg, rgba(170,235,230,.08) 1px, transparent 1px) 0 0 / 24px 24px, #12282b; }
+
+
+/* ───────────── 13 · 選單、抽屜、對話框、提示：方角，細框 ───────────── */
+:root[data-theme="miku"] :is(.pop, .drawer, .modal) { border-radius: 3px; border-color: var(--mk-edge-2); }
+:root[data-theme="miku"] .menu button { border-radius: 2px; }
+:root[data-theme="miku"] .menu button.is-selected { background: var(--mk-sel); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="miku"] .toast { border-radius: 2px; }
+:root[data-theme="miku"] .slider .hover-tip { border-radius: 2px; font-family: var(--mk-digits); }
+:root[data-theme="miku"] ::-webkit-scrollbar-thumb { border-radius: 2px; }
+:root[data-theme="miku"] .hero .cover { border-radius: 2px; }
+:root[data-theme="miku"] .hero.artist .cover { border-radius: 50%; }
+/* 專輯頁的封面也裝在同一種刻度錶框裡（演出者的圓形照片不加） */
+:root[data-theme="miku"] .hero:not(.artist) .cover { border: 12px solid transparent; border-image: var(--mk-bezel) 12 / 12px / 0 round; background: var(--mk-bezel-bg); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .hero .cover { box-shadow: 0 24px 44px -18px rgba(15,70,74,.5); }
+:root[data-theme="miku"]:where([data-mode="night"]) .hero .cover { box-shadow: 0 24px 50px -16px rgba(0,0,0,.7); }
+:root[data-theme="miku"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(23,45,48,.25), rgba(23,45,48,.62) 60%, rgba(23,45,48,0)); }
+
+
+/* ───────────── 14 · 播放列：深色機身＋蔥綠滾邊，上緣一排刻度；播放鍵是方形切角鍵 ───────────── */
+:root[data-theme="miku"] #bar {
+  backdrop-filter: none;
+  background:
+    repeating-linear-gradient(90deg, rgba(150,235,226,.20) 0 1px, transparent 1px 10px) left top / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, rgba(150,235,226,.30) 0 1px, transparent 1px 50px) left top / 100% 7px no-repeat,
+    linear-gradient(180deg, #273134, #1d2528);
+  border-top: 3px solid #39c5bb; box-shadow: 0 -8px 24px rgba(15,70,74,.12);
+}
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar { --text-2: #b6c7c9; --text-3: #9fb2b4; --text-sub: #c3d2d4; }
+:root[data-theme="miku"]:where([data-mode="night"]) #bar {
+  background:
+    repeating-linear-gradient(90deg, rgba(150,235,226,.20) 0 1px, transparent 1px 10px) left top / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, rgba(150,235,226,.30) 0 1px, transparent 1px 50px) left top / 100% 7px no-repeat,
+    linear-gradient(180deg, #11262a, #0e2023);
+  box-shadow: none;
+}
+:root[data-theme="miku"] .playbtn {
+  border-radius: 0; background: #39c5bb; color: #062f2d;
+  box-shadow: inset 0 0 0 1px rgba(6,47,45,.45);
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+}
+:root[data-theme="miku"] #bar .playbtn, :root[data-theme="miku"] #bar .playbtn:hover, :root[data-theme="miku"] .np-ctrl .playbtn { box-shadow: inset 0 0 0 1px rgba(6,47,45,.45); }
+:root[data-theme="miku"] .playbtn:hover { background: #55d3ca; }
+:root[data-theme="miku"] .np-ctrl .playbtn { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+:root[data-theme="miku"] .np-mini .art { border-radius: 2px; }
+:root[data-theme="miku"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 2px; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(190,240,236,.16); }
+/* 進度條：方頭；播放頭是一支粉紅的細長指針，像錄音軟體的播放頭 */
+:root[data-theme="miku"] .slider .track, :root[data-theme="miku"] .slider .fill { border-radius: 0; }
+:root[data-theme="miku"] .slider .fill, :root[data-theme="miku"] .slider:hover .fill { background: #39c5bb; box-shadow: none; }
+:root[data-theme="miku"] .slider .knob { border-radius: 1px; }
+:root[data-theme="miku"] .seek .slider .knob, :root[data-theme="miku"] .np-seek .slider .knob {
+  width: 4px; height: 14px; margin: -7px 0 0 -2px; border-radius: 1px; opacity: 1; transform: none;
+  background: var(--pink); box-shadow: 0 0 0 1px rgba(255,255,255,.55);
+}
+:root[data-theme="miku"] #bar .slider .track { background: rgba(255,255,255,.16); }
+
+
+/* ───────────── 15 · 正在播放 ─────────────
+   封面裝在一圈帶刻度的邊框裡（像儀表的錶框，刻度只在框上，不會碰到文字、進度條或按鈕）；
+   左上的收起鈕和右上的「歌詞不對？」「翻譯」「歌詞」都是實心底＋深色框，淡色封面上也看得清楚。 */
+:root[data-theme="miku"] #np .np-cover {
+  border-radius: 0; border: 12px solid transparent; box-sizing: border-box;
+  border-image: var(--mk-bezel) 12 / 12px / 0 round;
+  background: var(--mk-bezel-bg);
+}
+/* 窄或矮的視窗裡封面縮成小方塊（responsive.css）：錶框改成細細一圈，免得吃掉封面 */
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {
+  :root[data-theme="miku"] #np:not(.nolyrics) .np-cover { border: 2px solid var(--mk-bezel-bg); border-image: none; outline: 1px solid rgba(var(--np-ink), .35); }
+}
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #np .np-cover { box-shadow: 0 30px 60px -24px rgba(15,70,74,.5); }
+:root[data-theme="miku"]:where([data-mode="night"]) #np .np-cover { box-shadow: 0 30px 70px -24px rgba(0,0,0,.65); }
+:root[data-theme="miku"] .np-title { font-weight: 700; }
+:root[data-theme="miku"] .np-artist { color: rgba(var(--np-ink), .8); }
+:root[data-theme="miku"] .np-badges .badge { border-radius: 2px; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-badges .badge { background: #ffffff; color: #2c474a; box-shadow: inset 0 0 0 1px rgba(15,70,74,.25); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-badges .badge.hi { color: #075f5b; }
+:root[data-theme="miku"]:where([data-mode="night"]) .np-badges .badge { background: rgba(12,30,32,.75); color: #d5ebea; box-shadow: inset 0 0 0 1px rgba(190,240,236,.25); }
+:root[data-theme="miku"] .np-seek .times { color: rgba(var(--np-ink), .78); }
+:root[data-theme="miku"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .85); }
+:root[data-theme="miku"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-seek .slider .track { background: rgba(15,42,45,.18); }
+:root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .track { background: rgba(240,252,251,.2); }
+
+/* 四個角落按鈕：實心底、深色框，右上切角 */
+:root[data-theme="miku"] .np-top .icon-btn, :root[data-theme="miku"] .np-top .pill {
+  --mk-cut: 7px; border-radius: 0; border: 1.5px solid var(--mk-bc); box-shadow: none;
+}
+:root[data-theme="miku"]:where(:not([data-mode="night"])) :is(.np-top .icon-btn, .np-top .pill) { --mk-bc: #2c4f52; background: var(--mk-diag), #ffffff; color: #0f2a2d; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) :is(.np-top .icon-btn, .np-top .pill):hover { background: var(--mk-diag), #e2f5f3; }
+:root[data-theme="miku"]:where([data-mode="night"]) :is(.np-top .icon-btn, .np-top .pill) { --mk-bc: #8fb9b8; background: var(--mk-diag), #13292c; color: #f5fefd; }
+:root[data-theme="miku"]:where([data-mode="night"]) :is(.np-top .icon-btn, .np-top .pill):hover { background: var(--mk-diag), #22403f; }
+:root[data-theme="miku"] .np-top .pill.on { --mk-bc: #0b4a47; background: var(--mk-diag), #39c5bb; color: #062f2d; font-weight: 600; box-shadow: none; }
+:root[data-theme="miku"] .np-top .pill.on:hover { background: var(--mk-diag), #55d3ca; }
+:root[data-theme="miku"] .np-top .src { padding: 3px 8px; border-radius: 2px; }
+:root[data-theme="miku"] .np-top .src:empty { padding: 0; background: none !important; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-top .src { color: #2c474a; background: rgba(255,255,255,.82); }
+:root[data-theme="miku"]:where([data-mode="night"]) .np-top .src { color: #c6dfde; background: rgba(12,30,32,.72); }
+
+/* 歌詞：還沒唱到、已經唱過的行不要淡到看不清楚（原本 0.6），翻譯行也深一點 */
+:root[data-theme="miku"] .ly-line { border-radius: 2px; }
+:root[data-theme="miku"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="miku"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .ly-line .w { background-image: linear-gradient(90deg, #087570 0, #087570 var(--p, 0%), rgba(15,42,45,.42) var(--p, 0%)); }
+:root[data-theme="miku"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+:root[data-theme="miku"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #ffffff 0, #ffffff var(--p, 0%), rgba(240,252,251,.5) var(--p, 0%)); }
+
+
+/* ───────────── 16 · 夜：拿掉舊版的發光（那是霓虹賽博的特徵） ───────────── */
+:root[data-theme="miku"]:where([data-mode="night"]) :is(.page-head h1, .row.playing .tt div:first-child) { text-shadow: none; }
+:root[data-theme="miku"]:where([data-mode="night"]) .search:focus-within { box-shadow: inset 0 0 0 1px var(--teal); }
+:root[data-theme="miku"]:where([data-mode="night"]) .card .play { box-shadow: 0 0 0 1px rgba(6,47,45,.35), 0 6px 14px rgba(0,0,0,.4); }
+:root[data-theme="miku"]:where([data-mode="night"]) .switch.on { box-shadow: inset 0 0 0 1.5px #7fe3db; }
+:root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob, :root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .knob { box-shadow: 0 0 0 1px rgba(12,30,32,.7); }
+:root[data-theme="miku"]:where([data-mode="night"]) .slider .fill { box-shadow: none; }
+:root[data-theme="miku"]:where([data-mode="night"]) .pill.on { box-shadow: none; }
+:root[data-theme="miku"]:where([data-mode="night"]) .msel-btn::before, :root[data-theme="miku"]:where([data-mode="night"]) .msel-opt.on::before { box-shadow: none; }
+:root[data-theme="miku"]:where([data-mode="night"]) .toast { border-left: 3px solid #39c5bb; }

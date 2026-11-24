@@ -646,3 +646,17 @@ Object.assign(I18N_DICT.ja, {
   "白色毛玻璃浮在粉彩晨光上，玻璃邊緣一道反光；深藍的字清楚好讀，背景隨專輯封面變色。": "パステルの朝の光に浮かぶ白いすりガラス、縁にひと筋の光。濃紺の文字は読みやすく、背景はジャケットに合わせて色が変わります。",
   "懸浮的毛玻璃面板，邊緣一道亮光、層層分明；背景隨專輯封面流動變色。": "浮かぶすりガラスのパネル、縁にひと筋の光、重なりがはっきり。背景はジャケットに合わせて流れるように色が変わります。",
 });
+
+/* New picker descriptions: 未來. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "數位儀表感：淡水色底、方形切角面板與刻度尺，選中的項目亮起蔥綠刻度燈、櫻桃粉點綴。": "数字仪表感：淡水色底、方形切角面板与刻度尺，选中的项目亮起葱绿刻度灯、樱桃粉点缀。",
+  "儀表的夜版：帶青色的墨綠灰底、明亮的字，蔥綠刻度燈與櫻桃粉點綴，不發光。": "仪表的夜版：带青色的墨绿灰底、明亮的字，葱绿刻度灯与樱桃粉点缀，不发光。",
+});
+Object.assign(I18N_DICT.en, {
+  "數位儀表感：淡水色底、方形切角面板與刻度尺，選中的項目亮起蔥綠刻度燈、櫻桃粉點綴。": "A digital instrument panel: pale aqua, square cut-corner panels and scale ticks; selected items light up green level meters with cherry-pink accents.",
+  "儀表的夜版：帶青色的墨綠灰底、明亮的字，蔥綠刻度燈與櫻桃粉點綴，不發光。": "The instrument panel at night: teal-tinted dark green-grey, bright text, green level meters and cherry-pink accents, without glow.",
+});
+Object.assign(I18N_DICT.ja, {
+  "數位儀表感：淡水色底、方形切角面板與刻度尺，選中的項目亮起蔥綠刻度燈、櫻桃粉點綴。": "デジタル計器のような画面：淡い水色、角を切った四角いパネルと目盛り。選択中の項目はネギ色のレベルメーターが点灯し、チェリーピンクがアクセント。",
+  "儀表的夜版：帶青色的墨綠灰底、明亮的字，蔥綠刻度燈與櫻桃粉點綴，不發光。": "計器の夜版：青みがかった深緑グレーの地、明るい文字、ネギ色のレベルメーターとチェリーピンク。光らせません。",
+});

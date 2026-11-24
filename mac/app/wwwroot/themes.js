@@ -7,7 +7,7 @@
 const Theme = {
   list: [
     { id: 'miku',     name: T('未來'),     en: 'MIKU',     native: 'day',
-      desc: { day: T('明亮水色、蔥綠為主、櫻桃粉點綴，深色播放列配蔥綠滾邊。'), night: T('帶綠的墨色夜空與星點，蔥綠像螢光棒一樣柔和發光。') } },
+      desc: { day: T('數位儀表感：淡水色底、方形切角面板與刻度尺，選中的項目亮起蔥綠刻度燈、櫻桃粉點綴。'), night: T('儀表的夜版：帶青色的墨綠灰底、明亮的字，蔥綠刻度燈與櫻桃粉點綴，不發光。') } },
     { id: 'wood',     name: T('木質調'),   en: 'WALNUT',   native: 'night',
       desc: { day: T('淺色橡木側板、亞麻白的房間，古銅色點綴，白天的老音響。'), night: T('胡桃木紋、黃銅旋鈕與赤陶色，像老音響一樣溫暖。') } },
     { id: 'glass',    name: T('玻璃質感'), en: 'GLASS',    native: 'night',
