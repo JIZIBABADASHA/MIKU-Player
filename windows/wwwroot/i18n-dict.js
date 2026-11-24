@@ -716,3 +716,17 @@ Object.assign(I18N_DICT.ja, {
   "唱片行：鼠尾草綠的牆、松木綠側欄、焦橙與芥末黃；專輯是唱片封套，黑膠從旁邊露出來。": "レコード店：セージグリーンの壁、松の緑のサイドバー、バーントオレンジとマスタード。アルバムはジャケットで、横からレコードがのぞきます。",
   "關了燈的聆聽室：柔和的深松綠、奶油色的字、焦橙圓標，播放中的唱片會轉。": "明かりを落としたリスニングルーム：やわらかな深い松の緑、クリーム色の文字、バーントオレンジのレーベル。再生中のレコードは回ります。",
 });
+
+/* New picker descriptions: 和紙. */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "米白和紙、細墨框與明朝體，選中的地方蓋上朱印，藍染為主色。": "米白和纸、细墨框与明朝体，选中的地方盖上朱印，蓝染为主色。",
+  "藍染的夜紙、月白色的字與明朝體，淡墨框，選中處蓋朱印，月亮掛在青海波上。": "蓝染的夜纸、月白色的字与明朝体，淡墨框，选中处盖朱印，月亮挂在青海波上。",
+});
+Object.assign(I18N_DICT.en, {
+  "米白和紙、細墨框與明朝體，選中的地方蓋上朱印，藍染為主色。": "Off-white washi, fine ink frames and Mincho type; a vermilion seal marks the selection, with indigo as the main colour.",
+  "藍染的夜紙、月白色的字與明朝體，淡墨框，選中處蓋朱印，月亮掛在青海波上。": "Indigo-dyed night paper, moon-white Mincho type and soft ink frames; a vermilion seal on the selection, and a moon over seigaiha waves.",
+});
+Object.assign(I18N_DICT.ja, {
+  "米白和紙、細墨框與明朝體，選中的地方蓋上朱印，藍染為主色。": "生成りの和紙、細い墨の枠と明朝体。選択中の項目には朱印、藍染が基調。",
+  "藍染的夜紙、月白色的字與明朝體，淡墨框，選中處蓋朱印，月亮掛在青海波上。": "藍染の夜の紙、月白の明朝体の文字、淡い墨の枠。選択中の項目には朱印、青海波の上に月。",
+});

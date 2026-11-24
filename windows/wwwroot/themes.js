@@ -17,7 +17,7 @@ const Theme = {
     { id: 'neon',     name: T('霓虹賽博'), en: 'NEON',     native: 'night',
       desc: { day: T('白天的實驗室：淡紫白底配深靛色側欄，斜切角面板與青、洋紅細線，等寬字標題。'), night: T('深靛紫的夜、斜切角的 HUD 面板與青色光暈，電光青與洋紅點亮選中的項目，等寬字標題。') } },
     { id: 'washi',    name: T('和紙'),     en: 'WASHI',    native: 'day',
-      desc: { day: T('米白紙紋、明朝體，藍染為主色、朱印點綴。'), night: T('藍染的夜色、月白色的字與明朝體，朱印點綴。') } },
+      desc: { day: T('米白和紙、細墨框與明朝體，選中的地方蓋上朱印，藍染為主色。'), night: T('藍染的夜紙、月白色的字與明朝體，淡墨框，選中處蓋朱印，月亮掛在青海波上。') } },
     { id: 'vinyl',    name: T('黑膠'),     en: 'VINYL',    native: 'day',
       desc: { day: T('唱片行：鼠尾草綠的牆、松木綠側欄、焦橙與芥末黃；專輯是唱片封套，黑膠從旁邊露出來。'), night: T('關了燈的聆聽室：柔和的深松綠、奶油色的字、焦橙圓標，播放中的唱片會轉。') } },
     { id: 'sakura',   name: T('櫻花'),     en: 'SAKURA',   native: 'day',
