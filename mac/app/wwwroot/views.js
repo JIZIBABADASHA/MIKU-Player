@@ -493,7 +493,7 @@ function attachRailNav(root) {
       if (e.button !== 0 || e.pointerType !== 'mouse' || e.target.closest('button')) return;
       if (r.scrollWidth - r.clientWidth <= 4) return;
       cancelAnimationFrame(glide);
-      drag = { x: e.clientX, left: r.scrollLeft, on: false, lastX: e.clientX, lastT: performance.now(), v: 0 };
+      drag = { x: e.clientX, y: e.clientY, left: r.scrollLeft, on: false, lastX: e.clientX, lastT: performance.now(), v: 0 };
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', onUp);
@@ -502,7 +502,9 @@ function attachRailNav(root) {
       if (!drag) return;
       const dx = e.clientX - drag.x;
       if (!drag.on) {
-        if (Math.abs(dx) < 6) return;
+        const dy = e.clientY - drag.y;
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if (Math.abs(dy) > Math.abs(dx) || document.documentElement.classList.contains('drag-scrolling')) { onUp(); return; }   // up or down: the page's drag (dragscroll.js)
         drag.on = true; target = null;
         r.classList.add('dragging');
         r.style.scrollSnapType = 'none'; r.style.scrollBehavior = 'auto';

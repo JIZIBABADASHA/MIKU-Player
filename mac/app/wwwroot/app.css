@@ -2293,3 +2293,6 @@ mark.hit {
 /* a rail being dragged with the mouse (views.js attachRailNav): nothing under the pointer reacts until it is let go */
 .rail.dragging { cursor: grabbing; user-select: none; }
 .rail.dragging .card { pointer-events: none; }
+/* a page or list being dragged with the mouse (dragscroll.js) */
+:root.drag-scrolling, :root.drag-scrolling * { cursor: grabbing !important; }
+:root.drag-scrolling #content *, :root.drag-scrolling .drawer * { pointer-events: none; }
