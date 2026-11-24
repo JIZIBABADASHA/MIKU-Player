@@ -1659,3 +1659,121 @@
 
 /* 白天：側欄小標淡了一點點，加深 */
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-label { color: #6f878a; }
+
+/* ═════════════════════════════ 正在播放：每個主題自己的樣子 ═════════════════════════════
+   背景原本都是「封面模糊 + 提高飽和度 + 一層遮罩」，換主題只差按鈕的顏色。
+   --np-filter 是封面那層的濾鏡（app.css .np-bg .layer），--np-veil 是蓋在上面的那一層。 */
+
+/* 木質調：像泛黃的老照片，暖棕色、四周暗下來 */
+[data-theme="wood"] {
+  --np-filter: blur(70px) saturate(.7) sepia(.5) brightness(var(--np-dim));
+  --np-veil: radial-gradient(120% 95% at 30% 44%, rgba(90,52,22,.14), rgba(20,12,6,.82));
+}
+[data-theme="wood"]:where([data-mode="day"]) {
+  --np-filter: blur(70px) saturate(.7) sepia(.45) brightness(var(--np-dim));
+  --np-veil: radial-gradient(120% 95% at 30% 44%, rgba(246,236,218,.38), rgba(236,222,198,.86));
+}
+
+/* 終端機・夜：封面變成單色的磷光綠，加上掃描線和螢幕四角的暗角 */
+[data-theme="terminal"] {
+  --np-filter: blur(36px) grayscale(1) sepia(1) hue-rotate(72deg) saturate(3.4) brightness(.4) contrast(1.15);
+  --np-veil: repeating-linear-gradient(0deg, rgba(0,0,0,.34) 0 1px, transparent 1px 3px), radial-gradient(115% 95% at 50% 46%, rgba(3,10,5,.05), rgba(1,4,2,.88));
+}
+/* 終端機・日：去色的封面印在綠條紋報表紙上，兩邊有送紙孔 */
+[data-theme="terminal"]:where([data-mode="day"]) {
+  --np-filter: blur(46px) grayscale(1) contrast(.55) brightness(1.45);
+  --np-veil: radial-gradient(circle, rgba(24,70,40,.16) 0 5px, transparent 5.6px) left 10px top 9px / 22px 34px repeat-y,
+             radial-gradient(circle, rgba(24,70,40,.16) 0 5px, transparent 5.6px) right 10px top 9px / 22px 34px repeat-y,
+             repeating-linear-gradient(180deg, rgba(92,170,110,.15) 0 34px, transparent 34px 68px),
+             linear-gradient(rgba(251,251,246,.74), rgba(251,251,246,.86));
+}
+:root[data-theme="terminal"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="terminal"] .np-bg .layer.b { animation: none; }
+
+/* 和紙：顏色像水彩一樣只暈在封面後面，四周留白，紙紋看得見 */
+:root[data-theme="washi"] .np-bg .layer { -webkit-mask-image: radial-gradient(52% 58% at 31% 47%, #000 22%, transparent 74%); mask-image: radial-gradient(52% 58% at 31% 47%, #000 22%, transparent 74%); }
+[data-theme="washi"] {
+  --np-filter: blur(54px) saturate(.85) brightness(var(--np-dim));
+  --np-veil: var(--paper), var(--paper), linear-gradient(90deg, rgba(242,235,223,.38), rgba(242,235,223,.62));
+}
+[data-theme="washi"]:where([data-mode="night"]) {
+  --np-filter: blur(54px) saturate(.8) brightness(var(--np-dim));
+  --np-veil: var(--paper), var(--paper), linear-gradient(90deg, rgba(21,26,39,.4), rgba(21,26,39,.66));
+}
+
+/* 普普：顏色更飽和、更硬，蓋上大網點，封面後面放射出黃色的漫畫集中線 */
+[data-theme="pop"] {
+  --np-filter: blur(34px) saturate(1.9) contrast(1.3) brightness(var(--np-dim));
+  --np-veil: radial-gradient(rgba(17,17,17,.16) 2.3px, transparent 2.9px) 0 0 / 14px 14px,
+             linear-gradient(90deg, rgba(255,253,246,.6), rgba(255,253,246,.84));
+  --pop-rays: rgba(255,204,31,.5);
+}
+[data-theme="pop"]:where([data-mode="night"]) {
+  --np-filter: blur(34px) saturate(1.8) contrast(1.3) brightness(var(--np-dim));
+  --np-veil: radial-gradient(rgba(255,241,200,.11) 2.3px, transparent 2.9px) 0 0 / 14px 14px,
+             radial-gradient(120% 90% at 30% 40%, rgba(22,21,27,.3), rgba(22,21,27,.8));
+  --pop-rays: rgba(255,210,63,.2);
+}
+
+/* 漫畫的集中線只在封面周圍，往外淡掉，不會壓到右邊的歌詞 */
+:root[data-theme="pop"] .np-bg::before {
+  content: ""; position: absolute; z-index: 1; inset: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg at 25% 45%, var(--pop-rays) 0 5deg, transparent 5deg 13deg);
+  -webkit-mask-image: radial-gradient(circle at 25% 45%, #000 18%, transparent 48%); mask-image: radial-gradient(circle at 25% 45%, #000 18%, transparent 48%);
+}
+
+/* 極簡平面：不用模糊的封面，只有純色的底，上緣一條粗的鈷藍 */
+:root[data-theme="flat"] .np-bg .layer { display: none; }
+:root[data-theme="flat"] .np-bg::after { background: linear-gradient(var(--teal), var(--teal)) 0 0 / 100% 8px no-repeat; }
+
+/* 霓虹賽博：地平線上的發光網格（往遠處縮小），封面的光還在後面 */
+:root[data-theme="neon"] .np-bg::before {
+  content: ""; position: absolute; z-index: 1; left: -60%; right: -60%; bottom: 0; height: 64%; pointer-events: none;
+  background: linear-gradient(rgba(255,43,214,.8) 2px, transparent 2px) 0 100% / 70px 70px, linear-gradient(90deg, rgba(0,240,255,.7) 2px, transparent 2px) 50% 0 / 70px 70px;
+  transform: perspective(520px) rotateX(58deg); transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(0deg, #000 25%, transparent 96%); mask-image: linear-gradient(0deg, #000 25%, transparent 96%);
+  opacity: .42;
+}
+:root[data-theme="neon"]:where([data-mode="day"]) .np-bg::before {
+  background: linear-gradient(rgba(240,31,196,.7) 2px, transparent 2px) 0 100% / 70px 70px, linear-gradient(90deg, rgba(0,160,185,.65) 2px, transparent 2px) 50% 0 / 70px 70px;
+  opacity: .32;
+}
+
+/* 櫻花：正在播放的右上角也有花瓣飄下來 */
+[data-theme="sakura"] { --np-veil: var(--sk-fall) right -40px top -10px / 760px 276px no-repeat, linear-gradient(90deg, rgba(251,243,244,.72), rgba(251,243,244,.88)); }
+[data-theme="sakura"]:where([data-mode="night"]) { --np-veil: var(--sk-fall) right -40px top -10px / 760px 276px no-repeat, radial-gradient(120% 90% at 30% 40%, rgba(23,19,37,.2), rgba(23,19,37,.74)); }
+
+
+/* ═════════════════════════════ 霓虹賽博・日：深色的側欄 ═════════════════════════════
+   白天的內容區是淡紫白，側欄留著夜版的深色和發光的選單，像實驗室牆上的霓虹招牌。 */
+[data-theme="neon"]:where([data-mode="day"]) { --sidebar-bg: linear-gradient(180deg, rgba(0,240,255,.08), transparent 30%), #12102a; }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar {
+  color: #ecebff; --text: #ecebff; --text-hi: #ffffff; --text-sub: #bdb7ea; --text-2: #b1abde; --text-3: #8f89c2;
+  --ink: 200, 190, 255; --line: rgba(160,140,255,.14); --line-2: rgba(160,140,255,.26);
+  --surface: #1a1736; --surface-2: #221e45; --surface-3: #2c2756;
+  --teal: #00f0ff; --teal-rgb: 0, 240, 255; --teal-2: #7ff8ff; --pink: #ff2bd6; --on-accent: #00161a;
+  --brand-ink: #ecebff; --brand-track: #2c2756;
+  border-right: 1px solid rgba(0,240,255,.45); box-shadow: 1px 0 16px rgba(0,240,255,.25);
+}
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-label { color: #ff7ee6; }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-pill { background: linear-gradient(90deg, rgba(0,240,255,.18), rgba(0,240,255,.02)); border: 1px solid rgba(0,240,255,.3); }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-pill::before { background: #ff2bd6; box-shadow: 0 0 10px #ff2bd6, 0 0 2px #fff; }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav a.on { color: #ffffff; text-shadow: 0 0 10px rgba(0,240,255,.8); }
+:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav a.on svg.i { color: #00f0ff; filter: drop-shadow(0 0 4px #00f0ff); }
+.tp-screen[data-theme="neon"][data-mode="day"] .tp-side { --ink: 200, 190, 255; --brand-ink: #ecebff; --teal: #00f0ff; border-right-color: rgba(0,240,255,.45); }
+
+
+/* ═════════════════════════════ 極簡平面：雜誌排版 ═════════════════════════════
+   大而粗的標題、標題下一條和內容對齊的粗線；鈷藍只用在一個大色塊：選中的選單整列。 */
+:root[data-theme="flat"] .page-head h1 { font-size: 44px; font-weight: 800; letter-spacing: -.035em; line-height: 1.05; }
+:root[data-theme="flat"] .page-head { background: linear-gradient(var(--text-hi), var(--text-hi)) 36px 100% / calc(100% - 72px) 2px no-repeat; padding-bottom: 18px; margin-bottom: 6px; }
+:root[data-theme="flat"] .hero h1 { font-weight: 800; letter-spacing: -.035em; }
+:root[data-theme="flat"] .rail-head h2 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+:root[data-theme="flat"] .nav-pill, :root[data-theme="flat"]:where([data-mode="night"]) .nav-pill { background: var(--teal); }
+:root[data-theme="flat"] .nav-pill::before { display: none; }
+:root[data-theme="flat"] .nav a.on, :root[data-theme="flat"] .nav a.on svg.i, :root[data-theme="flat"] .nav a.on .count,
+:root[data-theme="flat"]:where([data-mode="night"]) .nav a.on { color: #ffffff; }
+.tp-screen[data-theme="flat"] .tp-side i.on { height: 6px; }
+
+/* 外觀頁的小預覽：終端機・日的送紙孔太大，壓到側欄的線，預覽裡只畫一條細邊 */
+.tp-screen[data-theme="terminal"][data-mode="day"] .tp-side { background: linear-gradient(90deg, #fbfbf6 calc(100% - 5px), rgba(24,70,40,.14) calc(100% - 5px)); }

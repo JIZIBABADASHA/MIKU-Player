@@ -1551,7 +1551,7 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 .np-bg .layer {
   position: absolute; width: 140%; height: 140%; left: -20%; top: -20%;
   background-size: cover; background-position: center;
-  filter: blur(70px) saturate(1.6) brightness(var(--np-dim));
+  filter: var(--np-filter, blur(70px) saturate(1.6) brightness(var(--np-dim)));   /* a theme can give it its own look (themes.css) */
   opacity: 0; transition: opacity 1.2s var(--ease);
   will-change: transform;
 }
