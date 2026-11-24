@@ -24,28 +24,36 @@ const Fling = {
     const [t0, p0] = samples[0], [t1, p1] = samples[samples.length - 1];
     return t1 - t0 < 8 ? 0 : (p1 - p0) / (t1 - t0);
   },
-  /** Glides el's scrollTop (axis 'y') or scrollLeft ('x') at v px/ms, slowing by `friction` each millisecond (0.998: a
-   *  phone's normal deceleration, about half the speed gone every 350 ms). done() runs when it stops by itself or is
-   *  stopped. Returns stop(). */
+  /** Glides el's scrollTop (axis 'y') or scrollLeft ('x') at v px/ms and slows it down: fast, by `friction` each
+   *  millisecond (0.998: a phone's normal deceleration, about half the speed gone every 350 ms); below SLOW px/ms the drag
+   *  grows (up to 5×, plus a constant brake) so a slow flick stops after a short way instead of drifting on, and the end
+   *  of a fast one settles instead of creeping. done() runs when it stops by itself or is stopped. Returns stop(). */
+  SLOW: 1.2, SLOW_DRAG: 4, BRAKE: .0015,
   glide(el, axis, v, done, friction = .998) {
     const key = axis === 'x' ? 'scrollLeft' : 'scrollTop';
     const max = () => axis === 'x' ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight;
-    const k = -Math.log(friction);
+    const k = -Math.log(friction), { SLOW, SLOW_DRAG, BRAKE } = this;
     let pos = el[key], last = performance.now(), raf = 0, over = false;
     const stop = () => { if (over) return; over = true; cancelAnimationFrame(raf); done && done(); };
     v = Math.max(-8, Math.min(8, v));
     if (Math.abs(v) < .15) { stop(); return stop; }
+    const dir = Math.sign(v);
+    let speed = Math.abs(v);
     const run = t => {
       if (!el.isConnected) { stop(); return; }
-      const dt = Math.min(40, Math.max(0, t - last)); last = t;
-      // the exact distance covered while slowing down over dt (a long frame does not overshoot)
-      const f = Math.exp(-k * dt);
-      pos += v * (1 - f) / k;
-      v *= f;
+      let dt = Math.min(40, Math.max(0, t - last)); last = t;
+      // in steps of 2 ms (the drag changes with the speed): the slow part's extra drag fades out from SLOW up
+      while (dt > 0 && speed > 0) {
+        const h = Math.min(2, dt); dt -= h;
+        const w = Math.max(0, 1 - speed / SLOW);
+        const next = Math.max(0, speed - (k * (1 + SLOW_DRAG * w * w) * speed + BRAKE * w) * h);
+        pos += dir * (speed + next) / 2 * h;
+        speed = next;
+      }
       const m = max();
-      if ((v < 0 && pos <= 0) || (v > 0 && pos >= m)) { el[key] = Math.max(0, Math.min(m, pos)); stop(); return; }   // reached the end
+      if ((dir < 0 && pos <= 0) || (dir > 0 && pos >= m)) { el[key] = Math.max(0, Math.min(m, pos)); stop(); return; }   // reached the end
       el[key] = pos;   // pos keeps the fractions the element may round away
-      if (Math.abs(v) < .02) { stop(); return; }
+      if (speed < .02) { stop(); return; }
       raf = requestAnimationFrame(run);
     };
     raf = requestAnimationFrame(run);
