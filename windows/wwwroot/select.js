@@ -181,6 +181,38 @@
     btn.onclick = () => setPeek(!root.classList.contains('bar-peek'));
     // core.js bindBar: a click on an empty part of the player bar while it floats over Now Playing sinks it again
     window.BarPeek = { get on() { return root.classList.contains('bar-peek'); }, hide: () => setPeek(false) };
+    // Windows: the mouse wheel over Now Playing (not over the lyrics) raises the player bar on a turn up and sinks it
+    // again on a turn down. Unlike the Mac swipe, turning further down never closes the page. One action per spin: a
+    // touchpad's stream, or a fast run of notches, acts once until the wheel rests (or turns the other way).
+    // macOS has its own swipe handling in mac-navigation.js.
+    if (!window.mikuHost) {
+      const wh = { last: -Infinity, dir: 0, sum: 0, done: false };
+      const scrollsY = target => {
+        for (let el = target; el instanceof Element && el !== np; el = el.parentElement) {
+          if (el.scrollHeight > el.clientHeight + 2 && /^(auto|scroll|overlay)$/.test(getComputedStyle(el).overflowY)) return true;
+        }
+        return false;
+      };
+      addEventListener('wheel', e => {
+        if (!np.classList.contains('on') || e.defaultPrevented || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return;
+        if (!e.deltaY || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        const t = e.target;
+        if (!(t instanceof Element) || t.closest('.np-right, .ly-pick, #b-vol, input, textarea, select, .menu, .ctx') || scrollsY(t)) return;
+        if (!np.contains(t) && t !== btn && !t.closest('#bar')) return;
+        e.preventDefault();
+        const dir = Math.sign(e.deltaY);
+        if (e.timeStamp - wh.last > 250 || dir !== wh.dir) { wh.sum = 0; wh.done = false; }
+        wh.last = e.timeStamp; wh.dir = dir;
+        if (wh.done) return;
+        // a mouse notch acts at once; a touchpad needs a little travel first
+        wh.sum += e.deltaMode ? Math.abs(e.deltaY) * 40 : Math.abs(e.deltaY);
+        if (wh.sum < 30) return;
+        wh.done = true;
+        const on = root.classList.contains('bar-peek');
+        if (dir < 0 && !on) setPeek(true);
+        else if (dir > 0 && on) setPeek(false);
+      }, { passive: false });
+    }
     // The handle sits centred 14–40 px above the bottom. When a short window pushes the controls down to it (bar
     // hidden), it moves beside the control row instead of covering the play button.
     const place = () => {
