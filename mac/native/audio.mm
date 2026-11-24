@@ -390,6 +390,10 @@ struct Deck {
         if (ffmpeg.empty() || path.empty()) throw std::runtime_error("缺少 FFmpeg 或檔案路徑");
         std::vector<std::string> args = {ffmpeg, "-v", "error", "-nostdin"};
         if (position > 0) { args.push_back("-ss"); args.push_back(std::to_string(position)); }
+        // A song streamed from another computer (遠端音樂庫): a dropped or stalled connection is opened again at the same
+        // place instead of FFmpeg taking it for the end of the song (which moved on to the next one after a few seconds).
+        if (path.rfind("http://", 0) == 0 || path.rfind("https://", 0) == 0)
+            args.insert(args.end(), {"-reconnect", "1", "-reconnect_on_network_error", "1", "-reconnect_delay_max", "4", "-rw_timeout", "20000000"});
         args.insert(args.end(), {"-i", path, "-map", "0:a:0", "-vn", "-sn", "-dn"});
         std::string out = std::to_string(int(std::lround(rate)));
         if (flag(m[@"dsd"])) args.insert(args.end(), {"-af", "aresample=" + out + ":filter_size=64:cutoff=0.97,volume=-1dB"});

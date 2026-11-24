@@ -174,6 +174,10 @@ public sealed class FfmpegSource : PcmSource
         var args = new List<string> { "-nostdin", "-hide_banner", "-loglevel", "error" };
         if (seek > 0.01) { args.Add("-ss"); args.Add(seek.ToString("0.000", CultureInfo.InvariantCulture)); }
         // over 127.0.0.1 HTTP, not by path: FFmpeg's open would keep the file from being deleted while it plays
+        // a song streamed from the other computer (遠端音樂庫): a dropped or stalled connection is opened again at the same
+        // place instead of FFmpeg taking it for the end of the song (which moved on to the next one after a few seconds)
+        if (track.Path != null && (track.Path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || track.Path.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+            args.AddRange(new[] { "-reconnect", "1", "-reconnect_on_network_error", "1", "-reconnect_delay_max", "4", "-rw_timeout", "20000000" });
         args.AddRange(new[] { "-i", FileServer.Url(track.Path), "-map", "0:a:0", "-vn", "-sn", "-dn" });
         // 1 dB of headroom when resampling: the band-limited reconstruction can overshoot 0 dBFS (inter-sample peaks)
         if (resample) { args.Add("-af"); args.Add($"volume=-1dB:precision=double,aresample={outRate}:resampler=soxr:precision=28:cheby=1"); }
