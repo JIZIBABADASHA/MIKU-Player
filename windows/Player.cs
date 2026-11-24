@@ -49,6 +49,8 @@ public sealed class Player
     Track _playing;                 // the track playing now, reported (Played) once it is left
     JsonElement? _playingSource;
     int _asking;                    // a module is being asked what comes next
+    int _advanceWhenAdded;          // the last track could not be opened: play what the module adds next (1)
+    int _emptyAsks;                 // the module had nothing to add, in a row (asked again a little later, a few times)
 
     public Player(IAudioEngine engine, MusicLibrary lib, Settings s)
     {
@@ -195,7 +197,17 @@ public sealed class Player
             Track next = null;
             lock (_lock) if (_index + 1 < _queue.Count) { _index++; next = Current; }
             if (next != null) { Persist(); QueueChanged?.Invoke(); await Load(next, 0, true); }
+            else if (Continuation != null)
+            {
+                // the queue's last track (e.g. a Smart Playlist pick the DAC can't play): the module is asked for
+                // the next one and it plays, instead of the queue stopping there for good
+                Interlocked.Exchange(ref _advanceWhenAdded, 1);
+                EnsureAutoNext(false);
+            }
         }
+        // not opened for another reason (the DAC refused this track's format …): playback stays on it, but a module going
+        // on with the queue is still asked, so the next track is there to skip to instead of the queue ending here
+        else if (!Engine.IsLoaded && Continuation != null) EnsureAutoNext(false);
         NowChanged?.Invoke();
     }
 
@@ -214,6 +226,8 @@ public sealed class Player
             _s.QueueSource = source;
             _s.Shuffle = shuffle;
             _continuedFrom = -1;
+            _emptyAsks = 0;
+            _advanceWhenAdded = 0;
             if (shuffle)
             {
                 _unshuffled = list.ToList();
@@ -506,14 +520,42 @@ public sealed class Player
                     added = true;
                 }
             }
-            if (again) { if (Engine.IsLoaded) EnsureAutoNext(false); }
+            if (again) { if (Engine.IsLoaded || Volatile.Read(ref _advanceWhenAdded) == 1) EnsureAutoNext(false); }
             else if (added)
             {
+                Interlocked.Exchange(ref _emptyAsks, 0);
                 Engine.InvalidateNext();
                 Persist();
                 QueueChanged?.Invoke();
+                // the track before could not be opened: go on with what was just added
+                if (Interlocked.Exchange(ref _advanceWhenAdded, 0) == 1 && !Engine.IsLoaded)
+                {
+                    int at;
+                    lock (_lock) at = _index + 1 < _queue.Count ? _index + 1 : -1;
+                    if (at >= 0) _ = JumpTo(at);
+                }
             }
             else if (chosen) AddRandom("tracks");
+            else RetryContinuation(src);
+        });
+    }
+
+    /// <summary>
+    /// The module had nothing to add for its own list (a radio): asked again a little later, a few times, while the
+    /// queue still ends at the track playing. Before, one empty answer (e.g. while it was busy) left the queue stuck.
+    /// </summary>
+    void RetryContinuation(JsonElement? src)
+    {
+        int n = Interlocked.Increment(ref _emptyAsks);
+        Log.Info($"[ext] continue: nothing added ({n})");
+        if (n > 3) { Interlocked.Exchange(ref _advanceWhenAdded, 0); return; }
+        int count;
+        lock (_lock) count = _queue.Count;
+        _ = Task.Delay(TimeSpan.FromSeconds(5 * n)).ContinueWith(_ =>
+        {
+            bool still;
+            lock (_lock) still = _queue.Count == count && _index == count - 1;
+            if (still && (Engine.IsLoaded || Volatile.Read(ref _advanceWhenAdded) == 1)) EnsureAutoNext(false);
         });
     }
 

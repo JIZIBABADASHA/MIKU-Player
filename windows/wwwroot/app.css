@@ -1642,9 +1642,9 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 .ly-dots i { width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--np-ink)); opacity: .25; transition: opacity .3s; }
 .ly-line.on .ly-dots { animation: breathe 2.4s ease-in-out infinite; }
 @keyframes breathe { 0%, 100% { transform: scale(.88); } 50% { transform: scale(1.08); } }
-.ly-line .w { background-image: linear-gradient(90deg, rgb(var(--np-ink)) 0, rgb(var(--np-ink)) var(--p, 0%), rgba(var(--np-ink), .4) var(--p, 0%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ly-line .w { background-image: linear-gradient(90deg, rgb(var(--np-ink)) 0, rgb(var(--np-ink)) var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ly-line:not(.on) .w { background: none; color: inherit; }
-.ly-plain { position: absolute; inset: 0; overflow-y: auto; padding: 18vh 24px 30vh 14px; font: 600 22px/1.7 var(--font-display); color: rgba(var(--np-ink), .82); white-space: pre-wrap; -webkit-mask-image: none; mask-image: none; user-select: text; }
+.ly-plain { position: absolute; inset: 0; overflow-y: auto; padding: 24vh 24px 30vh 14px; font: 600 22px/1.7 var(--font-display); color: rgba(var(--np-ink), .82); white-space: pre-wrap; -webkit-mask-image: none; mask-image: none; user-select: text; }
 .ly-empty { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(var(--np-ink), .45); font-size: 15px; text-align: center; }
 .ly-offset { position: absolute; right: 24px; bottom: 6px; display: flex; gap: 6px; align-items: center; color: rgba(var(--np-ink), .55); font-size: 12px; z-index: 2; opacity: 0; transition: opacity .2s; }
 .np-right:hover .ly-offset { opacity: 1; }
@@ -2271,3 +2271,22 @@ mark.hit {
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
 [data-theme="neon"] mark.hit { text-shadow: 0 0 8px rgba(255, 43, 214, .45); }
+
+/* ───────────── 播放清單 (playlists.js) ───────────── */
+.pl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 22px; padding: 4px 36px 40px; }
+.pl-card { cursor: pointer; min-width: 0; }
+.pl-art { aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--surface-2); display: grid; grid-template-columns: 1fr; box-shadow: 0 8px 22px rgba(var(--shadow-rgb), calc(var(--sh) * .28)); transition: transform .25s var(--ease-out); }
+.pl-art.four { grid-template-columns: 1fr 1fr; }
+.pl-art.none { place-items: center; color: var(--text-3); }
+.pl-art.none svg.i { width: 44px; height: 44px; }
+.pl-art .pl-art-i { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: 1; overflow: hidden; }
+.pl-art .pl-art-i img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pl-card:hover .pl-art { transform: translateY(-3px); }
+.pl-t1 { margin-top: 10px; font-weight: 650; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-t2 { margin-top: 2px; font-size: 12.5px; color: var(--text-3); }
+.menu.pick.pl-name .pl-name-t { padding: 4px 4px 8px; font-weight: 650; }
+.menu.pick.pl-name .pl-name-b { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.menu.pick.pl-name .pl-name-b .btn { width: auto; height: 32px; min-height: 0; padding: 0 14px; flex-direction: row; align-items: center; justify-content: center; }
+.pl-tracks .row.pl-drag { opacity: .45; }
+.pl-tracks .row.pl-over { box-shadow: inset 0 2px 0 var(--teal); }
+:root[data-theme="flat"] .pl-art { border-radius: 0; box-shadow: none; }

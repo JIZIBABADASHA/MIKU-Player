@@ -11,6 +11,8 @@ const WordTagG = /<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>/g;
 const Meta = /^\[(ar|ti|al|by|re|ve|length|au|offset|#)\s*:(.*)\]\s*$/i;
 
 const secs = m => (+m[1]) * 60 + (+m[2]) + (m[3] ? (+m[3]) / Math.pow(10, m[3].length) : 0);
+/** The source name of lyrics the listener imported from a file (歌詞不對？ → 匯入 LRC 檔). */
+const IMPORTED = '匯入的歌詞';
 const looksSynced = text => !!text && (text.match(TimeTagG) || []).length >= 3;
 
 function parse(text) {
@@ -126,6 +128,19 @@ class LyricsService {
     return r;
   }
 
+  /**
+   * Lyrics from a file the listener chose (.lrc, or plain text): pinned as this track's lyrics, ahead of a sidecar
+   * file, embedded lyrics and online results. Null when the text has no lyrics in it.
+   */
+  importText(t, text) {
+    text = String(text || '').replace(/^\uFEFF/, '');
+    const r = looksSynced(text) ? { source: IMPORTED, synced: true, lines: parse(text) } : { source: IMPORTED, synced: false, lines: plain(text) };
+    if (!r.lines.some(l => l.text && l.text.trim())) return null;
+    r.instrumental = false; r.manual = true; r.fetched = new Date().toISOString();
+    fs.writeFileSync(this.cachePath(t), JSON.stringify(r));
+    return r;
+  }
+
   /** "None of these are right": remember it, so the wrong lyrics never come back on their own. */
   clear(t) {
     const r = { source: '已標記為錯誤', synced: false, instrumental: false, lines: [], manual: true, fetched: new Date().toISOString() };
@@ -142,6 +157,11 @@ class LyricsService {
   }
   async resolve(t) {
     let plainFallback = null;
+    // lyrics the listener imported: they chose them over whatever else there is
+    try {
+      const c = JSON.parse(fs.readFileSync(this.cachePath(t), 'utf8'));
+      if (c && c.manual && c.source === IMPORTED && c.lines && c.lines.length) return c;
+    } catch { }
     if (t.path) {
       const base = t.path.slice(0, t.path.length - path.extname(t.path).length);
       for (const ext of ['.lrc', '.LRC', '.txt']) {
