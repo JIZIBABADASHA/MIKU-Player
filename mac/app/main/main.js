@@ -23,6 +23,7 @@ const { MusicLibrary, isDsd, isLossy } = require('./library');
 const { ArtworkService } = require('./artwork');
 const { LyricsService } = require('./lyrics');
 const { AudioEngine } = require('./audio');
+const { OutputTarget } = require('./output-target');
 const { Player } = require('./player');
 const { RemoteServer } = require('./remote');
 const { RemoteLibrary } = require('./remote-library');
@@ -71,7 +72,10 @@ const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveSet
 const lib = new MusicLibrary(S);
 const art = new ArtworkService(lib, S);
 const lyrics = new LyricsService(S);
-const engine = new AudioEngine(S);
+// the cores see exclusive mode as shared while the device is the built-in speakers (output-target.js)
+const outputTarget = new OutputTarget(S);
+const engine = new AudioEngine(outputTarget.coreSettings());
+outputTarget.openName = () => (engine.isLoaded || engine.holdsDevice ? engine.backend?.deviceName?.() : '');
 // extension modules (extensions.js): a module may provide a playback core (設定 → 播放方案)
 const { ExtensionManager } = require('./extensions');
 const exts = new ExtensionManager();
@@ -292,7 +296,19 @@ engine.on('media', m => {
   else if (m.action === 'stop') engine.pause();
   else if (m.action === 'seekto') player.seek(m.pos);
 });
-engine.on('devicechange', () => post('devicesChanged', {}));
+engine.on('devicechange', () => { post('devicesChanged', {}); checkOutputTargetSoon(); });
+// The device the cores play to may have become (or stopped being) the built-in speakers: exclusive mode is then
+// applied or dropped (output-target.js), with the track continuing where it was.
+async function checkOutputTarget() {
+  if (!(await outputTarget.refresh())) return false;
+  await engine.reconfigure(); postSoon('state'); post('devicesChanged', {});
+  return true;
+}
+let outputCheckTimer = null;
+function checkOutputTargetSoon() {
+  if (S.outputMode !== 'coreaudio-exclusive' && !outputTarget.builtIn) return;
+  clearTimeout(outputCheckTimer); outputCheckTimer = setTimeout(() => checkOutputTarget().catch(e => Log.error('Output target', e)), 600);
+}
 player.on('now', () => postSoon('state'));
 player.on('queue', () => postSoon('queue'));
 lib.on('progress', p => {
@@ -833,7 +849,7 @@ async function devicesDto() {
   const cur = list.find(d => d.id === S.deviceId) || list.find(d => d.isDefault);
   if (engine.nativeAvailable) {
     const native = await engine.probeDevice(S.deviceId);
-    const mode = S.outputMode === 'coreaudio-exclusive' ? '獨佔' : '共享';
+    const mode = outputTarget.sharedInstead ? '共享（內建揚聲器沒有自己的音量，不使用獨佔，可用系統音量調整）' : S.outputMode === 'coreaudio-exclusive' ? '獨佔' : '共享';
     const busy = native && native.ownerName ? ` · 正被 ${native.ownerName} 獨佔` : '';
     const caps = native ? { ...native, mixRate: native.rate, mixChannels: native.channels, hardwareVolume: false,
       summary: `Core Audio ${mode} · 目前 ${native.rate / 1000} kHz · ${native.physicalFormat}${busy}`, formats: {} } : null;
@@ -866,6 +882,7 @@ async function applySettings(patch) {
   if (S.volumeMode === 'hardware') S.volumeMode = 'digital';
   saveSoon();
   if (rem) await startRemote();
+  if (output || device) await outputTarget.refresh().catch(e => Log.error('Output target', e));
   if (output) { await engine.reconfigure(); updateYtTap(); }
   else if (device) { await engine.setDevice(S.deviceId); postSoon('state'); }
   if (volume) { engine.applyVolume(); applyYtVolume(); }
@@ -1597,6 +1614,7 @@ app.whenReady().then(async () => {
   loadExtensions();
   createWindow();
   engine.start();
+  checkOutputTarget().catch(e => Log.error('Output target', e));
   startRemote().catch(e => Log.error('Remote', e));
   if (remoteLib.paired) remoteLib.refresh().then(() => { if (remoteLib.cfg.active) remoteLib.startEvents(); }).catch(() => { });
   updater.start();
