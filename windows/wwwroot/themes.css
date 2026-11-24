@@ -1707,16 +1707,14 @@
   --np-veil: var(--paper), var(--paper), linear-gradient(90deg, rgba(21,26,39,.4), rgba(21,26,39,.66));
 }
 
-/* 普普：顏色更飽和、更硬，蓋上一層網點 */
+/* 普普：顏色更飽和、更硬；網點只在左上角（見最後「點點只留在角落」） */
 [data-theme="pop"] {
   --np-filter: blur(34px) saturate(1.9) contrast(1.3) brightness(var(--np-dim));
-  --np-veil: radial-gradient(rgba(17,17,17,.12) 2px, transparent 2.6px) 0 0 / 14px 14px,
-             linear-gradient(90deg, rgba(255,253,246,.55), rgba(255,253,246,.8));
+  --np-veil: linear-gradient(90deg, rgba(255,253,246,.55), rgba(255,253,246,.8));
 }
 [data-theme="pop"]:where([data-mode="night"]) {
   --np-filter: blur(34px) saturate(1.8) contrast(1.3) brightness(var(--np-dim));
-  --np-veil: radial-gradient(rgba(255,210,63,.1) 2px, transparent 2.6px) 0 0 / 14px 14px,
-             radial-gradient(120% 90% at 30% 40%, rgba(22,21,27,.3), rgba(22,21,27,.8));
+  --np-veil: radial-gradient(120% 90% at 30% 40%, rgba(22,21,27,.3), rgba(22,21,27,.8));
 }
 
 /* 極簡平面：不用模糊的封面，只有純色的底 */
@@ -1814,3 +1812,138 @@
   background: radial-gradient(circle, rgba(24,70,40,.16) 0 5px, transparent 5.6px) right 10px top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
               linear-gradient(90deg, transparent 40%, var(--np-calm) 50%);
 }
+
+
+/* ═════════════════════════════ 分頁列、工具列、下拉選單：跟著主題走 ═════════════════════════════
+   設定頁上方的分頁列（音訊／曲庫／外觀…）原本每個主題都一樣；這裡讓它和同一個主題的分段按鈕（.seg）長得一樣。
+   頁首右邊的工具列：排序方向的按鈕和旁邊的分段按鈕同高、同圓角、同底色。 */
+
+/* 通用：選中的分頁和分段按鈕一樣，是主題色的淡底＋細框 */
+:root .set-tabs button.on { background: rgba(var(--teal-rgb), .2); color: var(--text); box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .5); }
+.page-head .tools > .btn.small { height: 36px; border-radius: 10px; }
+
+/* 未來・日：淺青的底、選中的是白色 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .set-tabs { background: rgba(227,239,239,.94); border-color: transparent; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .set-tabs button.on { background: #fff; color: #0b847e; box-shadow: 0 1px 3px rgba(16,72,78,.15); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .page-head .tools > .btn.small { background: #e3efef; border-color: transparent; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .page-head .tools > .btn.small:hover { background: #d6e9e9; }
+/* 未來・夜 */
+:root[data-theme="miku"]:where([data-mode="night"]) .set-tabs button.on { background: rgba(57,197,187,.18); color: #a6f3ec; }
+
+/* 木質調 */
+:root[data-theme="wood"] .set-tabs button.on { background: rgba(196,160,106,.16); color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .set-tabs button.on { background: rgba(167,123,60,.16); color: #8a6128; }
+
+/* 玻璃質感：毛玻璃的條 */
+:root[data-theme="glass"] .set-tabs { background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+:root[data-theme="glass"]:where([data-mode="day"]) .set-tabs { background: rgba(255,255,255,.45); border: 1px solid rgba(255,255,255,.75); box-shadow: inset 0 1px 0 rgba(255,255,255,.56); }
+:root[data-theme="glass"] .page-head .tools > .btn.small { height: 38px; }
+
+/* 極簡平面：直角、灰底，選中的下面一條鈷藍 */
+:root[data-theme="flat"] .set-tabs, :root[data-theme="flat"] .set-tabs button { border-radius: 2px; }
+:root[data-theme="flat"] .set-tabs { background: #ecece8; border-color: transparent; backdrop-filter: none; }
+:root[data-theme="flat"]:where([data-mode="night"]) .set-tabs { background: #222222; }
+:root[data-theme="flat"] .set-tabs button.on { background: #ffffff; color: #111111; box-shadow: inset 0 -2px 0 var(--teal); }
+:root[data-theme="flat"]:where([data-mode="night"]) .set-tabs button.on { background: #2e2e2e; color: #ffffff; }
+:root[data-theme="flat"] .page-head .tools > .btn.small { border-radius: 2px; background: #ecece8; border-color: transparent; }
+:root[data-theme="flat"] .page-head .tools > .btn.small:hover { background: #e2e2dd; }
+:root[data-theme="flat"]:where([data-mode="night"]) .page-head .tools > .btn.small { background: #222222; }
+:root[data-theme="flat"]:where([data-mode="night"]) .page-head .tools > .btn.small:hover { background: #2a2a2a; }
+:root[data-theme="flat"] .msel-btn { border-color: #dcdcd6; background: #ffffff; box-shadow: none; }
+:root[data-theme="flat"]:where([data-mode="night"]) .msel-btn { border-color: #333333; background: #1a1a1a; }
+:root[data-theme="flat"] .msel-btn::before { box-shadow: none; border-radius: 0; }
+:root[data-theme="flat"] .msel-chev { border-radius: 0; }
+
+/* 霓虹賽博：方角，選中的下面一條發光的線 */
+:root[data-theme="neon"] .set-tabs, :root[data-theme="neon"] .set-tabs button { border-radius: 2px; }
+:root[data-theme="neon"] .set-tabs button.on { background: rgba(0,240,255,.14); color: #7ff8ff; box-shadow: inset 0 -2px 0 #00f0ff; }
+:root[data-theme="neon"]:where([data-mode="day"]) .set-tabs button.on { background: rgba(0,180,204,.14); color: #008aa0; box-shadow: inset 0 -2px 0 #00b4cc; }
+:root[data-theme="neon"]:where([data-mode="day"]) .seg button.on { box-shadow: inset 0 -2px 0 #00b4cc; }
+:root[data-theme="neon"] .page-head .tools > .btn.small { border-radius: 2px; }
+
+/* 和紙：淡淡的米色底，選中的像一張白紙 */
+:root[data-theme="washi"] .set-tabs { background: linear-gradient(rgba(70,50,30,.07), rgba(70,50,30,.07)), rgba(var(--bg-rgb), .94); border-color: transparent; }
+:root[data-theme="washi"]:where([data-mode="night"]) .set-tabs { background: linear-gradient(rgba(232,226,211,.06), rgba(232,226,211,.06)), rgba(var(--bg-rgb), .94); }
+:root[data-theme="washi"] .set-tabs button.on { background: #fffbf3; color: #2f4b80; box-shadow: 0 1px 2px rgba(80,55,30,.15); }
+:root[data-theme="washi"]:where([data-mode="night"]) .set-tabs button.on { background: #323d59; color: #86a8e6; box-shadow: 0 1px 2px rgba(0,0,0,.26); }
+:root[data-theme="washi"] .page-head .tools > .btn.small { background: rgba(70,50,30,.07); border-color: transparent; }
+:root[data-theme="washi"] .page-head .tools > .btn.small:hover { background: rgba(70,50,30,.12); }
+:root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small { background: rgba(232,226,211,.06); }
+:root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small:hover { background: rgba(232,226,211,.11); }
+
+/* 黑膠、櫻花：用通用的樣子（主題色的淡底＋細框），櫻花的按鈕是圓的，分段按鈕也跟著圓 */
+:root[data-theme="sakura"] .seg, :root[data-theme="sakura"] .set-tabs { border-radius: 19px; }
+:root[data-theme="sakura"] .seg button, :root[data-theme="sakura"] .set-tabs button { border-radius: 16px; }
+:root[data-theme="sakura"] .page-head .tools > .btn.small { border-radius: 19px; }
+/* 櫻花：右上角的花瓣在工具列後面，按鈕列墊一層實心的底，花瓣不會透到字後面 */
+:root[data-theme="sakura"] .page-head .tools > :is(.seg, .btn.small) { background: linear-gradient(rgba(var(--ink), .05), rgba(var(--ink), .05)), var(--bg); }
+:root[data-theme="sakura"] .page-head .tools > .btn.small:hover { background: linear-gradient(rgba(var(--ink), .1), rgba(var(--ink), .1)), var(--bg); }
+
+/* 終端機：直角、細框，選中的是實心的綠 */
+:root[data-theme="terminal"] .set-tabs, :root[data-theme="terminal"] .set-tabs button { border-radius: 0; }
+:root[data-theme="terminal"] .set-tabs { background: rgba(var(--bg-rgb), .94); border-color: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="terminal"] .set-tabs button.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .page-head .tools > .btn.small { border-radius: 0; }
+/* 標題後面的游標：用一塊方塊畫，和字的高度對齊（原本的 ▌ 字元會掉到字的下面） */
+:root[data-theme="terminal"] .page-head h1::after { content: ""; display: inline-block; width: .28em; height: .84em; margin-left: .14em; vertical-align: -.06em; background: var(--teal); box-shadow: var(--tm-glow-box); }
+
+/* 普普：所有按鈕列都是同一套——白底（夜：深底）、2px 的框、硬陰影；選中的是實心黃，不另外加框 */
+:root[data-theme="pop"] .seg { padding: 4px; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .seg button.on { box-shadow: none; font-weight: 800; }
+:root[data-theme="pop"] .page-head .tools > .btn.small { height: 38px; border-radius: 8px; }
+:root[data-theme="pop"] .set-tabs { background: var(--pop-panel); border: 0; border-radius: 8px; padding: 4px; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); backdrop-filter: none; }
+:root[data-theme="pop"] .set-tabs button { border-radius: 6px; font-weight: 700; color: var(--text); }
+:root[data-theme="pop"] .set-tabs button.on { background: var(--pop-yellow); color: #111; box-shadow: none; font-weight: 800; }
+/* 開關：圓鈕縮小一點，整顆都在框裡面 */
+:root[data-theme="pop"] .switch::after { left: 5px; top: 5px; width: 14px; height: 14px; }
+/* 下拉選單：粗框、硬陰影，右邊的箭頭是黃色小方塊 */
+:root[data-theme="pop"] .msel-btn { background: var(--pop-panel); border: 2px solid var(--pop-line); border-radius: 8px; box-shadow: 3px 3px 0 var(--pop-shadow); font-weight: 700; }
+:root[data-theme="pop"] .msel-btn:hover { border-color: var(--pop-line); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .msel-btn:focus-visible, :root[data-theme="pop"] .msel.open .msel-btn { border-color: var(--pop-line); box-shadow: 4px 4px 0 var(--teal); }
+:root[data-theme="pop"] .msel-btn::before { width: 8px; height: 8px; background: var(--pink); box-shadow: none; }
+:root[data-theme="pop"] .msel-chev { border-radius: 5px; background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111; }
+:root[data-theme="pop"] .msel.open .msel-chev { background: var(--pop-yellow); }
+:root[data-theme="pop"] .msel-menu { border: 2px solid var(--pop-line); border-radius: 10px; box-shadow: 5px 5px 0 var(--pop-shadow); backdrop-filter: none; }
+:root[data-theme="pop"] .msel-opt { border-radius: 6px; font-weight: 600; color: var(--text); }
+:root[data-theme="pop"] .msel-opt.on, :root[data-theme="pop"] .msel-opt.on.act { background: var(--pop-yellow); color: #111; font-weight: 800; }
+:root[data-theme="pop"] .msel-opt.on::before { display: none; }
+:root[data-theme="pop"] .msel-opt.on .msel-ck { background: #111; color: var(--pop-yellow); }
+
+/* 頁首：大標題和旁邊的「12 張」對齊同一條基線（原本小字浮在上面一點），右邊的工具列還是貼齊底部 */
+.page-head { align-items: baseline; }
+.page-head .sub { padding-bottom: 0; }
+.page-head .tools { align-self: flex-end; }
+
+/* 普普：按鈕、搜尋框、選單的硬陰影都一樣是 3px；側欄選中的那列框線和分段按鈕同色 */
+:root[data-theme="pop"] .btn, :root[data-theme="pop"] .search, :root[data-theme="pop"] .round-btn { box-shadow: 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .btn:hover { box-shadow: 4px 4px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .btn.ghost, :root[data-theme="pop"] .btn.ghost:hover { box-shadow: none; }
+:root[data-theme="pop"] .search:focus-within { box-shadow: 4px 4px 0 var(--teal); }
+:root[data-theme="pop"] .nav-pill { border-color: var(--pop-line); }
+
+/* 資料夾頁的標題：一行放不下時會截斷（overflow: hidden），四周留一點空間，字的上緣和陰影才不會被切掉 */
+.fcrumbs + .page-head h1 { padding: 6px 10px 6px 0; margin: -6px -10px -6px 0; }
+
+/* ═════════════════════════════ 普普：點點只留在角落 ═════════════════════════════
+   原本整片背景都是網點，字直接疊在上面，看久了眼花。現在字都在實心的底上，網點變成漫畫的「漸層網點」：
+   從角落往內越來越小，最後消失。側欄在下面的角、內容區在右上角（搜尋列和工具列後面）、正在播放在左上角。 */
+[data-theme="pop"] { --pop-tone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Ccircle cx='234' cy='60' r='0.5'/%3E%3Ccircle cx='246' cy='60' r='0.5'/%3E%3Ccircle cx='258' cy='60' r='0.5'/%3E%3Ccircle cx='270' cy='60' r='0.6'/%3E%3Ccircle cx='282' cy='60' r='0.6'/%3E%3Ccircle cx='294' cy='60' r='0.6'/%3E%3Ccircle cx='204' cy='72' r='0.5'/%3E%3Ccircle cx='216' cy='72' r='0.6'/%3E%3Ccircle cx='228' cy='72' r='0.6'/%3E%3Ccircle cx='240' cy='72' r='0.6'/%3E%3Ccircle cx='252' cy='72' r='0.7'/%3E%3Ccircle cx='264' cy='72' r='0.7'/%3E%3Ccircle cx='276' cy='72' r='0.7'/%3E%3Ccircle cx='288' cy='72' r='0.8'/%3E%3Ccircle cx='300' cy='72' r='0.8'/%3E%3Ccircle cx='174' cy='84' r='0.5'/%3E%3Ccircle cx='186' cy='84' r='0.5'/%3E%3Ccircle cx='198' cy='84' r='0.6'/%3E%3Ccircle cx='210' cy='84' r='0.7'/%3E%3Ccircle cx='222' cy='84' r='0.7'/%3E%3Ccircle cx='234' cy='84' r='0.8'/%3E%3Ccircle cx='246' cy='84' r='0.8'/%3E%3Ccircle cx='258' cy='84' r='0.9'/%3E%3Ccircle cx='270' cy='84' r='0.9'/%3E%3Ccircle cx='282' cy='84' r='0.9'/%3E%3Ccircle cx='294' cy='84' r='0.9'/%3E%3Ccircle cx='156' cy='96' r='0.5'/%3E%3Ccircle cx='168' cy='96' r='0.6'/%3E%3Ccircle cx='180' cy='96' r='0.6'/%3E%3Ccircle cx='192' cy='96' r='0.7'/%3E%3Ccircle cx='204' cy='96' r='0.8'/%3E%3Ccircle cx='216' cy='96' r='0.9'/%3E%3Ccircle cx='228' cy='96' r='0.9'/%3E%3Ccircle cx='240' cy='96' r='1.0'/%3E%3Ccircle cx='252' cy='96' r='1.0'/%3E%3Ccircle cx='264' cy='96' r='1.1'/%3E%3Ccircle cx='276' cy='96' r='1.1'/%3E%3Ccircle cx='288' cy='96' r='1.1'/%3E%3Ccircle cx='300' cy='96' r='1.1'/%3E%3Ccircle cx='150' cy='108' r='0.5'/%3E%3Ccircle cx='162' cy='108' r='0.6'/%3E%3Ccircle cx='174' cy='108' r='0.7'/%3E%3Ccircle cx='186' cy='108' r='0.8'/%3E%3Ccircle cx='198' cy='108' r='0.9'/%3E%3Ccircle cx='210' cy='108' r='1.0'/%3E%3Ccircle cx='222' cy='108' r='1.1'/%3E%3Ccircle cx='234' cy='108' r='1.1'/%3E%3Ccircle cx='246' cy='108' r='1.2'/%3E%3Ccircle cx='258' cy='108' r='1.2'/%3E%3Ccircle cx='270' cy='108' r='1.3'/%3E%3Ccircle cx='282' cy='108' r='1.3'/%3E%3Ccircle cx='294' cy='108' r='1.3'/%3E%3Ccircle cx='132' cy='120' r='0.5'/%3E%3Ccircle cx='144' cy='120' r='0.6'/%3E%3Ccircle cx='156' cy='120' r='0.7'/%3E%3Ccircle cx='168' cy='120' r='0.8'/%3E%3Ccircle cx='180' cy='120' r='0.9'/%3E%3Ccircle cx='192' cy='120' r='1.0'/%3E%3Ccircle cx='204' cy='120' r='1.1'/%3E%3Ccircle cx='216' cy='120' r='1.2'/%3E%3Ccircle cx='228' cy='120' r='1.3'/%3E%3Ccircle cx='240' cy='120' r='1.3'/%3E%3Ccircle cx='252' cy='120' r='1.4'/%3E%3Ccircle cx='264' cy='120' r='1.4'/%3E%3Ccircle cx='276' cy='120' r='1.5'/%3E%3Ccircle cx='288' cy='120' r='1.5'/%3E%3Ccircle cx='300' cy='120' r='1.5'/%3E%3Ccircle cx='114' cy='132' r='0.5'/%3E%3Ccircle cx='126' cy='132' r='0.6'/%3E%3Ccircle cx='138' cy='132' r='0.7'/%3E%3Ccircle cx='150' cy='132' r='0.8'/%3E%3Ccircle cx='162' cy='132' r='0.9'/%3E%3Ccircle cx='174' cy='132' r='1.0'/%3E%3Ccircle cx='186' cy='132' r='1.1'/%3E%3Ccircle cx='198' cy='132' r='1.2'/%3E%3Ccircle cx='210' cy='132' r='1.3'/%3E%3Ccircle cx='222' cy='132' r='1.4'/%3E%3Ccircle cx='234' cy='132' r='1.5'/%3E%3Ccircle cx='246' cy='132' r='1.6'/%3E%3Ccircle cx='258' cy='132' r='1.6'/%3E%3Ccircle cx='270' cy='132' r='1.7'/%3E%3Ccircle cx='282' cy='132' r='1.7'/%3E%3Ccircle cx='294' cy='132' r='1.7'/%3E%3Ccircle cx='108' cy='144' r='0.5'/%3E%3Ccircle cx='120' cy='144' r='0.6'/%3E%3Ccircle cx='132' cy='144' r='0.7'/%3E%3Ccircle cx='144' cy='144' r='0.9'/%3E%3Ccircle cx='156' cy='144' r='1.0'/%3E%3Ccircle cx='168' cy='144' r='1.1'/%3E%3Ccircle cx='180' cy='144' r='1.2'/%3E%3Ccircle cx='192' cy='144' r='1.3'/%3E%3Ccircle cx='204' cy='144' r='1.5'/%3E%3Ccircle cx='216' cy='144' r='1.6'/%3E%3Ccircle cx='228' cy='144' r='1.6'/%3E%3Ccircle cx='240' cy='144' r='1.7'/%3E%3Ccircle cx='252' cy='144' r='1.8'/%3E%3Ccircle cx='264' cy='144' r='1.9'/%3E%3Ccircle cx='276' cy='144' r='1.9'/%3E%3Ccircle cx='288' cy='144' r='1.9'/%3E%3Ccircle cx='300' cy='144' r='1.9'/%3E%3Ccircle cx='102' cy='156' r='0.5'/%3E%3Ccircle cx='114' cy='156' r='0.7'/%3E%3Ccircle cx='126' cy='156' r='0.8'/%3E%3Ccircle cx='138' cy='156' r='0.9'/%3E%3Ccircle cx='150' cy='156' r='1.1'/%3E%3Ccircle cx='162' cy='156' r='1.2'/%3E%3Ccircle cx='174' cy='156' r='1.3'/%3E%3Ccircle cx='186' cy='156' r='1.4'/%3E%3Ccircle cx='198' cy='156' r='1.6'/%3E%3Ccircle cx='210' cy='156' r='1.7'/%3E%3Ccircle cx='222' cy='156' r='1.8'/%3E%3Ccircle cx='234' cy='156' r='1.9'/%3E%3Ccircle cx='246' cy='156' r='2.0'/%3E%3Ccircle cx='258' cy='156' r='2.0'/%3E%3Ccircle cx='270' cy='156' r='2.1'/%3E%3Ccircle cx='282' cy='156' r='2.1'/%3E%3Ccircle cx='294' cy='156' r='2.1'/%3E%3Ccircle cx='96' cy='168' r='0.6'/%3E%3Ccircle cx='108' cy='168' r='0.7'/%3E%3Ccircle cx='120' cy='168' r='0.8'/%3E%3Ccircle cx='132' cy='168' r='1.0'/%3E%3Ccircle cx='144' cy='168' r='1.1'/%3E%3Ccircle cx='156' cy='168' r='1.3'/%3E%3Ccircle cx='168' cy='168' r='1.4'/%3E%3Ccircle cx='180' cy='168' r='1.5'/%3E%3Ccircle cx='192' cy='168' r='1.7'/%3E%3Ccircle cx='204' cy='168' r='1.8'/%3E%3Ccircle cx='216' cy='168' r='1.9'/%3E%3Ccircle cx='228' cy='168' r='2.0'/%3E%3Ccircle cx='240' cy='168' r='2.1'/%3E%3Ccircle cx='252' cy='168' r='2.2'/%3E%3Ccircle cx='264' cy='168' r='2.3'/%3E%3Ccircle cx='276' cy='168' r='2.3'/%3E%3Ccircle cx='288' cy='168' r='2.4'/%3E%3Ccircle cx='300' cy='168' r='2.4'/%3E%3Ccircle cx='90' cy='180' r='0.6'/%3E%3Ccircle cx='102' cy='180' r='0.7'/%3E%3Ccircle cx='114' cy='180' r='0.9'/%3E%3Ccircle cx='126' cy='180' r='1.0'/%3E%3Ccircle cx='138' cy='180' r='1.2'/%3E%3Ccircle cx='150' cy='180' r='1.3'/%3E%3Ccircle cx='162' cy='180' r='1.5'/%3E%3Ccircle cx='174' cy='180' r='1.6'/%3E%3Ccircle cx='186' cy='180' r='1.8'/%3E%3Ccircle cx='198' cy='180' r='1.9'/%3E%3Ccircle cx='210' cy='180' r='2.0'/%3E%3Ccircle cx='222' cy='180' r='2.2'/%3E%3Ccircle cx='234' cy='180' r='2.3'/%3E%3Ccircle cx='246' cy='180' r='2.4'/%3E%3Ccircle cx='258' cy='180' r='2.5'/%3E%3Ccircle cx='270' cy='180' r='2.5'/%3E%3Ccircle cx='282' cy='180' r='2.6'/%3E%3Ccircle cx='294' cy='180' r='2.6'/%3E%3Ccircle cx='84' cy='192' r='0.6'/%3E%3Ccircle cx='96' cy='192' r='0.7'/%3E%3Ccircle cx='108' cy='192' r='0.9'/%3E%3Ccircle cx='120' cy='192' r='1.0'/%3E%3Ccircle cx='132' cy='192' r='1.2'/%3E%3Ccircle cx='144' cy='192' r='1.3'/%3E%3Ccircle cx='156' cy='192' r='1.5'/%3E%3Ccircle cx='168' cy='192' r='1.7'/%3E%3Ccircle cx='180' cy='192' r='1.8'/%3E%3Ccircle cx='192' cy='192' r='2.0'/%3E%3Ccircle cx='204' cy='192' r='2.1'/%3E%3Ccircle cx='216' cy='192' r='2.3'/%3E%3Ccircle cx='228' cy='192' r='2.4'/%3E%3Ccircle cx='240' cy='192' r='2.5'/%3E%3Ccircle cx='252' cy='192' r='2.6'/%3E%3Ccircle cx='264' cy='192' r='2.7'/%3E%3Ccircle cx='276' cy='192' r='2.8'/%3E%3Ccircle cx='288' cy='192' r='2.8'/%3E%3Ccircle cx='300' cy='192' r='2.8'/%3E%3Ccircle cx='78' cy='204' r='0.6'/%3E%3Ccircle cx='90' cy='204' r='0.7'/%3E%3Ccircle cx='102' cy='204' r='0.9'/%3E%3Ccircle cx='114' cy='204' r='1.0'/%3E%3Ccircle cx='126' cy='204' r='1.2'/%3E%3Ccircle cx='138' cy='204' r='1.4'/%3E%3Ccircle cx='150' cy='204' r='1.5'/%3E%3Ccircle cx='162' cy='204' r='1.7'/%3E%3Ccircle cx='174' cy='204' r='1.9'/%3E%3Ccircle cx='186' cy='204' r='2.1'/%3E%3Ccircle cx='198' cy='204' r='2.2'/%3E%3Ccircle cx='210' cy='204' r='2.4'/%3E%3Ccircle cx='222' cy='204' r='2.5'/%3E%3Ccircle cx='234' cy='204' r='2.7'/%3E%3Ccircle cx='246' cy='204' r='2.8'/%3E%3Ccircle cx='258' cy='204' r='2.9'/%3E%3Ccircle cx='270' cy='204' r='3.0'/%3E%3Ccircle cx='282' cy='204' r='3.1'/%3E%3Ccircle cx='294' cy='204' r='3.1'/%3E%3Ccircle cx='72' cy='216' r='0.6'/%3E%3Ccircle cx='84' cy='216' r='0.7'/%3E%3Ccircle cx='96' cy='216' r='0.9'/%3E%3Ccircle cx='108' cy='216' r='1.0'/%3E%3Ccircle cx='120' cy='216' r='1.2'/%3E%3Ccircle cx='132' cy='216' r='1.4'/%3E%3Ccircle cx='144' cy='216' r='1.6'/%3E%3Ccircle cx='156' cy='216' r='1.7'/%3E%3Ccircle cx='168' cy='216' r='1.9'/%3E%3Ccircle cx='180' cy='216' r='2.1'/%3E%3Ccircle cx='192' cy='216' r='2.3'/%3E%3Ccircle cx='204' cy='216' r='2.5'/%3E%3Ccircle cx='216' cy='216' r='2.6'/%3E%3Ccircle cx='228' cy='216' r='2.8'/%3E%3Ccircle cx='240' cy='216' r='2.9'/%3E%3Ccircle cx='252' cy='216' r='3.1'/%3E%3Ccircle cx='264' cy='216' r='3.2'/%3E%3Ccircle cx='276' cy='216' r='3.3'/%3E%3Ccircle cx='288' cy='216' r='3.3'/%3E%3Ccircle cx='300' cy='216' r='3.3'/%3E%3Ccircle cx='66' cy='228' r='0.5'/%3E%3Ccircle cx='78' cy='228' r='0.7'/%3E%3Ccircle cx='90' cy='228' r='0.8'/%3E%3Ccircle cx='102' cy='228' r='1.0'/%3E%3Ccircle cx='114' cy='228' r='1.2'/%3E%3Ccircle cx='126' cy='228' r='1.4'/%3E%3Ccircle cx='138' cy='228' r='1.6'/%3E%3Ccircle cx='150' cy='228' r='1.7'/%3E%3Ccircle cx='162' cy='228' r='1.9'/%3E%3Ccircle cx='174' cy='228' r='2.1'/%3E%3Ccircle cx='186' cy='228' r='2.3'/%3E%3Ccircle cx='198' cy='228' r='2.5'/%3E%3Ccircle cx='210' cy='228' r='2.7'/%3E%3Ccircle cx='222' cy='228' r='2.9'/%3E%3Ccircle cx='234' cy='228' r='3.1'/%3E%3Ccircle cx='246' cy='228' r='3.2'/%3E%3Ccircle cx='258' cy='228' r='3.4'/%3E%3Ccircle cx='270' cy='228' r='3.5'/%3E%3Ccircle cx='282' cy='228' r='3.5'/%3E%3Ccircle cx='294' cy='228' r='3.6'/%3E%3Ccircle cx='60' cy='240' r='0.5'/%3E%3Ccircle cx='72' cy='240' r='0.6'/%3E%3Ccircle cx='84' cy='240' r='0.8'/%3E%3Ccircle cx='96' cy='240' r='1.0'/%3E%3Ccircle cx='108' cy='240' r='1.2'/%3E%3Ccircle cx='120' cy='240' r='1.3'/%3E%3Ccircle cx='132' cy='240' r='1.5'/%3E%3Ccircle cx='144' cy='240' r='1.7'/%3E%3Ccircle cx='156' cy='240' r='1.9'/%3E%3Ccircle cx='168' cy='240' r='2.1'/%3E%3Ccircle cx='180' cy='240' r='2.3'/%3E%3Ccircle cx='192' cy='240' r='2.5'/%3E%3Ccircle cx='204' cy='240' r='2.7'/%3E%3Ccircle cx='216' cy='240' r='2.9'/%3E%3Ccircle cx='228' cy='240' r='3.1'/%3E%3Ccircle cx='240' cy='240' r='3.3'/%3E%3Ccircle cx='252' cy='240' r='3.5'/%3E%3Ccircle cx='264' cy='240' r='3.6'/%3E%3Ccircle cx='276' cy='240' r='3.7'/%3E%3Ccircle cx='288' cy='240' r='3.8'/%3E%3Ccircle cx='300' cy='240' r='3.8'/%3E%3Ccircle cx='54' cy='252' r='0.5'/%3E%3Ccircle cx='66' cy='252' r='0.6'/%3E%3Ccircle cx='78' cy='252' r='0.8'/%3E%3Ccircle cx='90' cy='252' r='0.9'/%3E%3Ccircle cx='102' cy='252' r='1.1'/%3E%3Ccircle cx='114' cy='252' r='1.3'/%3E%3Ccircle cx='126' cy='252' r='1.5'/%3E%3Ccircle cx='138' cy='252' r='1.7'/%3E%3Ccircle cx='150' cy='252' r='1.9'/%3E%3Ccircle cx='162' cy='252' r='2.1'/%3E%3Ccircle cx='174' cy='252' r='2.3'/%3E%3Ccircle cx='186' cy='252' r='2.5'/%3E%3Ccircle cx='198' cy='252' r='2.8'/%3E%3Ccircle cx='210' cy='252' r='3.0'/%3E%3Ccircle cx='222' cy='252' r='3.2'/%3E%3Ccircle cx='234' cy='252' r='3.4'/%3E%3Ccircle cx='246' cy='252' r='3.6'/%3E%3Ccircle cx='258' cy='252' r='3.8'/%3E%3Ccircle cx='270' cy='252' r='3.9'/%3E%3Ccircle cx='282' cy='252' r='4.0'/%3E%3Ccircle cx='294' cy='252' r='4.1'/%3E%3Ccircle cx='60' cy='264' r='0.6'/%3E%3Ccircle cx='72' cy='264' r='0.7'/%3E%3Ccircle cx='84' cy='264' r='0.9'/%3E%3Ccircle cx='96' cy='264' r='1.1'/%3E%3Ccircle cx='108' cy='264' r='1.3'/%3E%3Ccircle cx='120' cy='264' r='1.4'/%3E%3Ccircle cx='132' cy='264' r='1.6'/%3E%3Ccircle cx='144' cy='264' r='1.9'/%3E%3Ccircle cx='156' cy='264' r='2.1'/%3E%3Ccircle cx='168' cy='264' r='2.3'/%3E%3Ccircle cx='180' cy='264' r='2.5'/%3E%3Ccircle cx='192' cy='264' r='2.7'/%3E%3Ccircle cx='204' cy='264' r='3.0'/%3E%3Ccircle cx='216' cy='264' r='3.2'/%3E%3Ccircle cx='228' cy='264' r='3.4'/%3E%3Ccircle cx='240' cy='264' r='3.6'/%3E%3Ccircle cx='252' cy='264' r='3.8'/%3E%3Ccircle cx='264' cy='264' r='4.0'/%3E%3Ccircle cx='276' cy='264' r='4.2'/%3E%3Ccircle cx='288' cy='264' r='4.3'/%3E%3Ccircle cx='300' cy='264' r='4.4'/%3E%3Ccircle cx='54' cy='276' r='0.5'/%3E%3Ccircle cx='66' cy='276' r='0.7'/%3E%3Ccircle cx='78' cy='276' r='0.8'/%3E%3Ccircle cx='90' cy='276' r='1.0'/%3E%3Ccircle cx='102' cy='276' r='1.2'/%3E%3Ccircle cx='114' cy='276' r='1.4'/%3E%3Ccircle cx='126' cy='276' r='1.6'/%3E%3Ccircle cx='138' cy='276' r='1.8'/%3E%3Ccircle cx='150' cy='276' r='2.0'/%3E%3Ccircle cx='162' cy='276' r='2.2'/%3E%3Ccircle cx='174' cy='276' r='2.4'/%3E%3Ccircle cx='186' cy='276' r='2.7'/%3E%3Ccircle cx='198' cy='276' r='2.9'/%3E%3Ccircle cx='210' cy='276' r='3.1'/%3E%3Ccircle cx='222' cy='276' r='3.4'/%3E%3Ccircle cx='234' cy='276' r='3.6'/%3E%3Ccircle cx='246' cy='276' r='3.9'/%3E%3Ccircle cx='258' cy='276' r='4.1'/%3E%3Ccircle cx='270' cy='276' r='4.3'/%3E%3Ccircle cx='282' cy='276' r='4.5'/%3E%3Ccircle cx='294' cy='276' r='4.6'/%3E%3Ccircle cx='60' cy='288' r='0.6'/%3E%3Ccircle cx='72' cy='288' r='0.8'/%3E%3Ccircle cx='84' cy='288' r='0.9'/%3E%3Ccircle cx='96' cy='288' r='1.1'/%3E%3Ccircle cx='108' cy='288' r='1.3'/%3E%3Ccircle cx='120' cy='288' r='1.5'/%3E%3Ccircle cx='132' cy='288' r='1.7'/%3E%3Ccircle cx='144' cy='288' r='1.9'/%3E%3Ccircle cx='156' cy='288' r='2.1'/%3E%3Ccircle cx='168' cy='288' r='2.4'/%3E%3Ccircle cx='180' cy='288' r='2.6'/%3E%3Ccircle cx='192' cy='288' r='2.8'/%3E%3Ccircle cx='204' cy='288' r='3.1'/%3E%3Ccircle cx='216' cy='288' r='3.3'/%3E%3Ccircle cx='228' cy='288' r='3.6'/%3E%3Ccircle cx='240' cy='288' r='3.8'/%3E%3Ccircle cx='252' cy='288' r='4.1'/%3E%3Ccircle cx='264' cy='288' r='4.3'/%3E%3Ccircle cx='276' cy='288' r='4.6'/%3E%3Ccircle cx='288' cy='288' r='4.8'/%3E%3Ccircle cx='300' cy='288' r='4.9'/%3E%3Ccircle cx='54' cy='300' r='0.5'/%3E%3Ccircle cx='66' cy='300' r='0.7'/%3E%3Ccircle cx='78' cy='300' r='0.8'/%3E%3Ccircle cx='90' cy='300' r='1.0'/%3E%3Ccircle cx='102' cy='300' r='1.2'/%3E%3Ccircle cx='114' cy='300' r='1.4'/%3E%3Ccircle cx='126' cy='300' r='1.6'/%3E%3Ccircle cx='138' cy='300' r='1.8'/%3E%3Ccircle cx='150' cy='300' r='2.0'/%3E%3Ccircle cx='162' cy='300' r='2.3'/%3E%3Ccircle cx='174' cy='300' r='2.5'/%3E%3Ccircle cx='186' cy='300' r='2.7'/%3E%3Ccircle cx='198' cy='300' r='3.0'/%3E%3Ccircle cx='210' cy='300' r='3.2'/%3E%3Ccircle cx='222' cy='300' r='3.5'/%3E%3Ccircle cx='234' cy='300' r='3.7'/%3E%3Ccircle cx='246' cy='300' r='4.0'/%3E%3Ccircle cx='258' cy='300' r='4.2'/%3E%3Ccircle cx='270' cy='300' r='4.5'/%3E%3Ccircle cx='282' cy='300' r='4.8'/%3E%3Ccircle cx='294' cy='300' r='5.1'/%3E%3C/svg%3E"); --pop-tone-c: rgba(17,17,17,.13); --pop-tone-side: rgba(17,17,17,.15); --pop-tone-np: rgba(17,17,17,.18); }
+[data-theme="pop"]:where([data-mode="night"]) { --pop-tone-c: rgba(255,210,63,.15); --pop-tone-side: rgba(255,210,63,.17); --pop-tone-np: rgba(255,210,63,.2); }
+:root[data-theme="pop"] { --app-bg: #fffdf6; --sidebar-bg: #ffcc1f; }
+:root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
+:root[data-theme="pop"] #sidebar { position: relative; isolation: isolate; }
+:root[data-theme="pop"] #sidebar::after { content: ""; position: absolute; right: 0; bottom: 0; width: 300px; max-width: 100%; height: 300px; z-index: -1; pointer-events: none; background: var(--pop-tone-side); -webkit-mask: var(--pop-tone) right bottom / 300px 300px no-repeat; mask: var(--pop-tone) right bottom / 300px 300px no-repeat; }
+:root[data-theme="pop"] #main { isolation: isolate; }
+:root[data-theme="pop"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: 300px; height: 300px; z-index: -1; pointer-events: none; background: var(--pop-tone-c); -webkit-mask: var(--pop-tone) 0 0 / 300px 300px no-repeat; mask: var(--pop-tone) 0 0 / 300px 300px no-repeat; transform: scaleY(-1); }
+:root[data-theme="pop"] .np-bg::before { content: ""; position: absolute; z-index: 1; left: 0; top: 0; width: 360px; height: 360px; pointer-events: none; background: var(--pop-tone-np); -webkit-mask: var(--pop-tone) 0 0 / 360px 360px no-repeat; mask: var(--pop-tone) 0 0 / 360px 360px no-repeat; transform: scale(-1, -1); }
+
+/* 普普：資料夾頁的表頭、排序、資料夾小標也用普普的配色（原本是藍色的淡底） */
+:root[data-theme="pop"] .ft-head { border-radius: 8px; background: var(--pop-panel); box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); font-weight: 700; }
+:root[data-theme="pop"] .ft-h { border-radius: 6px; }
+:root[data-theme="pop"] .ft-h.on { background: var(--pop-yellow); color: #111; font-weight: 800; }
+:root[data-theme="pop"] .ft-thumb { border-radius: 6px; box-shadow: 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .ft-tab { border-radius: 5px; background: var(--pop-yellow); color: #111; box-shadow: 0 0 0 2px #111; }
+:root[data-theme="pop"] .ft-q:not(.plain) { background: var(--pop-panel); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--pop-line); }
+/* 主要按鈕（播放）：和播放鍵一樣是黃色，不是藍色 */
+:root[data-theme="pop"] .btn.primary { background: var(--pop-yellow); color: #111; }
+:root[data-theme="pop"] .btn.primary:hover { background: var(--pop-yellow); }
