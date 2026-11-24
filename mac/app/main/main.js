@@ -132,7 +132,14 @@ const remoteOnly = id => {
   if ((id && remoteLib.getTrack(id) && !lib.byId.has(id)) || (id && remoteLib.getAlbum(id) && !lib.albums.has(id)))
     throw new Error('這首歌在另一台電腦上，請在那台電腦的 MIKU 裡修改。');
 };
-let lyricsJob = null, fpJob = null, tagsBusy = false;
+let lyricsJob = null, fpJob = null;
+// files being written now: several albums can be written at once, one file never twice at the same time
+const tagsBusy = new Set();
+const WriteSlots = 4;   // files written at once, over all running saves
+let writeSlotsUsed = 0;
+const writeSlotQueue = [];
+const takeWriteSlot = () => writeSlotsUsed < WriteSlots ? (writeSlotsUsed++, Promise.resolve()) : new Promise(r => writeSlotQueue.push(r));
+const giveWriteSlot = () => { const next = writeSlotQueue.shift(); if (next) next(); else writeSlotsUsed--; };
 let artSearch = null, artSearchId = null;
 async function searchArt(a, artist) {
   if (artSearch) artSearch.abort();
@@ -557,9 +564,8 @@ function prepareCover(bytes) {
 
 const BadName = /[\/:*?"<>|\x00-\x1F]/;
 async function saveTags(a) {
-  if (tagsBusy) throw new Error('正在儲存標籤，請稍候');
   if (lib.progress.scanning) throw new Error('媒體庫正在掃描，請等掃描完成後再儲存');
-  const albumId = a.id;
+  const albumId = a.id, job = a.job || null;
   const album = lib.getAlbum(albumId);
   if (!album) throw new Error('找不到這張專輯');
   const edits = new Map();
@@ -602,9 +608,10 @@ async function saveTags(a) {
   const wholeAlbumCover = coverChanged && album.tracks.every(coverFor);
   if (!targets.length) return { albumId, tracks: album.tracks.length, written: 0, failed: [] };
 
-  tagsBusy = true;
+  const paths = new Set(targets.map(t => t.path.toLowerCase()));
+  if ([...paths].some(p => tagsBusy.has(p))) throw new Error('這張專輯正在寫入，請等它完成');
+  for (const p of paths) tagsBusy.add(p);
   try {
-    const paths = new Set(targets.map(t => t.path.toLowerCase()));
     const cur = engine.track;
     const touchesCurrent = !!(cur && paths.has(cur.path.toLowerCase()) && player.current && player.current.id === cur.id);
     let wasPlaying = false, pos = 0;
@@ -612,19 +619,24 @@ async function saveTags(a) {
     else engine.invalidateNext();
     try {
       const failed = [];
-      let done = 0, written = 0;
-      for (const t of targets) {
-        try {
-          const withCover = coverFor(t);
-          if (withCover || edits.has(t.id)) { await TagWriter.write(t.path, edits.get(t.id) || {}, withCover ? cover : null, withCover && removeCover, t); written++; }
-        } catch (e) {
-          const msg = e.code === 'EACCES' || e.code === 'EPERM' ? '沒有寫入權限' : e.code === 'EBUSY' ? '檔案正在被其他程式使用' : e.message;
-          failed.push({ file: path.basename(t.path), error: msg });
-          Log.error('Write tags ' + t.path, e);
+      let done = 0, written = 0, next = 0;
+      post('tagsProgress', { job, albumId, done: 0, total: targets.length, file: '' });
+      // several files at once; the write slots cap it over all running saves
+      await Promise.all(Array.from({ length: Math.min(WriteSlots, targets.length) }, async () => {
+        while (next < targets.length) {
+          const t = targets[next++];
+          await takeWriteSlot();
+          try {
+            const withCover = coverFor(t);
+            if (withCover || edits.has(t.id)) { await TagWriter.write(t.path, edits.get(t.id) || {}, withCover ? cover : null, withCover && removeCover, t); written++; }
+          } catch (e) {
+            const msg = e.code === 'EACCES' || e.code === 'EPERM' ? '沒有寫入權限' : e.code === 'EBUSY' ? '檔案正在被其他程式使用' : e.message;
+            failed.push({ file: path.basename(t.path), error: msg });
+            Log.error('Write tags ' + t.path, e);
+          } finally { giveWriteSlot(); }
+          post('tagsProgress', { job, albumId, done: ++done, total: targets.length, file: path.basename(t.path) });
         }
-        done++;
-        post('tagsProgress', { done, total: targets.length, file: path.basename(t.path) });
-      }
+      }));
       Log.info(`Tags written: ${album.title} — ${written}/${targets.length} files` + (coverChanged ? (removeCover ? ', cover removed' : ', cover embedded') : ''));
       const moved = renames.size ? renameFiles(album.tracks.filter(t => renames.has(t.id)).map(t => [t, renames.get(t.id)]), failed) : {};
       if (Object.keys(moved).length) moveTrackIds(moved);
@@ -635,7 +647,7 @@ async function saveTags(a) {
     } finally {
       if (touchesCurrent) { try { await player.reload(pos, wasPlaying); } catch (e) { Log.error('Resume after tags', e); } }
     }
-  } finally { tagsBusy = false; }
+  } finally { for (const p of paths) tagsBusy.delete(p); }
 }
 
 /** Renames files in their folders, through temporary names (so names can be swapped); lyrics files go along. */

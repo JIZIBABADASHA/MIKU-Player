@@ -1113,7 +1113,10 @@ public sealed class MainForm : Form
         };
     }
 
-    bool _tagsBusy;
+    // files being written now (several albums can be written at once; one file is never written twice at the same
+    // time) and how many files are written at once over all of them
+    readonly HashSet<string> _tagsBusy = new(StringComparer.OrdinalIgnoreCase);
+    static readonly SemaphoreSlim _writeSlots = new(4, 4);
 
     /// <summary>
     /// tags.save { id, tracks: [{ id, set: { field: value } }], cover: { mode: set | remove, url | data } }: writes the
@@ -1122,9 +1125,8 @@ public sealed class MainForm : Form
     /// </summary>
     async Task<object> SaveTags(JsonElement a)
     {
-        if (_tagsBusy) throw new InvalidOperationException("正在儲存標籤，請稍候");
         if (_lib.Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再儲存");
-        string albumId = S(a, "id");
+        string albumId = S(a, "id"), job = S(a, "job");
         var album = _lib.GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
         var edits = new Dictionary<string, Dictionary<string, string>>();
         if (a.TryGetProperty("tracks", out var arr) && arr.ValueKind == JsonValueKind.Array)
@@ -1192,10 +1194,14 @@ public sealed class MainForm : Form
         bool wholeAlbumCover = coverChanged && album.Tracks.All(CoverFor);
         if (targets.Count == 0) return new { albumId, tracks = album.Tracks.Count, written = 0, failed = Array.Empty<object>() };
 
-        _tagsBusy = true;
+        var paths = new HashSet<string>(targets.Select(t => t.Path), StringComparer.OrdinalIgnoreCase);
+        lock (_tagsBusy)
+        {
+            if (paths.Overlaps(_tagsBusy)) throw new InvalidOperationException("這張專輯正在寫入，請等它完成");
+            _tagsBusy.UnionWith(paths);
+        }
         try
         {
-            var paths = new HashSet<string>(targets.Select(t => t.Path), StringComparer.OrdinalIgnoreCase);
             var cur = _engine.Track;
             bool touchesCurrent = cur != null && !cur.IsLive && paths.Contains(cur.Path) && _player.Current?.Id == cur.Id;
             bool wasPlaying = false; double pos = 0;
@@ -1211,29 +1217,29 @@ public sealed class MainForm : Form
             {
                 var failed = new List<object>();
                 int done = 0, written = 0;
-                await Task.Run(() =>
+                Post("tagsProgress", new { job, albumId, done = 0, total = targets.Count, file = "" });
+                // several files at once (each file is its own TagLib object); _writeSlots caps it over all running saves
+                await Task.Run(() => Parallel.ForEach(targets, new ParallelOptions { MaxDegreeOfParallelism = 4 }, t =>
                 {
-                    foreach (var t in targets)
+                    _writeSlots.Wait();
+                    try
                     {
-                        try
+                        bool withCover = CoverFor(t);
+                        if (withCover || edits.ContainsKey(t.Id))   // (a track that is only renamed has nothing to write)
                         {
-                            bool withCover = CoverFor(t);
-                            if (withCover || edits.ContainsKey(t.Id))   // (a track that is only renamed has nothing to write)
-                            {
-                                WhenFree(() => TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover, t));
-                                written++;
-                            }
+                            WhenFree(() => TagWriter.Write(t.Path, edits.TryGetValue(t.Id, out var set) ? set : new Dictionary<string, string>(), withCover ? cover : null, withCover && removeCover, t));
+                            Interlocked.Increment(ref written);
                         }
-                        catch (Exception ex)
-                        {
-                            string msg = ex is UnauthorizedAccessException ? "沒有寫入權限" : ex is IOException ? "檔案正在被其他程式使用" : ex.Message;
-                            failed.Add(new { file = Path.GetFileName(t.Path), error = msg });
-                            Log.Error("Write tags " + t.Path, ex);
-                        }
-                        done++;
-                        Post("tagsProgress", new { done, total = targets.Count, file = Path.GetFileName(t.Path) });
                     }
-                });
+                    catch (Exception ex)
+                    {
+                        string msg = ex is UnauthorizedAccessException ? "沒有寫入權限" : ex is IOException ? "檔案正在被其他程式使用" : ex.Message;
+                        lock (failed) failed.Add(new { file = Path.GetFileName(t.Path), error = msg });
+                        Log.Error("Write tags " + t.Path, ex);
+                    }
+                    finally { _writeSlots.Release(); }
+                    Post("tagsProgress", new { job, albumId, done = Interlocked.Increment(ref done), total = targets.Count, file = Path.GetFileName(t.Path) });
+                }));
                 Log.Info($"Tags written: {album.Title} — {written}/{targets.Count} files" + (coverChanged ? (removeCover ? ", cover removed" : ", cover embedded") : ""));
                 // file names, after the tags (TagLib needs the old path)
                 var moved = renames.Count == 0 ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -1251,7 +1257,7 @@ public sealed class MainForm : Form
                 if (touchesCurrent) { try { await _player.Reload(pos, wasPlaying); } catch (Exception ex) { Log.Error("Resume after tags", ex); } }
             }
         }
-        finally { _tagsBusy = false; }
+        finally { lock (_tagsBusy) _tagsBusy.ExceptWith(paths); }
     }
 
     // ───────────────────────────── 轉換格式 / CUE 分軌 ─────────────────────────────

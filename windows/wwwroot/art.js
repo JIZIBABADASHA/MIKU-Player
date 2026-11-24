@@ -193,7 +193,6 @@ const ArtPicker = {
    更換封面 / 編輯標籤. Also a candidate in the cover picker, before choosing it. */
 const CoverView = {
   el: null,
-  _progress: Host.on('tagsProgress', p => CoverView.onProgress && CoverView.onProgress(p)),
   show(build) {
     this.close();
     const img = new Image();
@@ -225,6 +224,7 @@ const CoverView = {
       embed.onclick = () => this.embed(al, embed, src);
       Host.call('art.info', { id: al.id, dims: true }).then(i => {
         if (!i) return;
+        if (TagJobs.of(al.id)) return;   // (the button follows the job)
         src.textContent = { override: T('自訂封面（只在 MIKU）'), embedded: T('音樂檔內嵌封面'), folder: T('資料夾裡的圖片'), online: T('自動從網路找到'), none: T('沒有封面') }[i.source] || '';
         if (i.dims) dims.textContent = ' · ' + i.dims;
         // a picture that isn't in the music files yet: offer to embed it
@@ -235,10 +235,14 @@ const CoverView = {
         h('button', { class: 'btn small primary', html: icon('image') + T('更換封面'), onclick: () => { this.close(); ArtPicker.open(al); ArtPicker.back = () => this.open(al); } }),
         isRemoteId(al.id) ? null : h('button', { class: 'btn small', html: icon('list') + T('編輯標籤'), onclick: () => { this.close(); TagEditor.back = { id: al.id, fn: () => this.open(al) }; TagEditor.open(al); } }),
         h('button', { class: 'btn small ghost', onclick: () => this.close() }, T('關閉'))].filter(Boolean));
+      this.follow(al, embed, src);   // still writing from before
     });
   },
-  /** Writes the picture the album shows now into its files (tags.save with cover "current"); asks once first. */
-  async embed(al, btn, src) {
+  /**
+   * Writes the picture the album shows now into its files (a TagJobs job, jobs.js); asks once first. The writing goes on when
+   * this view is closed, with its progress in the sidebar; opened again meanwhile, the button shows it again.
+   */
+  embed(al, btn, src) {
     const label = btn.querySelector('span');
     if (!btn.dataset.armed) {
       btn.dataset.armed = '1';
@@ -246,21 +250,24 @@ const CoverView = {
       label.textContent = T`確定寫入 ${al.tracks.length} 個檔案？`;
       return;
     }
-    btn.disabled = true;
-    label.textContent = T('寫入中…');
-    const off = p => { if (btn.isConnected) label.textContent = T`寫入中… ${p.done} / ${p.total}`; };
-    this.onProgress = off;
-    let r;
-    try { r = await Host.call('tags.save', { id: al.id, tracks: [], cover: { mode: 'current' } }); }
-    catch (e) { toast(T('寫入失敗：') + e.message, { error: true }); btn.disabled = false; delete btn.dataset.armed; btn.classList.remove('primary'); label.textContent = T('寫入音樂檔案'); return; }
-    finally { this.onProgress = null; }
-    const failed = r.failed || [];
-    if (failed.length) toast(T`${failed.length} 個檔案沒有寫入：\n` + failed.slice(0, 6).map(f => T`${f.file}：${T.msg(f.error)}`).join('\n'), { error: true, ms: 12000 });
-    if (r.written) toast(T`已把封面寫入 ${r.written} 個檔案`);
-    btn.remove();
-    if (src && src.isConnected && r.written) src.textContent = T('音樂檔內嵌封面');
-    await Lib.load();
-    App.trackKey = null;
+    TagJobs.start(al, { tracks: [], cover: { mode: 'current' } }, 'cover').catch(() => { });
+    this.follow(al, btn, src);
+  },
+  /** The 寫入音樂檔案 button of an album with a job running: its progress, then its result. */
+  follow(al, btn, src) {
+    const job = TagJobs.of(al.id);
+    if (!job) return;
+    const label = btn.querySelector('span');
+    btn.style.display = ''; btn.disabled = true; btn.classList.add('primary');
+    const draw = () => {
+      if (!btn.isConnected) return false;
+      if (job.state === 'running') { label.textContent = job.total ? T`寫入中… ${job.done} / ${job.total}` : T('寫入中…'); return true; }
+      if (job.state === 'done' && job.written) { btn.remove(); if (src && src.isConnected) src.textContent = T('音樂檔內嵌封面'); return false; }
+      // failed (or nothing written): the button again, to try once more
+      btn.disabled = false; delete btn.dataset.armed; btn.classList.remove('primary'); label.textContent = T('寫入音樂檔案');
+      return false;
+    };
+    if (draw()) job.watchers.add(draw);
   },
 
   /** A candidate of the cover picker: large, with its real size, and 使用這張. */

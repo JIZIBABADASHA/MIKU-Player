@@ -247,8 +247,10 @@ const Settings = {
       on.append(field(T('線上歌詞'), T('沒有本機 LRC 時，從 LRCLIB 與網易雲音樂取得同步歌詞。'), sw(s.onlineLyrics, v => this.set({ onlineLyrics: v }))));
       on.append(field(T('歌詞翻譯'), T('日文或英文歌曲顯示中文翻譯（如果有）。'), sw(s.lyricsTranslation, v => this.set({ lyricsTranslation: v }))));
       const jobTxt = h('small', null, T('一次搜尋所有缺少封面的專輯。'));
-      const jobBtn = h('button', { class: 'btn small', html: icon('image') + T('開始搜尋') });
-      let running = false;
+      // (still running from before: the sidebar card, jobs.js)
+      let running = !!(typeof Jobs !== 'undefined' && Jobs.batch.artJob);
+      const jobBtn = h('button', { class: 'btn small', html: running ? T('停止') : icon('image') + T('開始搜尋') });
+      if (running) jobTxt.textContent = Jobs.batch.artJob.text;
       jobBtn.onclick = () => {
         if (running) { Host.call('art.cancel'); return; }
         running = true; jobBtn.innerHTML = T('停止'); Host.call('art.fetchMissing');
@@ -260,8 +262,9 @@ const Settings = {
       });
       on.append(field(T('補齊所有缺少的封面'), jobTxt, jobBtn));
       const lyTxt = h('small', null, T('一次為曲庫裡所有歌曲搜尋歌詞，已有歌詞的會略過。'));
-      const lyBtn = h('button', { class: 'btn small', html: icon('search') + T('開始搜尋') });
-      let lyRunning = false;
+      let lyRunning = !!(typeof Jobs !== 'undefined' && Jobs.batch.lyricsJob);
+      const lyBtn = h('button', { class: 'btn small', html: lyRunning ? T('停止') : icon('search') + T('開始搜尋') });
+      if (lyRunning) lyTxt.textContent = Jobs.batch.lyricsJob.text;
       lyBtn.onclick = () => {
         if (lyRunning) { Host.call('lyrics.cancel'); return; }
         if (!App.settings.onlineLyrics) { toast(T('請先開啟「線上歌詞」')); return; }

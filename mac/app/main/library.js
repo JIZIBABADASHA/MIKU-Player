@@ -444,7 +444,15 @@ class MusicLibrary extends EventEmitter {
    * Read the tags of one album again (album menu, after the tag editor): every audio file in the folders holding its
    * tracks, and the folder pictures. `moved`: old path → new path of renamed files. Returns { albumId, tracks }.
    */
-  async rereadAlbum(albumId, moved = null) {
+  rereadAlbum(albumId, moved = null) {
+    // one at a time: each builds the library from a snapshot of it, so two at once (several albums' covers written
+    // together) would put back the tracks the other one had just read again
+    const run = (this._rereadChain || Promise.resolve()).catch(() => { }).then(() => this.rereadAlbumNow(albumId, moved));
+    this._rereadChain = run;
+    return run;
+  }
+
+  async rereadAlbumNow(albumId, moved) {
     if (this.progress.scanning) throw new Error('媒體庫正在掃描，請等掃描完成後再試');
     const album = this.getAlbum(albumId);
     if (!album) throw new Error('找不到這張專輯');

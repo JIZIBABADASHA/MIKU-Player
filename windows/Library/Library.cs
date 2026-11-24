@@ -444,6 +444,15 @@ public sealed class MusicLibrary
     /// </summary>
     public (string AlbumId, int Tracks) RereadAlbum(string albumId, IReadOnlyDictionary<string, string> moved = null)
     {
+        // one at a time, and not during a folder refresh: each builds the library from a snapshot of it, so two at once
+        // (several albums' covers written together) would put back the tracks the other one had just read again
+        _refreshGate.Wait();
+        try { return RereadAlbumNow(albumId, moved); }
+        finally { _refreshGate.Release(); }
+    }
+
+    (string AlbumId, int Tracks) RereadAlbumNow(string albumId, IReadOnlyDictionary<string, string> moved)
+    {
         if (Progress.Scanning) throw new InvalidOperationException("媒體庫正在掃描，請等掃描完成後再試");
         Album album = GetAlbum(albumId) ?? throw new InvalidOperationException("找不到這張專輯");
         List<string> paths;

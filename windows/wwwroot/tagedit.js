@@ -866,7 +866,7 @@ const TagEditor = {
 
   /* ───────── saving ───────── */
   progress(p) {
-    if (!this.el || !this.s || !this.s.saving || !this.footInfo) return;
+    if (p.job || !this.el || !this.s || !this.s.saving || !this.footInfo) return;   // (p.job: a cover written in the background)
     this.footInfo.textContent = T`寫入中… ${p.done} / ${p.total}　${p.file || ''}`;
   },
 
@@ -879,39 +879,18 @@ const TagEditor = {
     if (clash) { toast(T`檔名有問題：${clash.name}${clash.ext}（${clash.problem}）`, { error: true }); return; }
     const bad = tracks.flatMap(t => Object.entries(t.set)).find(([k, v]) => this.NUMERIC.has(k) && v && +v > (k === 'year' ? 9999 : 999));
     if (bad) { toast(T('數字不正確：') + bad[1], { error: true }); return; }
-    s.saving = true;
-    this.el.classList.add('saving');
-    this.updateFoot();
-    this.footInfo.textContent = T('寫入中…');
+    if (TagJobs.of(s.al.id)) { toast(T`「${s.al.title}」正在寫入，請等它完成`, { error: true }); return; }
+    // written in the background (jobs.js: a card in the sidebar with n / total), the editor closes at once
+    const al = s.al;
     const cover = s.cover ? { mode: s.cover.mode, url: s.cover.url, data: s.cover.data, ids: s.cover.ids || undefined } : null;
-    let r;
-    try { r = await Host.call('tags.save', { id: s.al.id, tracks, cover, rename }); }
-    catch (e) {
-      s.saving = false;
-      if (this.el) { this.el.classList.remove('saving'); this.updateFoot(); }
-      toast(T('儲存失敗：') + e.message, { error: true });
-      return;
-    }
-    s.saving = false;
-    const failed = r.failed || [];
-    if (failed.length) toast(T`${failed.length} 個檔案沒有寫入：\n` + failed.slice(0, 6).map(f => T`${f.file}：${T.msg(f.error)}`).join('\n') + (failed.length > 6 ? '\n…' : ''), { error: true, ms: 12000 });
-    const done = [r.written ? T`已寫入 ${r.written} 個檔案的標籤` : '', r.renamed ? T`已改名 ${r.renamed} 個檔案` : ''].filter(Boolean);
-    if (done.length) toast(done.join(T('，')));
-    // closing the editor goes back one history entry (its overlay entry): the album page is redrawn after that
-    const back = new Promise(res => {
-      const once = () => { window.removeEventListener('popstate', once); res(); };
-      window.addEventListener('popstate', once);
-      setTimeout(once, 500);
-    });
+    const job = TagJobs.start(al, { tracks, cover, rename }, 'tags');
     this.close();
-    await Lib.load();
-    await back;
-    App.trackKey = null;   // the track objects were rebuilt: the now-playing bar redraws with the new ones
-    if (!r.albumId) { if (Router.cur.name === 'album') history.back(); return; }
-    Lib.renamed(s.al.id, r.albumId);
+    let r;
+    try { r = await job; } catch { return; }
+    if (!r.albumId) { if (Router.cur.name === 'album' && location.hash === '#/album/' + al.id) history.back(); return; }
+    // the album's page, if it is still the one shown: drawn again (under the new id: it changes with the album title)
+    if (location.hash !== '#/album/' + al.id && location.hash !== '#/album/' + r.albumId) return;
     const hash = '#/album/' + r.albumId;
-    if (!location.hash.startsWith('#/album/')) return;
-    // the id changes with the album title: replace the page instead of adding a history entry
     if (location.hash !== hash) history.replaceState({ i: Router.idx }, '', hash);
     Router.render(true, 'none');
   },

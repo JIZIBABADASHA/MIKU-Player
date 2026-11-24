@@ -34,6 +34,8 @@ const Convert = {
 
   /** The dialog. { album, tracks } converts tracks; { album, cue } splits the album's big file by its CUE sheet. */
   async open({ album, tracks, cue }) {
+    // one conversion at a time: a running one (maybe in the background) is shown instead
+    if (this.busy) { toast(T('正在轉換，請等它完成')); this.reshow(); return; }
     this.close();
     const info = await this.loadInfo();
     if (!info.ffmpeg) { toast(T('找不到 FFmpeg，無法轉換格式。'), { error: true }); return; }
@@ -48,18 +50,19 @@ const Convert = {
     const scrim = h('div', { class: 'modal-scrim' });
     const modal = h('div', { class: 'modal cvt' });
     scrim.append(modal);
-    scrim.onclick = e => { if (e.target === scrim && !this.busy) this.close(); };
+    scrim.onclick = e => { if (e.target === scrim) this.close(); };
+    const title = (cue ? T('按 CUE 標記切開 · ') : T('轉換格式 · ')) + (album ? album.title : items[0].title);
     const opts = h('div', { class: 'cvt-opts' });
     const list = h('div', { class: 'cvt-list' });
     const status = h('div', { class: 'cvt-status muted' });
     const go = h('button', { class: 'btn primary', html: icon('check') + (cue ? T('開始切開') : T('開始轉換')) });
     const cancel = h('button', { class: 'btn ghost' }, T('取消'));
     modal.append(
-      h('div', { class: 'modal-head' }, h('h2', null, (cue ? T('按 CUE 標記切開 · ') : T('轉換格式 · ')) + (album ? album.title : items[0].title)), h('button', { class: 'icon-btn', html: icon('x'), onclick: () => this.busy ? Host.call('convert.cancel') : this.close() })),
+      h('div', { class: 'modal-head' }, h('h2', null, title), h('button', { class: 'icon-btn', html: icon('x'), onclick: () => this.close() })),   // (while converting: on in the background)
       h('div', { class: 'modal-body' }, opts, h('div', { class: 'cvt-sub' }, cue ? T`${items.length} 首（來自 ${cue.cueName}）` : T`${items.length} 首`), list),
       h('div', { class: 'cvt-foot' }, status, cancel, go));
     document.body.append(scrim);
-    this.el = scrim;
+    this.el = scrim; this.shown = true;
     OverlayHistory.push(this._close = fromPop => this.close(fromPop));
     YT.sync();
 
@@ -119,7 +122,10 @@ const Convert = {
       const { out, dir, ...o } = st;
       this.save({ out, dir, format: o.format, flacLevel: o.flacLevel, mp3: o.mp3, aacKbps: o.aacKbps, opusKbps: o.opusKbps, bits: o.bits, rate: o.rate, cover: o.cover, albumFolder: o.albumFolder });
       let done = 0;
+      // closed while converting: on in the background, with a card in the sidebar (jobs.js) that opens it again
+      this.task = { title, art: album ? albumArt(album) : null, total: items.length, card: null };
       this.onProgress = p => {
+        if (this.task?.card) this.task.card.set({ done: done + (p.state === 'done' ? 1 : 0), total: items.length, text: T`轉換中… ${done + (p.state === 'done' ? 1 : 0)} / ${items.length}` });
         const r = rows.get(p.id);
         if (!r) return;
         if (p.state === 'run') { r.bar.style.width = Math.round((p.pct || 0) * 100) + '%'; r.state.textContent = Math.round((p.pct || 0) * 100) + '%'; r.row.className = 'cvt-row run'; }
@@ -136,9 +142,14 @@ const Convert = {
       this.onProgress = null; this.busy = false;
       this.cues.clear();  // files changed: look for CUE sheets again
       cancel.textContent = T('關閉');
-      if (!r) { status.textContent = ''; return; }
+      const card = this.task?.card; this.task = null;
+      if (card) card.open = () => { card.remove(); this.reshow(); };
+      if (!this.shown && this.el) { this.el = null; if (card) card.open = () => go('#/album/' + ((r && r.albumId && Lib.resolve(r.albumId)) || (album && Lib.resolve(album.id)) || '')); }
+      if (!r) { status.textContent = ''; card?.finish('error', cue ? T('切開失敗') : T('轉換失敗')); return; }
       const failed = r.failed || [];
       status.textContent = r.cancelled ? T`已停止：完成 ${r.done} 首` : T`完成 ${r.done} 首` + (failed.length ? T`，${failed.length} 首失敗` : '');
+      card?.finish(r.cancelled ? 'stopped' : failed.length ? 'error' : 'done', status.textContent);
+      if (card && !failed.length && !r.cancelled) toast(T`「${title}」：` + status.textContent);
       if (failed.length) toast(T`${failed.length} 個檔案沒有完成：\n` + failed.slice(0, 6).map(f => T`${f.file}：${T.msg(f.error)}`).join('\n'), { error: true, ms: 12000 });
       // finished: the start button gives way to one that shows where the files are
       const showBtn = (label, run) => h('button', { class: 'btn primary', html: icon('folder') + label, onclick: run });
@@ -163,11 +174,25 @@ const Convert = {
   },
 
   close(fromPop) {
-    if (!this.el) return false;
-    if (this.busy) { Host.call('convert.cancel'); return true; }
-    this.el.remove(); this.el = null;
+    if (!this.el || !this.shown) return false;
+    this.el.remove(); this.shown = false;
     if (fromPop !== true) OverlayHistory.closed(this._close);
+    if (this.busy && this.task) {
+      // converting: on in the background, shown in the sidebar
+      if (!this.task.card || this.task.card.removed) {
+        const t = this.task;
+        t.card = Jobs.add({ title: t.title, art: t.art, icon: 'refresh', text: T('轉換中…'), open: () => this.reshow(), stop: () => Host.call('convert.cancel') });
+        t.card.set({ total: t.total });
+      }
+    } else this.el = null;
     YT.sync();
     return true;
+  },
+  /** The window of the conversion running in the background, shown again. */
+  reshow() {
+    if (!this.el || this.shown) return;
+    document.body.append(this.el); this.shown = true;
+    OverlayHistory.push(this._close);
+    YT.sync();
   },
 };
