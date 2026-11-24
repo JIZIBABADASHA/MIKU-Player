@@ -487,8 +487,8 @@ function attachRailNav(root) {
     head.addEventListener('pointerenter', intent, { passive: true });
     // drag the rail with the mouse to scroll it (the ‹ › buttons were the only way with a mouse). A press that moves
     // more than a few pixels sideways is a drag: the rail follows the pointer and the click that ends it opens nothing.
-    // A flick keeps gliding and slows down by itself (Fling, dragscroll.js); the rail's own snap then brings a card to
-    // the edge.
+    // A flick keeps gliding and slows down by itself (Fling, dragscroll.js) and stops wherever it
+    // comes to rest, with no snapping to a card.
     let drag = null, stopGlide = () => {};
     const onDown = e => {
       if (e.button !== 0 || e.pointerType !== 'mouse' || e.target.closest('button')) return;
