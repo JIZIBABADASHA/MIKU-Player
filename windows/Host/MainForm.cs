@@ -1514,6 +1514,7 @@ public sealed class MainForm : Form
         {
             if (from == to) continue;
             if (_s.Favorites.Remove(from)) _s.Favorites.Add(to);
+            foreach (var pl in _s.Playlists) for (int i = 0; i < pl.Tracks.Count; i++) if (pl.Tracks[i] == from) pl.Tracks[i] = to;
             for (int i = 0; i < _s.Recent.Count; i++) if (_s.Recent[i] == from) _s.Recent[i] = to;
             if (_s.LyricOffsets.Remove(from, out var off)) _s.LyricOffsets[to] = off;
             try
@@ -1526,6 +1527,7 @@ public sealed class MainForm : Form
         _player.RenameIds(map);
         SaveSoon();
         Post("favs", _s.Favorites);
+        Post("playlists", _s.Playlists);
     }
 
     // ───────────────────────────── messaging ─────────────────────────────
@@ -1666,6 +1668,23 @@ public sealed class MainForm : Form
                 if (!_scanStarted && _s.Folders.Count > 0) { _scanStarted = true; _lib.StartScan(); }
                 return Init();
             case "init": return Init();
+            case "playlists.get": return _s.Playlists;
+            case "playlists.put":
+            {
+                // the page keeps the playlists and sends all of them after each change
+                var list = a.ValueKind == JsonValueKind.Object && a.TryGetProperty("list", out var l) && l.ValueKind == JsonValueKind.Array
+                    ? JsonSerializer.Deserialize<List<Playlist>>(l.GetRawText(), Json.Options) : null;
+                if (list == null) return null;
+                _s.Playlists = list.Where(p => !string.IsNullOrWhiteSpace(p?.Id)).Select(p =>
+                {
+                    p.Name = string.IsNullOrWhiteSpace(p.Name) ? "播放清單" : p.Name.Trim();
+                    p.Tracks = (p.Tracks ?? new()).Where(id => !string.IsNullOrEmpty(id)).ToList();
+                    return p;
+                }).ToList();
+                SaveSoon();
+                Post("playlists", _s.Playlists);
+                return null;
+            }
             case "state": return State();
             // audio CD (Library/Cd.cs)
             case "cd.info": return _cd.Info();
@@ -1825,6 +1844,13 @@ public sealed class MainForm : Form
                 var t = _lib.GetTrack(S(a, "id"));
                 if (t == null) return null;
                 var r = await _lyrics.Apply(t, S(a, "key"));
+                return r == null ? null : LyricsDto(t, r);
+            }
+            case "lyrics.import":
+            {
+                var t = _lib.GetTrack(S(a, "id"));
+                if (t == null) return null;
+                var r = await _lyrics.Import(t, S(a, "text"));
                 return r == null ? null : LyricsDto(t, r);
             }
             case "lyrics.clear":
@@ -2274,7 +2300,7 @@ public sealed class MainForm : Form
         foreach (var prop in patch.EnumerateObject())
         {
             var pi = typeof(Settings).GetProperty(prop.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-            if (pi == null || !pi.CanWrite || pi.Name is nameof(Settings.RemoteLib) or nameof(Settings.Queue) or nameof(Settings.QueueContinuedFrom) or nameof(Settings.Folders) or nameof(Settings.Favorites) or nameof(Settings.Recent) or nameof(Settings.SearchHistory)) continue;
+            if (pi == null || !pi.CanWrite || pi.Name is nameof(Settings.RemoteLib) or nameof(Settings.Queue) or nameof(Settings.QueueContinuedFrom) or nameof(Settings.Folders) or nameof(Settings.Favorites) or nameof(Settings.Playlists) or nameof(Settings.Recent) or nameof(Settings.SearchHistory)) continue;
             var value = prop.Value.Deserialize(pi.PropertyType, Json.Options);
             var old = pi.GetValue(_s);
             if (Equals(old, value)) continue;

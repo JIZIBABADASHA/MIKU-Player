@@ -822,6 +822,7 @@ const App = {
     NavPick.apply();
     if (typeof Theme !== 'undefined') Theme.sync();
     this.favs = new Set(init.settings.favorites || []);
+    Playlists.init(init.settings.playlists);
     this.lastRecent = (init.settings.recent || [])[0] || null;
     this.queue = init.queue;
     this.ffmpeg = init.ffmpeg;
@@ -1376,6 +1377,7 @@ function trackMenu(t, anchor, list) {
     ...MikuExt.menuItems('track', t, list),
     '-',
     { label: App.favs.has(t.id) ? T('從最愛移除') : T('加入我的最愛'), icon: 'heart', run: () => App.toggleFav(t.id) },
+    !isRemoteId(t.id) && Playlists.menuItem([t.id], anchor),
     { label: T('前往專輯'), icon: 'album', run: () => go('#/album/' + t.albumId) },
     ...artistItems(t.artists?.length ? t.artists : [t.artist]),
     ...(isRemoteId(t.id) ? [] : ['-',
@@ -1442,6 +1444,7 @@ async function albumMenu(al, anchor, onPage, extra) {
     { label: T('下一首播放'), icon: 'next-up', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id), next: true }); toast(T('已排在下一首')); } },
     { label: T('加入播放佇列'), icon: 'queue', run: () => { Host.call('queue.add', { ids: al.tracks.map(t => t.id) }); toast(T`已加入 ${al.tracks.length} 首`); } },
     ...MikuExt.menuItems('album', al),
+    !remote && Playlists.menuItem(al.tracks.map(t => t.id), anchor),
     '-',
     ...(onPage ? [] : artistItems(al.artists.filter(realArtist))),
     { label: T('加入演出者頁面…'), icon: 'artist', run: () => addAlbumToArtist(al, anchor) },
@@ -2359,7 +2362,7 @@ const Router = {
     const same = this.cur.key === r.key;
     this.cur.cleanup && this.cur.cleanup();
     this.cur = r;
-    $$('#nav a').forEach(a => a.classList.toggle('on', a.dataset.r === r.name || (r.name === 'album' && a.dataset.r === 'albums') || (r.name === 'artist' && a.dataset.r === 'artists')));
+    $$('#nav a').forEach(a => a.classList.toggle('on', a.dataset.r === r.name || (r.name === 'album' && a.dataset.r === 'albums') || (r.name === 'artist' && a.dataset.r === 'artists') || (r.name === 'playlist' && a.dataset.r === 'playlists')));
     NavPill.move();
     if (r.name !== 'search' && document.activeElement !== $('#q')) $('#q').value = '';
     const view = $('#view');

@@ -202,6 +202,7 @@ const NowPlaying = {
       h('div', { class: 'ly-pick-head' }, T('選擇正確的歌詞')),
       ...(rows.length ? rows : [h('div', { class: 'ly-pick-msg' }, T('找不到其他候選。'))]),
       h('div', { class: 'ly-pick-foot' },
+        h('button', { class: 'btn small ghost', title: T('用自己的 .lrc 歌詞檔（例如 foobar2000 用的），之後會固定使用這份歌詞'), onclick: () => { p.hidden = true; this.importLrc(id); } }, T('匯入 LRC 檔…')),
         h('button', { class: 'btn small ghost', onclick: async () => {
           p.hidden = true;
           await Host.call('lyrics.clear', { id });
@@ -210,6 +211,24 @@ const NowPlaying = {
           this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
           toast(T('已回報，這首歌不再自動顯示錯誤的歌詞'));
         } }, T('都不對，不要顯示歌詞'))));
+  },
+
+  /** 匯入 LRC 檔: the listener picks a .lrc (or .txt) file; it becomes this track's lyrics from now on. */
+  importLrc(id) {
+    const inp = h('input', { type: 'file', accept: '.lrc,.txt,text/plain' });
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      if (f.size > 2e6) { toast(T('這個檔案太大，不像是歌詞檔')); return; }
+      const text = await readLyricsFile(f);
+      const r = await Host.call('lyrics.import', { id, text }).catch(() => null);
+      if (!r) { toast(T('這個檔案裡沒有歌詞')); return; }
+      if (App.state.trackId !== id) { toast(T('已匯入歌詞')); return; }
+      this.ly = lyricsOf(r, r.id, r.source);
+      this.active = -2; this.renderLyrics(); this.applyLayout(); this.updateCandBtn(App.track());
+      toast(r.synced ? T('已匯入同步歌詞，之後會固定使用這份歌詞') : T('已匯入歌詞（沒有時間標記，不會同步捲動）'));
+    };
+    inp.click();
   },
 
   /** The heart in the middle of the cover after a double-click: popping in (on) or shrinking away (off). */
@@ -380,7 +399,7 @@ const NowPlaying = {
   },
 
   /** Scroll that puts line i where the current line sits. */
-  scrollTo(i) { return this.tops[i] + (this.heights[i] || 0) / 2 - this.boxH * 0.36; },
+  scrollTo(i) { return this.tops[i] + (this.heights[i] || 0) / 2 - this.boxH * 0.43; },   // a little above the middle (0.36 had the eyes looking up)
 
   /** A hand-scroll offset that stops once the first line is just under the box's faded top edge, or the last line just
    *  above its faded bottom edge (.lyrics mask: 13% / 80%), so the lyrics can't be pulled away into a blank page.
@@ -476,3 +495,20 @@ const NowPlaying = {
   },
 };
 NowPlaying.init();
+
+/** Reads a lyrics file chosen by the listener: UTF-8 / UTF-16 (BOM), else the legacy encodings old .lrc files use (Shift-JIS, Big5, GBK). */
+async function readLyricsFile(f) {
+  const b = new Uint8Array(await f.arrayBuffer());
+  if (b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(b);
+  if (b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(b);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { }
+  // not UTF-8: the legacy encoding that decodes with the fewest replacement characters
+  let best = null, bad = Infinity;
+  for (const enc of ['shift_jis', 'big5', 'gbk']) {
+    try {
+      const s = new TextDecoder(enc).decode(b), n = (s.match(/\uFFFD/g) || []).length;
+      if (n < bad) { best = s; bad = n; }
+    } catch { }
+  }
+  return best ?? new TextDecoder('utf-8').decode(b);
+}

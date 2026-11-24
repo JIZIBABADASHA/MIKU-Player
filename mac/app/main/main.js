@@ -51,7 +51,7 @@ const defaults = () => ({
   dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
-  repeat: 'off', autoContinue: 'off', shuffle: false, queue: [], queueIndex: -1, resumePosition: 0, favorites: [], recent: [], searchHistory: [], artConfirmed: [],
+  repeat: 'off', autoContinue: 'off', shuffle: false, queue: [], queueIndex: -1, resumePosition: 0, favorites: [], playlists: [], recent: [], searchHistory: [], artConfirmed: [],
   lyricOffsets: {}, ui: {}, acoustIdKey: null, remoteEnabled: true, remotePort: 8765, window: null, maximized: false, autoUpdate: true,
 });
 const S = Object.assign(defaults(), Json.load(AppPaths.Settings, {}));
@@ -797,6 +797,7 @@ function moveTrackIds(moved) {
   for (const [from, to] of map) {
     if (from === to) continue;
     if (S.favorites.includes(from)) S.favorites = S.favorites.map(x => x === from ? to : x);
+    for (const pl of S.playlists || []) pl.tracks = pl.tracks.map(x => x === from ? to : x);
     S.recent = S.recent.map(x => x === from ? to : x);
     if (from in S.lyricOffsets) { S.lyricOffsets[to] = S.lyricOffsets[from]; delete S.lyricOffsets[from]; }
     try { const c = LyricsService.cacheFile(from), c2 = LyricsService.cacheFile(to); if (fs.existsSync(c) && !fs.existsSync(c2)) fs.renameSync(c, c2); } catch { }
@@ -804,6 +805,7 @@ function moveTrackIds(moved) {
   player.renameIds(map);
   saveSoon();
   post('favs', S.favorites);
+  post('playlists', S.playlists || []);
 }
 
 function openExternal(u) { if (u && /^https?:\/\//.test(u)) shell.openExternal(u).catch(() => { }); }
@@ -840,7 +842,7 @@ async function devicesDto() {
   return { devices: list, caps, asio: [], nativeAvailable: engine.nativeAvailable };
 }
 
-const Protected = new Set(['remoteLib', 'queue', 'queueContinuedFrom', 'folders', 'favorites', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
+const Protected = new Set(['remoteLib', 'queue', 'queueContinuedFrom', 'folders', 'favorites', 'playlists', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
 async function applySettings(patch) {
   let device = false, output = false, dsp = false, volume = false, rg = false, rem = false, dsdRate = false;
   for (const [k, v] of Object.entries(patch || {})) {
@@ -893,6 +895,18 @@ async function handleRpc(m, a) {
       if (!scanStarted && S.folders.length) { scanStarted = true; lib.startScan(); }
       return init();
     case 'init': return init();
+    case 'playlists.get': return S.playlists || [];
+    case 'playlists.put': {
+      // the page keeps the playlists (播放清單) and sends all of them after each change
+      if (!Array.isArray(a.list)) return null;
+      S.playlists = a.list.filter(p => p && typeof p.id === 'string' && p.id.trim()).map(p => ({
+        id: p.id, name: String(p.name || '').trim() || '播放清單',
+        tracks: (Array.isArray(p.tracks) ? p.tracks : []).filter(x => typeof x === 'string' && x),
+        created: +p.created || 0, updated: +p.updated || 0,
+      }));
+      saveSoon(); post('playlists', S.playlists);
+      return null;
+    }
     case 'ui.visibility':
       uiVisible = a.visible === true && !!win && win.isVisible() && !win.isMinimized();
       if (uiVisible) post('state', state());
@@ -975,6 +989,12 @@ async function handleRpc(m, a) {
       const t = lib.getTrack(a.id);
       if (!t) return null;
       const r = await lyrics.apply(t, String(a.key || ''));
+      return r ? lyricsDto(t, r) : null;
+    }
+    case 'lyrics.import': {
+      const t = lib.getTrack(a.id);
+      if (!t) return null;
+      const r = lyrics.importText(t, String(a.text || ''));
       return r ? lyricsDto(t, r) : null;
     }
     case 'lyrics.clear': { const t = lib.getTrack(a.id); if (t) lyrics.clear(t); return null; }

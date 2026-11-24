@@ -239,6 +239,8 @@ public sealed class Settings
     /// <summary>Where the queue came from, when an extension module started it (MikuExt play's source); null otherwise.</summary>
     public JsonElement? QueueSource { get; set; }
     public HashSet<string> Favorites { get; set; } = new();
+    /// <summary>The listener's own playlists (播放清單), in the order shown.</summary>
+    public List<Playlist> Playlists { get; set; } = new();
     public List<string> Recent { get; set; } = new();         // track ids, most recent first
     public List<string> SearchHistory { get; set; } = new();  // search queries, most recent first
     public HashSet<string> ArtConfirmed { get; set; } = new();
@@ -282,4 +284,14 @@ public sealed class RemoteEntry
     public string Url { get; set; }
     public string Token { get; set; }
     public string Name { get; set; }
+}
+
+/// <summary>A playlist the listener made (播放清單): a name and track ids, in order (a track may be in it more than once).</summary>
+public sealed class Playlist
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public List<string> Tracks { get; set; } = new();
+    public long Created { get; set; }
+    public long Updated { get; set; }
 }

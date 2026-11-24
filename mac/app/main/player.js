@@ -97,7 +97,16 @@ class Player extends EventEmitter {
       let next = null;
       if (this.index + 1 < this.queue.length) { this.index++; next = this.current; }
       if (next) { this.persist(); this.changedQueue(); await this.load(next, 0, true); }
+      else if (this.continuation) {
+        // the queue's last track (e.g. a Smart Playlist pick the DAC can't play): the module is asked for the next one
+        // and it plays, instead of the queue stopping there for good
+        this.advanceWhenAdded = true;
+        this.ensureAutoNext(false);
+      }
     }
+    // not opened for another reason (the DAC refused this track's format …): playback stays on it, but a module going on
+    // with the queue is still asked, so the next track is there to skip to instead of the queue ending here
+    else if (!this.engine.isLoaded && this.continuation) this.ensureAutoNext(false);
     this.changedNow();
   }
 
@@ -107,6 +116,7 @@ class Player extends EventEmitter {
     if (!list.length) return;
     this.s.queueSource = source || null;   // who made the list (a module's page): shown by the player bar; none clears it
     this.continuedFrom = -1;
+    this.emptyAsks = 0; this.advanceWhenAdded = false;
     const explicit = start >= 0;
     start = Math.min(Math.max(start, 0), list.length - 1);
     this.s.shuffle = shuffle;
@@ -244,7 +254,7 @@ class Player extends EventEmitter {
         this.asking = false;
         if (this.queue.length !== count || this.index !== count - 1) {
           // the queue changed meanwhile (a pick taken out after a vote): asked again if it still ends at the track playing
-          if (this.queue.length && this.index === this.queue.length - 1 && this.engine.isLoaded) this.ensureAutoNext(false);
+          if (this.queue.length && this.index === this.queue.length - 1 && (this.engine.isLoaded || this.advanceWhenAdded)) this.ensureAutoNext(false);
           return;
         }
         const valid = (add || []).filter(id => this.lib.getTrack(id));
@@ -252,9 +262,27 @@ class Player extends EventEmitter {
           if (chosen && this.continuedFrom < 0) this.continuedFrom = this.queue.length;   // the module's own list (a radio) is all its own already
           this.queue.push(...valid);
           if (this.unshuffled) this.unshuffled.push(...valid);
+          this.emptyAsks = 0;
           this.engine.invalidateNext(); this.persist(); this.changedQueue();
+          // the track before could not be opened: go on with what was just added
+          if (this.advanceWhenAdded && !this.engine.isLoaded && this.index + 1 < this.queue.length) this.jumpTo(this.index + 1);
+          this.advanceWhenAdded = false;
         } else if (chosen) this.addRandom('tracks');
+        else this.retryContinuation();
       });
+  }
+  /**
+   * The module had nothing to add for its own list (a radio): asked again a little later, a few times, while the queue
+   * still ends at the track playing. Before, one empty answer (e.g. while it was busy) left the queue stuck.
+   */
+  retryContinuation() {
+    const n = this.emptyAsks = (this.emptyAsks || 0) + 1;
+    require('./common').Log.info(`[ext] continue: nothing added (${n})`);
+    if (n > 3) { this.advanceWhenAdded = false; return; }
+    const count = this.queue.length;
+    setTimeout(() => {
+      if (this.queue.length === count && this.index === count - 1 && (this.engine.isLoaded || this.advanceWhenAdded)) this.ensureAutoNext(false);
+    }, 5000 * n);
   }
   addRandom(mode) {
     if (mode !== 'albums' && mode !== 'tracks') return;

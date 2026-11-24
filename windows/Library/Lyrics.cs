@@ -262,6 +262,25 @@ public sealed class LyricsService
         return r;
     }
 
+    /// <summary>The source name of lyrics the listener imported from a file (歌詞不對？ → 匯入 LRC 檔): they win over everything else.</summary>
+    public const string ImportedSource = "匯入的歌詞";
+
+    /// <summary>
+    /// Lyrics from a file the listener chose (.lrc, or plain text): pinned as this track's lyrics, ahead of a sidecar
+    /// file, embedded lyrics and online results. Null when the text has no lyrics in it.
+    /// </summary>
+    public async Task<LyricsResult> Import(Track t, string text)
+    {
+        text = (text ?? "").TrimStart('\uFEFF');
+        var r = Lrc.LooksSynced(text)
+            ? new LyricsResult { Source = ImportedSource, Synced = true, Lines = Lrc.Parse(text) }
+            : new LyricsResult { Source = ImportedSource, Lines = Lrc.Plain(text) };
+        if (r.Lines.Count(l => !string.IsNullOrWhiteSpace(l.Text)) == 0) return null;
+        r.Manual = true; r.Fetched = DateTime.UtcNow;
+        await File.WriteAllTextAsync(CachePath(t), Json.Serialize(r));
+        return r;
+    }
+
     /// <summary>"None of these are right": remember that, so the wrong lyrics never come back on their own.</summary>
     public async Task Clear(Track t)
     {
@@ -274,6 +293,18 @@ public sealed class LyricsService
     async Task<LyricsResult> Resolve(Track t)
     {
         LyricsResult plainFallback = null;
+
+        // 0. lyrics the listener imported (they chose them over whatever else there is)
+        string pinned = CachePath(t);
+        if (File.Exists(pinned))
+        {
+            try
+            {
+                var c = Json.Deserialize<LyricsResult>(await File.ReadAllTextAsync(pinned));
+                if (c != null && c.Manual && c.Source == ImportedSource && c.Lines.Count > 0) return c;
+            }
+            catch { }
+        }
 
         // 1. sidecar .lrc / .txt
         foreach (var ext in new[] { ".lrc", ".LRC", ".txt" })
