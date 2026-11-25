@@ -143,7 +143,7 @@
 :root[data-theme="pop"] .switch::after { left: 5px; top: 5px; width: 14px; height: 14px; background: #ffffff; box-shadow: 0 0 0 2px #111111; }
 :root[data-theme="pop"] .switch.on { background: var(--pop-yellow); }
 :root[data-theme="pop"] .switch.on::after { background: #111111; box-shadow: 0 0 0 2px #111111; }
-:root[data-theme="pop"]:where([data-mode="night"]) .switch { background: #4b4a57; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch { background: #4b4a57; box-shadow: inset 0 0 0 2px #b9b6c9; }
 :root[data-theme="pop"]:where([data-mode="night"]) .switch::after { background: #f5f1e6; box-shadow: 0 0 0 2px #111111; }
 :root[data-theme="pop"]:where([data-mode="night"]) .switch.on { background: var(--pop-yellow); box-shadow: inset 0 0 0 2px #111111; }
 :root[data-theme="pop"] .np-bg::before { display: none; }

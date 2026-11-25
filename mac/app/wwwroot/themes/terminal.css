@@ -254,7 +254,7 @@
 :root[data-theme="terminal"] .badge { box-shadow: inset 0 0 0 1px var(--tm-frame); color: var(--text-2); }
 
 /* 設定頁的滑桿（原生 range）：方形的滑塊 */
-:root[data-theme="terminal"] .range { border-radius: 0; background: rgba(var(--teal-rgb), .2); }
+:root[data-theme="terminal"] .range { border-radius: 0; background: rgba(var(--teal-rgb), .38); }
 :root[data-theme="terminal"] .range::-webkit-slider-thumb { border-radius: 0; width: 8px; height: 16px; background: var(--teal); box-shadow: none; }
 
 /* ───────────── 11 · 播放列：狀態列 ─────────────
