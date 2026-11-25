@@ -143,6 +143,8 @@ const NowPlaying = {
     new ResizeObserver(() => { if (this.open) this.measure(); }).observe(box);
     // another theme or mode can space the lines differently (--ly-gap / --ly-anchor / --ly-start): measured again
     new MutationObserver(() => { if (this.open) this.measure(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode'] });
+    // 輕量化的「模糊」turned on or off: the lines not being sung blur again, or turn sharp
+    addEventListener('miku-effects-change', () => { if (this.open) this.layoutLines(); });
     // the top-right lyrics buttons show for 5 s after Now Playing opens, then fade; hovering the top bar brings them back
     const top = $('#np .np-top');
     top.addEventListener('mouseenter', () => this.wakeTop(false));
@@ -479,11 +481,13 @@ const NowPlaying = {
     const box = $('#lyrics');
     if (!box.clientHeight) return;   // hidden: measured again once it has a size
     // a theme can give the lines more room and pick where the current line sits, in CSS on #lyrics: --ly-gap (px between
-    // lines, 6 if unset), --ly-anchor (the current line's middle, as a fraction of the box height, .43 if unset) and
+    // lines, 16 if unset), --ly-anchor (the current line's middle, as a fraction of the box height, .43 if unset) and
     // --ly-start (at the start of a song the first line sits this far down instead of at the anchor, so the box is not
     // half empty; unset: off)
     const cs = getComputedStyle(box), num = (k, d) => { const v = parseFloat(cs.getPropertyValue(k)); return Number.isFinite(v) ? v : d; };
-    this.gap = num('--ly-gap', 6); this.anchor = num('--ly-anchor', 0.43); this.start = num('--ly-start', NaN);
+    this.gap = num('--ly-gap', 16); this.anchor = num('--ly-anchor', 0.43); this.start = num('--ly-start', NaN);
+    // --ly-blur: how strongly the lines not being sung blur (1 = the usual, 0 = sharp); the theme sets it on #lyrics
+    this.blurK = num('--ly-blur', 1);
     this.fitLines(num('--ly-fit', 0) > 0);
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
@@ -548,6 +552,8 @@ const NowPlaying = {
     box.classList.toggle('ly-direct', !!manual && PageEffects.reduced('scroll'));
     // 終端機: every line at full size, like rows of text on a screen or a printout (the others shrink the lines not sung)
     const theme = document.documentElement.dataset.theme, small = theme === 'terminal' ? 1 : 0.965;
+    // the line being sung is the sharpest; the others blur a little, more the further away (lightweight blur: none)
+    const k = PageEffects.reduced('blur') ? 0 : (this.blurK ?? 1);
     this.lines.forEach((el, i) => {
       const d = i - a;
       const dist = Math.abs(d);
@@ -556,7 +562,7 @@ const NowPlaying = {
       el.style.transitionDelay = `${delay}ms, 0ms, 0ms, 0ms`;
       if (instant) el.style.transitionDuration = '0s';
       el.style.transform = `translateY(${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : small})`;
-      el.style.filter = i === this.active || scrolling ? 'none' : `blur(${Math.min(dist * 0.7, 3.2)}px)`;
+      el.style.filter = i === this.active || scrolling || !k ? 'none' : `blur(${(Math.min(0.3 + dist * 0.5, 2.4) * k).toFixed(2)}px)`;
       el.classList.toggle('on', i === this.active);
     });
     const cur = this.lines[this.active] || null;

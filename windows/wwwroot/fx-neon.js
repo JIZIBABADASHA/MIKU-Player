@@ -110,7 +110,7 @@
 
   /* ── the pointer over the now-playing page ── */
   const SEGS = 16;
-  let trail = null, segs = [], segI = 0, last = null, pend = null, raf = 0, npRect = null;
+  let trail = null, segs = [], segI = 0, last = null, pend = null, raf = 0;
   function trailOn() {
     const np = document.getElementById('np');
     if (!np || trail) return;
@@ -121,29 +121,28 @@
     np.appendChild(trail);
     np.addEventListener('pointermove', onMove, { passive: true });
     np.addEventListener('pointerleave', onLeave, { passive: true });
-    addEventListener('resize', onResize, { passive: true });
   }
   function trailOff() {
     const np = document.getElementById('np');
     if (np) { np.removeEventListener('pointermove', onMove); np.removeEventListener('pointerleave', onLeave); }
-    removeEventListener('resize', onResize);
-    cancelAnimationFrame(raf); raf = 0; pend = null; last = null; npRect = null;
+    cancelAnimationFrame(raf); raf = 0; pend = null; last = null;
     if (trail) trail.remove();
     trail = null; segs = [];
   }
-  function onResize() { npRect = null; }
   function onLeave() { last = null; pend = null; }
   function onMove(e) {
     const np = e.currentTarget;
-    if (!np.classList.contains('on') || e.pointerType === 'touch') return;
+    if (!np.classList.contains('on') || e.pointerType === 'touch') { last = null; return; }
     pend = { x: e.clientX, y: e.clientY };
     if (!raf) raf = requestAnimationFrame(draw);
   }
   function draw() {
     raf = 0;
     if (!pend || !trail) return;
-    if (!npRect) npRect = document.getElementById('np').getBoundingClientRect();
-    const p = { x: pend.x - npRect.left, y: pend.y - npRect.top };
+    // where the trail's box is now, read every time: the page slides up when it opens (and down when it closes), so a
+    // place remembered from a moment during the slide put the whole trail off the pointer from then on
+    const box = trail.getBoundingClientRect();
+    const p = { x: pend.x - box.left, y: pend.y - box.top };
     pend = null;
     if (!last) { last = p; return; }
     const dx = p.x - last.x, dy = p.y - last.y, len = Math.hypot(dx, dy);

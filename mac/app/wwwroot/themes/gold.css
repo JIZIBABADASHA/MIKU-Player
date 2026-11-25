@@ -716,3 +716,4 @@
   box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px rgba(var(--teal-rgb), .4), 0 1px 0 rgba(90,58,4,.25);
 }
 :root[data-theme="gold"] .dp-sect .dp-group.dp-off { box-shadow: none; }
+:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics { --ly-dim: .48; }

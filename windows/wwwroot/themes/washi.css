@@ -147,3 +147,4 @@
 :root[data-theme="washi"]:where([data-mode="night"]) .dp-sect .dp-group { border-color: rgba(232,226,211,.2); background: rgba(232,226,211,.035); }
 :root[data-theme="washi"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(242,235,223,.95); }
 :root[data-theme="washi"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(21,26,39,.95); }
+:root[data-theme="washi"] #lyrics { --ly-dim: .4; }

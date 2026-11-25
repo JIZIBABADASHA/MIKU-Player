@@ -298,10 +298,15 @@
    歌詞的面板只是靜態的漸層（不動、不模糊），亮帶只動 transform，打字只切換 visibility，很省。 */
 /* 共用的尺寸：時間欄的寬度、行的左右留白 */
 :root[data-theme="terminal"] #np {
-  --tm-ts-w: 54px;          /* [分:秒] 時間欄 */
+  --tm-ts-w: 62px;          /* [分:秒] 時間欄 */
   --tm-ly-l: 16px;          /* 行和螢幕（紙）左邊的距離 */
   --tm-ly-r: 18px;
+  --tm-fs: clamp(22px, 2.35vw, 34px);   /* 歌詞的字級（寬視窗在下面改小一點）；時間欄和游標照這個對齊第一行 */
 }
+
+/* 像終端機的輸出：歌曲開始時第一行在螢幕最上面，一行一行往下印；印到螢幕下方三分之二之後，舊的行往上捲走。
+   還沒唱到的行不顯示（滑鼠移到歌詞上才淡淡出現，可以點），所以下面不會空著一片。行距比別的主題窄一點，像一行一行的文字。 */
+:root[data-theme="terminal"] #lyrics { --ly-anchor: .66; --ly-start: .06; --ly-gap: 8px; --ly-blur: .45; --ly-dim: .74; }
 :root[data-theme="terminal"]:where([data-mode="day"]) #np { --tm-ly-l: 36px; --tm-ly-r: 38px; }
 
 /* 歌詞欄＝螢幕（夜）：圓角、機殼框、暈影、掃描線、反光，全是不動的漸層 */
@@ -309,13 +314,12 @@
   overflow: hidden; isolation: isolate;
   border-radius: 28px / 24px;
   background:
-    radial-gradient(130% 100% at 50% 46%, transparent 52%, rgba(5,12,8,.5) 100%),
-    radial-gradient(60% 34% at 26% 8%, rgba(215,255,228,.07), transparent 70%),
-    repeating-linear-gradient(0deg, rgba(0,0,0,.17) 0 1px, transparent 1px 3px),
-    radial-gradient(110% 85% at 50% 45%, #22392c 0, #1c3126 55%, #15261c 100%);
+    radial-gradient(130% 100% at 50% 46%, transparent 48%, rgba(3,9,5,.62) 100%),
+    radial-gradient(60% 34% at 26% 8%, rgba(215,255,228,.08), transparent 70%),
+    radial-gradient(110% 85% at 50% 45%, #1f3628 0, #182c20 55%, #102017 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(150,255,185,.22), inset 0 0 46px rgba(0,0,0,.34),
-    0 0 0 7px #142019, 0 0 0 8px rgba(150,255,185,.18), 0 28px 60px -20px rgba(0,0,0,.6);
+    inset 0 0 0 1px rgba(150,255,185,.2), inset 0 0 70px rgba(0,0,0,.5), inset 0 2px 0 rgba(200,255,220,.06),
+    0 0 0 9px #0d1610, 0 0 0 10px rgba(150,255,185,.16), 0 0 34px 10px rgba(92,240,147,.06), 0 28px 60px -20px rgba(0,0,0,.6);
   transition: opacity .45s ease .16s;
 }
 :root[data-theme="terminal"] #np.nolyrics .np-right { opacity: 0; transition: opacity .3s ease; }
@@ -347,20 +351,39 @@
 :root[data-theme="terminal"] #lyrics .ly-line {
   left: var(--tm-ly-l); right: var(--tm-ly-r);
   padding: 7px 14px 7px calc(14px + var(--tm-ts-w));
-  font-family: var(--font); font-weight: 600; letter-spacing: 0;
-  color: var(--tm-ly-past); opacity: 1 !important; filter: none !important; text-shadow: none;
+  font: 600 var(--tm-fs)/1.36 var(--font); letter-spacing: 0;
+  color: var(--tm-ly-past); text-shadow: var(--tm-ly-glow-past, none);
   border-radius: 0;
-  transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .28s var(--ease), filter .35s var(--ease), background .2s, color .4s var(--ease);
+  transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .5s var(--ease), filter .35s var(--ease), background .2s, color .4s var(--ease);
 }
-@media (min-width: 761px) and (orientation: landscape) {:root[data-theme="terminal"] #lyrics .ly-line { font-size: clamp(20px, 2.05vw, 29px); line-height: 1.36; }
+@media (min-width: 761px) and (orientation: landscape) {:root[data-theme="terminal"] #np { --tm-fs: clamp(20px, 2.05vw, 29px); }
 }
-:root[data-theme="terminal"] #lyrics .ly-line.on ~ .ly-line, :root[data-theme="terminal"] #lyrics:not(:has(.ly-line.on)) .ly-line { color: var(--tm-ly-next); }
-:root[data-theme="terminal"] #lyrics .ly-line.on { color: var(--tm-ly-on); text-shadow: var(--tm-ly-glow); transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .28s var(--ease), filter .35s var(--ease), background .2s; }
+
+/* 還沒唱到的行：不顯示；滑鼠在歌詞螢幕上時淡淡出現（滑過的那一行亮一點，可以點）。歌曲開始前整個螢幕是空的、只有游標在閃 */
+:root[data-theme="terminal"] #np .np-right #lyrics :is(.ly-line.on ~ .ly-line, .ly-line:not(.on):not(.on ~ .ly-line):not(:has(~ .ly-line.on))):not(:hover) {
+  opacity: 0; filter: none !important; color: var(--tm-ly-next); transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .35s var(--ease), background .2s;
+}
+:root[data-theme="terminal"] #np .np-right:hover #lyrics :is(.ly-line.on ~ .ly-line, .ly-line:not(.on):not(.on ~ .ly-line):not(:has(~ .ly-line.on))):not(:hover) { opacity: .34; }
+:root[data-theme="terminal"] #lyrics .ly-line.on ~ .ly-line:hover { color: var(--tm-ly-next); }
+
+/* 正在唱的那一行：最亮、有磷光暈；一變成這一行就整行在（字由打字一個一個出現），不淡入 */
+:root[data-theme="terminal"] #lyrics .ly-line.on { color: var(--tm-ly-on); text-shadow: var(--tm-ly-glow); transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity 0s, filter .35s var(--ease), background .2s; }
 :root[data-theme="terminal"] #lyrics .ly-line:hover { background: var(--tm-ly-hover); }
+
+/* 歌曲開始前（還沒有正在唱的行）：第一行的位置上一格方塊游標在閃，像等著輸出的終端機 */
+:root[data-theme="terminal"] #lyrics:has(.ly-line):not(:has(.ly-line.on))::after {
+  content: ""; position: absolute; z-index: 1; pointer-events: none;
+  left: calc(var(--tm-ly-l) + 14px + var(--tm-ts-w)); top: calc(6% + 7px + var(--tm-fs) * .17);
+  width: calc(var(--tm-fs) * .56); height: var(--tm-fs);
+  background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
+  animation: tm-cur-blink 1.06s step-end infinite;
+}
+:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics::after { box-shadow: none; }
+:root[data-theme="terminal"] #np:not(.on) #lyrics::after { animation: none; }
 
 /* 翻譯：小一號的等寬字，跟著那一行的明暗 */
 :root[data-theme="terminal"] #lyrics .ly-line .tr { font-family: var(--font); font-weight: 500; color: var(--tm-ly-tr-past); text-shadow: none; }
-:root[data-theme="terminal"] #lyrics .ly-line.on ~ .ly-line .tr, :root[data-theme="terminal"] #lyrics:not(:has(.ly-line.on)) .ly-line .tr { color: var(--tm-ly-tr-next); }
+:root[data-theme="terminal"] #lyrics .ly-line.on ~ .ly-line .tr { color: var(--tm-ly-tr-next); }
 :root[data-theme="terminal"] #lyrics .ly-line.on .tr { color: var(--tm-ly-tr-on); }
 
 /* 日：每一行輪流印在淺綠條紋上（綠條紋報表紙），條紋跟著行一起捲動 */
@@ -368,15 +391,15 @@
 :root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line:nth-child(even):hover { background: rgba(92,170,110,.24); }
 
 /* [分:秒] 時間欄：掛在行首左邊的留白裡、和歌詞同一條基線；正在唱的反白 */
+/* 每一行的時間都是同一個大小的格子，垂直置中在歌詞第一行的高度上（不管哪種字型，時間和歌詞的中線對齊）；
+   正在唱的那一行只是把同一個格子填滿，位置、寬度都不變 */
 :root[data-theme="terminal"] #lyrics .ly-line[data-ts]:not(.gap)::before {
-  content: attr(data-ts); display: inline-block; box-sizing: border-box;
-  width: var(--tm-ts-w); margin-left: calc(-1 * var(--tm-ts-w)); padding-right: 10px;
-  font: 600 13px/1.5 var(--font); letter-spacing: 0; color: var(--tm-ly-ts); text-shadow: none; vertical-align: .18em;
+  content: attr(data-ts); position: absolute; box-sizing: border-box;
+  left: 12px; width: calc(var(--tm-ts-w) - 12px); height: 20px; top: calc(7px + (var(--tm-fs) * 1.36 - 20px) / 2);
+  display: flex; align-items: center; justify-content: center;
+  font: 600 13px/1 var(--font); letter-spacing: 0; color: var(--tm-ly-ts); text-shadow: none;
 }
-:root[data-theme="terminal"] #lyrics .ly-line.on[data-ts]::before {
-  color: var(--tm-ly-ts-on); background: linear-gradient(var(--tm-ly-ts-on-bg), var(--tm-ly-ts-on-bg)) left center / calc(100% - 6px) 100% no-repeat;
-  padding-left: 3px;
-}
+:root[data-theme="terminal"] #lyrics .ly-line.on[data-ts]::before { color: var(--tm-ly-ts-on); background: var(--tm-ly-ts-on-bg); }
 
 /* 逐字歌詞（卡拉 OK）：唱到的字是亮的磷光綠／墨色，還沒唱到的淡。沒在唱的行就是一般的字（舊規則把填色畫成整塊底色） */
 :root[data-theme="terminal"] #lyrics .ly-line:not(.on) .w { background: none; color: inherit; }
@@ -417,7 +440,8 @@
 
 /* 兩段歌詞之間的空檔：三個小方塊輪流亮（像在等輸出） */
 :root[data-theme="terminal"] #lyrics .ly-line.gap { padding-left: calc(14px + var(--tm-ts-w)); }
-:root[data-theme="terminal"] #lyrics .ly-dots { gap: 9px; padding: 16px 0; }
+:root[data-theme="terminal"] #lyrics .ly-line.gap { height: auto; }
+:root[data-theme="terminal"] #lyrics .ly-dots { gap: 9px; padding: 0; height: calc(var(--tm-fs) * 1.36); align-items: center; }
 :root[data-theme="terminal"] #lyrics .ly-dots i { width: 11px; height: 11px; border-radius: 0; opacity: 1; background: color-mix(in srgb, var(--tm-ly-past) 40%, transparent); }
 :root[data-theme="terminal"] #lyrics .ly-line.on .ly-dots { animation: none; }
 :root[data-theme="terminal"] #lyrics .ly-line.on .ly-dots i { animation: tm-dot 1.5s step-end infinite; }
@@ -451,6 +475,59 @@
 :root[data-theme="terminal"].lite-page .page-head h1::after { animation: none; }
 :root[data-theme="terminal"].lite-ambient #lyrics :is(.tm-c, .tm-cur, .tr > span, .ly-dots i), :root[data-theme="terminal"].lite-ambient #lyrics .tm-c::after { animation: none !important; }
 :root[data-theme="terminal"].lite-ambient #np .np-right::after { animation: none; display: none; }
+
+/* ───────────── 15 · 1980 年代的映像管（夜） ─────────────
+   整個視窗像一台老終端機的螢幕：
+   · 掃描線：一層蓋在所有東西上面（滑鼠點得穿），線對齊螢幕的實際像素（125%、150%、200% 縮放各算一次），不會一粗一細。
+   · 映像管：四個角是圓的（外面是黑色的機殼），中間亮、四邊暗，左上一道很淡的玻璃反光。
+   · 磷光：所有字帶一層很淡的綠光暈（輕量化的「模糊」打開時不加）；標題、反白的按鈕光暈強一點。
+   · 歌詞螢幕：打開正在播放時像映像管開機（一條亮線上下展開），背景亮度輕輕閃爍，一條亮帶慢慢往下掃。
+   這一層畫一次就不再重畫（自己一層），捲動頁面時不花力氣；會動的只有歌詞螢幕裡的閃爍和亮帶。 */
+:root[data-theme="terminal"] { --tm-sl-p: 3px; --tm-sl-d: 1px; }
+@media (min-resolution: 1.2dppx) and (max-resolution: 1.3dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2.4px; --tm-sl-d: .8px; }
+}
+@media (min-resolution: 1.45dppx) and (max-resolution: 1.55dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2px; --tm-sl-d: .6667px; }
+}
+@media (min-resolution: 1.7dppx) and (max-resolution: 1.8dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2.2857px; --tm-sl-d: 1.1429px; }
+}
+@media (min-resolution: 1.95dppx) and (max-resolution: 2.05dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2px; --tm-sl-d: 1px; }
+}
+@media (min-resolution: 2.45dppx) and (max-resolution: 2.55dppx) {:root[data-theme="terminal"] { --tm-sl-p: 1.6px; --tm-sl-d: .8px; }
+}
+@media (min-resolution: 2.95dppx) {:root[data-theme="terminal"] { --tm-sl-p: 1.3333px; --tm-sl-d: .6667px; }
+}
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) body::after {
+  content: ""; position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
+  background:
+    radial-gradient(circle at 100% 100%, transparent 17px, #050a07 18px) left top / 18px 18px no-repeat,
+    radial-gradient(circle at 0 100%, transparent 17px, #050a07 18px) right top / 18px 18px no-repeat,
+    radial-gradient(circle at 100% 0, transparent 17px, #050a07 18px) left bottom / 18px 18px no-repeat,
+    radial-gradient(circle at 0 0, transparent 17px, #050a07 18px) right bottom / 18px 18px no-repeat,
+    radial-gradient(70% 45% at 22% 0%, rgba(210,255,225,.04), transparent 70%),
+    radial-gradient(135% 115% at 50% 48%, transparent 60%, rgba(0,7,3,.3) 100%),
+    repeating-linear-gradient(180deg, rgba(0,0,0,.2) 0 var(--tm-sl-d), transparent var(--tm-sl-d) var(--tm-sl-p));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 110px rgba(0,8,3,.26);
+  will-change: transform;
+}
+
+/* 磷光：字的光暈 */
+:root[data-theme="terminal"]:where(:not([data-mode="day"])):not(.lite-blur) body { text-shadow: 0 0 3px rgba(92,240,147,.3); }
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) :is(.btn.primary, .seg button.on, .chip.on, .switch.on, .nav-pill, .msel-opt.on, .np-top .pill.on) { box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) :is(.btn.primary, .seg button.on, .chip.on, .msel-opt.on, .nav a.on, .np-top .pill.on) { text-shadow: none; }
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) .playbtn { box-shadow: inset 0 0 0 2px var(--teal), 0 0 14px rgba(92,240,147,.3); }
+
+/* 歌詞螢幕：開機（正在播放打開、或換到這個主題時）：先是一條很亮的橫線，再上下展開成整個畫面 */
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right { animation: tm-power .62s cubic-bezier(.2,.7,.2,1) .18s backwards; }
+
+/* 背景亮度輕輕閃爍（只閃底，字不閃，讀起來不累） */
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np .np-right::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(90% 70% at 50% 45%, rgba(150,255,190,.045), transparent 75%); opacity: 0;
+}
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right::before { animation: tm-flicker 5.3s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="terminal"] #np .np-right, :root[data-theme="terminal"] #np .np-right::before { animation: none !important; }
+}
+:root[data-theme="terminal"].lite-ambient #np .np-right, :root[data-theme="terminal"].lite-ambient #np .np-right::before { animation: none !important; }
 :root[data-theme="terminal"] { --dp-ink: var(--teal); }
 :root[data-theme="terminal"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); }
 :root[data-theme="terminal"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 6px rgba(92,240,147,.35); }

@@ -285,6 +285,37 @@
 @media (prefers-reduced-motion: reduce) {:root[data-theme="pop"] #lyrics .ly-dots i { animation: none !important; }
 }
 
+/* 頁面和側欄的底：前面幾輪用 :root[data-theme="pop"] 寫過（比較強），這裡用一樣的強度蓋回來 */
+:root[data-theme="pop"]:where([data-mode="night"]) {
+  --app-bg: radial-gradient(130% 90% at 70% 0%, #222a6a, #1b2157 55%, #171c4c);
+  --sidebar-bg: #ffcc1f;
+}
+
+/* 側欄：和白天一樣的黃色網點紙，黑字；選中的是白底黑框的貼紙 */
+:root[data-theme="pop"]:where([data-mode="night"]) #sidebar {
+  color: #111111; --text: #111111; --text-hi: #000000; --text-sub: #2a2a2a; --text-2: #333333; --text-3: #574f33;
+  --ink: 17, 17, 17; --line: rgba(17,17,17,.14); --line-2: rgba(17,17,17,.7); --surface: #ffffff; --surface-2: #fff0c2;
+  --knob: #111111; --knob-off: #ffffff; --teal: #2f5bff; --teal-rgb: 47, 91, 255;
+  border-right-color: #05071a;
+}
+
+/* 大標題：黃字、黑色的邊（第一道陰影）、紅色錯位陰影 */
+:root[data-theme="pop"]:where([data-mode="night"]) :is(.page-head h1, .hero h1) { color: #ffd23f; text-shadow: 2px 2px 0 #05071a, 4px 4px 0 #ff4f6d, 5px 5px 0 #05071a; }
+:root[data-theme="pop"]:where([data-mode="night"]) .np-title { color: #ffd23f; text-shadow: 2px 2px 0 #05071a, 3px 3px 0 #ff4f6d; }
+
+/* 區段標題前的圓點：黃 */
+:root[data-theme="pop"]:where([data-mode="night"]) .rail-head h2::before { background: #ffd23f; border-color: #05071a; }
+
+/* 卡片、面板、按鈕：黑墨框線＋墨藍的硬陰影；滑過的卡片陰影變粉紅 */
+:root[data-theme="pop"]:where([data-mode="night"]) .card .art { border-color: #05071a; box-shadow: 5px 5px 0 #05071a; }
+:root[data-theme="pop"]:where([data-mode="night"]) .card:hover .art { box-shadow: 8px 8px 0 #ff4f6d; }
+:root[data-theme="pop"]:where([data-mode="night"]) .card:hover .t1 { color: #ffd23f; }
+:root[data-theme="pop"]:where([data-mode="night"]) .btn.primary { background: #ff4f6d; color: #ffffff; }
+:root[data-theme="pop"]:where([data-mode="night"]) .rail-head a, :root[data-theme="pop"]:where([data-mode="night"]) .rail-head a:hover { color: #ffd23f; }
+
+/* 播放列：深墨藍，上緣一條黃線 */
+:root[data-theme="pop"]:where([data-mode="night"]) #bar { border-top-color: #ffd23f; }
+
 /* 標誌的特別處理：普普＝大標題那種硬陰影；黃金＝鏡面金的字；霓虹夜、終端機夜＝淡淡的光 */
 :root[data-theme="pop"] .dp-sect .dp-greek { text-shadow: 2px 2px 0 #ffcc1f; }
 :root[data-theme="pop"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 2px 2px 0 #ff4f63; }
@@ -293,3 +324,4 @@
 :root[data-theme="pop"] .dp-sect .dp-group { border-radius: 8px; border: 2px solid var(--pop-line); background: var(--pop-panel); box-shadow: 4px 4px 0 var(--pop-shadow); margin-right: 18px; margin-bottom: 18px; }
 :root[data-theme="pop"] .dp-sect .dp-group.dp-off { box-shadow: none; }
 :root[data-theme="pop"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
+:root[data-theme="pop"] #lyrics { --ly-dim: .66; --ly-blur: .55; }

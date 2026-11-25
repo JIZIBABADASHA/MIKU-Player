@@ -762,10 +762,9 @@
 /* 外觀頁的小預覽：終端機・日的送紙孔太大，壓到側欄的線，預覽裡只畫一條細邊 */
 .tp-screen[data-theme="terminal"][data-mode="day"] .tp-side { background: linear-gradient(90deg, #fbfbf6 calc(100% - 5px), rgba(24,70,40,.14) calc(100% - 5px)); }
 
-/* ═════════════════════════════ 正在播放：歌詞要讀得清楚 ═════════════════════════════
-   沒在唱的歌詞行不再模糊（模糊是 nowplaying.js 直接寫在行上的，所以用 !important），也亮一點。 */
-#lyrics .ly-line:not(.on):not(:hover) { opacity: .6; filter: none !important; }
-
+/* ═════════════════════════════ 正在播放：歌詞 ═════════════════════════════
+   正在唱的那一句最清楚；其他行淡一點、稍微模糊（模糊是 nowplaying.js 依離現在這句的距離寫在行上的，
+   主題可以用 #lyrics 的 --ly-blur 調強弱，0 = 不模糊）。淡的程度是 --ly-dim（在 round5.css 統一套用，蓋過各主題舊的亮度）。 */
 /* 歌詞欄後面一片安靜的底：背景的花樣（網點、條紋、花瓣、網格）只留在封面那一邊，歌詞那一半蓋一層主題的底色。
    關掉歌詞（或這首沒有歌詞）時封面移到中間，這層就淡掉，整片背景回來。 */
 #np .np-wrap::before {
@@ -1241,11 +1240,32 @@
 @keyframes gd-band-x { 0%, 72% { transform: translateX(-260px); } 100% { transform: translateX(calc(100vw + 20px)); } }
 @keyframes gd-band-y { 0%, 70% { transform: translateY(-200px); } 100% { transform: translateY(calc(100vh + 20px)); } }
 
-/* ── 噴錢特效（fx-gold.js）：鈔票與金幣從播放鍵、卡片、按鈕與歌詞噴出。只用一張固定畫布，不擋點擊；
+/* ── 噴金幣特效（fx-gold.js）：大量金幣從播放鍵、卡片、按鈕與歌詞噴出，播放時每隔幾秒從上面灑一陣。只用一張固定畫布，不擋點擊；
       不是暴發戶黃金、輕量化頁面（關閉動態背景）或系統要求減少動態時，一律不顯示（JS 也會整個關掉） ── */
 #gold-fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; contain: strict; }
 :root:not([data-theme="gold"]) #gold-fx, :root.lite-ambient #gold-fx { display: none !important; }
 @media (prefers-reduced-motion: reduce) {#gold-fx { display: none !important; }
+}
+
+/* ── 到處亂閃的金光（fx-gold.js 的 Glints）：二十六顆四芒星輪流在卡片、按鈕、標題的邊角或任何地方閃一下。
+      每一顆是自己的一層，只動 transform 和 opacity（Web Animations），頁面不用重排、重畫。 */
+#gold-glints { position: fixed; inset: 0; z-index: 61; pointer-events: none; contain: strict; overflow: hidden; }
+#gold-glints b { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#gold-glints i {
+  position: absolute; left: -24px; top: -24px; width: 48px; height: 48px; opacity: 0; will-change: transform, opacity;
+  background:
+    radial-gradient(circle, #fffef6 0 1.6px, rgba(255,244,190,.95) 2.8px, rgba(255,214,90,.45) 6.5px, rgba(255,200,60,0) 13px),
+    linear-gradient(90deg, rgba(255,240,180,0), rgba(255,253,236,.98) 50%, rgba(255,240,180,0)) center / 100% 2px no-repeat,
+    linear-gradient(0deg, rgba(255,240,180,0), rgba(255,253,236,.98) 50%, rgba(255,240,180,0)) center / 2px 100% no-repeat;
+}
+#gold-glints i::after {
+  content: ""; position: absolute; inset: 13px; transform: rotate(45deg);
+  background:
+    linear-gradient(90deg, rgba(255,240,180,0), rgba(255,250,225,.8) 50%, rgba(255,240,180,0)) center / 100% 1.4px no-repeat,
+    linear-gradient(0deg, rgba(255,240,180,0), rgba(255,250,225,.8) 50%, rgba(255,240,180,0)) center / 1.4px 100% no-repeat;
+}
+:root:not([data-theme="gold"]) #gold-glints, :root.lite-ambient #gold-glints { display: none !important; }
+@media (prefers-reduced-motion: reduce) {#gold-glints { display: none !important; }
 }
 
 /* ═════════════════════════════ 霓虹賽博（neon）· 賽博龐克 HUD ═════════════════════════════
@@ -1452,6 +1472,36 @@
 .tp-sw[data-theme="neon"] .a { border-radius: 0; background: linear-gradient(90deg, var(--nx-acid) 0 34%, transparent 34% 44%, var(--teal) 44%); }
 @keyframes pop-ly-hop { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(-4px); } }
 
+/* ═════════════════════════════ 普普・夜（第八輪）：漫畫的夜景 ═════════════════════════════
+   Adolf：「普普 夜顏色可以再改」「日很優秀」「夜反而沒什麼特色」。以前的夜是深灰底、米色框，普普的味道都不見了。
+   現在的夜是漫畫裡的夜景：整頁是印刷的深藍（紅黃藍三原色裡的藍），側欄和白天一樣是亮黃色的漫畫網點紙，
+   框線是黑墨、硬陰影是更深的墨藍，大標題是黃字、黑色描邊、紅色錯位陰影（漫畫的標題字），角落的漸層網點是粉紅和天藍。
+   選中、播放中的東西一樣是實心黃底黑字；按鈕和連結的重點色改成紅（藍底上藍色的重點會不見）。白天完全不動。 */
+[data-theme="pop"]:where([data-mode="night"]) {
+  --bg: #1b2157; --bg-rgb: 27, 33, 87; --bg-2: #1f2661;
+  --surface: #262e70; --surface-2: #2f387f; --surface-3: #3b4590;
+  --ink: 255, 248, 230; --line: rgba(255,248,230,.16); --line-2: rgba(255,248,230,.62);
+  --text: #fff8e6; --text-hi: #ffffff; --text-sub: #ebe5f2; --text-2: #d9d3ea; --text-3: #b5b0d6;
+  --teal: #ff4f6d; --teal-rgb: 255, 79, 109; --teal-2: #ff8197; --teal-dim: rgba(255,79,109,.2);
+  --pink: #ff4f6d; --pink-dim: rgba(255,79,109,.2); --pink-line: rgba(255,79,109,.6); --pink-text: #ff8fa2;
+  --amber: #ffd23f; --on-accent: #ffffff;
+  --play-bg: #ffd23f; --play-ink: #111111; --knob: #fff8e6; --knob-off: #1b2157;
+  --bar-bg: #121848; --pop-bg: #262e70; --drawer-bg: #212867; --toast-bg: #2b3378; --modal-bg: #262e70;
+  --shadow-rgb: 4, 6, 26; --sh: 1;
+  --np-base: #161c4d; --np-ink: 255, 248, 230; --brand-ink: #111111; --brand-track: #fff7dc;
+  --pop-line: #05071a; --pop-shadow: #05071a; --pop-panel: #262e70;
+  --pop-pill: #ffffff; --pop-title: #ff4f6d; --pop-playing: #ffd23f;
+  --pop-dots: radial-gradient(rgba(120,170,255,.14) 1.3px, transparent 1.8px) 0 0 / 12px 12px;
+  --app-bg: radial-gradient(130% 90% at 70% 0%, #222a6a, #1b2157 55%, #171c4c);
+  --sidebar-bg: radial-gradient(rgba(17,17,17,.14) 1.3px, transparent 1.8px) 0 0 / 12px 12px, #ffcc1f;
+  --pop-tone-c: rgba(255,79,140,.4); --pop-tone-side: rgba(17,17,17,.2); --pop-tone-np: rgba(90,200,255,.32);
+  --np-veil: radial-gradient(rgba(120,170,255,.16) 1.5px, transparent 2.1px) 0 0 / 13px 13px, radial-gradient(120% 90% at 30% 40%, rgba(27,33,87,.45), rgba(22,28,77,.88));
+  --np-calm: rgba(22,28,77,.86);
+}
+
+/* 外觀頁的小預覽 */
+.tp-screen[data-theme="pop"][data-mode="night"] .tp-side { --ink: 17, 17, 17; border-right-color: #05071a; }
+
 /* ═════════════════════════════ 復古海報 · 老美式動畫廣告（sig/poster.css） ═════════════════════════════
    Adolf：「復古海報要更滂薄 有許多動態的效果 那種老美式動畫廣告那種感覺」。
    三〇～五〇年代戲院卡通片頭與動畫廣告的美術風格（只取風格：沒有任何角色、商標或標語）：
@@ -1530,24 +1580,77 @@
   100% { opacity: 0; transform: scale(1.18) rotate(10deg); }
 }
 
-/* ───────────── 7 · 換頁：卡通片的圓形光圈（iris）打開 ─────────────
-   新的一頁從畫面中間一個小圓打開到整片（clip-path 在捲動區 #content 上，所以不管捲到哪裡都從看得到的中間開）；
-   原本的淡入拿掉，圓裡面的字一開始就是清楚的。封面飛過去的換頁（enter-flip）不動。0.5 秒。 */
-@keyframes ps-iris { from { clip-path: circle(1vmax at 50% 42%); } to { clip-path: circle(110vmax at 50% 42%); } }
-
-/* 光圈的邊：一道墨色粗圈跟著圓一起放大（同一個時間曲線；圈的半徑是註冊過的長度變數，才能平順地變），
-   看得出是「光圈」而不只是內容冒出來；打開到畫面外就淡掉。平常 opacity 0，不畫。 */
-@property --ps-iris-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
-@keyframes ps-iris-ring {
-  from { --ps-iris-r: 1vmax; opacity: 1; }
-  85%  { opacity: 1; }
-  to   { --ps-iris-r: 110vmax; opacity: 0; }
+/* ───────────── 7 · 換頁：老膠片接片（第三版，原本的圓形光圈太慢、邊上的黑圈不好看） ─────────────
+   新的一頁像放映機換片：先閃一下白光，畫面往上錯開一格再「喀、喀」跳兩下對準片門（每一下是一格膠片的時間，
+   24 格／秒，所以看起來是跳的、不是滑的），0.42 秒。只動 transform 和 opacity，合成器就畫得出來。
+   封面飛過去的換頁（enter-flip）不動。 */
+@keyframes ps-cut {
+  0%   { opacity: 0; transform: translateY(-24px); }
+  9%   { opacity: 1; transform: translateY(-24px); }
+  19%  { transform: translateY(11px); }
+  29%  { transform: translateY(-5px); }
+  39%  { transform: translateY(2px); }
+  49%, 100% { opacity: 1; transform: none; }
+}
+@keyframes ps-flash {
+  0%   { opacity: .8; }
+  10%  { opacity: .25; }
+  20%  { opacity: .55; }
+  30%  { opacity: .12; }
+  40%, 100% { opacity: 0; }
 }
 
 /* ───────────── 8 · 彈出的小視窗：「噹」一下彈出來（選單維持淡入：彈動會讓項目滑到滑鼠底下） ───────────── */
 @keyframes ps-pop { from { opacity: 0; transform: scale(.84); } 35% { opacity: 1; } to { opacity: 1; transform: none; } }
 :root:is(.lite-ambient, .lite-page)[data-theme="poster"] :is(#topbar .round-btn, #bar .icon-btn, #bar .playbtn, .np-top .icon-btn, .np-top .pill, .np-ctrl .icon-btn, .np-ctrl .playbtn, .card .play, .hero .actions .icon-btn, .hero .actions .btn, .page-head .tools .btn):hover { animation: none !important; }
 :root:is(.lite-ambient, .lite-page)[data-theme="poster"] :is(#bar .transport .btns, .np-ctrl)::before { animation: none !important; display: none; }
+
+/* ═════════════════════════════ 第三版：五〇年代卡通衛教短片 ═════════════════════════════
+   Adolf：「復古海報還是太沒特色了」，參考的是五〇年代美國卡通衛教片／公共宣導短片的感覺（只取那個年代的風格：
+   沒有任何角色、商標或標語；顏色維持紅、黑、米色）。這一段加上：
+   · 整個視窗是一段老膠片：顆粒和灰塵、髮絲、刮痕一秒跳十幾次（暫停播放時停住），四邊一點暗角；
+   · 側欄是一條膠卷：黑底、兩邊一排齒孔；選到的項目是米色的標籤；
+   · 大標題的紅色錯位陰影和字之間隔一道紙色的縫（以前紅影子貼著黑字，看不清楚）；
+   · 首頁的區段標題是有折角的紅緞帶，按鈕、卡片有墨色的硬陰影，按下去壓進陰影；
+   · 正在播放是一張片頭卡：封面旁邊一顆會彈的「NOW PLAYING!」爆炸星，左上角的按鈕移進框裡（以前壓在框線上）；
+   · 換頁像換片（第 7 段）。 */
+[data-theme="poster"] {
+  --ps-starburst: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 150'%3E%3Cpolygon points='75.0,5.0 83.6,20.7 96.6,8.4 100.0,26.0 116.1,18.4 113.9,36.1 131.6,33.9 124.0,50.0 141.6,53.4 129.3,66.4 145.0,75.0 129.3,83.6 141.6,96.6 124.0,100.0 131.6,116.1 113.9,113.9 116.1,131.6 100.0,124.0 96.6,141.6 83.6,129.3 75.0,145.0 66.4,129.3 53.4,141.6 50.0,124.0 33.9,131.6 36.1,113.9 18.4,116.1 26.0,100.0 8.4,96.6 20.7,83.6 5.0,75.0 20.7,66.4 8.4,53.4 26.0,50.0 18.4,33.9 36.1,36.1 33.9,18.4 50.0,26.0 53.4,8.4 66.4,20.7' fill='%231c1611' transform='translate(5 5)'/%3E%3Cpolygon points='75.0,5.0 83.6,20.7 96.6,8.4 100.0,26.0 116.1,18.4 113.9,36.1 131.6,33.9 124.0,50.0 141.6,53.4 129.3,66.4 145.0,75.0 129.3,83.6 141.6,96.6 124.0,100.0 131.6,116.1 113.9,113.9 116.1,131.6 100.0,124.0 96.6,141.6 83.6,129.3 75.0,145.0 66.4,129.3 53.4,141.6 50.0,124.0 33.9,131.6 36.1,113.9 18.4,116.1 26.0,100.0 8.4,96.6 20.7,83.6 5.0,75.0 20.7,66.4 8.4,53.4 26.0,50.0 18.4,33.9 36.1,36.1 33.9,18.4 50.0,26.0 53.4,8.4 66.4,20.7' fill='%23b3261e' stroke='%231c1611' stroke-width='3' stroke-linejoin='round'/%3E%3Ccircle cx='75' cy='75' r='47' fill='none' stroke='%23efe4cb' stroke-width='2' stroke-dasharray='3 4'/%3E%3C/svg%3E");
+  --ps-sprocket: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='24'%3E%3Crect x='2' y='6' width='6' height='11' rx='1.8' fill='%23efe4cb' fill-opacity='.85'/%3E%3C/svg%3E");
+  --ps-dust-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Cg fill='%231c1611' stroke='%231c1611' opacity='0.55'%3E%3Ccircle cx='211' cy='79' r='1.4'/%3E%3Ccircle cx='55' cy='257' r='1.0'/%3E%3Ccircle cx='46' cy='243' r='0.6'/%3E%3Ccircle cx='279' cy='42' r='0.7'/%3E%3Ccircle cx='273' cy='390' r='0.7'/%3E%3Ccircle cx='148' cy='299' r='1.7'/%3E%3Ccircle cx='368' cy='192' r='1.8'/%3E%3Ccircle cx='39' cy='405' r='0.9'/%3E%3Ccircle cx='99' cy='64' r='1.0'/%3E%3Cpath d='M497 112 q2 3 16 4' fill='none' stroke-width='.8'/%3E%3Cpath d='M75 64 q-8 4 17 -0' fill='none' stroke-width='.8'/%3E%3Cpath d='M358 0 L361 480' fill='none' stroke-width='.5' stroke-opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+  --ps-dust-n: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Cg fill='%23f4ead2' stroke='%23f4ead2' opacity='0.35'%3E%3Ccircle cx='211' cy='79' r='1.4'/%3E%3Ccircle cx='55' cy='257' r='1.0'/%3E%3Ccircle cx='46' cy='243' r='0.6'/%3E%3Ccircle cx='279' cy='42' r='0.7'/%3E%3Ccircle cx='273' cy='390' r='0.7'/%3E%3Ccircle cx='148' cy='299' r='1.7'/%3E%3Ccircle cx='368' cy='192' r='1.8'/%3E%3Ccircle cx='39' cy='405' r='0.9'/%3E%3Ccircle cx='99' cy='64' r='1.0'/%3E%3Cpath d='M497 112 q2 3 16 4' fill='none' stroke-width='.8'/%3E%3Cpath d='M75 64 q-8 4 17 -0' fill='none' stroke-width='.8'/%3E%3Cpath d='M358 0 L361 480' fill='none' stroke-width='.5' stroke-opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
+  --ps-fgrain-d: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.11 0 0 0 0 0.08 0 0 0 0 0.05 0 0 0 0.11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ps-fgrain-n: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.94 0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ps-dust: var(--ps-dust-d); --ps-fgrain: var(--ps-fgrain-d);
+  --ps-hard: #1c1611;                       /* 按鈕、卡片的硬陰影 */
+  --ps-gap: var(--bg);                      /* 標題字和紅影子之間那道縫：紙色 */
+  --ps-fold: #6e130e;                       /* 緞帶背面的折角 */
+  --sidebar-bg: var(--ps-sprocket) left 3px top 0 / 10px 24px repeat-y, var(--ps-sprocket) right 3px top 0 / 10px 24px repeat-y, var(--ps-grain), #1c1611;
+}
+[data-theme="poster"]:where([data-mode="night"]) {
+  --ps-dust: var(--ps-dust-n); --ps-fgrain: var(--ps-fgrain-n);
+  --ps-hard: #0c0a08;
+  --ps-fold: #5c110c;
+  --sidebar-bg: var(--ps-sprocket) left 3px top 0 / 10px 24px repeat-y, var(--ps-sprocket) right 3px top 0 / 10px 24px repeat-y, var(--ps-grain), #17130f;
+}
+@keyframes ps-film {
+  0%  { transform: translate(0, 0); opacity: 1; }
+  8%  { transform: translate(-37px, 22px); opacity: .85; }
+  17% { transform: translate(-63px, -41px); opacity: 1; }
+  25% { transform: translate(18px, -66px); opacity: .7; }
+  33% { transform: translate(-12px, 51px); opacity: .95; }
+  42% { transform: translate(-71px, 9px); opacity: .8; }
+  50% { transform: translate(44px, 30px); opacity: 1; }
+  58% { transform: translate(-29px, -17px); opacity: .75; }
+  67% { transform: translate(61px, -52px); opacity: .9; }
+  75% { transform: translate(-48px, 63px); opacity: 1; }
+  83% { transform: translate(7px, -28px); opacity: .8; }
+  92% { transform: translate(-58px, 38px); opacity: .95; }
+}
+@keyframes ps-point { 0%, 100% { transform: none; } 50% { transform: translateX(3px); } }
+#np.nolyrics .np-left { position: relative; }
+@keyframes ps-burst-in { from { transform: scale(0) rotate(-90deg); } to { transform: none; } }
+@keyframes ps-throb { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 
 /* ═════════════════════════════ 櫻花（sakura）· 春天的花瓣 ═════════════════════════════
    輕、亮、柔軟的春天。和巡音（黑漆＋金線）剛好相反：這裡沒有黑、沒有金、也沒有深玫瑰色。
@@ -1655,14 +1758,15 @@
    字體：英數用 Cascadia Mono／Consolas（Windows）、SF Mono／Menlo（Mac）；中文日文自動改用正黑體／蘋方／遊ゴシック／
    ヒラギノ，等寬字沒有中文字也不會變成方塊或怪字。這一份就是整個主題的「個性」，要退回舊樣子時整份拿掉即可。 */
 /* ───────────── 1 · 色彩（夜，主題原本的版本） ─────────────
-   以前是 #050a07（幾乎全黑）；現在是帶綠的深灰綠螢幕：頁面 #1b2b21（OKLab L≈0.27），面板 #1f3127（L≈0.29）。
-   文字對面板：主文字 13.5:1、第二層 9.5:1、第三層 7:1。磷光綠 #5cf093 當文字和細線；反白的底用 #4fe387，上面放深綠字。
+   以前是 #050a07（幾乎全黑），後來是偏灰的綠；現在是映像管關著時那種深綠黑：頁面 #16241b（OKLab L≈0.24），面板 #1a2b20。
+   字是磷光綠（不是白字），磷光綠 #5cf093 當重點和細線；反白的底用 #4fe387，上面放深綠字。
    用 :not(day) 寫，才不會蓋掉後面日版的值。 */
 [data-theme="terminal"]:where(:not([data-mode="day"])) {
-  --bg: #1b2b21; --bg-rgb: 27, 43, 33; --bg-2: #18271e;
-  --surface: #1f3127; --surface-2: #273c30; --surface-3: #31493b;
-  --ink: 200, 255, 215; --line: rgba(150,255,185,.13); --line-2: rgba(150,255,185,.25);
-  --text: #f2fff5; --text-hi: #ffffff; --text-sub: #c9ecd2; --text-2: #b4e2bf; --text-3: #92c49e;
+  --bg: #16241b; --bg-rgb: 22, 36, 27; --bg-2: #132017;
+  --surface: #1a2b20; --surface-2: #22372a; --surface-3: #2b4434;
+  --ink: 190, 255, 210; --line: rgba(150,255,185,.13); --line-2: rgba(150,255,185,.25);
+  /* 字是磷光綠，不是白的（1980 年代的單色螢幕）：對面板 主文字 12.5:1、第二層 9:1、第三層 6.9:1 */
+  --text: #c2f8cf; --text-hi: #e4ffea; --text-sub: #a6e7b7; --text-2: #95d9a7; --text-3: #7cc08f;
   --teal: #5cf093; --teal-rgb: 92, 240, 147; --teal-2: #9dffbf; --teal-dim: rgba(92,240,147,.14);
   --pink: #ffb000; --pink-dim: rgba(255,176,0,.14); --pink-line: rgba(255,176,0,.55); --pink-text: #ffc94d;
   --amber: #ffb000; --on-accent: #062011;
@@ -1679,10 +1783,10 @@
   --tm-brk-c: rgba(150,255,185,.62);           /* 按鈕的方括號 */
   --tm-glow: 0 0 5px rgba(92,240,147,.28);     /* 標題的磷光：很淡，只是一層光暈，不會糊字 */
   --tm-glow-box: 0 0 8px rgba(92,240,147,.2);
-  --tm-scan: repeating-linear-gradient(0deg, rgba(0,0,0,.08) 0 1px, transparent 1px 3px);
-  --app-bg: var(--tm-scan), radial-gradient(130% 100% at 55% 35%, #1e2f25, #1a2920 85%);
-  --sidebar-bg: var(--tm-scan), #18271e;
-  --np-calm: rgba(19,32,25,.62);
+  /* 掃描線改由整個畫面上面的一層畫（第 15 段，對齊螢幕像素）；底只留映像管中間亮、四周暗的光 */
+  --app-bg: radial-gradient(120% 95% at 55% 40%, #1b2c21, #15231a 70%, #111c15);
+  --sidebar-bg: #132017;
+  --np-calm: rgba(17,29,22,.62);
 }
 
 /* ───────────── 2 · 色彩（日） ─────────────
@@ -1722,7 +1826,7 @@
    四個角落的按鈕：實心底＋框，收起鍵是方框，三個小按鈕是 [ … ]；開著的是反白。 */
 [data-theme="terminal"]:where(:not([data-mode="day"])) {
   --np-filter: blur(36px) grayscale(1) sepia(1) hue-rotate(72deg) saturate(1.9) brightness(.52) contrast(1.05);
-  --np-veil: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 3px), radial-gradient(115% 95% at 50% 46%, rgba(27,43,33,.4), rgba(22,36,28,.8));
+  --np-veil: radial-gradient(115% 95% at 50% 46%, rgba(22,36,27,.4), rgba(16,27,20,.82));
 }
 [data-theme="terminal"]:where([data-mode="day"]) {
   --np-veil: radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) left 0 top 9px / 22px 34px repeat-y,
@@ -1756,6 +1860,21 @@
 @keyframes tm-ty-show { from, to { visibility: visible; } }
 @keyframes tm-ty-bloom { from { color: #ffffff; } }
 @keyframes tm-dot { 0% { background: var(--tm-ly-cur); } 33.3% { background: color-mix(in srgb, var(--tm-ly-past) 40%, transparent); } }
+[data-theme="terminal"]:where(:not([data-mode="day"])) {
+  --tm-glow: 0 0 2px rgba(170,255,200,.5), 0 0 12px rgba(92,240,147,.4);
+  --tm-glow-box: 0 0 12px rgba(92,240,147,.32);
+  --tm-ly-glow-past: 0 0 6px rgba(92,240,147,.22);
+}
+@keyframes tm-power {
+  0% { transform: scale(.9, .004); filter: brightness(4); }
+  38% { transform: scale(1, .004); filter: brightness(3); }
+  70% { transform: scale(1, 1.02); filter: brightness(1.4); }
+  100% { transform: none; filter: none; }
+}
+@keyframes tm-flicker {
+  0% { opacity: .55; } 7% { opacity: .9; } 9% { opacity: .4; } 23% { opacity: .75; } 41% { opacity: .5; } 43% { opacity: 1; }
+  46% { opacity: .6; } 64% { opacity: .8; } 78% { opacity: .45; } 80% { opacity: .95; } 83% { opacity: .65; }
+}
 
 /* ═════════════════════════════ 黑膠（vinyl）· 唱片行 ═════════════════════════════
    整個主題像一間七〇年代的唱片行：
@@ -2061,3 +2180,10 @@
 :root .fcrumbs + .page-head h1 { padding-block: .12em .14em; margin-block: -.12em -.14em; }
 :root[data-theme^="flat"]:not([data-theme="flat2"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(246,246,243,.96); }
 :root[data-theme^="flat"]:not([data-theme="flat2"]):where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(17,17,17,.96); }
+
+/* ═════════════ 正在播放的歌詞：現在唱的那句最清楚，其他行淡一點、稍微模糊，行距寬一點 ═════════════
+   以前各主題把沒在唱的行調到 .64–.8、又拿掉模糊，整片歌詞一樣亮、看起來很擠。現在統一：沒在唱的行 --ly-dim（預設 .42），
+   模糊由 nowplaying.js 依距離加（--ly-blur 調強弱）。行距 --ly-gap 預設 16px（nowplaying.js）。
+   普普的每一句是實心的框：淡太多框會透明，所以淡得少、模糊也輕。終端機另外處理（第 13 段：唱到才打出來）。 */
+/* :root:root：各主題自己的檔案（themes/<id>.css）在共用檔之後才載入，同樣強度的舊規則會蓋掉這一條，所以多一層 */
+:root:root[data-theme] #lyrics .ly-line:not(.on):not(:hover) { opacity: var(--ly-dim, .42); }

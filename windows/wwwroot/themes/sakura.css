@@ -392,3 +392,4 @@
 /* 櫻花：花瓣角（左上、右下大，另兩角小），粉色細框 */
 :root[data-theme="sakura"] .dp-sect .dp-group { border-radius: var(--sk-r-m); border: 1px solid var(--sk-edge); background: rgba(var(--ink), .025); }
 :root[data-theme="sakura"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
+:root[data-theme="sakura"]:where(:not([data-mode="night"])) #lyrics { --ly-dim: .48; }
