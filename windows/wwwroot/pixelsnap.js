@@ -1,21 +1,57 @@
 'use strict';
-/* Pixel snap for the play buttons. They are centred in the transport (a grid with fractional column widths), so at
-   125 % / 150 % display scaling they land between device pixels (x = 933.75) and their circle and icon are smeared
-   over two pixels. This nudges each one by the remainder (CSS `translate`, separate from the hover `transform`) so it
-   sits on whole device pixels. It is measured again when the window or the bar changes size and after the now-playing
-   view opens or closes (its play button moves with it).
+/* Pixel snap for the player bar's cover, and the play / pause icon drawn on the device pixel grid.
+   The play buttons are not nudged any more. They used to be moved by the remainder to whole device pixels (a CSS
+   `translate`), but Chromium already puts a box and an <svg> on whole device pixels when it paints them, and the
+   translate is applied after that: it moved them back off the grid. Measured at 200 %: the pause bars were 7 crisp
+   device pixels wide without it and smeared over a pixel on each side with it; the same at 125 / 150 / 175 %.
+   The icon itself was the other half of it. The icons are drawn on a 24-unit grid; at 20 px and 125 / 150 / 175 %
+   a unit is 1.04 / 1.25 / 1.46 device pixels, so the pause bars' straight edges fell between pixels however the
+   button sat, and looked soft, "blurry" (most in the themes with a dark icon on a bright button). Each play button
+   now draws its own copy instead of <use>: the bars' widths, the gap and the height rounded to whole device pixels
+   and centred on whole pixels, and the play triangle's flat side moved (by less than a pixel) onto one. Drawn for the
+   icon's size and the display scaling, again when either changes, and at once when core.js swaps the icon.
    The player bar's cover too: its hover grows it (width, height and a negative margin), and off the device pixel grid
    its four edges snap at different moments, so shrinking back ended with a late one-pixel sideways step. On whole
    device pixels, and growing by whole device pixels on each side (--art-grow), its edges move together. The cover is
    nudged with left / top (it is position: relative): a translate is applied after layout, where its clip and picture
    have already been snapped off the grid. */
 (() => {
-  const SEL = '.playbtn, #b-art';
+  const SEL = '#b-art';
   /* Read everything first, then write: one layout for the whole pass. (Taking each nudge off, measuring, and putting
      it back, element by element, laid the page out again for every one of them, and this pass is asked for often.)
      A nudge already applied is known, so an element is measured as it stands and its own nudge taken off the result:
      nothing is written at all unless a nudge has to change. */
   const applied = new WeakMap();   // element → [dx, dy] as written
+  const PLAY = 'M7.5 4.9v14.2a1 1 0 0 0 1.5.86l11.6-7.1a1 1 0 0 0 0-1.72L9 4.04a1 1 0 0 0-1.5.86z';
+  const iconName = svg => {
+    const u = svg.querySelector('use');
+    const n = u ? (u.getAttribute('href') || '').replace('#i-', '') : svg.dataset.icon;
+    return n === 'play' || n === 'pause' ? n : '';
+  };
+  /* The icon's box sits on whole device pixels (Chromium snaps an <svg> when it paints it), so its shapes only have
+     to land on whole pixels inside it. Reads one computed width; writes only when the size or the scaling changed. */
+  const drawIcon = btn => {
+    const svg = btn.querySelector(':scope > svg'), name = svg && iconName(svg);
+    if (!name) return;
+    const size = parseFloat(getComputedStyle(svg).width);
+    if (!size) return;
+    const dpr = window.devicePixelRatio || 1, key = `${name}|${size}|${dpr}`;
+    if (svg.dataset.k === key) return;
+    const k = size * dpr, u = k / 24, U = px => +(px / u).toFixed(3);
+    let html;
+    if (name === 'pause') {
+      const w = Math.max(2, Math.round(4.2 * u)), g = Math.max(2, Math.round(3.6 * u)), h = Math.round(15 * u);
+      const x = Math.round((k - 2 * w - g) / 2), y = Math.round((k - h) / 2), rx = Math.min(1.3, U(w) / 2);
+      html = `<rect x="${U(x)}" y="${U(y)}" width="${U(w)}" height="${U(h)}" rx="${rx}"/><rect x="${U(x + w + g)}" y="${U(y)}" width="${U(w)}" height="${U(h)}" rx="${rx}"/>`;
+    } else {
+      const dx = Math.round(7.5 * u) - 7.5 * u;
+      html = `<path${Math.abs(dx) > .01 ? ` transform="translate(${U(dx)} 0)"` : ''} d="${PLAY}"/>`;
+    }
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.innerHTML = html;
+    svg.dataset.icon = name;
+    svg.dataset.k = key;
+  };
   const snap = () => {
     raf = 0;
     const dpr = window.devicePixelRatio || 1;
@@ -49,6 +85,7 @@
       else el.style.translate = none ? '' : `${dx.toFixed(3)}px ${dy.toFixed(3)}px`;
       applied.set(el, [none ? 0 : +dx.toFixed(3), none ? 0 : +dy.toFixed(3)]);
     }
+    for (const b of document.querySelectorAll('.playbtn')) { if (b.style.translate) b.style.translate = ''; drawIcon(b); }
   };
   /* One pass however many times it is asked for: at the next frame, and once more a moment after the last request
      (things are still sliding into place). Each request used to start its own timer and its own pass. */
@@ -82,6 +119,11 @@
   const start = () => {
     const ro = new ResizeObserver(() => soon());
     for (const el of document.querySelectorAll('#bar, .transport, .np-ctrl')) ro.observe(el);
+    // core.js swapped a play button's icon (play ↔ pause): drawn on the grid before it is painted
+    const mo = new MutationObserver(recs => { for (const r of recs) drawIcon(r.target); });
+    for (const b of document.querySelectorAll('.playbtn')) { mo.observe(b, { childList: true }); drawIcon(b); }
+    // another theme can size the icons differently
+    new MutationObserver(() => soon(300)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     const np = document.getElementById('np');
     // the page opening or closing, its lyrics shown or hidden (the controls move); not its other classes
     const key = () => np.classList.contains('on') + '|' + np.classList.contains('nolyrics');

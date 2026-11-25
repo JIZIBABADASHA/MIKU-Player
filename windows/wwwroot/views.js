@@ -1,6 +1,6 @@
 'use strict';
 /* ═════════════════════════════ virtualisation ═════════════════════════════ */
-function vgrid(container, items, { minW = 178, gap = 22, extra = 64, render, kind = 'album', label }) {
+function vgrid(container, items, { minW = 178, gap = 22, extra = 78, render, kind = 'album', label }) {   // extra: the name (up to two lines) and the line under it
   const content = $('#content');
   const wrap = h('div', { class: 'vgrid', 'data-kind': kind });
   container.append(wrap);
@@ -203,7 +203,7 @@ function albumCard(al, size) {
     if (typeof Vinyl !== 'undefined' && Vinyl.pullOut(c, open)) return;   // VINYL: pull the record out of the sleeve first
     open();
   } },
-    art, h('div', { class: 't1', title: al.title }, al.title), h('div', { class: 't2' }, al.artist + (al.year ? ' · ' + al.year : '')));
+    art, h('div', { class: 't1', title: al.title }, al.title), h('div', { class: 't2', title: al.artist + (al.year ? ' · ' + al.year : '') }, al.artist + (al.year ? ' · ' + al.year : '')));
   c.oncontextmenu = e => { e.preventDefault(); albumMenu(al, { x: e.clientX, y: e.clientY }); };
   // keep play button alive across art refreshes
   const obs = new MutationObserver(() => { if (!art.contains(play)) art.append(play); });
@@ -934,7 +934,7 @@ const Views = {
     view.append(pageHead(T('演出者', 'nav'), T`${Lib.artists.length} 位`, [colsControl('artist')]));
     const host = h('div');
     view.append(host);
-    return vgrid(host, Lib.artists, { minW: 160, extra: 50, render: artistCard, kind: 'artist', label: a => ([...a.name.trim()][0] || '#').toUpperCase() });
+    return vgrid(host, Lib.artists, { minW: 160, extra: 70, render: artistCard, kind: 'artist', label: a => ([...a.name.trim()][0] || '#').toUpperCase() });
   },
 
   artist(view, name) {

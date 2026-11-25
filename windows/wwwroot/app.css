@@ -276,7 +276,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .card:hover .play { opacity: 1; transform: none; }
 .card .play:hover { background: var(--teal-2); }
 .card .play svg { width: 20px; height: 20px; margin-left: 2px; }
-.card .t1 { margin-top: 11px; font-weight: 650; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the name: up to two lines before it is cut with … (vgrid leaves room for two); line-height leaves room for g j p q y */
+.card .t1 { margin-top: 11px; font-weight: 650; font-size: 15px; line-height: 1.38; color: var(--text); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .card .t2 { color: var(--text-sub); font-size: 13.5px; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card.artist .art { border-radius: 50%; }
 .card.artist .t1, .card.artist .t2 { text-align: center; }
@@ -309,8 +310,8 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .hero .cover img.ok { opacity: 1; }
 .hero .meta { min-width: 0; padding-bottom: 4px; }
 .hero .kind { color: var(--text-2); font-size: 12px; letter-spacing: .1em; font-weight: 600; }
-.hero h1 { font: 750 46px/1.22 var(--font-display); margin: 6px 0 8px; padding-bottom: .08em; letter-spacing: -.015em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }  /* roomy enough that descenders (g, y, p) are not shaved off by the clamp */
-.hero .by { font-size: 18px; line-height: 1.4; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero h1 { font: 750 46px/1.3 var(--font-display); margin: 6px 0 8px; padding-bottom: .08em; letter-spacing: -.015em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }  /* roomy enough that descenders (g, y, p) are not shaved off by the clamp */
+.hero .by { font-size: 18px; line-height: 1.4; color: var(--text); font-weight: 600; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }   /* a long list of names: two lines, then … */
 .hero .by a { cursor: pointer; }
 .hero .by a:hover { text-decoration: underline; }
 .hero .facts { color: var(--text-2); font-size: 15px; margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -418,6 +419,10 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 .np-mini .t { font-weight: 700; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .np-mini .a { color: var(--text-sub); font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .np-mini .t:hover, .np-mini .a:hover { text-decoration: underline; }
+/* a name longer than the bar: while the pointer rests on it, it slides along to its end (core.js sets --rv / --rv-t) */
+.np-mini .reveal { text-overflow: clip; animation: np-reveal var(--rv-t, 2s) linear .4s forwards; }
+@keyframes np-reveal { to { text-indent: var(--rv, 0px); } }
+@media (prefers-reduced-motion: reduce) { .np-mini .reveal { animation: none; text-overflow: ellipsis; } }
 .np-mini .txt.swap { animation: swap .45s var(--ease-out); }
 @keyframes swap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -1590,7 +1595,7 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 /* positioned so the text paints above the cover's big drop shadow (it fell on the title and greyed it) */
 .np-title, .np-artist, .np-badges { position: relative; }
 .np-title { color: rgb(var(--np-ink)); font: 700 26px/1.32 var(--font-display); /* 1.2 cut off descenders (g, y, p) */ letter-spacing: -.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.np-artist { color: rgba(var(--np-ink), .66); font-size: 16px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-artist { color: rgba(var(--np-ink), .66); font-size: 16px; line-height: 1.4; margin-top: 4px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .np-artist a { cursor: pointer; }
 .np-artist a:hover { color: rgb(var(--np-ink)); text-decoration: underline; }
 .np-badges { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
@@ -1626,6 +1631,9 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
   transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .28s var(--ease), filter .35s var(--ease), background .2s;
   opacity: .34; will-change: transform;
   cursor: pointer;
+  /* a line too long for the column wraps into even rows, not a full row and a word or two left over; in Chinese and
+     Japanese it wraps at the spaces lyrics put between phrases (keep-all), and only inside a phrase too long for a row */
+  text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere;
 }
 #lyrics.ly-direct .ly-line { transition: opacity .28s var(--ease), filter .35s var(--ease), background .2s; }
 .ly-line:hover { background: rgba(var(--np-ink), .06); opacity: .65 !important; filter: none !important; }
@@ -1660,7 +1668,14 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 .sect h2 { margin: 0; padding: 18px 22px 6px; font: 650 16px var(--font-display); }
 .sect .hint { padding: 0 22px 10px; color: var(--text-3); font-size: 12.5px; }
 /* settings tabs: stay under the top bar while the page scrolls */
-.set-tabs { position: sticky; top: 64px; z-index: 5; display: flex; gap: 4px; margin: 0 36px; padding: 4px; width: max-content; background: rgba(var(--bg-rgb), .82); backdrop-filter: blur(20px) saturate(1.3); border: 1px solid var(--line); border-radius: 12px; }
+/* the tabs stick under the top bar inside a bar as wide as the page; once stuck (.on) its band shows: the top bar's own ground
+   (every theme's #topbar.solid rule styles .set-band too), so the page scrolled under the tabs is hidden, not seen beside them */
+.set-bar { position: sticky; top: 64px; z-index: 5; isolation: isolate; padding: 0 36px; }
+.set-band { position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: -12px; display: block; pointer-events: none; opacity: 0; transition: opacity .2s var(--ease);
+  background: rgba(var(--bg-rgb), .82); backdrop-filter: blur(24px) saturate(1.4); border-bottom: 1px solid var(--line); }
+.set-bar.on .set-band { opacity: 1; }
+#main:has(.set-bar.on) #topbar { border-bottom-color: transparent !important; box-shadow: none !important; }
+.set-tabs { position: relative; display: flex; gap: 4px; margin: 0; padding: 4px; width: max-content; background: rgba(var(--bg-rgb), .82); backdrop-filter: blur(20px) saturate(1.3); border: 1px solid var(--line); border-radius: 12px; }
 .set-tabs button { height: 34px; padding: 0 20px; border-radius: 9px; color: var(--text-2); font-size: 14px; font-weight: 600; transition: background .18s, color .18s; }
 .set-tabs button:hover { color: var(--text); }
 .set-tabs button.on { background: rgba(var(--ink), .1); color: var(--text); }
@@ -1880,7 +1895,7 @@ a.link:hover { text-decoration: underline; }
 @keyframes fadeIn { from { opacity: 0; } }
 .modal { width: min(900px, calc(100vw - 60px)); height: min(680px, calc(100vh - 60px)); background: var(--modal-bg); border: 1px solid var(--line-2); border-radius: 18px; box-shadow: 0 40px 100px rgba(var(--shadow-rgb), calc(.6 * var(--sh))); display: flex; flex-direction: column; overflow: hidden; animation: popIn .28s var(--ease-out); }
 .modal-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px 10px; }
-.modal-head h2 { margin: 0; font: 650 18px var(--font-display); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal-head h2 { margin: 0; font: 650 18px/1.35 var(--font-display); flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .modal-tools { display: flex; gap: 8px; padding: 0 20px 8px; flex-wrap: wrap; align-items: center; }
 .modal-tools .inp { flex: 1; min-width: 200px; }
 .modal-hint { padding: 0 20px 10px; color: var(--text-3); font-size: 12.5px; }
@@ -2089,6 +2104,8 @@ select.sel.msel-native { position: absolute !important; inset: 0; width: 100%; h
 
 /* 沒歌詞時左欄縮成內容寬度，讓封面與控制列真正水平置中 */
 #np.nolyrics .np-left { align-items: center; }
+/* 有歌詞時也一樣：視窗矮（例如 1280×720）封面會比左欄窄，原本貼在最左邊、和歌詞中間空一大片；改成在左欄置中 */
+#np:not(.nolyrics) .np-left { align-items: center; }
 
 /* Settings → 快捷鍵 (keys.js) */
 .kb-ctl { display: flex; align-items: center; gap: 8px; }
@@ -2294,7 +2311,7 @@ mark.hit {
 .pl-art .pl-art-i { width: 100%; height: 100%; min-width: 0; min-height: 0; aspect-ratio: 1; overflow: hidden; }
 .pl-art .pl-art-i img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pl-card:hover .pl-art { transform: translateY(-3px); }
-.pl-t1 { margin-top: 10px; font-weight: 650; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-t1 { margin-top: 10px; font-weight: 650; line-height: 1.38; color: var(--text-hi); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .pl-t2 { margin-top: 2px; font-size: 12.5px; color: var(--text-3); }
 .menu.pick.pl-name .pl-name-t { padding: 4px 4px 8px; font-weight: 650; }
 .menu.pick.pl-name .pl-name-b { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }

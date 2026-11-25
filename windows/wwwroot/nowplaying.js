@@ -60,6 +60,8 @@ const NowPlaying = {
       this._back = setTimeout(() => this.unscroll(), 2650);
     }, { passive: false });
     new ResizeObserver(() => { if (this.open) this.measure(); }).observe(box);
+    // another theme or mode can space the lines differently (--ly-gap / --ly-anchor / --ly-start): measured again
+    new MutationObserver(() => { if (this.open) this.measure(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode'] });
     // the top-right lyrics buttons show for 5 s after Now Playing opens, then fade; hovering the top bar brings them back
     const top = $('#np .np-top');
     top.addEventListener('mouseenter', () => this.wakeTop(false));
@@ -98,6 +100,7 @@ const NowPlaying = {
     this.open = false;
     $('#np').classList.remove('on');
     clearTimeout(this._topIdle);
+    this._tyEl = null;   // 終端機: opened again, the current line is set up again for where the song is by then (typeLine)
     if (!fromPop) OverlayHistory.closed(this._close);
     setTimeout(() => YT.sync(), 500);
   },
@@ -356,6 +359,10 @@ const NowPlaying = {
     }
     ly.lines.forEach((l, i) => {
       const el = h('div', { class: 'ly-line' + (l.text ? '' : ' gap') });
+      // the line's start as [mm:ss]: only the 終端機 theme shows it (a gutter of timestamps, like a log); kept on every
+      // line in every theme, so switching to 終端機 while the lyrics are open shows it at once
+      const ts = Math.max(0, Math.floor(l.t || 0));
+      el.dataset.ts = String(Math.floor(ts / 60)).padStart(2, '0') + ':' + String(ts % 60).padStart(2, '0');
       if (!l.text) el.innerHTML = '<div class="ly-dots"><i></i><i></i><i></i></div>';
       else if (l.words && l.words.length) {
         l.words.forEach(w => el.append(h('span', { class: 'w' }, w.w)));
@@ -390,16 +397,51 @@ const NowPlaying = {
     if (!this.lines.length) return;
     const box = $('#lyrics');
     if (!box.clientHeight) return;   // hidden: measured again once it has a size
+    // a theme can give the lines more room and pick where the current line sits, in CSS on #lyrics: --ly-gap (px between
+    // lines, 6 if unset), --ly-anchor (the current line's middle, as a fraction of the box height, .43 if unset) and
+    // --ly-start (at the start of a song the first line sits this far down instead of at the anchor, so the box is not
+    // half empty; unset: off)
+    const cs = getComputedStyle(box), num = (k, d) => { const v = parseFloat(cs.getPropertyValue(k)); return Number.isFinite(v) ? v : d; };
+    this.gap = num('--ly-gap', 6); this.anchor = num('--ly-anchor', 0.43); this.start = num('--ly-start', NaN);
+    this.fitLines(num('--ly-fit', 0) > 0);
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
     this.heights = this.lines.map(el => el.offsetHeight);
-    this.tops = this.heights.map(height => { const top = y; y += height + 6; return top; });
+    this.tops = this.heights.map(height => { const top = y; y += height + this.gap; return top; });
     this.boxH = box.clientHeight;
     this.layoutLines(false, true);
   },
 
+  /**
+   * --ly-fit: 1 on #lyrics, for a theme that draws every line as its own box (普普): a line that wraps onto more rows
+   * (balanced: text-wrap in app.css) gets a box as wide as its longest row, not as wide as the column, so a box is never
+   * half empty. The translation counts while it shows. All widths are read first, then set, so this is one layout.
+   */
+  fitLines(on) {
+    if (!on && !this._fitted) return;
+    this.lines.forEach(el => { el.style.width = ''; });
+    this._fitted = on;
+    if (!on) return;
+    const r = document.createRange(), notr = $('#lyrics').classList.contains('ly-notr');
+    const widths = this.lines.map(el => {
+      const w = el.offsetWidth;
+      if (!w || el.classList.contains('gap')) return 0;
+      const box = el.getBoundingClientRect(), s = box.width / w || 1, tr = el.querySelector(':scope > .tr');
+      let right = 0;
+      const take = () => { for (const q of r.getClientRects()) if (q.width) right = Math.max(right, (q.right - box.left) / s); };
+      if (tr) { if (tr.previousSibling) { r.setStart(el, 0); r.setEndBefore(tr); take(); } if (!notr) { r.selectNodeContents(tr); take(); } }
+      else { r.selectNodeContents(el); take(); }
+      const cs = getComputedStyle(el), need = Math.ceil(right + parseFloat(cs.paddingRight) + parseFloat(cs.borderRightWidth) + 1);
+      return right && need < w - 2 ? need : 0;
+    });
+    this.lines.forEach((el, i) => { if (widths[i]) el.style.width = widths[i] + 'px'; });
+  },
+
   /** Scroll that puts line i where the current line sits. */
-  scrollTo(i) { return this.tops[i] + (this.heights[i] || 0) / 2 - this.boxH * 0.43; },   // a little above the middle (0.36 had the eyes looking up)
+  scrollTo(i) {
+    const s = this.tops[i] + (this.heights[i] || 0) / 2 - this.boxH * (this.anchor ?? 0.43);   // a little above the middle (0.36 had the eyes looking up)
+    return Number.isFinite(this.start) ? Math.max(s, this.tops[0] - this.boxH * this.start) : s;
+  },
 
   /** A hand-scroll offset that stops once the first line is just under the box's faded top edge, or the last line just
    *  above its faded bottom edge (.lyrics mask: 13% / 80%), so the lyrics can't be pulled away into a blank page.
@@ -423,6 +465,8 @@ const NowPlaying = {
     // without an eased transition on top of the system's own momentum. Gliding back to the current line still eases.
     const box = $('#lyrics');
     box.classList.toggle('ly-direct', !!manual && PageEffects.reduced('scroll'));
+    // 終端機: every line at full size, like rows of text on a screen or a printout (the others shrink the lines not sung)
+    const theme = document.documentElement.dataset.theme, small = theme === 'terminal' ? 1 : 0.965;
     this.lines.forEach((el, i) => {
       const d = i - a;
       const dist = Math.abs(d);
@@ -430,10 +474,14 @@ const NowPlaying = {
       const delay = manual || instant || d <= 0 ? 0 : Math.min(dist, 7) * 26;
       el.style.transitionDelay = `${delay}ms, 0ms, 0ms, 0ms`;
       if (instant) el.style.transitionDuration = '0s';
-      el.style.transform = `translateY(${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : 0.965})`;
+      el.style.transform = `translateY(${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : small})`;
       el.style.filter = i === this.active || scrolling ? 'none' : `blur(${Math.min(dist * 0.7, 3.2)}px)`;
       el.classList.toggle('on', i === this.active);
     });
+    const cur = this.lines[this.active] || null;
+    if (cur !== this._tyEl || theme !== this._tyTheme) { this._tyEl = cur; this._tyTheme = theme; if (cur && theme === 'terminal') this.typeLine(cur, this.active); }
+    // a theme's own effects can follow the lyrics: 'miku-lyric-line' fires once each time another line becomes the current one
+    if (cur !== this._evLine) { this._evLine = cur; if (cur) window.dispatchEvent(new CustomEvent('miku-lyric-line', { detail: { el: cur, index: this.active, manual: !!manual } })); }
     // Commit all instant positions together; reading after each line forced one layout per lyric line.
     if (instant) { void box.offsetWidth; this.lines.forEach(el => { el.style.transitionDuration = ''; }); }
   },
@@ -443,6 +491,59 @@ const NowPlaying = {
     if (!this.manualOffset && !this.manualUntil) return;
     this.manualOffset = 0; this.manualUntil = 0;
     this.layoutLines();
+  },
+
+  /**
+   * 終端機 theme only: the line that just became current types out like a terminal, character by character, with a
+   * block cursor that blinks once it is done (themes.css, sig/terminal.css: .tm-ty, .tm-c, .tm-cur). The characters are
+   * wrapped in spans once, the first time the line is current; from then on the browser does the typing (one CSS
+   * animation per character, delays from --i), so nothing runs per frame here. The typing ends by about 60 % of the
+   * time until the next line and within 2.8 s, never slower than 60 ms per cell (a CJK character is two cells: about
+   * 8 a second, a Latin letter 16): short lines type at a reading pace, long ones faster. Opened, seeked or clicked
+   * into the middle of a line, it starts where it would be by now (--ty-skip), so a seek never replays a line from the
+   * start. Lightweight mode (ambient) or reduced motion: the line
+   * shows whole, with a cursor that does not blink.
+   */
+  typeLine(el, i) {
+    const L = this.ly && this.ly.lines, l = L && L[i];
+    if (!l || !l.text) return;   // a pause between lines (.gap): its dots
+    if (!el._cur) {
+      el._cur = h('span', { class: 'tm-cur', 'aria-hidden': 'true' });
+      el.insertBefore(el._cur, el.querySelector(':scope > .tr'));
+    }
+    const still = PageEffects.reduced('ambient') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.classList.toggle('tm-ty', !still);
+    if (still) return;
+    if (!el._cells) {
+      // each character (grapheme) in a span: --i = cells typed before it, --w = 2 for a wide (CJK) character
+      const wide = /[\u1100-\u115F\u2E80-\u303E\u3041-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6\u{1F300}-\u{1FAFF}\u{20000}-\u{3FFFD}]/u;
+      const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+      let cells = 0;
+      const split = node => {
+        for (const n of [...node.childNodes]) {
+          if (n.nodeType === 3) {
+            const frag = document.createDocumentFragment();
+            for (const g of seg ? Array.from(seg.segment(n.data), s => s.segment) : Array.from(n.data)) {
+              const c = document.createElement('span'), w = wide.test(g) ? 2 : 1;
+              c.className = 'tm-c'; c.textContent = g;
+              c.style.setProperty('--i', cells);
+              if (w !== 1) c.style.setProperty('--w', w);
+              cells += w; frag.append(c);
+            }
+            n.replaceWith(frag);
+          } else if (n.nodeType === 1 && n.classList.contains('w')) split(n);   // word-by-word lyrics: inside each word
+        }
+      };
+      split(el);
+      el._cells = Math.max(1, cells);
+    }
+    const next = L[i + 1];
+    const gap = next ? Math.max(0.3, next.t - l.t) : 4;
+    const total = Math.min(0.62 * gap, el._cells * 0.06, 2.8);
+    const skip = Math.max(0, App.pos + (this.ly.offset || 0) - l.t);
+    el.style.setProperty('--ty-u', (total / el._cells).toFixed(4) + 's');
+    el.style.setProperty('--ty-total', total.toFixed(3) + 's');
+    el.style.setProperty('--ty-skip', skip.toFixed(3) + 's');
   },
 
   tick(pos) {

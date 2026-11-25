@@ -677,16 +677,16 @@ Object.assign(I18N_DICT.ja, {
 
 /* New picker descriptions: 終端機. */
 Object.assign(I18N_DICT["zh-Hans"], {
-  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。": "绿条纹的报表纸、侧边送纸孔，方框和 [ 方括号 ] 按钮，选到的反白。",
-  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。": "带绿的灰色屏幕、磷光绿的等宽字，方框窗口、$ 提示符号与闪烁光标，选到的反白。",
+  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白；歌詞像點陣印表機一樣一個字一個字印出來。": "绿条纹的报表纸、侧边送纸孔，方框和 [ 方括号 ] 按钮，选到的反白；歌词像针式打印机一样一个字一个字打印出来。",
+  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗與 $ 提示符號，選到的反白；歌詞在映像管螢幕上一個字一個字打出來。": "带绿的灰色屏幕、磷光绿的等宽字，方框窗口与 $ 提示符号，选到的反白；歌词在显像管屏幕上一个字一个字打出来。",
 });
 Object.assign(I18N_DICT.en, {
-  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。": "Green-bar printer paper with tractor-feed holes, box frames and [ bracketed ] buttons; the selection is shown in reverse video.",
-  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。": "A green-grey screen with phosphor-green monospace text, boxed windows, $ prompts and a blinking cursor; the selection is shown in reverse video.",
+  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白；歌詞像點陣印表機一樣一個字一個字印出來。": "Green-bar printer paper with tractor-feed holes, box frames and [ bracketed ] buttons, the selection in reverse video; the lyrics print out letter by letter, like a dot-matrix printer.",
+  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗與 $ 提示符號，選到的反白；歌詞在映像管螢幕上一個字一個字打出來。": "A green-grey screen with phosphor-green monospace text, boxed windows and $ prompts, the selection in reverse video; the lyrics type out letter by letter on a CRT screen.",
 });
 Object.assign(I18N_DICT.ja, {
-  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白。": "緑の縞のストックフォーム紙と送り穴、罫線の枠と [ 角括弧 ] のボタン。選択中は反転表示。",
-  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗、$ 提示符號與閃爍游標，選到的反白。": "緑がかったグレーの画面、蛍光グリーンの等幅文字、罫線のウィンドウ、$ プロンプトと点滅カーソル。選択中は反転表示。",
+  "綠條紋的報表紙、側邊送紙孔，方框和 [ 方括號 ] 按鈕，選到的反白；歌詞像點陣印表機一樣一個字一個字印出來。": "緑の縞のストックフォーム紙と送り穴、罫線の枠と [ 角括弧 ] のボタン、選択中は反転表示。歌詞はドットプリンターのように一文字ずつ印字されます。",
+  "帶綠的灰色螢幕、磷光綠的等寬字，方框視窗與 $ 提示符號，選到的反白；歌詞在映像管螢幕上一個字一個字打出來。": "緑がかったグレーの画面、蛍光グリーンの等幅文字、罫線のウィンドウと $ プロンプト、選択中は反転表示。歌詞はブラウン管の画面に一文字ずつタイプされます。",
 });
 
 /* New picker descriptions: 黑膠. */
@@ -728,8 +728,8 @@ Object.assign(I18N_DICT["zh-Hans"], {
   "個性": "个性",
   "象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。": "象牙白的纸面配黑漆侧栏与播放栏，金色的装饰艺术放射扇形、双金线细框与菱形，选中的是黑底金字。",
   "帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。": "带暖意的黑漆面板层层分明、象牙白的字，金色放射扇形、阶梯角饰与双金线细框，选中的是黑底金字。",
-  "金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。": "金光闪闪的香槟色宫殿：大马士革花纹壁纸、镀金画框、红丝绒播放栏挂着粗金链，按钮是镜面金牌，翡翠与红宝石点缀。",
-  "酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。": "酒红丝绒的夜：暗金花纹壁纸、镀金画框与水晶吊灯，镜面金牌按钮和粗金链，开关镶着红宝石与翡翠。",
+  "整個介面都是金子：鏡面拋光的金牆貼著金箔、撒滿亮片，鑲水鑽的金菱格側欄、紅漆金字招牌、金磚播放列掛粗金鍊，選中的是紅寶石。": "整个界面都是金子：镜面抛光的金墙贴着金箔、撒满亮片，镶水钻的金菱格侧栏、红漆金字招牌、金砖播放栏挂粗金链，选中的是红宝石。",
+  "酒紅絲絨的夜，金子一樣多：金菱格側欄、金磚播放列、鍍金畫框與水晶吊燈、紅漆金字招牌，字是亮金與米白，閃光一閃一閃。": "酒红丝绒的夜，金子一样多：金菱格侧栏、金砖播放栏、镀金画框与水晶吊灯、红漆金字招牌，字是亮金与米白，闪光一闪一闪。",
 });
 Object.assign(I18N_DICT.en, {
   "極簡平面 1": "Minimal 1",
@@ -741,8 +741,8 @@ Object.assign(I18N_DICT.en, {
   "個性": "Bold",
   "象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。": "Ivory paper with a black lacquer sidebar and player bar, gold Art Deco sunbursts, fine double gold rules and diamonds; selected items are gold on black.",
   "帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。": "Warm black lacquer in clearly layered panels with ivory type, gold sunbursts, stepped corner ornaments and fine double gold rules; selected items are gold on black.",
-  "金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。": "A glittering champagne palace: damask wallpaper, gilded picture frames, a red velvet player bar hung with a chunky gold chain, mirror-gold plaque buttons, jade and ruby accents.",
-  "酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。": "Wine-red velvet after dark: dark gold damask, gilded frames and a crystal chandelier, mirror-gold plaque buttons and a chunky gold chain, switches set with rubies and jade.",
+  "整個介面都是金子：鏡面拋光的金牆貼著金箔、撒滿亮片，鑲水鑽的金菱格側欄、紅漆金字招牌、金磚播放列掛粗金鍊，選中的是紅寶石。": "Gold everything: a mirror-polished gold wall with gold leaf and glitter, a rhinestone-studded quilted gold sidebar, red lacquer signboards with gold letters, a gold-bar player bar hung with a chunky chain; whatever is selected turns ruby.",
+  "酒紅絲絨的夜，金子一樣多：金菱格側欄、金磚播放列、鍍金畫框與水晶吊燈、紅漆金字招牌，字是亮金與米白，閃光一閃一閃。": "Wine-red velvet after dark, with just as much gold: a quilted gold sidebar, a gold-bar player bar, gilded frames and a crystal chandelier, red lacquer signboards, bright gold and ivory text, twinkling sparkles.",
 });
 Object.assign(I18N_DICT.ja, {
   "極簡平面 1": "ミニマル 1",
@@ -754,8 +754,8 @@ Object.assign(I18N_DICT.ja, {
   "個性": "個性派",
   "象牙白的紙面配黑漆側欄與播放列，金色的裝飾藝術放射扇形、雙金線細框與菱形，選中的是黑底金字。": "アイボリーの紙に黒漆のサイドバーとプレーヤーバー、金のアール・デコの放射扇、細い二重の金線とひし形。選択中は黒地に金文字。",
   "帶暖意的黑漆面板層層分明、象牙白的字，金色放射扇形、階梯角飾與雙金線細框，選中的是黑底金字。": "ほんのり暖かい黒漆のパネルが層をなし、文字はアイボリー。金の放射扇、段状のコーナー飾り、細い二重の金線、選択中は黒地に金文字。",
-  "金光閃閃的香檳色宮殿：大馬士革花紋壁紙、鍍金畫框、紅絲絨播放列掛著粗金鍊，按鈕是鏡面金牌，翡翠與紅寶石點綴。": "きらきら輝くシャンパンゴールドの宮殿：ダマスク柄の壁紙、金縁の額、太い金の鎖を掛けた赤いベルベットの再生バー、鏡面仕上げの金のプレートボタン、翡翠とルビーのアクセント。",
-  "酒紅絲絨的夜：暗金花紋壁紙、鍍金畫框與水晶吊燈，鏡面金牌按鈕和粗金鍊，開關鑲著紅寶石與翡翠。": "ワインレッドのベルベットの夜：暗い金のダマスク柄、金縁の額とクリスタルのシャンデリア、鏡面仕上げの金のプレートボタンと太い金の鎖、ルビーと翡翠をはめたスイッチ。",
+  "整個介面都是金子：鏡面拋光的金牆貼著金箔、撒滿亮片，鑲水鑽的金菱格側欄、紅漆金字招牌、金磚播放列掛粗金鍊，選中的是紅寶石。": "どこもかしこも金：鏡面仕上げの金の壁に金箔とラメ、ラインストーンを打った金のキルティングのサイドバー、赤漆に金文字の看板、太い金の鎖を下げた金の延べ棒の再生バー。選んだものはルビー色。",
+  "酒紅絲絨的夜，金子一樣多：金菱格側欄、金磚播放列、鍍金畫框與水晶吊燈、紅漆金字招牌，字是亮金與米白，閃光一閃一閃。": "ワインレッドのベルベットの夜も金だらけ：金のキルティングのサイドバー、金の延べ棒の再生バー、金縁の額とクリスタルのシャンデリア、赤漆に金文字の看板、明るい金とアイボリーの文字、きらきら瞬く光。",
 });
 
 /* 極簡平面 2: new night description. */
@@ -773,6 +773,34 @@ Object.assign(I18N_DICT.ja, {
 Object.assign(I18N_DICT["zh-Hans"], { "預覽": "预览" });
 Object.assign(I18N_DICT.en, { "預覽": "Preview" });
 Object.assign(I18N_DICT.ja, { "預覽": "プレビュー" });
+
+/* 復古海報 round 7 (old American cartoon ads). */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "老美式動畫廣告：米色印刷紙、朱紅緞帶標題與硬陰影大字，封面後面轉著放射光；按鈕會彈，按播放冒出星星。": "老美式动画广告：米色印刷纸、朱红缎带标题与硬阴影大字，封面后面转着放射光；按钮会弹，按播放冒出星星。",
+  "動畫廣告的夜版：深棕色的印刷紙、米色大字與朱紅緞帶，金色放射光在封面後面慢慢轉，膠片顆粒輕輕跳動。": "动画广告的夜版：深棕色的印刷纸、米色大字与朱红缎带，金色放射光在封面后面慢慢转，胶片颗粒轻轻跳动。"
+});
+Object.assign(I18N_DICT.en, {
+  "老美式動畫廣告：米色印刷紙、朱紅緞帶標題與硬陰影大字，封面後面轉著放射光；按鈕會彈，按播放冒出星星。": "Vintage American cartoon ad: cream printed paper, vermilion ribbon headings and big drop-shadow lettering, sunburst rays turning behind the cover; buttons bounce and stars burst when you press play.",
+  "動畫廣告的夜版：深棕色的印刷紙、米色大字與朱紅緞帶，金色放射光在封面後面慢慢轉，膠片顆粒輕輕跳動。": "The cartoon ad after dark: deep brown printed paper, cream lettering and vermilion ribbons, golden sunburst rays slowly turning behind the cover, flickering film grain."
+});
+Object.assign(I18N_DICT.ja, {
+  "老美式動畫廣告：米色印刷紙、朱紅緞帶標題與硬陰影大字，封面後面轉著放射光；按鈕會彈，按播放冒出星星。": "昔のアメリカのアニメ広告風：クリーム色の印刷紙、朱色のリボン見出しと影付きの大きな文字、ジャケットの後ろで回る放射光。ボタンは弾み、再生すると星がはじける。",
+  "動畫廣告的夜版：深棕色的印刷紙、米色大字與朱紅緞帶，金色放射光在封面後面慢慢轉，膠片顆粒輕輕跳動。": "アニメ広告の夜版：こげ茶色の印刷紙、クリーム色の大きな文字と朱色のリボン、ジャケットの後ろでゆっくり回る金色の放射光、ちらつくフィルムの粒子。"
+});
+
+/* 霓虹賽博 round 7 (cyberpunk-city HUD, neon trails). */
+Object.assign(I18N_DICT["zh-Hans"], {
+  "白天的實驗室 HUD：淡紫白底配深靛色側欄，斜切角面板、酸性黃標籤與條碼小字，青、洋紅細線；歌詞與滑動的光帶著淡淡的光尾。": "白天的实验室 HUD：淡紫白底配深靛色侧栏，斜切角面板、酸性黄标签与条码小字，青、洋红细线；歌词与滑动的光带着淡淡的光尾。",
+  "下著細雨的霓虹城市夜晚：斜切角的 HUD 面板、酸性黃標籤與條碼小字，電光青和洋紅點亮選中的項目，歌詞與滑動的光都拖著霓虹光尾。": "下着细雨的霓虹城市夜晚：斜切角的 HUD 面板、酸性黄标签与条码小字，电光青和洋红点亮选中的项目，歌词与滑动的光都拖着霓虹光尾。"
+});
+Object.assign(I18N_DICT.en, {
+  "白天的實驗室 HUD：淡紫白底配深靛色側欄，斜切角面板、酸性黃標籤與條碼小字，青、洋紅細線；歌詞與滑動的光帶著淡淡的光尾。": "A daylight lab HUD: pale lavender with a deep indigo sidebar, cut-corner panels, acid-yellow tags and barcode microtext, fine cyan and magenta lines; lyrics and moving highlights leave a faint light trail.",
+  "下著細雨的霓虹城市夜晚：斜切角的 HUD 面板、酸性黃標籤與條碼小字，電光青和洋紅點亮選中的項目，歌詞與滑動的光都拖著霓虹光尾。": "A neon city night in the rain: cut-corner HUD panels, acid-yellow tags and barcode microtext; electric cyan and magenta light up what's selected, and lyrics and moving highlights trail neon light."
+});
+Object.assign(I18N_DICT.ja, {
+  "白天的實驗室 HUD：淡紫白底配深靛色側欄，斜切角面板、酸性黃標籤與條碼小字，青、洋紅細線；歌詞與滑動的光帶著淡淡的光尾。": "昼のラボのHUD：淡いラベンダーの地に深い藍色のサイドバー、角を斜めに切ったパネル、アシッドイエローのタグとバーコードの小さな文字、シアンとマゼンタの細い線。歌詞や動くハイライトはかすかな光の尾を引く。",
+  "下著細雨的霓虹城市夜晚：斜切角的 HUD 面板、酸性黃標籤與條碼小字，電光青和洋紅點亮選中的項目，歌詞與滑動的光都拖著霓虹光尾。": "雨の降るネオン街の夜：角を斜めに切ったHUDパネル、アシッドイエローのタグとバーコードの小さな文字。選択中の項目は電光シアンとマゼンタで光り、歌詞や動くハイライトはネオンの光の尾を引く。"
+});
 
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {

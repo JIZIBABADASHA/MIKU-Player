@@ -106,7 +106,8 @@
 :root.lite-blur[data-theme="glass"] .drawer,
 :root.lite-blur[data-theme="glass"] .pop,
 :root.lite-blur[data-theme="glass"] .modal,
-:root.lite-blur[data-theme="glass"] #topbar.solid {
+:root.lite-blur[data-theme="glass"] #topbar.solid,
+:root.lite-blur[data-theme="glass"] .set-band {
   background: rgba(var(--bg-rgb), .97) !important;
 }
 :root.lite-scroll * { scroll-behavior: auto !important; }

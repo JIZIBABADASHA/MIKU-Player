@@ -8,6 +8,19 @@ const Settings = {
     if (typeof Outputs !== 'undefined') Outputs.label();   // (a const: not on window)
   },
 
+  /** The tabs' band shows only while they are stuck under the top bar (watched on the page's scroll, set up once). */
+  watchBar() {
+    const content = $('#content');
+    const check = () => {
+      const bar = document.querySelector('.set-bar');
+      if (!bar) return;
+      const stuck = content.scrollTop > 0 && bar.getBoundingClientRect().top - content.getBoundingClientRect().top <= 64.5;
+      bar.classList.toggle('on', stuck);
+    };
+    if (!this.barWatched) { this.barWatched = true; content.addEventListener('scroll', check, { passive: true }); }
+    requestAnimationFrame(check);
+  },
+
   /** Settings page in tabs: 音訊 / 曲庫 / 外觀 / 快捷鍵 / 其他 (#/settings/<tab>; the last one is remembered). */
   render(view, tab) {
     const tabs = [['audio', T('音訊')], ['library', T('曲庫')], ['look', T('外觀')], ['keys', T('快捷鍵')], ['other', T('其他')]];
@@ -18,7 +31,11 @@ const Settings = {
       class: id === tab ? 'on' : '',
       onclick: () => { if (id === tab) { scrollTop($('#content')); return; } TabPill.leave(bar); history.pushState({ i: ++Router.idx }, '', '#/settings/' + id); Router.render(false, 'none'); },
     }, label)));
-    view.append(bar);
+    // the tabs stick under the top bar; once stuck, a band as wide as the page (the top bar's own ground) sits behind them,
+    // so what scrolls under them is hidden instead of showing beside them
+    const band = h('div', { class: 'set-bar' }, h('i', { class: 'set-band', 'aria-hidden': 'true' }), bar);
+    view.append(band);
+    Settings.watchBar();
     const root = h('div', { class: 'settings' });
     view.append(root);
     TabPill.mount(bar, root);   // the highlight slides to the new tab and the page eases in from its side

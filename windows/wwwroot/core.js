@@ -1163,6 +1163,17 @@ const App = {
     const barGo = hash => { NowPlaying.hide(); go(hash); };
     $('#b-title').onclick = () => { const t = this.track(); if (t) barGo(t.live ? '#/ytmusic' : '#/album/' + t.albumId); };
     $('#b-artist').onclick = () => { const t = this.track(); if (t && t.live) return barGo('#/ytmusic'); if (t) barGo('#/artist/' + encodeURIComponent(mainArtist(t))); };
+    // a title or artist too long for the bar slides along to show its end while the pointer rests on it (and back after)
+    for (const el of [$('#b-title'), $('#b-artist')]) {
+      el.addEventListener('pointerenter', () => {
+        const over = el.scrollWidth - el.clientWidth;
+        if (over < 2) return;
+        el.style.setProperty('--rv', -over + 'px');
+        el.style.setProperty('--rv-t', Math.min(6, Math.max(1.2, over / 45)).toFixed(2) + 's');
+        el.classList.add('reveal');
+      });
+      el.addEventListener('pointerleave', () => el.classList.remove('reveal'));
+    }
     $('#b-queue').onclick = () => Drawer.toggle('queue');
     $('#b-dsp').onclick = () => Drawer.toggle('dsp');
     $('#b-sig').onclick = e => SignalPop.toggle(e.currentTarget);
