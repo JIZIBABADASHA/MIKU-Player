@@ -2831,16 +2831,19 @@ function flyBackClone(target, b) {
     setTimeout(end, 650);
   });
 }
+/** A theme can turn the cover flight off and use its own page change instead (復古海報: a TV channel switch):
+ *  --album-flip: off on :root. */
+const flipOff = () => getComputedStyle(document.documentElement).getPropertyValue('--album-flip').trim() === 'off';
 const Flip = {
   from: null,
   capture(id, artEl) {
-    if (PageEffects.reduced('album')) { this.from = null; return; }
+    if (PageEffects.reduced('album') || flipOff()) { this.from = null; return; }
     const img = artEl && artEl.querySelector('img.ok');
     this.from = img ? { id, rect: artEl.getBoundingClientRect(), src: img.src } : null;
   },
   back: null,
   captureBack(id, coverEl) {
-    if (PageEffects.reduced('album')) { this.back = null; return; }
+    if (PageEffects.reduced('album') || flipOff()) { this.back = null; return; }
     const img = coverEl && coverEl.querySelector('img.ok');
     this.back = img ? { id, rect: coverEl.getBoundingClientRect(), src: img.src } : null;
   },
@@ -2861,6 +2864,9 @@ const Flip = {
       if (!target) { if (++tries < 20) requestAnimationFrame(find); return; }
       const card = target.closest('.card');
       if (card) { card.classList.remove('pop-in'); card.style.animation = 'none'; }
+      // a theme's own entrance on the card or its cover (復古海報 .art bounces in from 64 %) would be measured mid-way:
+      // the cover flew to a small card and the real one then popped up to full size. Jump those to their end first.
+      (card || target).getAnimations({ subtree: true }).forEach(a => { if (Number.isFinite(a.effect?.getComputedTiming().endTime)) try { a.finish(); } catch { } });
       flyBackClone(target, b);
     };
     requestAnimationFrame(find);

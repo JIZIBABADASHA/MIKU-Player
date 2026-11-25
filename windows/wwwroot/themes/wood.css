@@ -120,7 +120,7 @@
     linear-gradient(#e9c88e, #b48a4f) right 7px top 0 / 1px 100% no-repeat,
     linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)) right 8px top 0 / 1px 100% no-repeat,
     linear-gradient(90deg, rgba(0,0,0,.3), transparent 60%, rgba(255,230,190,.07)) right top / 7px 100% no-repeat,
-    var(--wd-strip) right top / 7px 1100px repeat-y,
+    var(--wd-strip) right top / 7px max(100%, 1100px) no-repeat,
     var(--sidebar-bg);
   box-shadow: none;
 }
@@ -130,7 +130,7 @@
     linear-gradient(#a87b3a, #7c5524) right 7px top 0 / 1px 100% no-repeat,
     linear-gradient(rgba(255,250,236,.7), rgba(255,250,236,.7)) right 8px top 0 / 1px 100% no-repeat,
     linear-gradient(90deg, rgba(110,76,36,.2), transparent 60%, rgba(255,250,236,.25)) right top / 7px 100% no-repeat,
-    var(--wd-strip) right top / 7px 1100px repeat-y,
+    var(--wd-strip) right top / 7px max(100%, 1100px) no-repeat,
     var(--sidebar-bg);
 }
 :root[data-theme="wood"] .nav a { color: #f6ead6; border-radius: 4px; }
@@ -401,11 +401,11 @@
 :root[data-theme="wood"]:where([data-mode="day"]) .slider .fill, :root[data-theme="wood"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(180deg, #c99a52, #946726); }
 :root[data-theme="wood"] .slider .knob { background: var(--wd-brass); box-shadow: 0 0 0 1px var(--wd-brass-edge), 0 1px 3px rgba(0,0,0,.4); }
 
-/* 設定頁的滑桿（緩衝大小、文字大小…）：凹槽＋黃銅的推桿帽（像混音台的推桿），中間一道刻線 */
+/* 設定頁的滑桿（緩衝大小、文字大小…）：凹槽＋黃銅的推桿帽（像混音台的推桿），帽子是一整塊亮面黃銅，中間不畫線 */
 :root[data-theme="wood"] .range { height: 6px; border-radius: 3px; background: var(--wd-well); box-shadow: var(--wd-well-sh); }
 :root[data-theme="wood"] .range::-webkit-slider-thumb {
   width: 14px; height: 20px; border-radius: 3px;
-  background: linear-gradient(transparent 9px, var(--wd-brass-ink) 9px 11px, transparent 11px), var(--wd-brass);
+  background: var(--wd-brass);
   box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 var(--wd-drop);
 }
 :root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 4px; background: var(--wd-well); box-shadow: var(--wd-well-sh); color: var(--text-2); }

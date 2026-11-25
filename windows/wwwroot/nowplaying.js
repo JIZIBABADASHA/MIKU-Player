@@ -421,7 +421,10 @@ const NowPlaying = {
     const b = $('#np-badges');
     b.textContent = '';
     b.append(h('span', { class: 'badge' }, t.codec));
-    if (!t.live) b.append(h('span', { class: 'badge' }, fmtQuality(t.codec, t.rate, t.bits)));
+    // lossy files: fmtQuality gives the codec back (MP3), which showed as MP3 MP3; show the bit rate or sample rate instead
+    const q = t.live ? '' : fmtQuality(t.codec, t.rate, t.bits);
+    const q2 = q && q !== t.codec ? q : t.live ? '' : t.bitrate ? t.bitrate + ' kbps' : t.rate ? khz(t.rate) + ' kHz' : '';
+    if (q2) b.append(h('span', { class: 'badge' }, q2));
     if (t.year) b.append(h('span', { class: 'badge' }, t.year));
   },
 

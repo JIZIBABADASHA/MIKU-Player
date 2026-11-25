@@ -43,7 +43,9 @@
 :root[data-theme="terminal"] .playbtn { background: transparent; color: var(--teal); box-shadow: inset 0 0 0 2px var(--teal), var(--tm-glow-box); }
 :root[data-theme="terminal"] .playbtn:hover { background: rgba(var(--teal-rgb), .14); }
 :root[data-theme="terminal"] .slider .track { background: rgba(var(--teal-rgb), .14); }
-:root[data-theme="terminal"] .slider .fill, :root[data-theme="terminal"] .slider:hover .fill { background: repeating-linear-gradient(90deg, var(--teal) 0 6px, transparent 6px 8px); }
+
+/* 進度條：實心的一條（原本的虛線在小數像素上間隔會忽大忽小） */
+:root[data-theme="terminal"] .slider .fill, :root[data-theme="terminal"] .slider:hover .fill { background: var(--teal); }
 :root[data-theme="terminal"] .slider .knob { border-radius: 0; width: 6px; height: 14px; margin: -7px 0 0 -3px; background: var(--teal); box-shadow: var(--tm-glow-box); }
 :root[data-theme="terminal"] .seek .slider .knob, :root[data-theme="terminal"] .np-seek .slider .knob { opacity: 1; transform: none; }
 

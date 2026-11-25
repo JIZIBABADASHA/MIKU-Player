@@ -388,7 +388,7 @@
 :root[data-theme="vinyl"] #np .np-cover img { border-radius: 50%; transform: none; animation: vinylSpin 9s linear infinite; will-change: transform; backface-visibility: hidden; }
 :root[data-theme="vinyl"] #np.paused .np-cover img, :root[data-theme="vinyl"] body.paused #np .np-cover img { animation-play-state: paused; }
 
-/* 不會轉的那層：::before 是溝紋和反光（只在圓標外面那一圈），::after 是圓標的邊、中心孔、黑色外緣。
+/* 不會轉的那層：::before 是溝紋和反光（從中間往外慢慢淡入，不畫圓標的邊線：封面上不會有一圈線），::after 是中心孔、黑色外緣。
    z-index 1：在封面圖上面、在雙擊加最愛的愛心（z-index 2）下面。 */
 :root[data-theme="vinyl"] #np .np-cover::before, :root[data-theme="vinyl"] #np .np-cover::after {
   content: ""; position: absolute; inset: 0; z-index: 1; width: auto; height: auto; border-radius: 50%; pointer-events: none;
@@ -398,14 +398,13 @@
   background:
     conic-gradient(from 28deg, rgba(255,255,255,.2), transparent 9%, transparent 46%, rgba(255,255,255,.15) 54%, transparent 63%),
     repeating-radial-gradient(circle closest-side, rgba(10,8,6,.13) 0, rgba(10,8,6,.04) 1.4px, rgba(10,8,6,0) 2px 3px);
-  -webkit-mask: radial-gradient(circle closest-side, transparent 0 34%, #000 35% 93%, transparent 94%);
-          mask: radial-gradient(circle closest-side, transparent 0 34%, #000 35% 93%, transparent 94%);
+  -webkit-mask: radial-gradient(circle closest-side, transparent 0 26%, #000 46% 93%, transparent 94%);
+          mask: radial-gradient(circle closest-side, transparent 0 26%, #000 46% 93%, transparent 94%);
 }
 :root[data-theme="vinyl"] #np .np-cover::after {
   -webkit-mask: none; mask: none;
   background:
     radial-gradient(circle closest-side, #0b0a09 0 2.4%, rgba(251,247,235,.95) 2.9% 4.3%, rgba(0,0,0,.3) 4.6% 5.1%, transparent 5.4%),
-    radial-gradient(circle closest-side, transparent 0 33.2%, rgba(0,0,0,.32) 33.6% 34.2%, rgba(255,255,255,.3) 34.5% 35%, transparent 35.4%),
     radial-gradient(circle closest-side, transparent 0 93.2%, rgba(12,10,8,.6) 94%, #131110 95% 98.4%, var(--vy-rim) 99.1% 100%);
 }
 

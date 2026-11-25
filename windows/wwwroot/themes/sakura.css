@@ -259,7 +259,10 @@
   left: 2px; top: 2px; width: 20px; height: 20px; background: #ffffff;
   -webkit-mask-image: var(--sk-flower); mask-image: var(--sk-flower);
 }
-:root[data-theme="sakura"]:where([data-mode="night"]) .switch { background: var(--bg-2); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .switch { background: #1f141c; box-shadow: inset 0 0 0 1.5px #e98fb2; }
+
+/* 夜：關著的花苞是乾淨的櫻花粉（原本灰粉色看起來髒髒的），軌道更深、外框是清楚的粉色 */
+:root[data-theme="sakura"]:where([data-mode="night"]) .switch:not(.on)::after { background: #ffb8cf; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .switch.on { background: var(--teal); box-shadow: inset 0 0 0 1.5px #ffc0d6; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .switch.on::after { background: #3a1426; }
 

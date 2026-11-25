@@ -207,8 +207,14 @@
 :root[data-theme="neon"] .menu hr { border-top-color: var(--line-2); }
 :root[data-theme="neon"] .msel-opt { border-radius: 0; }
 :root[data-theme="neon"] .msel-opt.on { background: rgba(var(--teal-rgb), .16); }
-:root[data-theme="neon"] .msel-opt.on::before { border-radius: 0; width: 4px; transform: skewX(-14deg); box-shadow: 0 0 6px rgba(var(--teal-rgb), .7); }
+:root[data-theme="neon"] .msel-opt.on::before { border-radius: 0; box-shadow: 0 0 6px rgba(var(--teal-rgb), .7); }
 :root[data-theme="neon"] .msel-opt.on .msel-ck { border-radius: 0; }
+
+/* 下拉選單：和按鈕一樣寬，選項的字、左邊的青色斜條、右邊的勾，都對齊按鈕上的字、斜條和箭頭 */
+:root[data-theme="neon"] .msel-menu { padding: 6px 0; }
+:root[data-theme="neon"] .msel-opt { gap: 10px; padding: 10px 11px 10px 28px; }
+:root[data-theme="neon"] .msel-opt + .msel-opt { margin-top: 0; }
+:root[data-theme="neon"] .msel-opt.on::before { left: 13px; top: 50%; bottom: auto; height: 12px; margin-top: -6px; width: 5px; transform: skewX(-18deg); }
 
 /* ───────────── 5 · 字體：HUD 標題（等寬、英文大寫、字距拉開） ───────────── */
 /* （頁面標題、對話框標題可能是播放清單名稱、資料夾名稱或搜尋的字：只換字體，不改大小寫） */
@@ -429,19 +435,25 @@
 :root[data-theme="neon"] :is(select.sel, input.inp):focus { border-color: var(--nx-edge-h); }
 
 /* ───────────── 11 · 開關 ─────────────
-   斜切角的軌道、斜的滑塊。關：暗底＋看得見的框，滑塊是淡紫色的斜塊（對軌道 7:1）；
-   開：整條亮青、外面發光，滑塊變成深靛色。一眼就分得出來。 */
+   八角形的軌道（四個角都切，左右對稱）、同樣形狀的實心滑塊。關：暗底＋淡紫框、淡紫滑塊在左；
+   開：暗青底＋亮青框、亮青滑塊在右，外面一圈青光。一眼就分得出來，也不會像歪掉的方塊。 */
 :root[data-theme="neon"] .switch {
-  --nx-cut: 6px; --nx-f: var(--nx-well); --nx-l: var(--nx-edge);
-  border: 0; border-radius: 0; box-shadow: none; background: var(--nx-shape);
+  --nx-sw: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='24' viewBox='0 0 42 24'%3E%3Cpolygon points='6.5,.75 35.5,.75 41.25,6.5 41.25,17.5 35.5,23.25 6.5,23.25 .75,17.5 .75,6.5' fill='%231b1436' stroke='%238a7fd0' stroke-width='1.5'/%3E%3C/svg%3E");
+  --nx-sw-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='24' viewBox='0 0 42 24'%3E%3Cpolygon points='6.5,.75 35.5,.75 41.25,6.5 41.25,17.5 35.5,23.25 6.5,23.25 .75,17.5 .75,6.5' fill='%230d3346' stroke='%2300f0ff' stroke-width='1.5'/%3E%3C/svg%3E");
+  --nx-knob: #a69be6; --nx-knob-on: #00f0ff;
+  border: 0; border-radius: 0; box-shadow: none; background: var(--nx-sw) center / 100% 100% no-repeat;
 }
+
+/* 滑塊：和軌道同樣切四個角的八角形，實心、不斜 */
 :root[data-theme="neon"] .switch::after {
-  top: 4px; left: 4px; width: 15px; height: 16px; border-radius: 0; box-shadow: none;
-  background: var(--knob-off);
-  clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%);
+  top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 0; box-shadow: none;
+  background: var(--nx-knob);
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
 }
-:root[data-theme="neon"] .switch.on { --nx-f: var(--nx-lit); --nx-l: var(--nx-lit); background: var(--nx-solid); box-shadow: none; border: 0; filter: var(--nx-glow); }
-:root[data-theme="neon"] .switch.on::after { transform: translateX(19px); background: var(--nx-lit-ink); box-shadow: none; }
+
+/* 開：軌道變成暗青底、亮青框，外面一圈青光；滑塊亮青色，滑到右邊 */
+:root[data-theme="neon"] .switch.on { background: var(--nx-sw-on) center / 100% 100% no-repeat; box-shadow: none; border: 0; filter: drop-shadow(0 0 4px rgba(0,240,255,.55)); }
+:root[data-theme="neon"] .switch.on::after { transform: translateX(18px); background: var(--nx-knob-on); box-shadow: none; }
 
 /* ───────────── 12 · 播放列：上緣一條洋紅光邊；播放鍵是發光的六角形 ───────────── */
 :root[data-theme="neon"] #bar {
@@ -633,8 +645,8 @@
 :root[data-theme="neon"]:where([data-mode="day"]) :is(#topbar.solid, .set-band) { border-bottom-color: rgba(0,150,180,.3); }
 
 /* 開關（日）：關的時候白底＋深紫框、深紫滑塊；開的時候亮青＋深色滑塊＋深青的細邊 */
-:root[data-theme="neon"]:where([data-mode="day"]) .switch { --nx-f: #ffffff; --nx-l: #6b5fa3; }
-:root[data-theme="neon"]:where([data-mode="day"]) .switch.on { --nx-f: #22d3ee; --nx-l: #22d3ee; filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
+:root[data-theme="neon"]:where([data-mode="day"]) .switch { --nx-sw: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='24' viewBox='0 0 42 24'%3E%3Cpolygon points='6.5,.75 35.5,.75 41.25,6.5 41.25,17.5 35.5,23.25 6.5,23.25 .75,17.5 .75,6.5' fill='%23ffffff' stroke='%236b5fa3' stroke-width='1.5'/%3E%3C/svg%3E"); --nx-sw-on: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='24' viewBox='0 0 42 24'%3E%3Cpolygon points='6.5,.75 35.5,.75 41.25,6.5 41.25,17.5 35.5,23.25 6.5,23.25 .75,17.5 .75,6.5' fill='%23d6f7fc' stroke='%230e8fa3' stroke-width='1.5'/%3E%3C/svg%3E"); --nx-knob: #6b5fa3; --nx-knob-on: #0e8fa3; }
+:root[data-theme="neon"]:where([data-mode="day"]) .switch.on { filter: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) :is(.seg, .set-tabs, .chips, .rl-src) > :is(button, a).on, :root[data-theme="neon"]:where([data-mode="day"]) :is(.seg, .set-tabs, .chips, .rl-src) > .glide-pill, :root[data-theme="neon"]:where([data-mode="day"]) .chip.on { filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
 :root[data-theme="neon"]:where([data-mode="day"]) .glide-run > :is(button, a).on { filter: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) .drawer { box-shadow: -1px 0 10px rgba(0,180,204,.2), 0 30px 80px rgba(60,40,140,.2); }
@@ -699,7 +711,7 @@
 /* 頁面標題：窄的工業字；左上的角括號換成酸性黃、粗一點（日：深靛色的角括號，角落一小塊黃） */
 :root[data-theme="neon"] .page-head { position: relative; }
 :root[data-theme="neon"] .page-head h1 { font-family: var(--nx-display); font-stretch: semi-condensed; letter-spacing: .05em; }
-:root[data-theme="neon"] .page-head h1::before { left: -14px; top: -8px; width: 13px; height: 13px; border-left: 3px solid var(--nx-acid); border-top: 3px solid var(--nx-acid); }
+:root[data-theme="neon"] .page-head h1::before { left: -20px; top: 0; width: 11px; height: 11px; border-left: 3px solid var(--nx-acid); border-top: 3px solid var(--nx-acid); }
 :root[data-theme="neon"]:where([data-mode="day"]) .page-head h1::before { border-color: #1a1238; background: linear-gradient(var(--nx-acid), var(--nx-acid)) 2px 2px / 5px 5px no-repeat; }
 
 /* 標題下的光條：洋紅→青→白，像一道彗星（頭在右邊） */
@@ -887,13 +899,13 @@
   opacity: 0; transform-origin: left center;
 }
 :root[data-theme="neon"] .ly-line::after {
-  content: ""; position: absolute; left: 0; top: 50%; width: 4px; height: 1.05em; margin-top: -.52em; pointer-events: none;
+  content: ""; position: absolute; left: 5px; top: 50%; width: 4px; height: 1em; margin-top: -.5em; pointer-events: none;   /* 斜了以後也整支在歌詞框裡（框的左邊會裁切） */
   background: linear-gradient(180deg, var(--nx-head-glow), var(--teal) 30%, var(--teal));
   box-shadow: 0 0 8px rgba(var(--teal-rgb), .8);
-  opacity: 0; transform: translateX(-10px) skewX(-14deg);
+  opacity: 0; transform: translateX(-6px) skewX(-10deg);
   transition: opacity .25s, transform .35s cubic-bezier(.2,.8,.2,1);
 }
-:root[data-theme="neon"] .ly-line.on::after { opacity: 1; transform: translateX(0) skewX(-14deg); }
+:root[data-theme="neon"] .ly-line.on::after { opacity: 1; transform: translateX(0) skewX(-10deg); }
 :root[data-theme="neon"] .ly-line.gap::before, :root[data-theme="neon"] .ly-line.gap::after { content: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) .ly-line::after { background: linear-gradient(180deg, #006b7e, #00a7bf); box-shadow: none; }
 :root[data-theme="neon"] .ly-line.on { animation: nx-split .42s steps(1, end); }
