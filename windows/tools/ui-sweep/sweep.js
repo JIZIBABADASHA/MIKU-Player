@@ -102,7 +102,11 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
       try {
         await page.goto(`http://miku.test/index.html?${q}${s.hash || '#/home'}`, { waitUntil: 'load' });
         await page.waitForTimeout(1100);
-        if (s.np) { await page.evaluate(() => document.querySelector('#b-art') && document.querySelector('#b-art').click()); await page.waitForTimeout(2600); }
+        if (s.np) {
+          await page.evaluate(() => document.querySelector('#b-art') && document.querySelector('#b-art').click()); await page.waitForTimeout(2600);
+          // the page slides up: on a slow machine (glass at 2560x1440 without a GPU) it was still on its way after 2.6 s
+          await page.waitForFunction(() => { const c = document.querySelector('#np-cover'); if (!c) return true; const r = c.getBoundingClientRect(), k = Math.round(r.top) + ':' + Math.round(r.left), same = window.__npAt === k; window.__npAt = k; return same && r.bottom < innerHeight + 5; }, null, { polling: 300, timeout: 12000 }).catch(() => { });
+        }
         // the swap of the bar's left part runs on frames: wait for it to end (a slow machine draws few), then let things settle
         if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(600); await page.waitForFunction(() => typeof BarSwap === 'undefined' || !BarSwap.cur, null, { timeout: 10000 }).catch(() => { }); await page.waitForTimeout(500); }
         await page.addStyleTag({ content: STILL });
