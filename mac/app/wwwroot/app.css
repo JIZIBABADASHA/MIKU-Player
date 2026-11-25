@@ -1561,6 +1561,8 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
   will-change: transform;
 }
 .np-bg .layer.on { opacity: 1; }
+/* blurred once into the picture itself (nowplaying.js BlurBake): not again at every frame */
+.np-bg .layer.baked, #theme-bg .art.baked { filter: none !important; }
 .np-bg .layer.b { animation: drift 38s linear infinite; mix-blend-mode: screen; opacity: 0; }
 .np-bg .layer.b.on { opacity: .35; }
 @keyframes drift { from { transform: rotate(0) scale(1.15); } to { transform: rotate(360deg) scale(1.15); } }

@@ -4,6 +4,87 @@
 const lyricsOf = (r, id, source) => ({ id: r.id || id, synced: r.synced, lines: (r.lines || []).map(l => ({ t: l.t, text: l.text, trans: l.trans, words: l.words })), offset: r.offset || 0, source, instrumental: r.instrumental });
 const fmtOffset = o => (o >= 0 ? '+' : '') + (o || 0).toFixed(1) + 's';
 
+/**
+ * The now-playing backdrop (and Glass's ambient picture) blurred once per picture instead of at every frame.
+ * Drawn with a CSS filter, the window-sized layers were blurred again whenever anything over them moved (the turning
+ * layer .b, the lyrics, the progress): the GPU blurred about 5 million pixels per frame, 20 million on a Retina
+ * screen, and the page fell to a few frames a second while the lyrics scrolled. The same filter (the theme's own
+ * --np-filter) is now drawn into a small picture, its blur scaled to that size, and the layer shows the picture
+ * unfiltered (app.css .baked). A picture that can't be read (no CORS: some online covers) keeps the CSS filter.
+ */
+const BlurBake = {
+  els: new Set(),
+  bitmaps: new Map(),   // url → decoded picture (the last few)
+  /** Shows `url` in `el`, then swaps in its blurred version. */
+  set(el, url) {
+    el.dataset.src = url;
+    this.els.add(el);
+    if (el._baked) { URL.revokeObjectURL(el._baked); el._baked = null; }
+    el.classList.remove('baked');
+    el.style.backgroundImage = `url("${url}")`;
+    return this.bake(el);
+  },
+  /** Shows a CSS background that isn't a picture (a gradient placeholder): nothing to bake. */
+  plain(el, css) {
+    delete el.dataset.src;
+    el._job = null;
+    if (el._baked) { URL.revokeObjectURL(el._baked); el._baked = null; }
+    el.classList.remove('baked');
+    el.style.backgroundImage = css;
+  },
+  async bitmap(url) {
+    let b = this.bitmaps.get(url);
+    if (!b) {
+      const r = await fetch(url, { mode: 'cors' });
+      if (!r.ok) throw new Error('art ' + r.status);
+      // decoded from a blob of our own: a picture drawn from it doesn't taint the canvas
+      const local = URL.createObjectURL(await r.blob());
+      try { b = new Image(); b.src = local; await b.decode(); } finally { URL.revokeObjectURL(local); }
+      this.bitmaps.set(url, b);
+      while (this.bitmaps.size > 4) this.bitmaps.delete(this.bitmaps.keys().next().value);
+    }
+    return b;
+  },
+  async bake(el) {
+    const url = el.dataset.src;
+    if (!url) return;
+    const job = el._job = {};
+    try {
+      const bmp = await this.bitmap(url);
+      if (el._job !== job) return;
+      // the filter as the theme gives it now (read with the baked look off)
+      const was = el.classList.contains('baked');
+      if (was) el.classList.remove('baked');
+      const filter = getComputedStyle(el).filter, w = el.offsetWidth, ht = el.offsetHeight;
+      if (!w || !ht || !filter || filter === 'none') { if (was) el.classList.add('baked'); return; }   // not shown in this theme
+      const k = Math.min(1, 360 / Math.max(w, ht));
+      const cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(ht * k));
+      const c = document.createElement('canvas');
+      c.width = cw; c.height = ch;
+      const g = c.getContext('2d');
+      g.filter = filter.replace(/blur\(([\d.]+)px\)/g, (_, r) => `blur(${(+r * k).toFixed(2)}px)`);
+      const bw = bmp.naturalWidth || 1, bh = bmp.naturalHeight || 1, s = Math.max(cw / bw, ch / bh), dw = bw * s, dh = bh * s;
+      g.drawImage(bmp, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+      const blob = await new Promise(r => c.toBlob(r));
+      if (el._job !== job || !blob) return;
+      if (el._baked) URL.revokeObjectURL(el._baked);
+      el._baked = URL.createObjectURL(blob);
+      el.style.backgroundImage = `url("${el._baked}")`;
+      el.classList.add('baked');
+    } catch (e) {
+      // left as it was: the CSS filter draws it
+      if (el._job === job) el.classList.remove('baked');
+    }
+  },
+  /** The theme or its mode changed: its filter may differ. */
+  rebake() { for (const el of this.els) if (el.isConnected && el.dataset.src) this.set(el, el.dataset.src); },
+};
+{
+  let t = 0;
+  new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => BlurBake.rebake(), 30); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode'] });
+}
+
 const NowPlaying = {
   open: false,
   showLyrics: true,
@@ -315,11 +396,11 @@ const NowPlaying = {
         for (const l of [bgA, bgB]) { l.classList.remove('on'); }
         setTimeout(() => {
           if (!current()) return;
-          bgA.style.backgroundImage = bgB.style.backgroundImage = `url("${small.src}")`;
+          BlurBake.set(bgA, small.src); BlurBake.set(bgB, small.src);
           bgA.classList.add('on'); bgB.classList.add('on');
         }, 260);
       };
-      const bgPlaceholder = () => { const hue = hashHue(t.album?.title || t.title); bgA.style.backgroundImage = `linear-gradient(135deg, hsl(${hue} 50% 30%), hsl(${(hue + 60) % 360} 50% 18%))`; bgA.classList.add('on'); bgB.classList.remove('on'); };
+      const bgPlaceholder = () => { const hue = hashHue(t.album?.title || t.title); BlurBake.plain(bgA, `linear-gradient(135deg, hsl(${hue} 50% 30%), hsl(${(hue + 60) % 360} 50% 18%))`); bgA.classList.add('on'); bgB.classList.remove('on'); };
       small.onerror = () => { small.onload = small.onerror = null; bgDone = true; if (current()) bgPlaceholder(); };
       small.src = t.live ? bigYtImg(t.img, 120) : artUrl(kind, id, 64);
       // another album whose picture is not there at once (still being read from the files or looked up online): show its

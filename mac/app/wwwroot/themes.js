@@ -98,14 +98,15 @@ const Theme = {
       const art = bg.firstChild;
       const copy = () => {
         const src = document.querySelector('#np .np-bg .layer.a');
-        const img = src && src.style.backgroundImage;
-        if (img && img.startsWith('url')) { art.style.backgroundImage = img; art.classList.add('on'); }
+        // the picture itself (the now-playing layer shows its own blurred copy: nowplaying.js BlurBake)
+        const url = src && src.dataset.src;
+        if (url) { BlurBake.set(art, url); art.classList.add('on'); }
         else art.classList.remove('on');
       };
       const watch = () => {
         const src = document.querySelector('#np .np-bg .layer.a');
         if (!src) return setTimeout(watch, 500);
-        new MutationObserver(copy).observe(src, { attributes: true, attributeFilter: ['style'] });
+        new MutationObserver(copy).observe(src, { attributes: true, attributeFilter: ['data-src'] });
         copy();
       };
       watch();
