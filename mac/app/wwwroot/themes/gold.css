@@ -764,9 +764,12 @@
   content: ""; position: absolute; inset: -4px; border-radius: 8px; pointer-events: none; padding: 3px;
   background: var(--gd2-rope); -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-:root:root[data-theme="gold"] .tracks .row.playing::after {
-  content: ""; position: absolute; left: -12px; top: -15px; width: 34px; height: 25px; pointer-events: none; rotate: -22deg;
-  background: var(--gd-crown) center / contain no-repeat; filter: drop-shadow(0 2px 1px rgba(60,20,0,.6));
+:root:root[data-theme="gold"] .tracks .row.playing::after { content: none; }
+
+/* 皇冠端正地戴在紅寶石幣上：左右置中、不歪、整頂都在這一列裡面 */
+:root:root[data-theme="gold"] .tracks .row.playing .n::after {
+  content: ""; position: absolute; z-index: 2; left: 50%; top: calc(50% - 31px); width: 28px; height: 20px; margin-left: -14px; pointer-events: none;
+  background: var(--gd-crown) center / contain no-repeat; filter: drop-shadow(0 1.5px 0 rgba(60,20,0,.55));
 }
 :root:root[data-theme="gold"] .tracks .row.playing .tt div:first-child {
   color: transparent; background: var(--gd2-foil); -webkit-background-clip: text; background-clip: text;
@@ -925,6 +928,9 @@
 :root[data-theme="gold"]:where([data-mode="night"]) {
   --np-veil: var(--gd-glitter) 0 0 / 150px 150px, repeating-conic-gradient(from 0deg at 50% -6%, rgba(255,206,110,.12) 0deg 3.5deg, rgba(255,206,110,0) 5deg 12deg), var(--gd-damask) 0 0 / 64px 104px, radial-gradient(120% 95% at 50% 44%, rgba(80,24,36,.4), rgba(46,14,22,.82));
 }
+
+/* 皇冠＋寶石幣這一組在列裡上下置中（整格往下 6px） */
+:root:root[data-theme="gold"] .tracks .row.playing .n { top: 6px; }
 :root[data-theme="gold"] { --dp-ink: #6b4604; }
 :root[data-theme="gold"]:where([data-mode="night"]) { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
 :root[data-theme="gold"] .dp-sect .dp-greek {
