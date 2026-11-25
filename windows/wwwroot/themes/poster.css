@@ -483,7 +483,7 @@
    卡片寬度跟著字走（最多兩行，仍然會截斷），和下面的票根標籤、歌詞的紅布條是同一套印刷品 */
 :root[data-theme="poster"] #np .np-title {
   width: fit-content; max-width: calc(100% - 10px); box-sizing: border-box;
-  padding: .1em .42em .14em; margin-bottom: 4px;
+  padding: .1em .42em .14em; margin-top: 8px; margin-bottom: 18px;   /* 卡片的紅色硬陰影（7.5px）加上歪 1.2° 右端下沉，底下的演出者那行要留夠空間，不擠 */
   font-size: 26px; font-weight: 900; letter-spacing: .02em; line-height: 1.22;
   color: #1a120c; background: #f6ecd6; border: 2.5px solid #1a120c;
   box-shadow: 5px 5px 0 var(--ps-red), 5px 5px 0 2.5px #1a120c;
