@@ -1268,6 +1268,8 @@
 @media (prefers-reduced-motion: reduce) {#gold-glints { display: none !important; }
 }
 @keyframes gd2-sweep { 0%, 55% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
+@property --gd2-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes gd2-rays { to { --gd2-a: 360deg; } }
 
 /* ═════════════════════════════ 霓虹賽博（neon）· 賽博龐克 HUD ═════════════════════════════
    像科幻電影裡的抬頭顯示器（HUD），而不是儀表板（未來才是方正的儀器面板、刻度燈、不發光）：
@@ -2205,3 +2207,8 @@
 @keyframes nx-dsp-sludge { 0%, 100% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
 @keyframes tm-dsp-sludge { 0%, 100% { background-position: left top, left top, left bottom, right top, right top, right bottom, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: left top, left top, left bottom, right top, right top, right bottom, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
 :root:root:is([data-theme="miku"], [data-theme="washi"]) .rail-head h2::before { vertical-align: calc(.38em - 9px); }
+@keyframes ps-stamp2 {
+  0%   { opacity: 0; transform: rotate(-2.5deg) scale(1.14); }
+  50%  { opacity: 1; transform: rotate(.6deg) scale(.98); }
+  100% { opacity: 1; transform: none; }
+}

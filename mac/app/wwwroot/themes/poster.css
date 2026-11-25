@@ -521,3 +521,14 @@
 /* 側欄的背景工作卡片（寫入封面、CD 抓取…）：不要把側欄邊上的底片孔、送紙孔一起印進卡片；霓虹側欄底的小字讓位 */
 :root:root[data-theme="poster"] .cd-task { background: var(--ps-grain), #241c15; width: calc(100% - 12px); margin-inline: 6px; }
 :root:root[data-theme="poster"]:where([data-mode="night"]) .cd-task { background: var(--ps-grain), #1f1813; }
+
+/* 海報紅布條：不再整條旋轉（長句右端會翹起來、字貼到下緣），改成「固定 5px 的斜邊」：不管句子長短、換不換行，
+   左右兩端的字到布條邊的距離都一樣；左右燕尾各留一樣的寬度，上方比下方多留一點空間 */
+:root:root[data-theme="poster"] #lyrics .ly-line { padding-left: 20px; padding-right: 20px; }
+:root:root[data-theme="poster"] #lyrics .ly-line.on::before, :root:root[data-theme="poster"] #lyrics .ly-line.on::after {
+  inset: -9px -10px 1px -10px; transform: none; transform-origin: 50% 50%;
+  clip-path: polygon(0 5px, 100% 0, calc(100% - 11px) 50%, 100% calc(100% - 5px), 0 100%, 11px calc(50% + 2.5px));
+  animation: ps-stamp2 .34s steps(3, end) both;
+}
+@media (prefers-reduced-motion: reduce) {:root:root[data-theme="poster"] #lyrics .ly-line.on::before, :root:root[data-theme="poster"] #lyrics .ly-line.on::after { animation: none; }
+}

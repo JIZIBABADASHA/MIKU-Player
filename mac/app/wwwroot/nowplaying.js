@@ -503,7 +503,8 @@ const NowPlaying = {
   /**
    * --ly-fit: 1 on #lyrics, for a theme that draws every line as its own box (普普): a line that wraps onto more rows
    * (balanced: text-wrap in app.css) gets a box as wide as its longest row, not as wide as the column, so a box is never
-   * half empty. The translation counts while it shows. All widths are read first, then set, so this is one layout.
+   * half empty. The translation counts while it shows (its text only: its box is a grid as wide as the column). All
+   * widths are read first, then set, so this is one layout.
    */
   fitLines(on) {
     if (!on && !this._fitted) return;
@@ -517,7 +518,7 @@ const NowPlaying = {
       const box = el.getBoundingClientRect(), s = box.width / w || 1, tr = el.querySelector(':scope > .tr');
       let right = 0;
       const take = () => { for (const q of r.getClientRects()) if (q.width) right = Math.max(right, (q.right - box.left) / s); };
-      if (tr) { if (tr.previousSibling) { r.setStart(el, 0); r.setEndBefore(tr); take(); } if (!notr) { r.selectNodeContents(tr); take(); } }
+      if (tr) { if (tr.previousSibling) { r.setStart(el, 0); r.setEndBefore(tr); take(); } if (!notr) { const tw = document.createTreeWalker(tr, NodeFilter.SHOW_TEXT); for (let t; (t = tw.nextNode());) { r.selectNodeContents(t); take(); } } }
       else { r.selectNodeContents(el); take(); }
       const cs = getComputedStyle(el), need = Math.ceil(right + parseFloat(cs.paddingRight) + parseFloat(cs.borderRightWidth) + 1);
       return right && need < w - 2 ? need : 0;

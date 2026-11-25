@@ -931,6 +931,30 @@
 
 /* 皇冠＋寶石幣這一組在列裡上下置中（整格往下 6px） */
 :root:root[data-theme="gold"] .tracks .row.playing .n { top: 6px; }
+
+/* ── 光芒一直轉：一層蓋滿視窗的放射光，只轉它的起始角度（--gd2-a，GPU 畫漸層，不用一塊好幾千像素的大圖層）；
+   頁面的金牆和頂列只留靜止的金，光芒另外疊在上面。輕量化的「金光」或「減少動態」時光芒停住不轉。 */
+:root[data-theme="gold"] { --gd2-rays: linear-gradient(transparent, transparent); --gd2-ray: rgba(255,255,236,.3); }
+:root[data-theme="gold"]:where([data-mode="night"]) { --gd2-ray: rgba(255,206,110,.12); }
+:root[data-theme="gold"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-conic-gradient(from var(--gd2-a) at 86% -10%, var(--gd2-ray) 0deg 3.5deg, transparent 5deg 12deg);
+  animation: gd2-rays 80s linear infinite;
+}
+:root[data-theme="gold"] #np::after {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-conic-gradient(from var(--gd2-a) at 50% -6%, var(--gd2-ray) 0deg 3.5deg, transparent 5deg 12deg);
+  animation: gd2-rays 80s linear infinite reverse;
+}
+:root[data-theme="gold"] {
+  --np-veil: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-leaf) 0 0 / 144px 144px, var(--gd-polish-a);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) {
+  --np-veil: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-damask) 0 0 / 64px 104px, radial-gradient(120% 95% at 50% 44%, rgba(80,24,36,.4), rgba(46,14,22,.82));
+}
+:root.lite-gold-shine[data-theme="gold"] body::before, :root.lite-gold-shine[data-theme="gold"] #np::after { animation: none; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="gold"] body::before, :root[data-theme="gold"] #np::after { animation: none; }
+}
 :root[data-theme="gold"] { --dp-ink: #6b4604; }
 :root[data-theme="gold"]:where([data-mode="night"]) { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
 :root[data-theme="gold"] .dp-sect .dp-greek {
