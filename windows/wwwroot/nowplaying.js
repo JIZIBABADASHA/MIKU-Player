@@ -491,6 +491,10 @@ const NowPlaying = {
     this.gap = num('--ly-gap', 16); this.anchor = num('--ly-anchor', 0.43); this.start = num('--ly-start', NaN);
     // --ly-blur: how strongly the lines not being sung blur (1 = the usual, 0 = sharp); the theme sets it on #lyrics
     this.blurK = num('--ly-blur', 1);
+    // --ly-arc: a radius in px (0 / unset: off). The lines then bow along a circle through the current line, the ones
+    // further up and down sliding back left by up to --ly-arc-max px, like the grooves round the record beside them (黑膠).
+    // --ly-reach on #lyrics is then kept at the gap from the cover's round edge to the current line's left edge.
+    this.arc = num('--ly-arc', 0); this.arcMax = num('--ly-arc-max', 60);
     this.fitLines(num('--ly-fit', 0) > 0);
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
@@ -524,6 +528,21 @@ const NowPlaying = {
       return right && need < w - 2 ? need : 0;
     });
     this.lines.forEach((el, i) => { if (widths[i]) el.style.width = widths[i] + 'px'; });
+  },
+
+  /** --ly-arc themes: the gap from the cover's round edge to the current line's left edge (where it will settle), on
+   *  .np-wrap as --ly-reach (its width, 0 when the line is above or below the cover), --ly-reach-x / -y (where it starts,
+   *  in .np-wrap's own px: it moves with the cover and the lyrics): a theme draws a link across it outside the lyrics box (the box clips its lines). */
+  reach(cur, scroll) {
+    const np = $('#np .np-wrap'), box = $('#lyrics'), cover = $('#np-cover');
+    if (!np || !cur || !cover) { if (np) np.style.setProperty('--ly-reach', '0px'); return; }
+    const n = np.getBoundingClientRect(), c = cover.getBoundingClientRect(), b = box.getBoundingClientRect(), a = this.active;
+    const r = c.width / 2, cx = c.left + r, cy = c.top + c.height / 2;
+    const cs = getComputedStyle(cur), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3;
+    const y = b.top + box.clientTop + cur.offsetTop + this.tops[a] - scroll + parseFloat(cs.paddingTop) + lh / 2, x = b.left + box.clientLeft + cur.offsetLeft, dy = y - cy;
+    const rim = Math.abs(dy) < r ? cx + Math.sqrt(r * r - dy * dy) : NaN, ok = Number.isFinite(rim) && x > rim;
+    np.style.setProperty('--ly-reach', (ok ? Math.round(x - rim) : 0) + 'px');
+    if (ok) { np.style.setProperty('--ly-reach-x', Math.round(rim - n.left) + 'px'); np.style.setProperty('--ly-reach-y', Math.round(y - n.top) + 'px'); }
   },
 
   /** Scroll that puts line i where the current line sits. */
@@ -565,11 +584,17 @@ const NowPlaying = {
       const delay = manual || instant || d <= 0 ? 0 : Math.min(dist, 7) * 26;
       el.style.transitionDelay = `${delay}ms, 0ms, 0ms, 0ms`;
       if (instant) el.style.transitionDuration = '0s';
-      el.style.transform = `translateY(${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : small})`;
+      let dx = 0;
+      if (this.arc > 0) {
+        const dy = (this.tops[i] + this.heights[i] / 2) - (this.tops[a] + this.heights[a] / 2), R = this.arc;
+        dx = -Math.min(this.arcMax, Math.abs(dy) >= R ? this.arcMax : R - Math.sqrt(R * R - dy * dy));
+      }
+      el.style.transform = `translate(${dx.toFixed(1)}px, ${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : small})`;
       el.style.filter = i === this.active || scrolling || !k ? 'none' : `blur(${(Math.min(0.3 + dist * 0.5, 2.4) * k).toFixed(2)}px)`;
       el.classList.toggle('on', i === this.active);
     });
     const cur = this.lines[this.active] || null;
+    if (this.arc > 0) this.reach(cur, scroll);
     if (cur !== this._tyEl || theme !== this._tyTheme) { this._tyEl = cur; this._tyTheme = theme; if (cur && theme === 'terminal') this.typeLine(cur, this.active); }
     // a theme's own effects can follow the lyrics: 'miku-lyric-line' fires once each time another line becomes the current one
     if (cur !== this._evLine) { this._evLine = cur; if (cur) window.dispatchEvent(new CustomEvent('miku-lyric-line', { detail: { el: cur, index: this.active, manual: !!manual } })); }

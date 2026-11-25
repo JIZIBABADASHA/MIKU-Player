@@ -1952,8 +1952,7 @@
 /* 歌詞欄後面那層安靜的底：跟著新底色 */
 [data-theme="vinyl"] { --np-calm: rgba(229,234,221,.72); }
 [data-theme="vinyl"]:where([data-mode="night"]) { --np-calm: rgba(29,42,35,.66); }
-@keyframes vn-ly-out { from { translate: .9em 0; } to { translate: 0 0; } }
-@keyframes vn-ly-spin { to { rotate: 1turn; } }
+@keyframes vn-groove { to { background-position: 24px 0; } }
 
 /* ═════════════════════════════ 木質調（wood）· 胡桃木音響櫃 ═════════════════════════════
    像一台七〇年代的類比音響：胡桃木的櫃身、黃銅的按鍵與旋鈕、暖色的燈。
