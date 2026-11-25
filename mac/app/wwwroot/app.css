@@ -1857,7 +1857,7 @@ a.link:hover { text-decoration: underline; }
 }
 
 /* output switcher */
-.out-btn { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px 0 9px; border-radius: 15px; background: rgba(var(--ink), .045); color: var(--text-2); font-size: 12px; max-width: 170px; transition: background .15s, color .15s; flex: none; }
+.out-btn { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px 0 9px; border-radius: 15px; background: rgba(var(--ink), .045); color: var(--text-2); font-size: 12px; max-width: 240px; transition: background .15s, color .15s; flex: none; }   /* 裝置名稱（「MacBook Pro的揚聲器」這種長度）整個放得下 */
 .out-btn:hover { background: rgba(var(--ink), .09); color: var(--text); }
 .out-btn svg.i { width: 16px; height: 16px; flex: none; }
 .out-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

@@ -583,7 +583,9 @@
 :root[data-theme="neon"]:where([data-mode="day"]) .np-top .src { color: #352c63; background: rgba(255,255,255,.85); }
 
 /* 歌詞：唱到的那一行是白色（日：深靛），不發光；其他行不要淡到看不清楚 */
-:root[data-theme="neon"] .ly-line { border-radius: 0; }
+:root[data-theme="neon"] .ly-line { border-radius: 0; padding-left: 22px; }
+
+/* 左邊青色短槓（5–9px）跟字之間留 13px，不貼字 */
 :root[data-theme="neon"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
 :root[data-theme="neon"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
 :root[data-theme="neon"] .ly-line.on { text-shadow: none; }
@@ -692,6 +694,14 @@
 }
 :root[data-theme="neon"] .sect .theme-head h2::before { content: none; }
 
+/* 日：左邊那道缺口在白底上變成一條看不見的白線，改成深靛色的一道（跟日間標籤的深色細框同色；夜維持原樣） */
+:root[data-theme="neon"]:where([data-mode="day"]) :is(:is(.sect, .dsp-card) > h2, .sect .theme-head h2) {
+  background:
+    linear-gradient(var(--nx-acid-ink), var(--nx-acid-ink)) 5px 0 / 2px 100% no-repeat,
+    linear-gradient(225deg, transparent 7.6px, var(--nx-acid) 8.4px) 1px 1px / calc(100% - 2px) calc(100% - 2px) no-repeat,
+    linear-gradient(225deg, transparent 7.2px, var(--nx-acid-edge) 7.9px);
+}
+
 /* 專輯頁的類別（專輯／演出者…）：同樣的黃色小標籤 */
 :root[data-theme="neon"] .hero .kind {
   display: inline-block; width: fit-content; padding: 2px 18px 2px 9px; margin-bottom: 4px;
@@ -708,11 +718,17 @@
 :root[data-theme="neon"]:where([data-mode="day"]) .btn.primary { --nx-f: #ffe600; --nx-l: #1a1238; background: var(--nx-shape); filter: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) .btn.primary:hover { --nx-f: #fff04d; --nx-l: #1a1238; background: var(--nx-shape); }
 
-/* 頁面標題：窄的工業字；左上的角括號換成酸性黃、粗一點（日：深靛色的角括號，角落一小塊黃） */
+/* 頁面標題：窄的工業字 */
 :root[data-theme="neon"] .page-head { position: relative; }
 :root[data-theme="neon"] .page-head h1 { font-family: var(--nx-display); font-stretch: semi-condensed; letter-spacing: .05em; }
-:root[data-theme="neon"] .page-head h1::before { left: -20px; top: 0; width: 11px; height: 11px; border-left: 3px solid var(--nx-acid); border-top: 3px solid var(--nx-acid); }
-:root[data-theme="neon"]:where([data-mode="day"]) .page-head h1::before { border-color: #1a1238; background: linear-gradient(var(--nx-acid), var(--nx-acid)) 2px 2px / 5px 5px no-repeat; }
+
+/* 標題前面：一支斜的青色短槓（跟正在唱的歌詞前面那支同一個記號），取代原本的黃色角括號 */
+:root[data-theme="neon"] .page-head h1::before {
+  left: -17px; top: 50%; width: 5px; height: .8em; margin-top: -.42em; border: 0;
+  background: linear-gradient(180deg, var(--nx-head-glow), var(--teal) 30%, var(--teal)); box-shadow: 0 0 8px rgba(var(--teal-rgb), .7);
+  transform: skewX(-12deg);
+}
+:root[data-theme="neon"]:where([data-mode="day"]) .page-head h1::before { background: linear-gradient(180deg, #006b7e, #00a7bf); box-shadow: none; }
 
 /* 標題下的光條：洋紅→青→白，像一道彗星（頭在右邊） */
 :root[data-theme="neon"] .page-head h1::after {
@@ -1096,3 +1112,25 @@
 @media (prefers-reduced-motion: reduce) {:root[data-theme="neon"] :is(.btn, .chip, .seg button, .round-btn, .out-btn, #bar .sig, .np-top .icon-btn) > .ripple { display: none; }
 }
 :root[data-theme="neon"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .97); }
+
+/* 霓虹：右上、左下切角（跟裝置名稱、搜尋框一樣），流動的金屬邊也沿著切角走 */
+:root:root[data-theme="neon"] #bar .sig:is(.hires, .dsd, .upsample, .dsp) {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 8.5px) 0, 100% 8.5px, 100% 100%, 8.5px 100%, 0 calc(100% - 8.5px));
+}
+:root:root[data-theme="neon"] #bar .sig:is(.hires, .dsd, .upsample)::after {
+  -webkit-mask: linear-gradient(45deg, transparent 6.4px, #000 7px, #000 calc(100% - 7px), transparent calc(100% - 6.4px)) content-box, linear-gradient(45deg, transparent 5.6px, #000 6.2px, #000 calc(100% - 6.2px), transparent calc(100% - 5.6px));
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+:root:root:root[data-theme="neon"] #bar .sig.dsp {
+  background:
+    linear-gradient(45deg, transparent 5.8px, #7d8a24 6.2px 7.4px, transparent 7.8px),
+    linear-gradient(225deg, transparent 5.8px, #7d8a24 6.2px 7.4px, transparent 7.8px),
+    radial-gradient(ellipse 62% 44% at 58% 40%, rgba(50, 42, 14, .85), rgba(170, 176, 128, .45) 26%, rgba(120, 140, 60, .28) 48%, rgba(100, 120, 40, 0) 70%) 100% 0% / 16px 16px no-repeat,
+    radial-gradient(ellipse 48% 66% at 40% 62%, rgba(70, 45, 22, .8), rgba(160, 166, 120, .42) 28%, rgba(110, 130, 55, .26) 50%, rgba(90, 110, 40, 0) 72%) 100% 100% / 13px 13px no-repeat,
+    radial-gradient(ellipse 40% 70% at 50% 50%, rgba(110, 120, 20, .55), transparent 70%) 0 40% / 160% 200%,
+    radial-gradient(ellipse 30% 60% at 50% 50%, rgba(80, 40, 60, .55), transparent 70%) 100% 60% / 140% 200%,
+    radial-gradient(ellipse 25% 50% at 50% 50%, rgba(140, 120, 40, .35), transparent 70%) 30% 0 / 180% 220%,
+    linear-gradient(180deg, #4a4f14, #33370c 60%, #2a2a0b);
+  animation-name: nx-dsp-sludge, dsp-squish;
+}

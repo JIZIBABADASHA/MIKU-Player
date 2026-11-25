@@ -329,21 +329,16 @@
   animation: ps-burst .75s cubic-bezier(.2, .8, .3, 1);
 }
 
-/* ───────────── 7 · 換頁：轉台（第四版：老電視轉到下一台） ─────────────
-   新的一頁像老電視轉台：先「啪」一下滿屏雜訊，畫面上下捲一格、左右抖兩下、亮度跳一下，再穩住；0.5 秒。
-   每一下都是 steps（跳的、不是滑的）。這個主題不做封面飛到專輯頁的動畫（--album-flip: off，core.js Flip），
-   進出專輯頁也用轉台。只動 transform、opacity、filter，結束後什麼都不留。 */
+/* ───────────── 7 · 換頁：輕輕轉台（第五版） ─────────────
+   第四版的轉台（滿屏雜訊＋上下捲＋抖動＋亮度跳）太劇烈、看了會暈。改成跟一般主題換頁一樣的淡入（.26 秒），
+   只多一層很淡的顆粒在開頭一閃就退（最高 .14、不蓋底色），畫面從上面 4px 滑順落定。沒有抖動、沒有亮度跳、不用 steps。
+   這個主題仍不做封面飛到專輯頁的動畫（--album-flip: off，core.js Flip）。 */
 :root[data-theme="poster"] { --album-flip: off; }
-:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: ps-cut .5s steps(1, end) backwards; }
-
-/* 雜訊：細的黑白顆粒＋幾條橫的亮帶（訊號跳掉），蓋住整個內容區一下下 */
+:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: ps-cut .26s var(--ease, ease-out) backwards; }
 :root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after {
   content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 240px 240px,
-    repeating-linear-gradient(180deg, rgba(255,250,236,.0) 0 37px, rgba(255,250,236,.55) 37px 41px, rgba(255,250,236,0) 41px 97px) 0 0 / 100% 100%,
-    #8f8a80;
-  animation: ps-flash .5s steps(1, end);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 240px 240px;
+  animation: ps-flash .22s ease-out;
 }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: none; }
 :root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after { animation: none; }
@@ -384,6 +379,11 @@
 
 /* ── 側欄：一條膠卷（兩邊齒孔畫在 --sidebar-bg），右邊的紅線留著；選到的項目是米色標籤＋紅色硬陰影，前面一隻指著它的手 ── */
 :root[data-theme="poster"] .nav a { position: relative; }
+
+/* 項目和米色標籤都留在兩排齒孔中間：左右各縮進 18px（齒孔在邊上 3–13px，右邊再留 4px 給紅色硬陰影） */
+:root[data-theme="poster"] .nav { padding-left: 18px; padding-right: 18px; }
+:root[data-theme="poster"] .nav-pill { left: 18px; right: 18px; }
+:root[data-theme="poster"] .nav a { border-radius: 0; }
 :root[data-theme="poster"] .nav a svg.i { transition: margin-left .35s cubic-bezier(.3, 1.6, .5, 1); }
 :root[data-theme="poster"] .nav a.on svg.i { margin-left: 24px; }
 :root[data-theme="poster"] .nav a.on::after {
@@ -435,7 +435,7 @@
 :root[data-theme="poster"] .np-top .icon-btn:hover { background: var(--ps-red); color: #f6eedb; }
 :root[data-theme="poster"] #np .np-left::before {
   content: "NOW\A PLAYING!"; white-space: pre; position: absolute; z-index: 3; pointer-events: none;
-  width: 112px; height: 112px; top: -34px; box-sizing: border-box; padding: 0 4px 6px 0;
+  width: 112px; height: 112px; top: -34px; box-sizing: border-box; padding: 3px 0 0 1px;   /* 紅星本身在方塊正中（影子往右下）；大寫字在行高裡偏上，往下推 3px 才在紅圈正中 */
   left: calc(50% + clamp(180px, min(calc(100vh - var(--bar) - 330px), 100%), 540px) / 2 - 72px);
   display: grid; place-items: center; text-align: center;
   font: 800 13px/1.02 var(--font-display); font-stretch: condensed; letter-spacing: .02em; color: #f6eedb;
@@ -452,7 +452,7 @@
 
 /* ───────────── 第四版：播放頁的歌詞、歌名、格式標籤 ─────────────
    歌詞像海報上的標語：唱到的那一句印在一塊歪一點的朱紅布條上（奶油色字、墨色硬陰影），換句時「蓋章」一樣
-   啪一下壓上去，左邊一顆芥末黃的星星；其他句是清楚的墨色印刷字（不模糊，只淡一點）。
+   啪一下壓上去，布條兩端剪成燕尾；其他句是清楚的墨色印刷字（不模糊，只淡一點）。
    框的寬度跟著字走（--ly-fit，nowplaying.js fitLines），布條不會拉滿整欄。 */
 :root[data-theme="poster"] #lyrics { --ly-fit: 1; --ly-blur: 0; --ly-dim: .5; --ly-gap: 14px; }
 :root[data-theme="poster"] #lyrics .ly-line { isolation: isolate; border-radius: 0; padding: 8px 16px; letter-spacing: .01em; left: 24px; }
@@ -463,27 +463,32 @@
 :root[data-theme="poster"] #lyrics .ly-line.on { color: #fff6e0; }
 :root[data-theme="poster"] #lyrics .ly-line.on .tr { color: rgba(255,246,224,.88); }
 :root[data-theme="poster"] #lyrics .ly-line.on .w { background-image: linear-gradient(90deg, #fff6e0 0, #fff6e0 var(--p, 0%), rgba(255,246,224,.5) var(--p, 0%)); }
-:root[data-theme="poster"] #lyrics .ly-line.on::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: var(--ps-red); box-shadow: 4px 4px 0 #1a120c;
+:root[data-theme="poster"] #lyrics .ly-line.on::before, :root[data-theme="poster"] #lyrics .ly-line.on::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  /* 布條兩端剪成燕尾（像緞帶），不再另外放星星 */
+  clip-path: polygon(0 0, 100% 0, calc(100% - 11px) 50%, 100% 100%, 0 100%, 11px 50%);
   transform: rotate(-1.2deg);
   animation: ps-stamp .34s steps(3, end) both;
 }
-:root[data-theme="poster"] #lyrics .ly-line.on::after {
-  content: "\2605\FE0E"; position: absolute; left: -.62em; top: 50%; margin-top: -.5em; width: 1em; height: 1em;
-  font: 400 .78em/1 sans-serif; color: #e8b830; text-shadow: 2px 2px 0 #1a120c; text-align: center; pointer-events: none;
-  animation: ps-star-pop .5s steps(4, end) both;
-}
+:root[data-theme="poster"] #lyrics .ly-line.on::before { z-index: -1; background: var(--ps-red); }
+
+/* 墨色硬陰影：同樣形狀的一層，往右下錯開 4px（clip-path 會把 box-shadow 切掉，所以另外畫一層） */
+:root[data-theme="poster"] #lyrics .ly-line.on::after { z-index: -2; background: #1a120c; translate: 4px 4px; }
 :root[data-theme="poster"] #lyrics .ly-line.gap::before, :root[data-theme="poster"] #lyrics .ly-line.gap::after { content: none; }
 :root[data-theme="poster"] #lyrics .ly-line:not(.on):not(:hover) { opacity: var(--ly-dim); }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] #lyrics .ly-line.on::before, :root[data-theme="poster"] #lyrics .ly-line.on::after { animation: none; }
 }
 
-/* 歌名：不再用壓在字上的紅影子（筆畫多的中日文會糊在一起），改成乾淨的墨色粗字，下面一道朱紅粗底線 */
+/* 歌名：一張片頭字卡。奶油色的紙卡、墨色粗框、墨色粗字，後面錯開一塊朱紅色的硬陰影，卡片歪一點點；
+   卡片寬度跟著字走（最多兩行，仍然會截斷），和下面的票根標籤、歌詞的紅布條是同一套印刷品 */
 :root[data-theme="poster"] #np .np-title {
-  text-shadow: none;
-  text-decoration: underline; text-decoration-color: var(--ps-red); text-decoration-thickness: .13em;
-  text-underline-offset: .16em; text-decoration-skip-ink: none;
+  width: fit-content; max-width: calc(100% - 10px); box-sizing: border-box;
+  padding: .1em .42em .14em; margin-bottom: 4px;
+  font-size: 26px; font-weight: 900; letter-spacing: .02em; line-height: 1.22;
+  color: #1a120c; background: #f6ecd6; border: 2.5px solid #1a120c;
+  box-shadow: 5px 5px 0 var(--ps-red), 5px 5px 0 2.5px #1a120c;
+  text-shadow: none; text-decoration: none;
+  rotate: -1.2deg; transform-origin: left center;
 }
 
 /* 格式標籤（FLAC／24/48／2023）：像貼在海報上的票根，奶油紙、墨色框、硬陰影，一張張歪一點；

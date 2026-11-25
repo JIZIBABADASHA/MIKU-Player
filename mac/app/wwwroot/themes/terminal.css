@@ -87,7 +87,7 @@
 /* 終端機・日：右邊的送紙孔畫在這層上面，才不會被蓋掉 */
 :root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
   background: radial-gradient(circle, rgba(24,70,40,.16) 0 5px, transparent 5.6px) right 10px top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
-              linear-gradient(90deg, transparent 40%, var(--np-calm) 50%);
+              linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%);
 }
 
 /* 終端機：直角、細框，選中的是實心的綠 */
@@ -284,7 +284,7 @@
 /* 歌詞的樣子在第 14 段（映像管螢幕／報表紙、打字） */
 :root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
   background: radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) right 0 top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
-              linear-gradient(90deg, transparent 40%, var(--np-calm) 50%);
+              linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%);
 }
 
 /* ───────────── 13 · 正在播放的歌詞：映像管螢幕（夜）／點陣印表機的報表紙（日） ─────────────
@@ -347,7 +347,7 @@
 }
 
 /* 日：頁面右邊原本的送紙孔會貼著紙的送紙孔，歌詞開著時只留淡底 */
-:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before { background: linear-gradient(90deg, transparent 40%, var(--np-calm) 50%); }
+:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before { background: linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%); }
 
 /* 每一行：等寬字、不縮小、不模糊、不半透明（淡的行用比較淡的顏色，字一樣清楚） */
 :root[data-theme="terminal"] #lyrics .ly-line {

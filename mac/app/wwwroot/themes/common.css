@@ -765,11 +765,11 @@
 /* ═════════════════════════════ 正在播放：歌詞 ═════════════════════════════
    正在唱的那一句最清楚；其他行淡一點、稍微模糊（模糊是 nowplaying.js 依離現在這句的距離寫在行上的，
    主題可以用 #lyrics 的 --ly-blur 調強弱，0 = 不模糊）。淡的程度是 --ly-dim（在 round5.css 統一套用，蓋過各主題舊的亮度）。 */
-/* 歌詞欄後面一片安靜的底：背景的花樣（網點、條紋、花瓣、網格）只留在封面那一邊，歌詞那一半蓋一層主題的底色。
+/* 歌詞欄後面一片安靜的底（從封面那邊 16% 慢慢加深到 54%，不是一刀切）：背景的花樣（網點、條紋、花瓣、網格）只留在封面那一邊，歌詞那一半蓋一層主題的底色。
    關掉歌詞（或這首沒有歌詞）時封面移到中間，這層就淡掉，整片背景回來。 */
 #np .np-wrap::before {
   content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: -140px; bottom: -140px; pointer-events: none;
-  background: linear-gradient(90deg, transparent 40%, var(--np-calm, rgba(0,0,0,.45)) 50%);
+  background: linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm, rgba(0,0,0,.45)) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm, rgba(0,0,0,.45)) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm, rgba(0,0,0,.45)) 75%, transparent) 45%, var(--np-calm, rgba(0,0,0,.45)) 54%);
   transition: opacity .6s var(--ease-out);
 }
 #np.nolyrics .np-wrap::before { opacity: 0; }
@@ -1417,7 +1417,7 @@
 }
 @keyframes nx-sweep { 0% { transform: translateX(-180px); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(100%); opacity: 0; } }
 @keyframes nx-sweep-back { 0% { transform: translateX(180px); opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(-100%); opacity: 0; } }
-@keyframes nx-lock { 0% { opacity: 0; transform: translate(-7px, -7px) scale(1.6); } 60% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes nx-lock { 0% { opacity: 0; transform: translateX(-8px) skewX(-12deg); } 60% { opacity: 1; } 100% { opacity: 1; transform: skewX(-12deg); } }
 @keyframes nx-shoot { 0% { opacity: 0; transform: skewX(-40deg) scaleX(0); } 100% { opacity: 1; transform: skewX(-40deg) scaleX(1); } }
 @keyframes nx-shoot-r { 0% { opacity: 0; transform: skewX(-24deg) translateX(-14px); } 100% { opacity: 1; transform: skewX(-24deg); } }
 
@@ -1579,22 +1579,8 @@
   62%  { opacity: 1; }
   100% { opacity: 0; transform: scale(1.18) rotate(10deg); }
 }
-@keyframes ps-cut {
-  0%   { opacity: 0; transform: translate(0, -46px); filter: brightness(1.7) contrast(1.5); }
-  8%   { opacity: 1; transform: translate(7px, -46px) skewX(5deg); filter: brightness(1.7) contrast(1.5); }
-  16%  { transform: translate(-9px, 22px) skewX(-4deg); filter: brightness(1.25) contrast(1.2); }
-  24%  { transform: translate(6px, -10px) skewX(2deg); filter: brightness(.85); }
-  32%  { transform: translate(-4px, 5px); filter: brightness(1.1); }
-  40%  { transform: translate(2px, -2px); filter: none; }
-  48%, 100% { opacity: 1; transform: none; filter: none; }
-}
-@keyframes ps-flash {
-  0%   { opacity: .95; background-position: 0 0, 0 0; }
-  8%   { opacity: .7;  background-position: -173px 91px, 0 0; }
-  16%  { opacity: .45; background-position: 211px -57px, 0 0; }
-  24%  { opacity: .18; background-position: -67px 143px, 0 0; }
-  32%, 100% { opacity: 0; }
-}
+@keyframes ps-cut { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes ps-flash { from { opacity: .14; } to { opacity: 0; } }
 
 /* ───────────── 8 · 彈出的小視窗：「噹」一下彈出來（選單維持淡入：彈動會讓項目滑到滑鼠底下） ───────────── */
 @keyframes ps-pop { from { opacity: 0; transform: scale(.84); } 35% { opacity: 1; } to { opacity: 1; transform: none; } }
@@ -1651,11 +1637,6 @@
   0%   { opacity: 0; transform: rotate(-4deg) scale(1.18); }
   50%  { opacity: 1; transform: rotate(-.4deg) scale(.97); }
   100% { opacity: 1; transform: rotate(-1.2deg) scale(1); }
-}
-@keyframes ps-star-pop {
-  0%   { opacity: 0; transform: scale(.3) rotate(-60deg); }
-  60%  { opacity: 1; transform: scale(1.25) rotate(12deg); }
-  100% { opacity: 1; transform: none; }
 }
 
 /* ═════════════════════════════ 櫻花（sakura）· 春天的花瓣 ═════════════════════════════
@@ -2197,3 +2178,17 @@
 /* 播放列的訊號標籤、輸出鈕：字用「大寫字高」置中（text-box 裁掉字型上下多出來的行距），
    不管哪個主題、哪種字型（Cascadia Mono、Segoe、蘋方），FLAC 16/44.1 都和左邊的圓點／星星在同一條中線上 */
 :root:root #bar :is(#b-sigtxt, #b-outname) { text-box: trim-both cap alphabetic; }
+
+/* 頁首大標題不被右邊的篩選列擠成一字一行（視窗 1280 以下「專輯」會斷成兩行）：標題照字寬、不縮；
+   只有很長的標題（搜尋字串）超過 46vw 才換行。路徑列後面的資料夾標題維持原本的截斷。 */
+:root:root .page-head:not(.fcrumbs + .page-head) > h1 { flex: 0 0 auto; max-width: 46vw; }
+:root:root .page-head > .sub { flex: none; white-space: nowrap; }
+
+/* 播放列中間的大播放鈕：外圈（金邊、紅寶石圈、白圈）也算進 44px，不再頂到播放列上緣的裝飾、壓到下面的進度條 */
+:root:root:is([data-theme="gold"], [data-theme="luka"], [data-theme="washi"]) #bar .playbtn { width: 34px; height: 34px; }
+:root:root:is([data-theme="sakura"], [data-theme="miku"]) #bar .playbtn { width: 38px; height: 38px; }
+:root:root:is([data-theme="gold"], [data-theme="luka"], [data-theme="washi"], [data-theme="sakura"], [data-theme="miku"]) #bar .playbtn svg { width: 18px; height: 18px; }
+:root:root:is([data-theme="wood"], [data-theme="gold"]) #bar .sig:is(.hires, .dsd, .upsample, .dsp) { border-radius: 4px; }
+
+/* 多了兩層切角邊線，流動的位置也要多兩個 */
+@keyframes nx-dsp-sludge { 0%, 100% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }

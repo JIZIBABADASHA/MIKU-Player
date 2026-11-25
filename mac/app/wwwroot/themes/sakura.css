@@ -246,18 +246,19 @@
 :root[data-theme="sakura"] .icon-btn.fav-on { color: var(--pink); filter: none; }
 
 /* ───────────── 10 · 開關：花苞與花 ─────────────
-   關：白底（夜是深底）＋1.5px 看得見的粉色外框，滑鈕是一顆深一點的花苞（對軌道 3.6:1 以上）。
+   關：白底（夜是深底）＋1.5px 看得見的粉色外框，滑鈕是一顆完整的深粉圓點（對軌道 3.6:1 以上）。
    開：整條變成櫻花粉，花苞開成一朵白色的五瓣花（夜裡是深梅色的花）。 */
 :root[data-theme="sakura"] .switch { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--sk-edge-2); }
+
+/* 關著的滑鈕：一顆完整的圓（原本的花苞上面有個缺口，看起來像缺一角），乾淨的櫻花深粉 */
 :root[data-theme="sakura"] .switch::after {
-  left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 0; box-shadow: none;
-  background: var(--sk-knob-off);
-  -webkit-mask: var(--sk-bud) center / 100% 100% no-repeat; mask: var(--sk-bud) center / 100% 100% no-repeat;
+  left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; box-shadow: none;
+  background: #d45a87;
 }
 :root[data-theme="sakura"] .switch.on { background: var(--teal); box-shadow: inset 0 0 0 1.5px var(--sk-deep); }
 :root[data-theme="sakura"] .switch.on::after {
-  left: 2px; top: 2px; width: 20px; height: 20px; background: #ffffff;
-  -webkit-mask-image: var(--sk-flower); mask-image: var(--sk-flower);
+  left: 2px; top: 2px; width: 20px; height: 20px; background: #ffffff; border-radius: 0;
+  -webkit-mask: var(--sk-flower) center / 100% 100% no-repeat; mask: var(--sk-flower) center / 100% 100% no-repeat;
 }
 :root[data-theme="sakura"]:where([data-mode="night"]) .switch { background: #1f141c; box-shadow: inset 0 0 0 1.5px #e98fb2; }
 
@@ -396,3 +397,6 @@
 :root[data-theme="sakura"] .dp-sect .dp-group { border-radius: var(--sk-r-m); border: 1px solid var(--sk-edge); background: rgba(var(--ink), .025); }
 :root[data-theme="sakura"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
 :root[data-theme="sakura"]:where(:not([data-mode="night"])) #lyrics { --ly-dim: .48; }
+
+/* 播放列的特殊格式標籤（Hi-Res、DSD、升頻、DSP）跟同一個主題其他框框同一種外形，不再一律圓角／膠囊 */
+:root:root[data-theme="sakura"] #bar .sig:is(.hires, .dsd, .upsample, .dsp) { border-radius: 999px; }

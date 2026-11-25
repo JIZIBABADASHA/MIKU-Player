@@ -171,7 +171,10 @@
 :root[data-theme="gold"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .modal-head h2, .np-title) { font-family: var(--font-display); }
 :root[data-theme="gold"] :is(.ly-line, .ly-plain) { font-family: var(--font); }
 :root[data-theme="gold"] .page-head h1 {
-  position: relative; font-weight: 700; letter-spacing: .03em; padding: 5px 18px 7px; margin-left: -4px;
+  position: relative; font-weight: 700; letter-spacing: .03em; padding: 14px 18px 12px; margin-left: -4px;
+  /* 字在招牌裡上下置中：行框切到大寫字高～基線，跟字型的行高設定無關（Mac 的宋體行高偏上，字才會沉到框底）；
+     漢字比大寫字高出上 .19em、下 .12em，所以上面多留 2px */
+  text-box: trim-both cap alphabetic;
   color: #ffd860;
   background:
     linear-gradient(100deg, transparent 0 40%, rgba(255,255,255,.95) 47%, #ffffff 50%, rgba(255,255,255,.95) 53%, transparent 60% 100%) 120% 0 / 300% 100% no-repeat,
@@ -717,3 +720,4 @@
 }
 :root[data-theme="gold"] .dp-sect .dp-group.dp-off { box-shadow: none; }
 :root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics { --ly-dim: .48; }
+:root:root[data-theme="gold"] #bar .playbtn { box-shadow: 0 0 0 1px #3d2600, 0 0 0 4px #a50f2a, 0 0 0 5px #3d2600, 0 3px 8px rgba(0,0,0,.4), 0 0 12px rgba(255,220,120,.45); }
