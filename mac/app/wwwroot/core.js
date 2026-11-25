@@ -917,7 +917,9 @@ const App = {
     if (c && !q.source && prev && s.trackId !== prev.trackId && q.ids && s.trackId === q.ids[c.from]) BarSwap.prepare();
     this.state = s;
     // after a seek, ignore stale positions until the engine reports the new one
-    const settling = this.seekUntil && performance.now() < this.seekUntil && Math.abs(s.pos - this.seekTarget) > 1.2;
+    // (a song streamed from the 遠端 library can take several seconds to seek: with only 2.5 s the old position came back
+    // in between, and the lyrics jumped to another part of the song before landing on the line that was clicked)
+    const settling = this.seekUntil && performance.now() < this.seekUntil && s.trackId === this.seekTrack && Math.abs(s.pos - this.seekTarget) > 1.2;
     if (!settling) this.seekUntil = 0;
     if (!this.seeking && !settling) { this.posBase = s.pos; this.posAt = performance.now(); }
     const key = this.syncTrack(s);
@@ -1133,7 +1135,7 @@ const App = {
   toggle() { Host.call('toggle'); },
   seek(pos) {
     this.posBase = pos; this.posAt = performance.now();
-    this.seekTarget = pos; this.seekUntil = performance.now() + 2500;
+    this.seekTarget = pos; this.seekTrack = this.state && this.state.trackId; this.seekUntil = performance.now() + 9000;
     this.kick();
     Host.call('seek', { pos });
   },
