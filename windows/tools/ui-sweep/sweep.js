@@ -6,7 +6,7 @@
  *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
  *
  * Writes <out>/report.json, <out>/summary.txt, a screenshot per failing combination, and with --shots sheet a contact
- * sheet per theme and mode (<out>/sheets/<theme>-<mode>.png: the pages down, the window sizes across).
+ * sheet per theme and mode (<out>/sheets/<theme>-<mode>.jpg: the pages down, the window sizes across).
  * Needs the playwright package (npm i playwright; npx playwright install webkit for Safari's engine). */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -112,7 +112,7 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
       }).join('')}</tr>`).join('');
       await page.setContent(`<!doctype html><style>body{margin:0;background:#222;color:#eee;font:13px system-ui}table{border-collapse:collapse}th{writing-mode:vertical-rl;padding:4px}td{padding:4px;vertical-align:top}img{width:560px;display:block;border:1px solid #555}td.bad img{border:3px solid #f33}h1{font-size:18px;margin:8px}</style><h1>${t} · ${m} · ${engine}</h1><table>${rows}</table>`);
       await page.waitForTimeout(100);
-      await page.screenshot({ path: path.join(outdir, 'sheets', `${t}-${m}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(outdir, 'sheets', `${t}-${m}.jpg`), fullPage: true, type: 'jpeg', quality: 82 });
     }
   }
   await browser.close();

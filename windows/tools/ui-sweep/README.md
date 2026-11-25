@@ -15,6 +15,6 @@ npm i playwright && npx playwright install webkit      # once
 node sweep.js --root ../../wwwroot --out /tmp/sweep --engine webkit --shots sheet
 ```
 
-`summary.txt` lists every problem; `sheets/<theme>-<mode>.png` shows the pages at six window sizes (red frame = the
+`summary.txt` lists every problem; `sheets/<theme>-<mode>.jpg` shows the pages at six window sizes (red frame = the
 checker found something there). Pages: home, album, settings, home with a MoodWave channel playing (`homemw`), now
 playing with a Japanese title (`np`), a very long title (`np2`), no lyrics (`npnl`) and a MoodWave channel (`npmw`).
