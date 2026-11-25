@@ -138,17 +138,20 @@ try {
 
     # ── 3. ffmpeg (LGPL build) ─────────────────────────────
     Say '[3/4] 準備 ffmpeg（LGPL 版）...'
-    $ff = Join-Path $Tools 'ffmpeg'
+    # The shared build: ffmpeg.exe and ffprobe.exe are small and share one set of av*.dll next to them. The static
+    # build carried the whole of FFmpeg twice, once in each exe (about 260 MB of the 665 MB install).
+    $ff = Join-Path $Tools 'ffmpeg-shared'
     New-Item -ItemType Directory -Force -Path $ff | Out-Null
     if (-not (Test-Path (Join-Path $ff 'ffmpeg.exe'))) {
         try {
             $zip = Join-Path $env:TEMP 'miku-ffmpeg.zip'; $tmp = Join-Path $env:TEMP 'miku-ffmpeg'
-            Get 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip' $zip
+            Get 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl-shared.zip' $zip
             if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
             Expand-Archive $zip $tmp -Force
-            foreach ($n in 'ffmpeg.exe', 'ffprobe.exe', 'LICENSE.txt') {
-                Get-ChildItem $tmp -Recurse -Filter $n | Select-Object -First 1 | Copy-Item -Destination $ff
-            }
+            $bin = Get-ChildItem $tmp -Recurse -Filter 'ffmpeg.exe' | Select-Object -First 1
+            if (-not $bin) { throw 'no ffmpeg.exe in the archive' }
+            Get-ChildItem $bin.DirectoryName -File | Where-Object { $_.Name -ne 'ffplay.exe' } | Copy-Item -Destination $ff
+            Get-ChildItem $tmp -Recurse -Filter 'LICENSE.txt' | Select-Object -First 1 | Copy-Item -Destination $ff
             Remove-Item $zip, $tmp -Recurse -Force
         } catch {
             Say "    下載失敗（$($_.Exception.Message)），改用這台電腦上已安裝的 ffmpeg"
