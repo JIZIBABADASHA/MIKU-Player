@@ -49,8 +49,11 @@
 :root[data-theme="poster"] .switch.on { background: var(--teal); box-shadow: inset 0 0 0 2px var(--teal); }
 :root[data-theme="poster"] .switch.on::after { background: #f6eedb; }
 :root[data-theme="poster"] .slider .track { background: rgba(var(--ink), .2); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { background: rgba(var(--ink), .2); }
 :root[data-theme="poster"] .slider .fill, :root[data-theme="poster"] .slider:hover .fill { background: var(--teal); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: var(--teal); }
 :root[data-theme="poster"] .slider .knob { border-radius: 0; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: var(--knob); box-shadow: none; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob { border-radius: 0; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: var(--knob); box-shadow: none; }
 :root[data-theme="poster"] .seek .slider .knob, :root[data-theme="poster"] .np-seek .slider .knob { opacity: 1; transform: none; }
 :root[data-theme="poster"] .chip.on { background: var(--ps-red); border-color: var(--ps-red); color: #f6eedb; }
 :root[data-theme="poster"] .badge { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--line-2); font-weight: 700; }

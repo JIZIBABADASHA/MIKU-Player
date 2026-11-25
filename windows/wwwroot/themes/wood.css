@@ -24,8 +24,10 @@
 :root[data-theme="wood"] .playbtn:hover { background: #cfac78; }
 :root[data-theme="wood"]:where([data-mode="day"]) .playbtn:hover { background: #b58847; }
 :root[data-theme="wood"] .slider .track { background: rgba(255,230,195,.12); }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { background: rgba(255,230,195,.12); }
 :root[data-theme="wood"]:where([data-mode="day"]) .slider .track { background: rgba(60,42,24,.16); }
 :root[data-theme="wood"] .slider .fill, :root[data-theme="wood"] .slider:hover .fill { background: #c4a06a; }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: #c4a06a; }
 :root[data-theme="wood"]:where([data-mode="day"]) .slider .fill, :root[data-theme="wood"]:where([data-mode="day"]) .slider:hover .fill { background: #a77b3c; }
 :root[data-theme="wood"] .search, :root[data-theme="wood"] .round-btn { background: rgba(255,230,195,.05); }
 :root[data-theme="wood"]:where([data-mode="day"]) .search, :root[data-theme="wood"]:where([data-mode="day"]) .round-btn { background: rgba(60,42,24,.07); }
@@ -352,6 +354,7 @@
 :root[data-theme="wood"] .menu button.is-selected svg.i { color: var(--teal-2); }
 :root[data-theme="wood"] .toast { border-radius: 6px; border-color: var(--wd-key-edge); border-left: 3px solid var(--teal); }
 :root[data-theme="wood"] .slider .hover-tip { border-radius: 3px; }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .hover-tip, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .hover-tip { border-radius: 3px; }
 :root[data-theme="wood"] ::-webkit-scrollbar-thumb { border-radius: 3px; }
 
 /* ───────────── 14 · 專輯頁的大封面：一樣裝在木框裡 ───────────── */
@@ -397,9 +400,12 @@
 }
 :root[data-theme="wood"] .np-mini .art { border-radius: 0; border: 4px solid transparent; border-image: var(--wd-frame) 24 / 4px stretch; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), .4); }
 :root[data-theme="wood"] .slider .track { background: rgba(var(--ink), .16); border-radius: 2px; }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { background: rgba(var(--ink), .16); border-radius: 2px; }
 :root[data-theme="wood"] .slider .fill, :root[data-theme="wood"] .slider:hover .fill { background: linear-gradient(180deg, #ecca8e, #c49a58); border-radius: 2px; }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: linear-gradient(180deg, #ecca8e, #c49a58); border-radius: 2px; }
 :root[data-theme="wood"]:where([data-mode="day"]) .slider .fill, :root[data-theme="wood"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(180deg, #c99a52, #946726); }
 :root[data-theme="wood"] .slider .knob { background: var(--wd-brass); box-shadow: 0 0 0 1px var(--wd-brass-edge), 0 1px 3px rgba(0,0,0,.4); }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob { background: var(--wd-brass); box-shadow: 0 0 0 1px var(--wd-brass-edge), 0 1px 3px rgba(0,0,0,.4); }
 
 /* 設定頁的滑桿（緩衝大小、文字大小…）：凹槽＋黃銅的推桿帽（像混音台的推桿），帽子是一整塊亮面黃銅，中間不畫線 */
 :root[data-theme="wood"] .range { height: 6px; border-radius: 3px; background: var(--wd-well); box-shadow: var(--wd-well-sh); }

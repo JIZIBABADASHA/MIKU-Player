@@ -32,10 +32,13 @@
 :root[data-theme="neon"] .np-ctrl .playbtn { color: #00f0ff; }
 :root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-ctrl .playbtn { color: #00a6bd; }
 :root[data-theme="neon"] .slider .track { border-radius: 0; background: rgba(160,140,255,.16); overflow: visible; }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { border-radius: 0; background: rgba(160,140,255,.16); overflow: visible; }
 :root[data-theme="neon"]:where([data-mode="day"]) .slider .track { background: rgba(80,60,180,.16); }
 :root[data-theme="neon"] .slider .fill, :root[data-theme="neon"] .slider:hover .fill { border-radius: 0; background: linear-gradient(90deg, #ff2bd6, #00f0ff); box-shadow: 0 0 10px rgba(0,240,255,.7); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { border-radius: 0; background: linear-gradient(90deg, #ff2bd6, #00f0ff); box-shadow: 0 0 10px rgba(0,240,255,.7); }
 :root[data-theme="neon"]:where([data-mode="day"]) .slider .fill, :root[data-theme="neon"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(90deg, #f01fc4, #00b4cc); box-shadow: 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .slider .knob { border-radius: 1px; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: #fff; box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff; }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob { border-radius: 1px; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: #fff; box-shadow: 0 0 10px #00f0ff, 0 0 20px #00f0ff; }
 :root[data-theme="neon"]:where([data-mode="day"]) .slider .knob { background: #1c1440; box-shadow: 0 0 10px rgba(0,190,215,.22), 0 0 20px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .search { border-radius: 2px; background: rgba(0,240,255,.04); border: 1px solid rgba(0,240,255,.22); }
 :root[data-theme="neon"]:where([data-mode="day"]) .search { background: rgba(0,180,204,.04); border: 1px solid rgba(0,180,204,.22); }
@@ -485,13 +488,21 @@
 
 /* 進度條、音量：方頭；填滿是洋紅→青的光條；播放頭是一支斜的白色細塊，平常就看得見 */
 :root[data-theme="neon"] .slider .track { border-radius: 0; background: rgba(var(--ink), .22); overflow: visible; }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { border-radius: 0; background: rgba(var(--ink), .22); overflow: visible; }
 :root[data-theme="neon"] :is(.slider .fill, .slider:hover .fill, .slider.drag .fill) { border-radius: 0; background: linear-gradient(90deg, var(--pink), var(--teal)); box-shadow: 0 0 8px rgba(var(--teal-rgb), .55); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider .fill, #np .slider:hover .fill, .slider.drag .fill), :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider .fill, #bar .slider:hover .fill, .slider.drag .fill) { border-radius: 0; background: linear-gradient(90deg, var(--pink), var(--teal)); box-shadow: 0 0 8px rgba(var(--teal-rgb), .55); }
 :root[data-theme="neon"] .slider .knob {
   width: 5px; height: 16px; margin: -8px 0 0 -2.5px; border-radius: 0; background: #ffffff;
   box-shadow: 0 0 0 1px rgba(16,6,42,.6), 0 0 8px rgba(var(--teal-rgb), .9); opacity: 1; transform: skewX(-14deg);
 }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob {
+  width: 5px; height: 16px; margin: -8px 0 0 -2.5px; border-radius: 0; background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(16,6,42,.6), 0 0 8px rgba(var(--teal-rgb), .9); opacity: 1; transform: skewX(-14deg);
+}
 :root[data-theme="neon"] :is(.slider:hover .knob, .slider.drag .knob) { transform: skewX(-14deg); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider:hover .knob, #np .slider.drag .knob), :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider:hover .knob, #bar .slider.drag .knob) { transform: skewX(-14deg); }
 :root[data-theme="neon"] .slider .hover-tip { border-radius: 0; box-shadow: 0 0 0 1px rgba(var(--teal-rgb), .6); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .hover-tip, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .hover-tip { border-radius: 0; box-shadow: 0 0 0 1px rgba(var(--teal-rgb), .6); }
 
 /* ───────────── 13 · 專輯頁：封面斜切角＋掃描線 ───────────── */
 :root[data-theme="neon"] .hero .cover { border-radius: 0; box-shadow: none; overflow: visible; background: none; filter: drop-shadow(0 0 1px rgba(0,240,255,.9)) drop-shadow(0 0 16px rgba(0,240,255,.3)); }
@@ -883,6 +894,10 @@
   background: linear-gradient(90deg, rgba(255,43,214,.35), var(--pink) 32%, var(--teal) 84%, var(--nx-head-glow));
   box-shadow: 0 0 8px rgba(var(--teal-rgb), .45);
 }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider .fill, #np .slider:hover .fill, .slider.drag .fill), :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider .fill, #bar .slider:hover .fill, .slider.drag .fill) {
+  background: linear-gradient(90deg, rgba(255,43,214,.35), var(--pink) 32%, var(--teal) 84%, var(--nx-head-glow));
+  box-shadow: 0 0 8px rgba(var(--teal-rgb), .45);
+}
 :root[data-theme="neon"] .slider .knob {
   width: 4px; height: 14px; margin: -7px 0 0 -2px; background: var(--nx-head-glow); transform: skewX(-18deg);
   box-shadow:
@@ -890,7 +905,15 @@
     -3px 0 0 0 rgba(0,240,255,.55), -6px 0 0 -1px rgba(0,240,255,.4), -9px 0 0 -1px rgba(0,240,255,.28),
     -12px 0 0 -2px rgba(255,43,214,.26), -15px 0 0 -2px rgba(255,43,214,.15);
 }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob {
+  width: 4px; height: 14px; margin: -7px 0 0 -2px; background: var(--nx-head-glow); transform: skewX(-18deg);
+  box-shadow:
+    0 0 4px 1px rgba(0,240,255,.95), 0 0 12px 2px rgba(0,240,255,.5),
+    -3px 0 0 0 rgba(0,240,255,.55), -6px 0 0 -1px rgba(0,240,255,.4), -9px 0 0 -1px rgba(0,240,255,.28),
+    -12px 0 0 -2px rgba(255,43,214,.26), -15px 0 0 -2px rgba(255,43,214,.15);
+}
 :root[data-theme="neon"] :is(.slider:hover .knob, .slider.drag .knob) { transform: skewX(-18deg); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider:hover .knob, #np .slider.drag .knob), :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.slider:hover .knob, #bar .slider.drag .knob) { transform: skewX(-18deg); }
 :root[data-theme="neon"]:where([data-mode="day"]) .slider .knob {
   background: #1a1238;
   box-shadow: 0 0 0 1px #ffffff, 0 0 6px 1px rgba(0,180,204,.55),

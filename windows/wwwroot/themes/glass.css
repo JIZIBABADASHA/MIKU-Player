@@ -23,8 +23,10 @@
 :root[data-theme="glass"] .btn.primary { background: linear-gradient(135deg, #a5ecff, #c9b8ff); color: #0b1022; box-shadow: 0 6px 22px rgba(139,227,255,.35), inset 0 1px 0 rgba(255,255,255,.7); }
 :root[data-theme="glass"]:where([data-mode="day"]) .btn.primary { background: linear-gradient(135deg, #4ea3f2, #8f7bff); color: #ffffff; box-shadow: 0 6px 22px rgba(74,168,240,.35), inset 0 1px 0 rgba(255,255,255,.9); }
 :root[data-theme="glass"] .slider .track { background: rgba(255,255,255,.18); }
+:root[data-theme="glass"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="glass"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { background: rgba(255,255,255,.18); }
 :root[data-theme="glass"]:where([data-mode="day"]) .slider .track { background: rgba(24,32,72,.16); }
 :root[data-theme="glass"] .slider .fill, :root[data-theme="glass"] .slider:hover .fill { background: linear-gradient(90deg, #8be3ff, #c9b8ff, #ff8fcf); }
+:root[data-theme="glass"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="glass"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="glass"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="glass"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: linear-gradient(90deg, #8be3ff, #c9b8ff, #ff8fcf); }
 :root[data-theme="glass"]:where([data-mode="day"]) .slider .fill, :root[data-theme="glass"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(90deg, #4aa8f0, #8f7bff, #f06aae); }
 :root[data-theme="glass"] .card .art { border-radius: 18px; box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 10px 30px rgba(4,6,20,.35); }
 :root[data-theme="glass"]:where([data-mode="day"]) .card .art { box-shadow: 0 0 0 1px rgba(255,255,255,.56), 0 10px 30px rgba(60,70,130,.16); }

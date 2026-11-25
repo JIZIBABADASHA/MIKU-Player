@@ -75,10 +75,10 @@
       const avoid = [...np.querySelectorAll('.np-left .np-title, .np-left .np-artist, .np-left .np-badges, .np-left .np-seek, .np-left .np-ctrl, .np-top #np-close, .np-top .pill, .np-top .src, #np-ext > *')]
         .filter(shown).map(e => e.getBoundingClientRect()).filter(r => r.width);
       const lyr = np.querySelector('.np-right'); if (lyr && shown(lyr) && !np.classList.contains('nolyrics')) avoid.push(lyr.getBoundingClientRect());
-      // sticker spots: its centre near a cover corner, sticking out a little (the burst is round: test its middle 80 %)
+      // sticker spots: its centre near a cover corner, sticking out a little; its whole box plus 4px stays off the text
       const spots = [[cr.right - .14 * st, cr.top + .2 * st], [cr.left + .14 * st, cr.top + .2 * st], [cr.right - .14 * st, cr.bottom - .2 * st], [cr.left + .14 * st, cr.bottom - .2 * st]];
       for (const [cx, cy] of spots) {
-        const k = .4 * st, d = { left: cx - k, right: cx + k, top: cy - k, bottom: cy + k, width: 2 * k };
+        const k = .5 * st + 4, d = { left: cx - k, right: cx + k, top: cy - k, bottom: cy + k, width: 2 * k };
         if (d.left < 4 || d.top < 4 || d.right > innerWidth - 4 || d.bottom > innerHeight - 4) continue;
         if (avoid.some(r => hit(d, r))) continue;
         left.style.setProperty('--np-st-x', (cx - st / 2 - lr.left).toFixed(1) + 'px');

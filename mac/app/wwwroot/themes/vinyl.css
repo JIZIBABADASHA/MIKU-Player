@@ -16,6 +16,7 @@
 :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { border-top: 1px solid rgba(228,234,223,.1); }
 :root[data-theme="vinyl"] .btn.primary { background: var(--teal); color: var(--on-accent); }
 :root[data-theme="vinyl"] .slider .fill { background: var(--teal); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill { background: var(--teal); }
 :root[data-theme="vinyl"] .row.playing .tt div:first-child { color: var(--teal); }
 :root[data-theme="vinyl"] .sect { background: rgba(242,245,238,.92); border: 1px solid rgba(28,44,36,.08); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .sect { background: rgba(28,37,32,.92); border: 1px solid rgba(228,234,223,.08); }
@@ -351,8 +352,11 @@
     background: radial-gradient(circle closest-side, var(--vy-label) 0 76%, rgba(26,18,10,.45) 77.5% 80.5%, var(--vy-label) 82% 86%, var(--vy-disc) 88%);
     box-shadow: 0 0 0 1.5px rgba(241,236,220,.35), 0 4px 12px rgba(0,0,0,.35); }
 :root[data-theme="vinyl"] .slider .track { background: rgba(var(--ink), .16); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .track, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { background: rgba(var(--ink), .16); }
 :root[data-theme="vinyl"] .slider .fill, :root[data-theme="vinyl"] .slider:hover .fill { background: var(--teal); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: var(--teal); }
 :root[data-theme="vinyl"] .slider .knob { background: radial-gradient(circle closest-side, var(--vy-label-hi) 0 38%, var(--vy-disc) 46%); box-shadow: 0 0 0 1.5px var(--vy-paper), 0 1px 3px rgba(0,0,0,.3); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob { background: radial-gradient(circle closest-side, var(--vy-label-hi) 0 38%, var(--vy-disc) 46%); box-shadow: 0 0 0 1.5px var(--vy-paper), 0 1px 3px rgba(0,0,0,.3); }
 :root[data-theme="vinyl"] .range { background: rgba(var(--ink), .28); }
 :root[data-theme="vinyl"] .range::-webkit-slider-thumb { background: radial-gradient(circle closest-side, var(--vy-label-hi) 0 34%, var(--vy-disc) 44%); box-shadow: 0 0 0 1.5px var(--vy-paper), 0 0 0 3px var(--vy-edge), 0 1px 3px rgba(0,0,0,.3); }
 :root[data-theme="vinyl"] :is(.sig, .out-btn) { background: var(--vy-paper); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--vy-edge); }

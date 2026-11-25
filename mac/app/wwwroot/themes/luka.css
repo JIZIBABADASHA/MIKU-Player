@@ -94,8 +94,11 @@
 
 /* 滑桿：金色（深金到淺金），拖曳鈕是金色菱形 */
 :root[data-theme="luka"] .slider .fill, :root[data-theme="luka"] .slider:hover .fill { background: linear-gradient(90deg, var(--lk-gold-lo), var(--lk-gold)); }
+:root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: linear-gradient(90deg, var(--lk-gold-lo), var(--lk-gold)); }
 :root[data-theme="luka"] .slider .knob { border-radius: 1px; background: var(--lk-gold); }
+:root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .knob, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .knob { border-radius: 1px; background: var(--lk-gold); }
 :root[data-theme="luka"] .slider:hover .knob, :root[data-theme="luka"] .slider.drag .knob { transform: rotate(45deg); }
+:root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .knob, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .knob, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider.drag .knob, :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider.drag .knob { transform: rotate(45deg); }
 :root[data-theme="luka"] .seek .slider .knob, :root[data-theme="luka"] .np-seek .slider .knob { opacity: 1; transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .22); }
 :root[data-theme="luka"] .seek .slider .knob { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
 :root[data-theme="luka"] .range::-webkit-slider-thumb { width: 13px; height: 13px; border-radius: 1px; background: var(--lk-gold); transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .2); }

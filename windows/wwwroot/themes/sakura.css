@@ -403,6 +403,7 @@
 :root[data-theme="sakura"]:where([data-mode="night"]) .playbtn { box-shadow: 0 0 0 3px rgba(255,214,232,.14), 0 6px 14px -4px rgba(0,0,0,.5); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .btn.primary { box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .slider .fill, :root[data-theme="sakura"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(90deg, #c77a9c, #ff9ec0); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider .fill, :root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill, :root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) #np .slider:hover .fill, :root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:hover .fill { background: linear-gradient(90deg, #c77a9c, #ff9ec0); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .68) 60%, var(--bg)); }
 :root[data-theme="sakura"] { --dp-ink: var(--teal-2); }
 

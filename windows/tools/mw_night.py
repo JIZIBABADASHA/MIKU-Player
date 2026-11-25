@@ -15,6 +15,7 @@ KEEP_MW = {'--np-base', '--np-ink', '--np-pill-ink', '--np-dim', '--np-veil'}   
 # the player bar too: MoodWave lays the channel's dark picture across it, so a theme's day bar (dark icons, light chips)
 # would vanish there; the bar takes the theme's night look, minus the white ink MoodWave sets on #bar itself
 BAR = re.compile(r'#bar\b|\.seek\b')
+SLIDER = re.compile(r'\.slider\b')
 KEEP_MW_BAR = {'--ink', '--line', '--line-2', '--text', '--text-hi', '--text-sub', '--text-2', '--text-3', '--surface-2', '--surface-3'}
 def has_night(s): return 'data-mode="night"]' in s.replace(':not([data-mode="night"])', '')
 def has_day(s): return '[data-mode="day"]' in s or ':not([data-mode="night"])' in s
@@ -34,7 +35,7 @@ def decls(body):
 def vars_only(body, drop=KEEP_MW):
     keep = [x for x in decls(body) if x.startswith('--') and x.split(':', 1)[0].strip() not in drop]
     return ' ' + '; '.join(keep) + '; ' if keep else None
-stats = {'np': 0, 'vars': 0, 'day': 0, 'bar': 0, 'barvars': 0}
+stats = {'np': 0, 'vars': 0, 'day': 0, 'barvars': 0, 'slider': 0}
 NIGHT_BASE = set()   # themes whose plain colours are the night ones (their day look is a [data-mode="day"] block)
 def theme_of(s):
     m = re.search(r'data-theme\^?="([a-z0-9]+)"', s); return m and m.group(1)
@@ -53,7 +54,7 @@ def walk(css):
             out.append(pre + ' {' + walk(body) + '}'); continue
         if pre.startswith('@'): out.append(raw); continue
         sels = sp.split_sel(pre)
-        np_copy, var_copy, new = [], [], []
+        np_copy, var_copy, new, slider_copy = [], [], [], []
         for s in sels:
             s0 = s.strip()
             if (NP.search(s0) or BAR.search(s0)) and has_day(s0) and 'data-theme' in s0: s0 = no_day(s0); stats['day'] += 1
@@ -62,7 +63,18 @@ def walk(css):
                 var_copy.append((to_mw(s0) if has_night(s0) else s0 + MW) + ' #np')
             elif has_night(s0) and (NP.search(s0) or BAR.search(s0)):
                 np_copy.append(to_mw(s0))
+        # sliders are styled app-wide (.slider .fill), so a theme's night slider never reached the dark page or bar:
+        # the night version, scoped to the page and the bar in channel mode (a dark fill on the dark page vanished)
+        for s0 in new:
+            if not SLIDER.search(s0) or NP.search(s0) or BAR.search(s0) or 'data-theme' not in s0: continue
+            if has_night(s0): base = to_mw(s0)
+            elif not has_day(s0) and theme_of(s0) in NIGHT_BASE: head, _, rest = s0.partition(' '); base = head + MW + ' ' + rest
+            else: continue
+            i = base.find(' .slider')
+            if i < 0: continue
+            slider_copy.extend([base[:i] + ' #np' + base[i:], base[:i] + ' #bar' + base[i:]])
         out.append(', '.join(new) + ' {' + body + '}')
+        if slider_copy: out.append('\n' + ', '.join(slider_copy) + ' {' + body + '}'); stats['slider'] += 1
         if var_copy:
             vb = vars_only(body)
             if vb: out.append('\n' + ', '.join(var_copy) + ' {' + vb + '}'); stats['vars'] += 1
