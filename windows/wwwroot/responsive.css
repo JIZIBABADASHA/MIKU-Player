@@ -199,9 +199,13 @@
 :root[data-theme="glass"] #bar-peek { bottom: 44px; }
 :root[data-theme="glass"].bar-peek #bar-peek { bottom: calc(var(--bar) + 44px); }
 
-/* ───── 8. 歌詞時間：所有尺寸都維持原本的位置與樣式（右下）；上下排版時歌詞區會貼近面板底邊，只把它往上抬一點 ───── */
+/* ───── 8. 歌詞時間（滑過歌詞欄時出現的 − 0.0s + 自動）：歌詞欄底下留一條它自己的位置，歌詞不會跑到它下面被蓋住
+   （Adolf：「歌詞時間疊到了」，小視窗、沒有時間軸的歌詞最明顯）。留多少由 fit.js 量它實際的位置（--ly-off-room），
+   每個主題放的位置不同也一樣。沒有時間軸的歌詞（純文字）和「找不到歌詞」不能調時間，這一排不顯示。 ───── */
+:root:root:root #np .np-right { padding-bottom: var(--ly-off-room, 0px); }
+#np .np-right:has(#lyrics :is(.ly-plain, .ly-empty)) .ly-offset { display: none; }
 @media (max-width: 760px), (orientation: portrait) {
-  #np .ly-offset { bottom: 40px; right: 10px; }
+  #np .ly-offset { right: 10px; }
 }
 
 /* ───── 9. VINYL 主題：提示訊息底色是深綠，文字也要用淺色（原本是深色字，看不到） ───── */

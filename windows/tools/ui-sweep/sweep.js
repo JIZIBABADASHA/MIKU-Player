@@ -3,9 +3,10 @@
  * things that overlap (check.js), with a mock host (mock.js) so no player is needed.
  *
  *   node sweep.js --root ../../wwwroot --out /tmp/sweep [--engine webkit|chromium] [--themes poster,gold] [--scen np,home]
+ *                 scenarios: home album set homemw np np2 npnl npmw npplain npplainmw (plain = lyrics without timing)
  *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
  *
- * Writes <out>/report.json, <out>/summary.txt, a screenshot per failing combination, and with --shots sheet a contact
+ * Writes <out>/report.json, <out>/summary.txt, a screenshot (JPEG) per failing combination, and with --shots sheet a contact
  * sheet per theme and mode (<out>/sheets/<theme>-<mode>.jpg: the pages down, the window sizes across).
  * Needs the playwright package (npm i playwright; npx playwright install webkit for Safari's engine). */
 'use strict';
@@ -39,6 +40,7 @@ const SCEN = {
   homemw: { hash: '#/home', eval: MW, q: LONG },
   np: { hash: '#/home', np: true, q: LONG }, np2: { hash: '#/home', np: true, q: LONG2 },
   npnl: { hash: '#/home', np: true, q: Object.assign({ ly: '0' }, LONG2) }, npmw: { hash: '#/home', np: true, q: LONG, eval: MW },
+  npplain: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG) }, npplainmw: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG), eval: MW },
 };
 const scen = (arg('scen', 'all') === 'all' ? Object.keys(SCEN) : arg('scen').split(',')).map(n => Object.assign({ name: n }, SCEN[n]));
 const mock = fs.readFileSync(path.join(HERE, 'mock.js'), 'utf8');
@@ -84,7 +86,7 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
           await page.waitForTimeout(700);
           const issues = await page.evaluate(check);
           const name = `${t}-${m}-${s.name}-${w}x${h}`;
-          if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) await page.screenshot({ path: path.join(outdir, 'shots', name + '.png') });
+          if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) await page.screenshot({ path: path.join(outdir, 'shots', name + '.jpg'), type: 'jpeg', quality: 80 });
           report.push({ name, t, m, s: s.name, w, h, issues });
         }
       } catch (e) { report.push({ name: `${t}-${m}-${s.name}`, t, m, s: s.name, error: String(e) }); }
@@ -106,9 +108,9 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
     const page = await (await browser.newContext({ viewport: { width: 2400, height: 800 }, deviceScaleFactor: 1 })).newPage();
     for (const t of themes) for (const m of modes) {
       const rows = scen.map(s => `<tr><th>${s.name}</th>${SHEET_SIZES.map(z => {
-        const f = path.join(outdir, 'shots', `${t}-${m}-${s.name}-${z}.png`), r = report.find(x => x.name === `${t}-${m}-${s.name}-${z}`);
+        const f = path.join(outdir, 'shots', `${t}-${m}-${s.name}-${z}.jpg`), r = report.find(x => x.name === `${t}-${m}-${s.name}-${z}`);
         const n = r && r.issues ? r.issues.length : 0;
-        return fs.existsSync(f) ? `<td class="${n ? 'bad' : ''}"><img src="data:image/png;base64,${fs.readFileSync(f).toString('base64')}"><div>${z}${n ? ' — ' + n + ' problem(s)' : ''}</div></td>` : '<td></td>';
+        return fs.existsSync(f) ? `<td class="${n ? 'bad' : ''}"><img src="data:image/jpeg;base64,${fs.readFileSync(f).toString('base64')}"><div>${z}${n ? ' — ' + n + ' problem(s)' : ''}</div></td>` : '<td></td>';
       }).join('')}</tr>`).join('');
       await page.setContent(`<!doctype html><style>body{margin:0;background:#222;color:#eee;font:13px system-ui}table{border-collapse:collapse}th{writing-mode:vertical-rl;padding:4px}td{padding:4px;vertical-align:top}img{width:560px;display:block;border:1px solid #555}td.bad img{border:3px solid #f33}h1{font-size:18px;margin:8px}</style><h1>${t} · ${m} · ${engine}</h1><table>${rows}</table>`);
       await page.waitForTimeout(100);

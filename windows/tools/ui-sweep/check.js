@@ -156,6 +156,24 @@
         }
       }
     }
+    // the lyric timing row (歌詞時間 − 0.0s + 自動): it appears while the pointer is over the lyrics, so it counts as shown
+    // even while it is faded out, and it never sits on a line of lyrics (timed lines or plain text)
+    const off = document.querySelector('#np .ly-offset');
+    if (lyr && off && !hidden(lyr) && !document.querySelector('#np.nolyrics') && !hidden(off.parentElement) && getComputedStyle(off).display !== 'none') {
+      const o = off.getBoundingClientRect();
+      if (o.width > 1 && o.height > 1) {
+        for (const t of lyr.querySelectorAll('.ly-line, .ly-plain')) {
+          if (hidden(t)) continue;
+          const c = clipOf(t, true), rr = document.createRange(); rr.selectNodeContents(t);
+          for (const r0 of rr.getClientRects()) {
+            const r = { left: Math.max(r0.left, c.L), right: Math.min(r0.right, c.R), top: Math.max(r0.top, c.T), bottom: Math.min(r0.bottom, c.B) };
+            if (r.right - r.left < 2 || r.bottom - r.top < 2) continue;
+            if (hit(r, o, 1)) { add('overlap', 'lyric timing row × ' + desc(t), 'timing row over lyrics'); break; }
+          }
+        }
+        if (o.right > W + 0.5 || o.left < -0.5 || o.bottom > H + 0.5 || o.top < -0.5) add('offscreen', 'lyric timing row', 'outside the window');
+      }
+    }
     // top buttons over the info
     for (const e of document.querySelectorAll('#np .np-top > *, #np .np-top .pill')) {
       if (hidden(e)) continue; const a = box(e); if (a.width < 2) continue;

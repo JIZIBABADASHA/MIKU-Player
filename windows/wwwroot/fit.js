@@ -10,7 +10,10 @@
       (the collapse button stays).
    4. balanceTitle: a title printed on a card (the poster's title plaque) gets as much card above its letters as below,
       whatever font the system picks: a Mac's Japanese fonts sit higher in the line than Windows' or Linux's, which put
-      the first line against the card's top edge. */
+      the first line against the card's top edge.
+   5. lyricsRoom: the lyric timing row (歌詞時間 − 0.0s + 自動, shown while the pointer is over the lyrics) gets its own
+      strip under the lyrics, so it never sits on a line of lyrics, whatever size the window is and wherever a theme
+      puts the row. */
 (() => {
   const init = () => {
     const np = document.getElementById('np'); if (!np) return;
@@ -127,6 +130,23 @@
       title.style.setProperty('--np-t-bt', (min + Math.max(0, d)).toFixed(2) + 'px');
       title.style.setProperty('--np-t-bb', (min + Math.max(0, -d)).toFixed(2) + 'px');
     };
+    // The row is measured where the theme puts it (it is absolute in the lyrics column, so the strip does not move it) and
+    // the column keeps that much plus 8px free at its bottom (--ly-off-room, a bottom padding in responsive.css).
+    const right = np.querySelector('.np-right'), lyOff = np.querySelector('.ly-offset');
+    const lyricsRoom = () => {
+      if (!right || !lyOff) return;
+      let room = 0;
+      if (!np.classList.contains('nolyrics') && getComputedStyle(lyOff).display !== 'none') {
+        const rr = right.getBoundingClientRect(), o = lyOff.getBoundingClientRect();
+        if (rr.height && o.height) {
+          const k = right.offsetHeight / rr.height;   // an ancestor scaled: back to CSS pixels
+          room = Math.ceil((rr.bottom - o.top) * k - (parseFloat(getComputedStyle(right).borderBottomWidth) || 0)) + 8;
+        }
+      }
+      const v = room > 0 ? room + 'px' : '';
+      if (right.style.getPropertyValue('--ly-off-room') === v) return;
+      if (v) right.style.setProperty('--ly-off-room', v); else right.style.removeProperty('--ly-off-room');
+    };
     let raf = 0, waits = 0;
     const check = () => {
       raf = 0;
@@ -135,6 +155,7 @@
       waits = 0;
       // (removed only when it is there: writing a class, even an unchanged one, wakes every observer of #np's class)
       if (!np.classList.contains('on')) { if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
+      lyricsRoom();
       balanceTitle();
       fitInfo();
       // hidden buttons (visibility: hidden) keep their layout box, so they can be measured without un-hiding them
@@ -173,6 +194,12 @@
         if (np.classList.contains('on')) { now(); later(300); }
       }).observe(e, { childList: true, characterData: true, subtree: true });
     }
+    // the lyrics arriving after the song, or plain text instead of timed lines: the timing row comes or goes with them
+    const lyBox = document.getElementById('lyrics');
+    const lyKind = () => !lyBox ? '' : lyBox.querySelector('.ly-plain') ? 'plain' : lyBox.querySelector('.ly-empty') ? 'empty' : lyBox.querySelector('.ly-line') ? 'timed' : '';
+    let lastLy = lyKind();
+    if (lyBox) new MutationObserver(() => { const k = lyKind(); if (k === lastLy) return; lastLy = k; if (np.classList.contains('on')) now(); })
+      .observe(lyBox, { childList: true });
     // fonts arriving change the text's height
     if (document.fonts) document.fonts.addEventListener('loadingdone', () => { if (np.classList.contains('on')) now(); });
     np.addEventListener('transitionend', e => { if (e.target.classList?.contains('np-wrap')) now(); });
