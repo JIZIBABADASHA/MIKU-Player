@@ -769,6 +769,11 @@ Object.assign(I18N_DICT.ja, {
   "瑞士海報風的夜版：藍圖般的深鈷藍紙、純白的大字，直角無陰影，訊號橘標出選中的地方。": "スイスポスター風の夜版：青焼き図面のような深いコバルトの紙、真っ白な大きな文字、影のない直角、選択中はシグナルオレンジ。",
 });
 
+/* Theme picker: the big preview's tag while a name is hovered. */
+Object.assign(I18N_DICT["zh-Hans"], { "預覽": "预览" });
+Object.assign(I18N_DICT.en, { "預覽": "Preview" });
+Object.assign(I18N_DICT.ja, { "預覽": "プレビュー" });
+
 // Mac-native audio additions survive Windows UI synchronization.
 Object.assign(I18N_DICT.en, {
   '輸出模式': 'Output mode', 'Core Audio（共享）': 'Core Audio (shared)', 'Core Audio 獨佔': 'Core Audio exclusive',

@@ -112,26 +112,47 @@ const Theme = {
     }
   },
 
-  /** The picker's families, in the order shown (two rows of small cards each); a theme not listed here goes in the last one. */
+  /** The picker's families, in the order shown (a heading, then the names in two columns); a theme not listed here goes in the last one. */
   families: [
     [T('經典'), ['miku', 'glass', 'flat', 'flat2']],
     [T('質感'), ['wood', 'vinyl', 'washi', 'sakura']],
     [T('個性'), ['neon', 'terminal', 'pop', 'poster', 'luka', 'gold']],
   ],
+  /** The theme the big preview shows while a name is hovered or focused (null: the current one). */
+  peeking: null,
 
-  /** The settings section, when it is shown: the chosen card, the 日 / 夜 switch, the previews and the line under them. */
+  /** The settings section, when it is shown: the chosen name, the 日 / 夜 switch, the swatches and the big preview. */
   paint() {
     const sect = document.querySelector('.sect.theme-sect');
     if (!sect) return;
-    sect.querySelectorAll('.tp').forEach(el => { const on = el.dataset.id === this.cur; el.classList.toggle('on', on); el.setAttribute('aria-pressed', on); });
+    sect.querySelectorAll('.tp-opt').forEach(el => { const on = el.dataset.id === this.cur; el.classList.toggle('on', on); el.setAttribute('aria-pressed', on); });
     sect.querySelectorAll('.theme-mode button').forEach(b => b.classList.toggle('on', b.dataset.v === this.mode));
     sect.querySelectorAll('.tp-screen').forEach(el => { el.dataset.mode = this.mode; });
-    const t = this.list.find(t => t.id === this.cur), m = this.modes.find(m => m[0] === this.mode);
-    const desc = sect.querySelector('.theme-desc');
-    if (t && desc) { desc.textContent = ''; desc.append(h('b', null, t.name + '・' + m[1]), t.desc[this.mode]); }
+    this.paintStage();
+  },
+  /** The big preview and the lines under it: the hovered theme if there is one, else the current one. */
+  paintStage() {
+    const stage = document.querySelector('.sect.theme-sect .tp-stage');
+    if (!stage) return;
+    const id = this.peeking || this.cur;
+    const t = this.list.find(t => t.id === id), m = this.modes.find(m => m[0] === this.mode);
+    if (!t || !m) return;
+    const screen = stage.querySelector('.tp-screen');
+    screen.dataset.theme = id; screen.dataset.mode = this.mode;
+    const peek = id !== this.cur;
+    stage.classList.toggle('peek', peek);
+    const cap = stage.querySelector('.tp-cap');
+    cap.textContent = '';
+    cap.append(h('div', { class: 'tp-cap-h' }, h('span', null, t.name), h('span', { class: 'tag' }, peek ? T('預覽') + '・' + m[1] : m[1])),
+      h('div', { class: 'tp-cap-d' }, t.desc[this.mode]));
+  },
+  peek(id) {
+    if (this.peeking === id) return;
+    this.peeking = id;
+    this.paintStage();
   },
 
-  /** Settings page section: the themes as small cards in a few families, and 日 / 夜 as a switch of its own. */
+  /** Settings page section: one big preview, the theme names in a few families beside it, and 日 / 夜 as a switch of its own. */
   section(root) {
     const mode = h('div', { class: 'seg theme-mode' });
     for (const [v, label, ic] of this.modes) {
@@ -143,33 +164,38 @@ const Theme = {
       h('div', { class: 'theme-head' },
         h('div', { class: 'tx' }, h('h2', null, T('外觀')), h('div', { class: 'hint' }, T('選擇主題，再選日或夜。切換後立即套用，並會記住你的選擇。'))),
         mode));
-    // each family: a label, then its cards in two rows (--n columns)
+    // left: the big preview (a small drawing of the app in that theme) and its name and description
+    const stage = h('div', { class: 'tp-stage', 'aria-live': 'polite' },
+      h('div', { class: 'tp-frame', 'aria-hidden': 'true' }, h('div', { class: 'tp-screen', 'data-theme': this.cur, 'data-mode': this.mode, html: `
+        <div class="tp-side"><i class="logo"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <div class="tp-main"><b></b><u></u><div class="tp-cards"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="tp-bar"><i class="art"></i><i class="heart"></i><span class="seek"></span><i class="play"></i></div>` })),
+      h('div', { class: 'tp-cap' }));
+    // right: each family, a heading and its names in two columns
     const rest = new Set(this.list.map(t => t.id));
     const fams = this.families.map(([name, ids]) => [name, ids.filter(id => rest.delete(id))]);
     fams[fams.length - 1][1].push(...rest);
-    const grid = h('div', { class: 'theme-grid' });
+    const list = h('div', { class: 'tp-list' });
     for (const [name, ids] of fams) {
       if (!ids.length) continue;
-      const tiles = h('div', { class: 'tp-tiles' });
+      const items = h('div', { class: 'tp-items' });
       for (const id of ids) {
         const t = this.list.find(t => t.id === id);
-        const card = h('button', { class: 'tp', 'data-id': t.id, title: t.name + ' · ' + t.en });
-        card.innerHTML = `
-          <div class="tp-screen" data-theme="${t.id}" data-mode="${this.mode}">
-            <div class="tp-side"><i class="logo"></i><i class="on"></i><i></i><i></i><i></i></div>
-            <div class="tp-main"><b></b><div class="tp-cards"><i></i><i></i><i></i></div></div>
-            <div class="tp-bar"><i class="art"></i><i class="heart"></i><span class="seek"></span><i class="play"></i></div>
-          </div>
-          <span class="chk">${icon('check')}</span>
-          <span class="tp-name">${t.name}</span>`;
-        card.onclick = () => this.apply(t.id, this.mode);
-        tiles.append(card);
+        const b = h('button', { class: 'tp-opt', 'data-id': t.id, title: t.name + ' · ' + t.en });
+        b.innerHTML = `<span class="tp-sw tp-screen" data-theme="${t.id}" data-mode="${this.mode}" aria-hidden="true"><i class="s"></i><i class="b"></i><i class="a"></i></span>`
+          + `<span class="tp-name">${t.name}</span>`;
+        b.onclick = () => { this.apply(t.id, this.mode); this.peek(null); };
+        b.onpointerenter = () => this.peek(t.id);
+        b.onfocus = () => { if (b.matches(':focus-visible')) this.peek(t.id); };
+        items.append(b);
       }
-      grid.append(h('div', { class: 'tp-fam', role: 'group', 'aria-label': name, style: `--n: ${Math.ceil(ids.length / 2)}` },
-        h('div', { class: 'tp-fam-h' }, name), tiles));
+      list.append(h('div', { class: 'tp-fam', role: 'group', 'aria-label': name }, h('div', { class: 'tp-fam-h' }, name), items));
     }
-    sect.append(h('div', { class: 'theme-pick' }, grid), h('div', { class: 'theme-desc' }));
+    list.onpointerleave = () => this.peek(null);
+    list.addEventListener('focusout', e => { if (!list.contains(e.relatedTarget)) this.peek(null); });
+    sect.append(h('div', { class: 'theme-pick' }, h('div', { class: 'tp-wrap' }, stage, list)));
     root.append(sect);
+    this.peeking = null;
     this.paint();
   },
 };

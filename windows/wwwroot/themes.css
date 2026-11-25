@@ -969,9 +969,9 @@
 :root[data-theme="glass"] .hero-bg, :root[data-theme="neon"] .hero-bg, :root[data-theme="washi"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
 
 /* ───────────────────── 主題切換 · 設定頁選擇器 ─────────────────────
-   一張小卡一個主題（日夜不分開列），日 / 夜 是右上角另外的開關；卡片的預覽跟著開關顯示那一版。
-   十四個主題分成三組（經典 / 質感 / 個性），每組是兩排小卡：寬的時候三組並排，剛好兩排七張；
-   窄的時候經典、質感一排，個性換到下一排。卡片下只放中文名稱，說明只寫一次在格子下面（選中的那個）。 */
+   左邊一張大預覽、右邊是主題名稱的清單（經典 / 質感 / 個性三組，每組兩欄）。
+   一次只畫一張預覽：滑過或用鍵盤走到一個名稱，預覽和下面的說明先換成那個主題，離開清單就回到目前的主題；
+   點一下才真的套用。日 / 夜是右上角另外的開關，預覽和名稱旁的小色塊都跟著它顯示那一版。 */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .45s; animation-timing-function: cubic-bezier(.22,.8,.24,1); }
 
 /* 標題列：外觀、說明與日 / 夜開關 */
@@ -983,92 +983,109 @@
 .theme-mode button { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; }
 .theme-mode svg.i { width: 15px; height: 15px; }
 
-/* 格子：--tp-g 是同一組小卡的間距，--tp-G 是組與組的間距。
-   寬版用 flex 的比例分寬度（每組 grow = 欄數、basis = 組內間距），所以三組的小卡一樣大。 */
-.theme-pick { container: tpick / inline-size; padding: 12px 22px 2px; --tp-g: 8px; --tp-G: 26px; }
-.theme-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px var(--tp-G); }
-.tp-fam { flex: var(--n, 2) 1 calc((var(--n, 2) - 1) * var(--tp-g)); min-width: 0; }
-.tp-fam-h { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; color: var(--text-2); font: 600 11.5px/1.3 var(--font); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
-.tp-fam-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.tp-tiles { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 12px var(--tp-g); }
-/* 窄版（格子不到 620px 寬，大約視窗 830px 以下；七張並排會小於 76px）：經典 + 質感一排、個性換下一排，
-   小卡一樣大（最多 116px，不會因為視窗變窄反而變成大卡），靠左 */
-@container tpick (max-width: 619px) {
-  .tp-fam { --tp-t: min(116px, (100cqi - 3 * var(--tp-g) - var(--tp-G)) / 4); flex: none; width: calc(var(--n, 2) * var(--tp-t) + (var(--n, 2) - 1) * var(--tp-g)); }
-}
+/* 兩欄一樣寬：預覽 + 清單。框線、圈圈的顏色在這裡用「目前頁面」的字色算好，再傳進預覽和小色塊（它們身上是別的主題） */
+.theme-pick { container: tpick / inline-size; padding: 16px 22px 24px;
+  --tp-ring: rgba(var(--ink), .22); --tp-ring-hover: rgba(var(--ink), .45); --tp-r: 10px; --tp-or: 8px; --tp-sw-r: 4px; }
+.tp-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 32px; align-items: start; }
 
-/* 一張小卡：預覽 + 名稱。預覽框的外圈用「目前頁面」的字色（在 .tp 上算好再傳進去），夜裡深色的預覽在深色底上也看得到框 */
-.tp { --tp-ring: rgba(var(--ink), .3); --tp-ring-hover: rgba(var(--ink), .55); --tp-ring-on: rgba(var(--teal-rgb), .95); --tp-ring-w: 1px; --tp-r: 7px; --tp-sh: 0 2px 6px rgba(0,0,0,.12); --tp-sh-hover: 0 6px 14px rgba(0,0,0,.2);
-  position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; padding: 0; margin: 0; cursor: pointer;
-  background: none; border: 0; border-radius: 8px; box-shadow: none; color: var(--text-2); font: inherit; text-align: center; container-type: inline-size; }
-.tp .tp-screen {
+/* ── 左：大預覽與說明 ── */
+.tp-stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.tp-frame { container-type: inline-size; }
+.tp-stage .tp-screen {
   position: relative; aspect-ratio: 16 / 10; border-radius: var(--tp-r); overflow: hidden; display: grid;
-  grid-template-columns: 26% 1fr; grid-template-rows: 1fr 19%;
+  grid-template-columns: 24% 1fr; grid-template-rows: 1fr 17%;
   background: var(--app-bg, var(--bg)); background-attachment: scroll;
-  box-shadow: 0 0 0 var(--tp-ring-w) var(--tp-ring), var(--tp-sh);
-  transition: box-shadow .2s, transform .25s var(--ease-out);
+  box-shadow: 0 0 0 1px var(--tp-ring), 0 10px 26px -10px rgba(0,0,0,.35);
   color-scheme: inherit; font-family: var(--font);
 }
-/* 預覽裡的東西用小卡寬度（cqi）算大小，卡小了線條也跟著細，不會擠成一團 */
-.tp .tp-side { background: var(--sidebar-bg, var(--bg-2)); border-right: 1px solid var(--line); padding: 9% 9%; display: flex; flex-direction: column; gap: 7%; }
-.tp .tp-side i { display: block; height: max(2px, 2.6cqi); border-radius: 3px; background: rgba(var(--ink), .22); width: 70%; }
-.tp .tp-side i:nth-child(n+5) { display: none; }   /* 小卡只畫三條選單線、播放列不畫愛心，少一點細碎的東西 */
-.tp .tp-side i.logo { height: max(3px, 3.8cqi); width: 55%; background: var(--brand-ink); margin-bottom: 10%; border-radius: 2px; box-shadow: 0 2.4cqi 0 -1.5cqi var(--teal); }
-.tp .tp-side i.on { background: var(--teal); width: 82%; }
-.tp .tp-main { padding: 9% 8% 0; display: flex; flex-direction: column; gap: 10%; min-width: 0; }
-.tp .tp-main b { display: block; height: max(3px, 4cqi); width: 44%; border-radius: 3px; background: var(--text); }
-.tp .tp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9%; }
-.tp .tp-cards i { aspect-ratio: 1; border-radius: 2px; display: block; }
-.tp .tp-cards i:nth-child(1) { background: linear-gradient(135deg, hsl(170 var(--ph-s1) var(--ph-l1)), hsl(210 var(--ph-s2) var(--ph-l2))); }
-.tp .tp-cards i:nth-child(2) { background: linear-gradient(135deg, hsl(330 var(--ph-s1) var(--ph-l1)), hsl(10 var(--ph-s2) var(--ph-l2))); }
-.tp .tp-cards i:nth-child(3) { background: linear-gradient(135deg, hsl(40 var(--ph-s1) var(--ph-l1)), hsl(80 var(--ph-s2) var(--ph-l2))); }
-.tp .tp-bar { grid-column: 1 / 3; background: var(--bar-bg); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 7%; padding: 0 6%; }
-.tp .tp-bar .art { width: 11%; aspect-ratio: 1; border-radius: 2px; background: linear-gradient(135deg, var(--teal), var(--pink)); }
-.tp .tp-bar .heart { display: none; }
-.tp .tp-bar .seek { flex: 1; height: max(2px, 1.6cqi); border-radius: 2px; background: rgba(var(--ink), .18); position: relative; }
-.tp .tp-bar .seek::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 45%; border-radius: 2px; background: var(--teal); }
-.tp .tp-bar .play { width: 10%; aspect-ratio: 1; border-radius: 50%; background: var(--play-bg); box-shadow: inset 0 0 0 1px var(--play-ink); }
-
-/* 名稱：一行、置中；英文名只放在滑鼠提示裡 */
-.tp .tp-name { align-self: center; max-width: 100%; min-width: 0; padding: 1px 3px; border-radius: 4px; font: 600 12.5px/1.35 var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s; }
-:root:lang(ja) .tp .tp-name { letter-spacing: -.03em; }   /* 片假名的名稱比較長（ネオンサイバー），擠一點點才放得下 */
-
-/* 滑過：框變深、輕輕浮起；鍵盤焦點：虛線框（跟「選中」的實線框分得開） */
-.tp:hover { background: none; transform: none; }
-.tp:hover .tp-screen { box-shadow: 0 0 0 var(--tp-ring-w) var(--tp-ring-hover), var(--tp-sh-hover); transform: translateY(-2px); }
-.tp:hover .tp-name { color: var(--text); }
-.tp:focus-visible { outline: none; }
-.tp:focus-visible .tp-screen { outline: 2px dashed var(--tp-ring-hover); outline-offset: 3px; }
-
-/* 選中：主色實線框（留一點空隙）、右上角勾勾、名稱變粗變亮 */
-.tp .chk { position: absolute; top: -6px; right: -6px; z-index: 1; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--teal); color: var(--on-accent); box-shadow: 0 0 0 2px var(--surface, #fff), 0 2px 5px rgba(0,0,0,.25); opacity: 0; transform: scale(.6); transition: opacity .2s, transform .3s var(--spring); pointer-events: none; }
-.tp .chk svg { width: 11px; height: 11px; stroke-width: 3; }
-.tp.on .tp-screen, .tp.on:hover .tp-screen { outline: 2.5px solid var(--tp-ring-on); outline-offset: 2.5px; box-shadow: 0 0 0 var(--tp-ring-w) var(--tp-ring), var(--tp-sh); transform: none; }
-.tp.on .chk { opacity: 1; transform: none; }
-.tp.on .tp-name { color: var(--text-hi, var(--text)); font-weight: 750; }
-@media (prefers-reduced-motion: reduce) { .tp .tp-screen, .tp .chk { transition: none; } .tp:hover .tp-screen { transform: none; } }
-
-/* 格子下面：選中主題的名稱與一行說明 */
-.theme-desc { margin: 14px 22px 0; padding: 12px 0 18px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 12.5px; line-height: 1.6; }
-.theme-desc b { color: var(--text-hi, var(--text)); font-weight: 650; margin-right: 8px; }
-
+/* 預覽裡的東西用預覽寬度（cqi）算大小 */
+.tp-stage .tp-side { background: var(--sidebar-bg, var(--bg-2)); border-right: 1px solid var(--line); padding: 10% 9%; display: flex; flex-direction: column; gap: 6%; }
+.tp-stage .tp-side i { display: block; height: max(3px, 1.5cqi); border-radius: 3px; background: rgba(var(--ink), .22); width: 72%; }
+.tp-stage .tp-side i:nth-child(odd):not(.logo) { width: 58%; }
+.tp-stage .tp-side i.logo { height: max(4px, 2.6cqi); width: 60%; background: var(--brand-ink); margin-bottom: 14%; border-radius: 2px; box-shadow: 0 1.6cqi 0 -1cqi var(--teal); }
+.tp-stage .tp-side i.on { background: var(--teal); width: 84%; }
+.tp-stage .tp-main { padding: 8% 7% 0; display: flex; flex-direction: column; gap: 6%; min-width: 0; }
+.tp-stage .tp-main b { display: block; height: max(5px, 3.2cqi); width: 42%; border-radius: 3px; background: var(--text); }
+.tp-stage .tp-main u { display: block; height: max(3px, 1.4cqi); width: 26%; margin-top: -3%; border-radius: 3px; background: rgba(var(--ink), .3); text-decoration: none; }
+.tp-stage .tp-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5%; margin-top: 2%; }
+.tp-stage .tp-cards i { aspect-ratio: 1; border-radius: 3px; display: block; }
+.tp-stage .tp-cards i:nth-child(4n+1) { background: linear-gradient(135deg, hsl(170 var(--ph-s1) var(--ph-l1)), hsl(210 var(--ph-s2) var(--ph-l2))); }
+.tp-stage .tp-cards i:nth-child(4n+2) { background: linear-gradient(135deg, hsl(330 var(--ph-s1) var(--ph-l1)), hsl(10 var(--ph-s2) var(--ph-l2))); }
+.tp-stage .tp-cards i:nth-child(4n+3) { background: linear-gradient(135deg, hsl(40 var(--ph-s1) var(--ph-l1)), hsl(80 var(--ph-s2) var(--ph-l2))); }
+.tp-stage .tp-cards i:nth-child(4n+4) { background: linear-gradient(135deg, hsl(250 var(--ph-s1) var(--ph-l1)), hsl(290 var(--ph-s2) var(--ph-l2))); }
+.tp-stage .tp-bar { grid-column: 1 / 3; background: var(--bar-bg); border-top: 1px solid var(--line); display: flex; align-items: center; gap: 4%; padding: 0 4%; }
+.tp-stage .tp-bar .art { width: 7.5%; aspect-ratio: 1; border-radius: 3px; background: linear-gradient(135deg, var(--teal), var(--pink)); }
+.tp-stage .tp-bar .heart { width: 3%; aspect-ratio: 1; border-radius: 50%; background: var(--pink); opacity: .85; }
+.tp-stage .tp-bar .seek { flex: 1; height: max(2px, 1cqi); border-radius: 2px; background: rgba(var(--ink), .18); position: relative; }
+.tp-stage .tp-bar .seek::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 45%; border-radius: 2px; background: var(--teal); }
+.tp-stage .tp-bar .play { width: 7%; aspect-ratio: 1; border-radius: 50%; background: var(--play-bg); box-shadow: inset 0 0 0 1px var(--play-ink); }
 .tp-screen[data-theme="glass"] .tp-main { background: rgba(var(--bg-rgb), .3); }
 .tp-screen[data-theme="glass"] .tp-side { background: var(--sidebar-bg); }
 
-/* ── 跟著頁面主題的小差異：直角的主題卡片也直角；普普粗黑框 + 硬陰影；選中的名稱照各主題「選中」的樣子塗滿 ── */
-:root:is([data-theme="terminal"], [data-theme="poster"], [data-theme^="flat"]) .tp { --tp-r: 0px; }
-:root:is([data-theme="terminal"], [data-theme="poster"], [data-theme^="flat"]) :is(.tp .chk, .tp .tp-name) { border-radius: 0; }
-:root[data-theme="neon"] .tp { --tp-r: 2px; }
-:root[data-theme="pop"] .tp { --tp-ring: var(--pop-line); --tp-ring-hover: var(--pop-line); --tp-ring-w: 2px; --tp-sh: 3px 3px 0 var(--pop-shadow); --tp-sh-hover: 5px 5px 0 var(--pop-shadow); }
-:root[data-theme="pop"] .tp:not(.on):hover .tp-screen { transform: translate(-2px, -2px); }
-:root[data-theme="pop"] .tp .chk { box-shadow: 0 0 0 2px var(--pop-line); }
-:root:is([data-theme="pop"], [data-theme="terminal"], [data-theme="poster"]) .tp.on .tp-name { padding: 1px 6px; }
-:root[data-theme="pop"] .tp.on .tp-name { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px var(--pop-line); font-weight: 800; }
-:root[data-theme="terminal"] .tp.on .tp-name { background: var(--tm-fill); color: var(--on-accent); }
-:root[data-theme="poster"] .tp.on .tp-name { background: var(--ps-red); color: #f6eedb; }
-/* 極簡平面 2：選中是名稱下面一條鈷藍粗線（跟它的分頁、日 / 夜開關一樣），卡片本身不加底色 */
-:root[data-theme="flat2"] .theme-pick .tp.on, :root[data-theme="flat2"] .theme-pick .tp:hover { background: none; box-shadow: none; }
-:root[data-theme="flat2"] .theme-pick .tp.on .tp-name { box-shadow: inset 0 -3px 0 var(--fl-fill); padding-bottom: 4px; }
+/* 說明：名稱 + 日 / 夜小標，下面一段描述。滑過別的主題時小標寫「預覽」 */
+.tp-cap { min-width: 0; }
+.tp-cap-h { display: flex; align-items: center; gap: 8px; color: var(--text-hi, var(--text)); font: 700 15.5px/1.35 var(--font); }
+.tp-cap-h .tag { flex: none; padding: 2px 8px; border-radius: 999px; background: rgba(var(--ink), .08); color: var(--text-2); font: 600 11.5px/1.5 var(--font); letter-spacing: .04em; }
+.tp-stage.peek .tp-cap-h .tag { background: rgba(var(--teal-rgb), .14); color: var(--text-hi, var(--text)); }
+.tp-cap-d { margin-top: 6px; color: var(--text-2); font-size: 12.5px; line-height: 1.7; }
+
+/* ── 右：三組名稱，每組兩欄 ── */
+.tp-list { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.tp-fam { min-width: 0; }
+.tp-fam-h { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; color: var(--text-2); font: 600 11.5px/1.3 var(--font); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.tp-fam-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.tp-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; }
+
+/* 一個名稱：小色塊（那個主題的底色、側欄、播放列和主色）+ 名稱；選中的那個照頁面主題的「選中」樣子塗滿或加框 */
+.tp-opt { position: relative; display: flex; align-items: center; gap: 11px; min-width: 0; height: 36px; margin: 0; padding: 0 10px 0 8px; cursor: pointer;
+  background: none; border: 0; border-radius: var(--tp-or); box-shadow: none; color: var(--text); font: 550 13.5px/1.2 var(--font); text-align: left;
+  transition: background-color .15s, color .15s, box-shadow .15s; }
+.tp-opt .tp-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tp-opt:hover { background: rgba(var(--ink), .065); transform: none; }
+.tp-opt:focus-visible { outline: 2px dashed var(--tp-ring-hover); outline-offset: 1px; }
+.tp-opt.on { background: rgba(var(--teal-rgb), .13); box-shadow: inset 0 0 0 1.5px rgba(var(--teal-rgb), .6); color: var(--text-hi, var(--text)); font-weight: 750; }
+:root:lang(ja) .tp-opt .tp-name { letter-spacing: -.02em; }
+
+.tp-sw { position: relative; flex: none; display: block; width: 30px; height: 20px; border-radius: var(--tp-sw-r); overflow: hidden;
+  background: var(--app-bg, var(--bg)); background-attachment: scroll; box-shadow: 0 0 0 1px var(--tp-ring); }
+.tp-sw i { position: absolute; display: block; }
+.tp-sw .s { left: 0; top: 0; bottom: 0; width: 30%; background: var(--sidebar-bg, var(--bg-2)); }
+.tp-sw .b { left: 0; right: 0; bottom: 0; height: 28%; background: var(--bar-bg); }
+.tp-sw .a { left: 44%; top: 22%; width: 40%; height: 18%; border-radius: 2px; background: var(--teal); }
+.tp-sw[data-theme="luka"][data-mode="day"] :is(.s, .b) { background: #1b1916; }
+.tp-sw[data-theme="luka"] .a { background: #d9b46a; }
+.tp-sw[data-theme="glass"] .s { background: rgba(var(--bg-rgb), .55); }
+@media (prefers-reduced-motion: reduce) { .tp-opt { transition: none; } }
+
+/* 窄的時候（不到 700px，大約視窗 1000px 以下；兩欄並排名稱會被截掉）：預覽在上（說明在它右邊），清單在下 */
+@container tpick (max-width: 699px) {
+  .tp-wrap { grid-template-columns: minmax(0, 1fr); }
+  .tp-stage { flex-direction: row; align-items: flex-start; gap: 18px; }
+  .tp-frame { flex: 0 0 min(52%, 340px); }
+  .tp-cap { flex: 1; }
+}
+
+/* ── 跟著頁面主題的小差異：直角的主題就直角；選中的名稱照各主題「選中」的樣子 ── */
+:root:is([data-theme="terminal"], [data-theme="poster"], [data-theme^="flat"]) .theme-pick { --tp-r: 0px; --tp-or: 0px; --tp-sw-r: 0px; }
+:root:is([data-theme="terminal"], [data-theme="poster"], [data-theme^="flat"]) .tp-cap-h .tag { border-radius: 0; }
+:root[data-theme="neon"] .theme-pick { --tp-r: 2px; --tp-or: 2px; --tp-sw-r: 1px; }
+:root[data-theme="sakura"] .theme-pick { --tp-or: 999px; --tp-sw-r: 999px; }
+:root[data-theme="pop"] .theme-pick { --tp-ring: var(--pop-line); --tp-or: 6px; }
+:root[data-theme="pop"] .tp-stage .tp-screen { box-shadow: 0 0 0 2px var(--pop-line), 5px 5px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .tp-opt.on { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); font-weight: 800; }
+:root[data-theme="terminal"] .tp-opt.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="poster"] .tp-opt.on { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
+:root[data-theme="luka"] .tp-opt.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .85); }
+:root[data-theme="gold"] .tp-opt.on { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: var(--gd-plaque-sh); font-weight: 750; }
+/* 極簡平面 1：塗滿鈷藍（這條在建置時會變成 ^="flat"，所以放在 2 的前面，讓 2 蓋過去） */
+:root[data-theme^="flat"] .tp-opt.on { background: var(--fl-fill, var(--teal)); color: var(--fl-on-fill, #fff); box-shadow: none; }
+/* 極簡平面 2：選中是名稱下面一條粗線（跟它的分頁、日 / 夜開關一樣），不加底色 */
+:root[data-theme="flat2"] .tp-opt.on { background: none; color: var(--text-hi); box-shadow: inset 0 -3px 0 var(--fl-fill); font-weight: 800; }
+/* 霓虹：選中的是斜切角的青色細框（跟它的按鈕同一種畫法：底下一層框線色、上面內縮一層不透明的底色） */
+:root[data-theme="neon"] .tp-opt.on { --nx-cut: 8px; --nx-f: color-mix(in srgb, var(--teal) 14%, var(--nx-ctl)); --nx-l: var(--teal); box-shadow: none;
+  background:
+    linear-gradient(45deg, transparent calc(var(--nx-cut) - .9px), var(--nx-f) calc(var(--nx-cut) - .1px), var(--nx-f) calc(100% - var(--nx-cut) + .1px), transparent calc(100% - var(--nx-cut) + .9px)) 1.5px 1.5px / calc(100% - 3px) calc(100% - 3px) no-repeat,
+    linear-gradient(45deg, transparent calc(var(--nx-cut) - .5px), var(--nx-l) calc(var(--nx-cut) + .5px), var(--nx-l) calc(100% - var(--nx-cut) - .5px), transparent calc(100% - var(--nx-cut) + .5px)); }
 
 :root[data-theme^="flat"] .rail-head h2 { font-weight: 700; }
 
