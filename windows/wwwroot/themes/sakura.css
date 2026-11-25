@@ -400,3 +400,5 @@
 
 /* 播放列的特殊格式標籤（Hi-Res、DSD、升頻、DSP）跟同一個主題其他框框同一種外形，不再一律圓角／膠囊 */
 :root:root[data-theme="sakura"] #bar .sig:is(.hires, .dsd, .upsample, .dsp) { border-radius: 999px; }
+:root:root[data-theme="sakura"] .rail-head h2::before { width: .52em; height: .52em; vertical-align: .12em; }
+:root:root[data-theme="sakura"] .sect h2::before { vertical-align: calc(.38em - 8px); }

@@ -470,6 +470,8 @@
   /* 布條兩端剪成燕尾（像緞帶），不再另外放星星 */
   clip-path: polygon(0 0, 100% 0, calc(100% - 11px) 50%, 100% 100%, 0 100%, 11px 50%);
   transform: rotate(-1.2deg);
+  /* 以左端為軸轉：字從左邊開始，左端不會被轉得往下掉；整條再往上提一點，上下留白一樣 */
+  transform-origin: 0 50%; inset: -7px -4px 2px 0;
   animation: ps-stamp .34s steps(3, end) both;
 }
 :root[data-theme="poster"] #lyrics .ly-line.on::before { z-index: -1; background: var(--ps-red); }
@@ -511,3 +513,11 @@
 /* 復古海報：方角、平的；上緣一道粗墨線，其他三邊細墨線 */
 :root[data-theme="poster"] .dp-sect .dp-group { border-radius: 0; border: 1.5px solid var(--text); border-top-width: 4px; background: rgba(var(--ink), .03); box-shadow: none; }
 :root[data-theme="poster"] .dp-sect .dp-group.dp-off { border-color: var(--text-3); }
+
+/* 標題前的小記號一律對齊中文字的中線：中文字的墨跡大約在基線上 -0.07em 到 0.83em，中線 ≈ 基線上 0.38em。
+   記號是行內方塊、用 vertical-align 從基線算位置（不靠行高或框的高度，換字型也一樣）：vertical-align = 0.38em − 記號高度的一半 */
+:root:root[data-theme="poster"] .rail-head h2::before { vertical-align: -.03em; }
+
+/* 側欄的背景工作卡片（寫入封面、CD 抓取…）：不要把側欄邊上的底片孔、送紙孔一起印進卡片；霓虹側欄底的小字讓位 */
+:root:root[data-theme="poster"] .cd-task { background: var(--ps-grain), #241c15; width: calc(100% - 12px); margin-inline: 6px; }
+:root:root[data-theme="poster"]:where([data-mode="night"]) .cd-task { background: var(--ps-grain), #1f1813; }

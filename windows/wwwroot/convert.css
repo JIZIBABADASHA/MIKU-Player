@@ -65,6 +65,7 @@
 .cd-task.error .cd-task-bar i { background: var(--pink-text); }
 .cd-task.stopped .cd-task-icon { color: var(--text-3); }
 .job-art img { display: block; width: 22px; height: 22px; border-radius: 4px; object-fit: cover; }
+.cd-task .btn[hidden] { display: none !important; }   /* a job with no 停止 (tag / cover writes): the themes' .btn display must not bring it back over the bar */
 .job-task .btn[hidden] + .cd-task-bar { grid-column: 1 / -1; }
 .job-task.done .cd-task-detail { color: var(--teal); }
 @media (max-width: 1180px) {

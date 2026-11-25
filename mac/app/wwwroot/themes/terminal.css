@@ -143,7 +143,9 @@
 
 /* 「$」掛在標題左邊的留白裡，不佔標題的寬度（工具列很長的頁面，標題才不會被擠到換行） */
 :root[data-theme="terminal"] .page-head h1 { position: relative; }
-:root[data-theme="terminal"] .page-head h1::before { content: "$"; position: absolute; right: 100%; bottom: .12em; margin-right: .3em; font-size: .72em; line-height: 1; color: var(--teal); font-weight: 700; text-shadow: none; }
+
+/* 「$」放在字的同一行、對齊基線（不靠標題框的底算位置），抬高到跟中文字同一條中線；左右外距加起來 0，不推字 */
+:root[data-theme="terminal"] .page-head h1::before { content: "$"; position: relative; display: inline-block; width: 1em; margin: 0 .55em 0 -1.55em; vertical-align: .2em; text-align: right; font-size: .72em; line-height: 1; color: var(--teal); font-weight: 700; text-shadow: none; }
 :root[data-theme="terminal"] .page-head h1::after { animation: tm-blink 1.1s step-end infinite; }
 :root[data-theme="terminal"] .rail-head h2::before { content: "$\00a0"; color: var(--teal); }
 :root[data-theme="terminal"] .drawer-head h2::before, :root[data-theme="terminal"] .modal-head h2::before { content: "$\00a0"; color: var(--teal); }
@@ -591,3 +593,4 @@
     linear-gradient(180deg, #4a4f14, #33370c 60%, #2a2a0b);
   animation-name: tm-dsp-sludge, dsp-squish; }
 :root:root[data-theme="terminal"] #bar .sig:is(.hires, .dsd, .upsample)::after { content: none; }
+:root:root[data-theme="terminal"]:where([data-mode="day"]) .cd-task { background: #fbfbf6; }

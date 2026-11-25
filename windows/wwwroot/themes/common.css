@@ -2201,3 +2201,4 @@
 /* 多了兩層切角邊線，流動的位置也要多兩個 */
 @keyframes nx-dsp-sludge { 0%, 100% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
 @keyframes tm-dsp-sludge { 0%, 100% { background-position: left top, left top, left bottom, right top, right top, right bottom, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: left top, left top, left bottom, right top, right top, right bottom, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
+:root:root:is([data-theme="miku"], [data-theme="washi"]) .rail-head h2::before { vertical-align: calc(.38em - 9px); }

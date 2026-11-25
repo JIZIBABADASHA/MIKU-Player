@@ -724,7 +724,8 @@
 
 /* 標題前面：一支斜的青色短槓（跟正在唱的歌詞前面那支同一個記號），取代原本的黃色角括號 */
 :root[data-theme="neon"] .page-head h1::before {
-  left: -17px; top: 50%; width: 5px; height: .8em; margin-top: -.42em; border: 0;
+  /* 放在字的同一行（行內方塊、對齊基線），不靠標題框的高度算位置：Mac 的中文字比行框中線高，原本會看起來偏低。左右外距加起來 0，不推字 */
+  position: relative; display: inline-block; left: auto; top: auto; width: 5px; height: .8em; margin: 0 12px 0 -17px; vertical-align: -.02em; border: 0;
   background: linear-gradient(180deg, var(--nx-head-glow), var(--teal) 30%, var(--teal)); box-shadow: 0 0 8px rgba(var(--teal-rgb), .7);
   transform: skewX(-12deg);
 }
@@ -909,25 +910,27 @@
    剛唱完的上一行留下洋紅色的餘暉，慢慢熄掉（fx-neon.js 標上 .nx-was）。 */
 :root[data-theme="neon"] .ly-line.on { --nx-halo: 0 0 22px rgba(0,240,255,.3); text-shadow: var(--nx-halo); }
 :root[data-theme="neon"]:where([data-mode="day"]) .ly-line.on { --nx-halo: none; }
-:root[data-theme="neon"] .ly-line::before {
+:root[data-theme="neon"] .ly-line::after {
   content: ""; position: absolute; left: 6px; right: 0; bottom: 3px; height: 3px; pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(255,43,214,.0) 18%, var(--nx-trail-hot) 56%, var(--nx-trail) 88%, var(--nx-head-glow));
   opacity: 0; transform-origin: left center;
 }
-:root[data-theme="neon"] .ly-line::after {
-  content: ""; position: absolute; left: 5px; top: calc(9px + .66em); width: 4px; height: .9em; margin-top: -.47em; pointer-events: none;   /* 對準第一行字的中線（行上 9px 內距＋半個 1.32 行高），有沒有翻譯都一樣 */   /* 斜了以後也整支在歌詞框裡（框的左邊會裁切） */
+:root[data-theme="neon"] .ly-line::before {
+  /* 正在唱的那句前面的青色短槓：放在字的同一行裡（行內方塊、對齊基線），不靠行高算位置，換什麼字型都對準字的中線；
+     左右外距加起來是 0，不會推字 */
+  content: ""; display: inline-block; position: relative; width: 4px; height: .9em; margin: 0 13px 0 -17px; vertical-align: -.07em; pointer-events: none;
   background: linear-gradient(180deg, var(--nx-head-glow), var(--teal) 30%, var(--teal));
   box-shadow: 0 0 8px rgba(var(--teal-rgb), .8);
   opacity: 0; transform: translateX(-6px) skewX(-10deg);
   transition: opacity .25s, transform .35s cubic-bezier(.2,.8,.2,1);
 }
-:root[data-theme="neon"] .ly-line.on::after { opacity: 1; transform: translateX(0) skewX(-10deg); }
-:root[data-theme="neon"] .ly-line.gap::before, :root[data-theme="neon"] .ly-line.gap::after { content: none; }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line::after { background: linear-gradient(180deg, #006b7e, #00a7bf); box-shadow: none; }
+:root[data-theme="neon"] .ly-line.on::before { opacity: 1; transform: translateX(0) skewX(-10deg); }
+:root[data-theme="neon"] .ly-line.gap::after, :root[data-theme="neon"] .ly-line.gap::before { content: none; }
+:root[data-theme="neon"]:where([data-mode="day"]) .ly-line::before { background: linear-gradient(180deg, #006b7e, #00a7bf); box-shadow: none; }
 :root[data-theme="neon"] .ly-line.on { animation: nx-split .42s steps(1, end); }
-:root[data-theme="neon"] .ly-line.on::before { animation: nx-ly-streak .85s cubic-bezier(.25,.7,.2,1) both; }
+:root[data-theme="neon"] .ly-line.on::after { animation: nx-ly-streak .85s cubic-bezier(.25,.7,.2,1) both; }
 :root[data-theme="neon"] .ly-line.nx-was { animation: nx-ly-after 1.6s ease-out; }
-:root[data-theme="neon"] .ly-line.nx-was::before {
+:root[data-theme="neon"] .ly-line.nx-was::after {
   background: linear-gradient(90deg, transparent, var(--nx-trail-hot) 70%, rgba(255,160,240,.9));
   animation: nx-ly-leave 1.2s ease-out both;
 }
@@ -1056,21 +1059,21 @@
    輕量化「動態背景」：雨、資料流、故障、歌詞的光、光軌全部停（雨絲和光棒還在，只是不動）。
    輕量化「頁面動畫」：換頁的光柱、標題的分色與角括號、分頁的拖尾不做（core.js 本來就不換頁動畫、不滑動選中記號）。
    系統「減少動態」：兩者都停。 */
-:root[data-theme="neon"].lite-neon-rain #main::before, :root[data-theme="neon"].lite-neon-rain #np::after, :root[data-theme="neon"].lite-neon-rain #sidebar::before, :root[data-theme="neon"].lite-neon-rain .ly-line, :root[data-theme="neon"].lite-neon-rain .ly-line::before, :root[data-theme="neon"].lite-neon-rain .card .art::before, :root[data-theme="neon"].lite-neon-rain .card .t1, :root[data-theme="neon"].lite-neon-rain :is(.btn, .set-tabs button, .seg button, .chip, .nav a), :root[data-theme="neon"].lite-neon-rain :is(#np, #bar) :is(.np-cover > img, .np-cover > .ph, .np-mini .art, .np-title, #b-title), :root[data-theme="neon"].lite-neon-rain #np .np-cover::before {
+:root[data-theme="neon"].lite-neon-rain #main::before, :root[data-theme="neon"].lite-neon-rain #np::after, :root[data-theme="neon"].lite-neon-rain #sidebar::before, :root[data-theme="neon"].lite-neon-rain .ly-line, :root[data-theme="neon"].lite-neon-rain .ly-line::after, :root[data-theme="neon"].lite-neon-rain .card .art::before, :root[data-theme="neon"].lite-neon-rain .card .t1, :root[data-theme="neon"].lite-neon-rain :is(.btn, .set-tabs button, .seg button, .chip, .nav a), :root[data-theme="neon"].lite-neon-rain :is(#np, #bar) :is(.np-cover > img, .np-cover > .ph, .np-mini .art, .np-title, #b-title), :root[data-theme="neon"].lite-neon-rain #np .np-cover::before {
   animation: none !important;
 }
 :root[data-theme="neon"].lite-neon-rain #sidebar::before { display: none; }
-:root[data-theme="neon"].lite-neon-rain .ly-line::after { transition: none; }
+:root[data-theme="neon"].lite-neon-rain .ly-line::before { transition: none; }
 :root[data-theme="neon"].lite-neon-rain .nx-ptr { display: none; }
 :root[data-theme="neon"].lite-page #view .page-head h1, :root[data-theme="neon"].lite-page #view .page-head h1::before, :root[data-theme="neon"].lite-page #view .page-head h1::after, :root[data-theme="neon"].lite-page #view .rail-head h2::before, :root[data-theme="neon"].lite-page #np .np-cover::before, :root[data-theme="neon"].lite-page .hero .cover::before {
   animation: none !important;
 }
-@media (prefers-reduced-motion: reduce) {:root[data-theme="neon"] #main::before, :root[data-theme="neon"] #np::after, :root[data-theme="neon"] .ly-line, :root[data-theme="neon"] .ly-line::before, :root[data-theme="neon"] .card .art::before, :root[data-theme="neon"] .card .t1, :root[data-theme="neon"] :is(.btn, .set-tabs button, .seg button, .chip, .nav a), :root[data-theme="neon"] :is(#np, #bar) :is(.np-cover > img, .np-cover > .ph, .np-mini .art, .np-title, #b-title), :root[data-theme="neon"] #np .np-cover::before, :root[data-theme="neon"] #view .page-head h1, :root[data-theme="neon"] #view .page-head h1::before, :root[data-theme="neon"] #view .page-head h1::after, :root[data-theme="neon"] #view .rail-head h2::before, :root[data-theme="neon"] .hero .cover::before {
+@media (prefers-reduced-motion: reduce) {:root[data-theme="neon"] #main::before, :root[data-theme="neon"] #np::after, :root[data-theme="neon"] .ly-line, :root[data-theme="neon"] .ly-line::after, :root[data-theme="neon"] .card .art::before, :root[data-theme="neon"] .card .t1, :root[data-theme="neon"] :is(.btn, .set-tabs button, .seg button, .chip, .nav a), :root[data-theme="neon"] :is(#np, #bar) :is(.np-cover > img, .np-cover > .ph, .np-mini .art, .np-title, #b-title), :root[data-theme="neon"] #np .np-cover::before, :root[data-theme="neon"] #view .page-head h1, :root[data-theme="neon"] #view .page-head h1::before, :root[data-theme="neon"] #view .page-head h1::after, :root[data-theme="neon"] #view .rail-head h2::before, :root[data-theme="neon"] .hero .cover::before {
     animation: none !important;
   }
 :root[data-theme="neon"] #topbar::before, :root[data-theme="neon"] #topbar::after { content: none !important; }
 :root[data-theme="neon"] #sidebar::before, :root[data-theme="neon"] .nx-ptr { display: none; }
-:root[data-theme="neon"] .ly-line::after { transition: none; }
+:root[data-theme="neon"] .ly-line::before { transition: none; }
 }
 
 /* ───────────── 17 · 少一點動態 ───────────── */
@@ -1134,3 +1137,10 @@
     linear-gradient(180deg, #4a4f14, #33370c 60%, #2a2a0b);
   animation-name: nx-dsp-sludge, dsp-squish;
 }
+
+/* 輕量化「訊號標籤」只拿掉動畫，不拿掉外形：霓虹特殊格式標籤的切角與切角邊線保留（靜止不流動） */
+:root:root:root.lite-signal[data-theme="neon"] #bar .sig:is(.hires, .dsd, .upsample, .dsp) {
+  clip-path: polygon(0 0, calc(100% - 8.5px) 0, 100% 8.5px, 100% 100%, 8.5px 100%, 0 calc(100% - 8.5px)) !important;
+}
+:root:root:root.lite-signal[data-theme="neon"] #bar .sig:is(.hires, .dsd, .upsample)::after { content: "" !important; animation: none !important; }
+:root:root[data-theme="neon"] #sidebar:has(.cd-task:not([hidden]))::after { display: none; }

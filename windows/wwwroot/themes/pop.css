@@ -95,8 +95,8 @@
 :root[data-theme="pop"] .set-tabs button { border-radius: 6px; font-weight: 700; color: var(--text); }
 :root[data-theme="pop"] .set-tabs button.on { background: var(--pop-yellow); color: #111; box-shadow: none; font-weight: 800; }
 
-/* 開關：圓鈕縮小一點，整顆都在框裡面 */
-:root[data-theme="pop"] .switch::after { left: 5px; top: 5px; width: 14px; height: 14px; }
+/* 開關：圓鈕（含 2px 黑邊）跟軌道內緣上、下、左、右都留一樣的 2px，不會貼到外框看起來歪 */
+:root[data-theme="pop"] .switch::after { left: 6px; top: 6px; width: 12px; height: 12px; }
 
 /* 下拉選單：粗框、硬陰影，右邊的箭頭是黃色小方塊 */
 :root[data-theme="pop"] .msel-btn { background: var(--pop-panel); border: 2px solid var(--pop-line); border-radius: 8px; box-shadow: 3px 3px 0 var(--pop-shadow); font-weight: 700; }
@@ -325,3 +325,11 @@
 :root[data-theme="pop"] .dp-sect .dp-group.dp-off { box-shadow: none; }
 :root[data-theme="pop"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
 :root[data-theme="pop"] #lyrics { --ly-dim: .66; --ly-blur: .55; }
+:root:root[data-theme="pop"] .rail-head h2::before { vertical-align: calc(.38em - 8px); }
+
+/* 普普開關：圓鈕（含 2px 黑邊）跟軌道內緣上下左右都留 2px，不貼外框 */
+:root:root[data-theme="pop"] .switch::after { left: 6px; top: 6px; width: 12px; height: 12px; }
+
+/* 普普：間奏的圓形對話框，尾巴對準框的垂直中線，從圓弧的最左邊長出來（不會在弧線旁邊留縫），內層黃色剛好接進框裡 */
+:root:root[data-theme="pop"] #lyrics .ly-line.gap.on::before { left: -19px; top: calc(50% - 11px); width: 19px; height: 22px; clip-path: polygon(100% 0, 0 75%, 100% 100%); }
+:root:root[data-theme="pop"] #lyrics .ly-line.gap.on::after { left: -13px; top: calc(50% - 6.5px); width: 16px; height: 14.5px; clip-path: polygon(100% 0, 0 83%, 100% 100%); }
