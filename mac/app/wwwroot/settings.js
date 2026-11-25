@@ -118,8 +118,22 @@ const Settings = {
       if (!dsdSect.querySelector('.field')) dsdSect.style.display = 'none';
       /* 音量 */
       const vol = section(T('音量'));
-      vol.append(field(T('音量控制方式'), T('數位音量在 64-bit 運算中處理；固定音量保持 0 dB，請用 DAC 或系統音量調整。'),
+      vol.append(field(T('音量控制方式'), T('數位音量在 64-bit 運算中處理；固定音量保持 0 dB，獨佔時音量滑桿調整裝置的硬體音量，否則請用 DAC 或系統音量調整。'),
         select([['digital', T('數位音量')], ['fixed', T('固定 0 dB')]], s.volumeMode === 'hardware' ? 'digital' : s.volumeMode, v => this.set({ volumeMode: v }))));
+      // exclusive mode: macOS can't change the volume of the device MIKU holds, MIKU takes the volume keys for it
+      if (exclusive) {
+        const desc = h('span'), allow = h('button', { class: 'btn', onclick: () => Host.call('volumeKeys', { ask: true }) }, T('允許…'));
+        const render = k => {
+          desc.textContent = k.trusted === false
+            ? T('需要 macOS「輔助使用」權限，請允許 MIKU Volume Keys。在那之前請用 MIKU 的音量滑桿。')
+            : T('MIKU 獨佔裝置時，macOS 不能調整它的音量。開啟後，鍵盤音量鍵會直接調整裝置的硬體音量，不影響 Bit-perfect。');
+          allow.style.display = k.trusted === false && k.on ? '' : 'none';
+        };
+        render({ on: s.volumeKeys !== false, trusted: null });
+        Host.call('volumeKeys', {}).then(render);
+        Host.on('volumeKeys', render);
+        vol.append(field(T('獨佔時使用鍵盤音量鍵'), desc, [allow, sw(s.volumeKeys !== false, v => Host.call('volumeKeys', { on: v }).then(k => { s.volumeKeys = v; render(k); }))]));
+      }
       // with a module that measures loudness: "track" / "album" use its measurements first, and "source" levels only its channels
       const lm = App.loudness;
       const rgOpts = [['off', T('關閉', 'off')], ['track', T('依曲目')], ['album', T('依專輯')]];

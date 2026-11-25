@@ -33,3 +33,10 @@ for arch in arm64 x86_64; do
   [ -n "$ok" ] || { cat "$LOG" >&2; rm -f "$LOG"; echo "miku-audio ($name) did not build with any installed macOS SDK" >&2; exit 1; }
 done
 rm -f "$LOG"
+# MIKU Volume Keys (volumekeys.m): one universal app, signed here; MIKU ships it as it is
+APP="../build/native/MIKU Volume Keys.app"
+rm -rf "$APP"; mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+xcrun clang -O2 -Wall -Wextra -Werror -fobjc-arc -arch arm64 -arch x86_64 -mmacosx-version-min=12.0 \
+  -framework Cocoa -framework ApplicationServices volumekeys.m -o "$APP/Contents/MacOS/volumekeys"
+cp volumekeys.plist "$APP/Contents/Info.plist"; cp ../build/MIKU.icns "$APP/Contents/Resources/"
+codesign --force --sign - "$APP"

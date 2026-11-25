@@ -133,7 +133,7 @@ class NativeAudioEngine extends WebAudioEngine {
         if (m.version !== Protocol) Log.info(`Core Audio helper protocol ${m.version}, expected ${Protocol}`);
         this._hello && this._hello(); return;
       case 'loaded': if (m.ok && m.hardware) this.setHardware(m.hardware); this.reply(m); return;
-      case 'probe': case 'stopped': case 'configured': case 'seeked': case 'resumed': case 'devices': this.reply(m); return;
+      case 'probe': case 'volume': case 'stopped': case 'configured': case 'seeked': case 'resumed': case 'devices': this.reply(m); return;
       case 'error':
         if (this.reply(m)) return;
         if (m.fatal) { this.loaded = false; this.st.playing = false; this.signal = null; this.invalidateNext(); this.bindMediaKeys(false); this.emit('changed'); }
@@ -355,6 +355,11 @@ class NativeAudioEngine extends WebAudioEngine {
     const summary = super.dspSummary(), dsp = this.s.dsp;
     const preamp = dsp.enabled && dsp.eqOn && !dsp.autoPreamp && Math.abs(dsp.preampDb || 0) > 1e-9 ? `前級增益 · ${dsp.preampDb} dB` : null;
     return [summary, preamp].filter(Boolean).join(' · ') || null;
+  }
+  /** The hardware volume of the device held in exclusive mode, set first when `change` ({ scalar | db, muted }) says so. */
+  async deviceVolume(change = {}) {
+    if (!this.proc || !this.holdsDevice) return null;
+    const r = await this.request({ c: 'volume', ...change }, 2000); return (r && r.volume) || null;
   }
   async probeDevice(id) {
     await this.ready; if (!this.proc) return null;

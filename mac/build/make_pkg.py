@@ -58,6 +58,9 @@ def build_app(arch, a, version, work):
     native = os.path.join(a.native_dir, f'miku-audio-{arch}')
     if not os.path.isfile(native): sys.exit(f'missing native Core Audio engine: {native}; run mac/native/build.sh on a Mac')
     shutil.copyfile(native, os.path.join(bindir, 'miku-audio')); os.chmod(os.path.join(bindir, 'miku-audio'), 0o755)
+    # the app that takes the volume keys in exclusive mode (device-volume.js), signed by mac/native/build.sh
+    keys = os.path.join(a.native_dir, 'MIKU Volume Keys.app')
+    if os.path.isdir(keys): shutil.copytree(keys, os.path.join(res, 'MIKU Volume Keys.app'))
     # extension modules packed for this architecture (--ext-dir/<arch>/<id>/: extension.js, web/, bin/), e.g. Daphne Mac
     ext_bins = []
     ext_src = os.path.join(a.ext_dir, arch) if a.ext_dir else None

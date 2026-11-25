@@ -21,6 +21,7 @@
     if (typeof App !== 'undefined') { App.uiVisible = visible; App.frame(); }
   }
   host.onMessage(msg => {
+    if (msg.ev === 'notice' && typeof toast === 'function') return toast(msg.d.message, { ms: 15000 });
     if (msg.ev !== 'windowVisibility') return;
     windowVisible = msg.d.visible;
     syncVisibility();

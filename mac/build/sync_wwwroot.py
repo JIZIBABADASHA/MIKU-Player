@@ -26,13 +26,13 @@ MAC_OWNED = {'settings.js', 'mac-bridge.js', 'mac-navigation.js'}
 SKIP = {'mock.js', 'smooth.js'}  # Windows test helper and custom wheel scrolling
 
 # Mac suffixes added to the cache-busting ?v= of these scripts (whatever version the Windows side is on)
-VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1', 'settings.js': '-native-scroll1-nativeaudio2-lite1-cores1-label1-out1',
-                  'art.js': '-macaudio2', 'i18n-dict.js': '-macaudio3'}
+VERSION_SUFFIX = {'core.js': '-macpower3-nativeaudio1', 'views.js': '-macperf1', 'settings.js': '-native-scroll1-nativeaudio2-lite1-cores1-label1-out1-vol1',
+                  'art.js': '-macaudio2', 'i18n-dict.js': '-macaudio4'}
 
 PATCHES = {
     'index.html': [
         ('<kbd>Ctrl F</kbd>', '<kbd>⌘F</kbd>'),
-        ('<script src="core.js', '<script src="mac-bridge.js?v=macpower2"></script>\n<script src="mac-navigation.js?v=macswipe7"></script>\n<script src="core.js'),
+        ('<script src="core.js', '<script src="mac-bridge.js?v=macpower3"></script>\n<script src="mac-navigation.js?v=macswipe7"></script>\n<script src="core.js'),
         ('<script src="smooth.js?v=20261004s16-lite1-quiet1"></script>\n', ''),
     ],
     'core.js': [

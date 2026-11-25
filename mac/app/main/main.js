@@ -49,7 +49,7 @@ process.on('unhandledRejection', e => Log.error('Task', e));
 // ───────────── settings ─────────────
 const defaults = () => ({
   folders: [], watchFolders: true, audioCore: 'miku', ytThroughCore: false, dsdMode: 'pcm', maxDsd: 0, ext: {}, outputMode: 'coreaudio', deviceId: null, asioDriver: null, bufferMs: 100, upsampling: 'off', fixedRate: 192000, dop: false,
-  dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false,
+  dsdPcmRate: 176400, autoSampleRate: true, gapless: true, replayGain: 'off', replayGainPreamp: 0, volumeMode: 'digital', volumeDb: -20, muted: false, volumeKeys: true, volumeKeysAsked: false,
   dsp: { enabled: false, eqOn: true, preampDb: 0, autoPreamp: true, bands: [], presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, balance: 0, invert: false },
   presets: [], onlineArt: true, onlineLyrics: true, artistImages: true, lyricsTranslation: true,
   repeat: 'off', autoContinue: 'off', shuffle: false, queue: [], queueIndex: -1, resumePosition: 0, favorites: [], playlists: [], recent: [], searchHistory: [], artConfirmed: [],
@@ -76,6 +76,37 @@ const lyrics = new LyricsService(S);
 const outputTarget = new OutputTarget(S);
 const engine = new AudioEngine(outputTarget.coreSettings());
 outputTarget.openName = () => (engine.isLoaded || engine.holdsDevice ? engine.backend?.deviceName?.() : '');
+// the held device's own volume in exclusive mode, and the Mac's volume keys for it (device-volume.js)
+const { DeviceVolume } = require('./device-volume');
+const osd = require('./osd');
+const devVol = new DeviceVolume(engine, {
+  enabled: () => S.volumeKeys !== false,
+  digital: () => S.volumeMode === 'digital',
+  setDigital: (step, mute) => {
+    if (mute) S.muted = !S.muted; else { S.volumeDb = clamp(S.volumeDb + step, -80, 0); if (step) S.muted = false; }
+    engine.applyVolume(); applyYtVolume(); saveSoon(); postSoon('state');
+    osd.show(engine.deviceName() || 'MIKU', S.muted ? 0 : Math.max(0, 1 + S.volumeDb / 80), S.muted ? tr('靜音') : `${S.volumeDb.toFixed(1)} dB`);
+  },
+});
+devVol.on('changed', () => postSoon('state'));
+devVol.on('osd', v => osd.show(engine.deviceName() || 'MIKU', v.muted ? 0 : v.scalar, v.muted ? tr('靜音') : Math.round(v.scalar * 100) + '%'));
+devVol.on('keys', () => {
+  post('volumeKeys', volumeKeysDto());
+  // macOS's permission dialog comes by itself once; later from 設定 → 音訊
+  if (devVol.trusted === false && devVol.keysApply && !S.volumeKeysAsked) {
+    S.volumeKeysAsked = true; saveSoon(); devVol.keys.ask();
+    post('notice', { message: tr('獨佔模式下，MIKU 可以用鍵盤音量鍵調整耳機音量：請在「隱私權與安全性 → 輔助使用」允許 MIKU Volume Keys。') });
+  }
+});
+const volumeKeysDto = () => ({ on: S.volumeKeys !== false, trusted: devVol.trusted, available: !!devVol.keys.source() });
+/** The volume the page shows: the held device's with 固定 0 dB, else MIKU's. */
+const volumeDto = () => (S.volumeMode === 'fixed' && devVol.dto()) || { volumeDb: S.volumeDb, muted: S.muted, volumeMode: S.volumeMode };
+function setVolume(db, muted) {
+  if (S.volumeMode === 'fixed' && devVol.state) return devVol.set(db == null ? null : clamp(db, -80, 0), muted);
+  if (db != null) S.volumeDb = clamp(db, -80, 0);
+  if (muted !== undefined) S.muted = muted;
+  engine.applyVolume(); applyYtVolume(); saveSoon(); postSoon('state');
+}
 // extension modules (extensions.js): a module may provide a playback core (設定 → 播放方案)
 const { ExtensionManager } = require('./extensions');
 const exts = new ExtensionManager();
@@ -506,7 +537,7 @@ function state() {
     const viaEngine = engineLive() && engine.isLoaded && !!engine.signal;   // the playback core plays the page's audio
     return {
       trackId: 'yt-live', playing: ytPlaying, loaded: true, pos: Math.max(0, (ytMeta.t || 0) - (viaEngine ? engine.liveLatency || 0 : 0)), dur: ytMeta.d || 0, index: player.index,
-      volumeDb: S.volumeDb, muted: S.muted, volumeMode: S.volumeMode, repeat: S.repeat, shuffle: S.shuffle,
+      ...volumeDto(), repeat: S.repeat, shuffle: S.shuffle,
       signal: viaEngine ? engine.signal : { codec: 'YouTube', sourceRate: 48000, sourceBits: 0, dsd: false, lossy: true, resampled: false, outputRate: engine.st.rate || 48000, outputFormat: '32-bit 浮點', outputBits: 32, mode: 'Core Audio', device: engine.deviceName(), dspActive: false, volumeMode: S.volumeMode, quality: 'low', note: 'YouTube Music 由內建瀏覽器直接播放，不經過 MIKU 的 DSP。' },
       live: { title: ytMeta.title || '', artist: parts[0] || '', album: parts[1] || '', img: ytMeta.img || '' },
       meter: viaEngine ? m : { l: 0, r: 0, clips: 0, underruns: 0 },
@@ -516,7 +547,7 @@ function state() {
   return {
     trackId: t ? t.id : null, playing: engine.isPlaying, loaded: engine.isLoaded,
     pos: engine.isLoaded ? engine.position : (engine.track == null ? (S.resumePosition || 0) : engine.position),
-    dur: t ? t.duration : 0, index: player.index, volumeDb: S.volumeDb, muted: S.muted, volumeMode: S.volumeMode,
+    dur: t ? t.duration : 0, index: player.index, ...volumeDto(),
     repeat: S.repeat, shuffle: S.shuffle, signal: engine.signal, meter: m,
   };
 }
@@ -872,7 +903,7 @@ async function devicesDto() {
   return { devices: list, caps, asio: [], nativeAvailable: engine.nativeAvailable };
 }
 
-const Protected = new Set(['remoteLib', 'queue', 'queueContinuedFrom', 'folders', 'favorites', 'playlists', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
+const Protected = new Set(['volumeKeys', 'volumeKeysAsked', 'remoteLib', 'queue', 'queueContinuedFrom', 'folders', 'favorites', 'playlists', 'recent', 'searchHistory', 'acoustIdKey', 'ext']);
 async function applySettings(patch) {
   let device = false, output = false, dsp = false, volume = false, rg = false, rem = false, dsdRate = false;
   for (const [k, v] of Object.entries(patch || {})) {
@@ -897,7 +928,7 @@ async function applySettings(patch) {
   if (output || device) await outputTarget.refresh().catch(e => Log.error('Output target', e));
   if (output) { await engine.reconfigure(); updateYtTap(); }
   else if (device) { await engine.setDevice(S.deviceId); postSoon('state'); }
-  if (volume) { engine.applyVolume(); applyYtVolume(); }
+  if (volume) { engine.applyVolume(); applyYtVolume(); devVol.syncKeys(); postSoon('state'); }
   if (rg && !output) engine.applyReplayGain();
   if (dsp && !output) engine.applyDsp();
   // a DSD track playing on MIKU's own core is decoded at the PCM rate chosen here: start it again at the same place
@@ -985,10 +1016,12 @@ async function handleRpc(m, a) {
     }
     case 'stop': player.stopped(); S.resumePosition = engine.position; engine.stop(); return null;
     case 'volume':
-      S.volumeDb = clamp(N(a, 'db', S.volumeDb), -80, 0);
-      if ('muted' in a) S.muted = a.muted === true;
-      engine.applyVolume(); applyYtVolume(); saveSoon(); postSoon('state');
+      await setVolume('db' in a ? N(a, 'db', volumeDto().volumeDb) : null, 'muted' in a ? a.muted === true : undefined);
       return null;
+    case 'volumeKeys':
+      if ('on' in a) { S.volumeKeys = a.on === true; saveSoon(); devVol.syncKeys(); }
+      if (a.ask) { devVol.keys.failed = 0; devVol.keys.ask(); }
+      return volumeKeysDto();
     case 'shuffle': player.setShuffle(a.on === true); saveSoon(); return null;
     case 'repeat': player.setRepeat(a.mode); saveSoon(); return null;
     case 'queue.add': player.add(L(a, 'ids'), a.next === true); return null;
@@ -1399,6 +1432,16 @@ function uiLang() {
   return c.startsWith('ja') ? 'ja' : c.startsWith('zh') ? (/hans|-cn|-sg/.test(c) && !/hant/.test(c) ? 'zh-Hans' : 'zh-Hant') : 'en';
 }
 const NATIVE_TEXT = {
+  "靜音": [
+    "静音",
+    "Muted",
+    "消音"
+  ],
+  "獨佔模式下，MIKU 可以用鍵盤音量鍵調整耳機音量：請在「隱私權與安全性 → 輔助使用」允許 MIKU Volume Keys。": [
+    "独占模式下，MIKU 可以用键盘音量键调整耳机音量：请在「隐私与安全性 → 辅助功能」允许 MIKU Volume Keys。",
+    "In exclusive mode MIKU can adjust your headphones with the volume keys: allow MIKU Volume Keys in Privacy & Security → Accessibility.",
+    "排他モードでも音量キーでヘッドホンの音量を調整できます。「プライバシーとセキュリティ → アクセシビリティ」で MIKU Volume Keys を許可してください。"
+  ],
   "匯出播放清單": [
     "导出播放列表",
     "Export playlist",
@@ -1581,8 +1624,8 @@ function buildMenu() {
       ctl('下一首', undefined, () => handleRpc('next', {})),
       ctl('上一首', undefined, () => handleRpc('prev', {})),
       { type: 'separator' },
-      ctl('提高音量', undefined, () => handleRpc('volume', { db: S.volumeDb + 1 })),
-      ctl('降低音量', undefined, () => handleRpc('volume', { db: S.volumeDb - 1 })),
+      ctl('提高音量', undefined, () => handleRpc('volume', { db: volumeDto().volumeDb + 1 })),
+      ctl('降低音量', undefined, () => handleRpc('volume', { db: volumeDto().volumeDb - 1 })),
     ] },
     { label: tr('顯示'), submenu: [
       { role: 'togglefullscreen', label: tr('全螢幕') },
@@ -1606,6 +1649,7 @@ app.on('before-quit', e => {
   try { remote && remote.stop(); } catch { }
   try { remoteLib.dispose(); } catch { }
   updater.stop();
+  try { devVol.dispose(); osd.destroy(); } catch { }
   try { liveRelay && liveRelay.kill(); } catch { }
   Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });
 });
