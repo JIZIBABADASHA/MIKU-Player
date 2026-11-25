@@ -85,7 +85,7 @@
 :root[data-theme="terminal"] .np-bg .layer.b { animation: none; }
 
 /* 終端機・日：右邊的送紙孔畫在這層上面，才不會被蓋掉 */
-:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-wrap::before {
   background: radial-gradient(circle, rgba(24,70,40,.16) 0 5px, transparent 5.6px) right 10px top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
               linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%);
 }
@@ -277,14 +277,14 @@
 :root[data-theme="terminal"] .np-top .pill.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: inset 0 0 0 1px var(--tm-fill); }
 :root[data-theme="terminal"] .np-top .src { color: rgba(var(--np-ink), .8); background: rgba(var(--np-btn, 22, 36, 28), .8); padding: 3px 6px; }
 :root[data-theme="terminal"] .np-top .src:empty { display: none; }
-:root[data-theme="terminal"]:where([data-mode="day"]) .np-top :is(.icon-btn, .pill, .src) { --np-btn: 255, 255, 255; }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top :is(.icon-btn, .pill, .src) { --np-btn: 255, 255, 255; }
 :root[data-theme="terminal"] .np-badges .badge { background: rgba(var(--np-ink), .06); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .4); color: rgb(var(--np-ink)); }
 :root[data-theme="terminal"] .np-seek .times { color: rgba(var(--np-ink), .78); }
 :root[data-theme="terminal"] .np-artist { color: rgba(var(--np-ink), .82); }
 :root[data-theme="terminal"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .88); border-radius: 0; }
 
 /* 歌詞的樣子在第 14 段（映像管螢幕／報表紙、打字） */
-:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-wrap::before {
   background: radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) right 0 top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
               linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%);
 }
@@ -311,7 +311,7 @@
 /* 像終端機的輸出：歌曲開始時第一行在螢幕最上面，一行一行往下印；印到螢幕下方三分之二之後，舊的行往上捲走。
    還沒唱到的行不顯示（滑鼠移到歌詞上才淡淡出現，可以點），所以下面不會空著一片。行距比別的主題窄一點，像一行一行的文字。 */
 :root[data-theme="terminal"] #lyrics { --ly-anchor: .66; --ly-start: .06; --ly-gap: 8px; --ly-blur: .45; --ly-dim: .74; }
-:root[data-theme="terminal"]:where([data-mode="day"]) #np { --tm-ly-l: 36px; --tm-ly-r: 38px; }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np { --tm-ly-l: 36px; --tm-ly-r: 38px; }
 
 /* 歌詞欄＝螢幕（夜）：圓角、機殼框、暈影、掃描線、反光，全是不動的漸層 */
 :root[data-theme="terminal"] #np .np-right {
@@ -329,15 +329,15 @@
 :root[data-theme="terminal"] #np.nolyrics .np-right { opacity: 0; transition: opacity .3s ease; }
 
 /* 掃描亮帶：一條很淡的亮帶，九秒從上掃到下（只動 transform）；正在播放關著、或沒有歌詞時不動 */
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np .np-right::after {
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) #np .np-right::after {
   content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; height: 22%; pointer-events: none;
   background: linear-gradient(180deg, transparent, rgba(170,255,200,.03) 55%, rgba(170,255,200,.05) 62%, transparent);
   transform: translateY(-100%);
 }
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right::after { animation: tm-roll 9s linear infinite; will-change: transform; }
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) #np.on:not(.nolyrics) .np-right::after { animation: tm-roll 9s linear infinite; will-change: transform; }
 
 /* 歌詞欄＝報表紙（日）：白紙、兩邊送紙孔與撕線、紙的陰影；直角 */
-:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-right {
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-right {
   border-radius: 0;
   background:
     radial-gradient(circle, #e3e9dc 0 5px, rgba(24,70,40,.22) 5.4px 6.2px, transparent 6.8px) left 4px top 10px / 22px 30px repeat-y,
@@ -349,7 +349,7 @@
 }
 
 /* 日：頁面右邊原本的送紙孔會貼著紙的送紙孔，歌詞開著時只留淡底 */
-:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before { background: linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%); }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-wrap::before { background: linear-gradient(90deg, transparent 16%, color-mix(in srgb, var(--np-calm) 12%, transparent) 26%, color-mix(in srgb, var(--np-calm) 40%, transparent) 36%, color-mix(in srgb, var(--np-calm) 75%, transparent) 45%, var(--np-calm) 54%); }
 
 /* 每一行：等寬字、不縮小、不模糊、不半透明（淡的行用比較淡的顏色，字一樣清楚） */
 :root[data-theme="terminal"] #lyrics .ly-line {
@@ -382,7 +382,7 @@
   background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
   animation: tm-cur-blink 1.06s step-end infinite;
 }
-:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics::after { box-shadow: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics::after { box-shadow: none; }
 :root[data-theme="terminal"] #np:not(.on) #lyrics::after { animation: none; }
 
 /* 翻譯：小一號的等寬字，跟著那一行的明暗 */
@@ -391,8 +391,8 @@
 :root[data-theme="terminal"] #lyrics .ly-line.on .tr { color: var(--tm-ly-tr-on); }
 
 /* 日：每一行輪流印在淺綠條紋上（綠條紋報表紙），條紋跟著行一起捲動 */
-:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line:nth-child(even) { background: rgba(92,170,110,.14); }
-:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line:nth-child(even):hover { background: rgba(92,170,110,.24); }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line:nth-child(even) { background: rgba(92,170,110,.14); }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line:nth-child(even):hover { background: rgba(92,170,110,.24); }
 
 /* [分:秒] 時間欄：掛在行首左邊的留白裡、和歌詞同一條基線；正在唱的反白 */
 /* 每一行的時間都是同一個大小的格子，垂直置中在歌詞第一行的高度上（不管哪種字型，時間和歌詞的中線對齊）；
@@ -415,7 +415,7 @@
   background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
   animation: tm-cur-blink 1.06s step-end infinite;
 }
-:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .tm-cur { box-shadow: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .tm-cur { box-shadow: none; }
 :root[data-theme="terminal"] #lyrics .ly-line:not(.on) .tm-cur { display: none; }
 
 /* 打字（.tm-ty，nowplaying.js 加的）：第 i 格的字在 (i + 寬) × 每格秒數時出現；還沒出現的字先藏起來（保留位置，行不會跳），
@@ -429,10 +429,10 @@
   background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
   animation: tm-ty-show calc(var(--w, 1) * var(--ty-u)) linear calc(var(--i) * var(--ty-u) - var(--ty-skip));
 }
-:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line.on.tm-ty .tm-c::after { box-shadow: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line.on.tm-ty .tm-c::after { box-shadow: none; }
 
 /* 夜：剛打出來的字先是白熱的亮，半秒內退回磷光綠（映像管的餘輝）；逐字歌詞的字用填色，不做這個 */
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) #lyrics .ly-line.on.tm-ty > .tm-c {
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) #lyrics .ly-line.on.tm-ty > .tm-c {
   animation: tm-ty-hide calc((var(--i) + var(--w, 1)) * var(--ty-u)) linear calc(-1 * var(--ty-skip)),
              tm-ty-bloom .5s ease-out calc((var(--i) + var(--w, 1)) * var(--ty-u) - var(--ty-skip));
 }
@@ -488,17 +488,24 @@
    · 歌詞螢幕：打開正在播放時像映像管開機（一條亮線上下展開），背景亮度輕輕閃爍，一條亮帶慢慢往下掃。
    這一層畫一次就不再重畫（自己一層），捲動頁面時不花力氣；會動的只有歌詞螢幕裡的閃爍和亮帶。 */
 :root[data-theme="terminal"] { --tm-sl-p: 3px; --tm-sl-d: 1px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 3px; --tm-sl-d: 1px; }
 @media (min-resolution: 1.2dppx) and (max-resolution: 1.3dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2.4px; --tm-sl-d: .8px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2.4px; --tm-sl-d: .8px; }
 }
 @media (min-resolution: 1.45dppx) and (max-resolution: 1.55dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2px; --tm-sl-d: .6667px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2px; --tm-sl-d: .6667px; }
 }
 @media (min-resolution: 1.7dppx) and (max-resolution: 1.8dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2.2857px; --tm-sl-d: 1.1429px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2.2857px; --tm-sl-d: 1.1429px; }
 }
 @media (min-resolution: 1.95dppx) and (max-resolution: 2.05dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2px; --tm-sl-d: 1px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2px; --tm-sl-d: 1px; }
 }
 @media (min-resolution: 2.45dppx) and (max-resolution: 2.55dppx) {:root[data-theme="terminal"] { --tm-sl-p: 1.6px; --tm-sl-d: .8px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 1.6px; --tm-sl-d: .8px; }
 }
 @media (min-resolution: 2.95dppx) {:root[data-theme="terminal"] { --tm-sl-p: 1.3333px; --tm-sl-d: .6667px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 1.3333px; --tm-sl-d: .6667px; }
 }
 :root[data-theme="terminal"]:where(:not([data-mode="day"])) body::after {
   content: ""; position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
@@ -516,23 +523,24 @@
 
 /* 磷光：字的光暈 */
 :root[data-theme="terminal"]:where(:not([data-mode="day"])):not(.lite-blur) body { text-shadow: 0 0 3px rgba(92,240,147,.3); }
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) :is(.btn.primary, .seg button.on, .chip.on, .switch.on, .nav-pill, .msel-opt.on, .np-top .pill.on) { box-shadow: var(--tm-glow-box); }
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) :is(.btn.primary, .seg button.on, .chip.on, .msel-opt.on, .nav a.on, .np-top .pill.on) { text-shadow: none; }
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) :is(.btn.primary, .seg button.on, .chip.on, .switch.on, .nav-pill, .msel-opt.on, .np-top .pill.on) { box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) :is(.btn.primary, .seg button.on, .chip.on, .msel-opt.on, .nav a.on, .np-top .pill.on) { text-shadow: none; }
 :root[data-theme="terminal"]:where(:not([data-mode="day"])) .playbtn { box-shadow: inset 0 0 0 2px var(--teal), 0 0 14px rgba(92,240,147,.3); }
 
 /* 歌詞螢幕：開機（正在播放打開、或換到這個主題時）：先是一條很亮的橫線，再上下展開成整個畫面 */
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right { animation: tm-power .62s cubic-bezier(.2,.7,.2,1) .18s backwards; }
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) #np.on:not(.nolyrics) .np-right { animation: tm-power .62s cubic-bezier(.2,.7,.2,1) .18s backwards; }
 
 /* 背景亮度輕輕閃爍（只閃底，字不閃，讀起來不累） */
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np .np-right::before {
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) #np .np-right::before {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: radial-gradient(90% 70% at 50% 45%, rgba(150,255,190,.045), transparent 75%); opacity: 0;
 }
-:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right::before { animation: tm-flicker 5.3s steps(1) infinite; }
+:root[data-theme="terminal"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) #np.on:not(.nolyrics) .np-right::before { animation: tm-flicker 5.3s steps(1) infinite; }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="terminal"] #np .np-right, :root[data-theme="terminal"] #np .np-right::before { animation: none !important; }
 }
 :root[data-theme="terminal"].lite-terminal-crt #np .np-right, :root[data-theme="terminal"].lite-terminal-crt #np .np-right::before { animation: none !important; }
 :root[data-theme="terminal"] { --dp-ink: var(--teal); }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal); }
 :root[data-theme="terminal"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); }
 :root[data-theme="terminal"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 6px rgba(92,240,147,.35); }
 

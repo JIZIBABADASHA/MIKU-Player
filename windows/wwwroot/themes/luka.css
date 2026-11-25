@@ -165,14 +165,14 @@
 :root[data-theme="luka"] .np-bg::before { left: 0; }
 :root[data-theme="luka"] #np::before { right: 0; transform: scaleX(-1); }
 :root[data-theme="luka"] .np-cover { border-radius: 1px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .95), 0 0 0 7px var(--lk-lacquer), 0 0 0 8px rgba(var(--lk-gold-rgb), .8), 0 40px 80px -24px rgba(0,0,0,.7); }
-:root[data-theme="luka"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px #e2c27e, 0 0 0 7px var(--lk-lacquer), 0 0 0 8px rgba(var(--lk-gold-rgb), .9), 0 30px 60px -20px rgba(60,45,18,.4); }
+:root[data-theme="luka"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-cover { box-shadow: 0 0 0 1px #e2c27e, 0 0 0 7px var(--lk-lacquer), 0 0 0 8px rgba(var(--lk-gold-rgb), .9), 0 30px 60px -20px rgba(60,45,18,.4); }
 :root[data-theme="luka"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
 
 /* 右上角的「翻譯」「歌詞」開著時：黑漆底、金字、金邊（淺色封面上也看得清楚） */
 :root[data-theme="luka"] .pill.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .9); }
 :root[data-theme="luka"]:where([data-mode="day"]) .pill.on { --lk-gold-rgb: 226, 194, 126; }
 :root[data-theme="luka"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); }
-:root[data-theme="luka"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 0 22px rgba(220,187,118,.25); }
+:root[data-theme="luka"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) .ly-line.on { text-shadow: 0 0 22px rgba(220,187,118,.25); }
 
 /* 好讀優先：沒在唱的歌詞、翻譯、時間、歌詞來源、播過的佇列都不要太淡 */
 :root[data-theme="luka"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
@@ -182,6 +182,7 @@
 :root[data-theme="luka"] .qrow.past { opacity: .8; }
 :root[data-theme="luka"] .nav-label .nav-edit { opacity: .85; }
 :root[data-theme="luka"] { --dp-ink: var(--teal); --dp-tile: var(--teal); --dp-tile-ink: var(--bg); }
+:root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal); --dp-tile: var(--teal); --dp-tile-ink: var(--bg); }
 :root[data-theme="luka"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); --dp-tile: var(--text-hi); --dp-tile-ink: var(--lk-gold-hi); }
 
 /* 黑金：金色細線框，往內 4px 再一道更淡的金線（和卡片滑過時的雙線一樣） */

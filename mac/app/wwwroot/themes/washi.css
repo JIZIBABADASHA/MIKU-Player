@@ -98,18 +98,22 @@
 
 /* kept short: a long drop shadow lay over the title below and greyed it */
 :root[data-theme="washi"]:where([data-mode="night"]) .np-cover { border: 10px solid #2a334c; box-shadow: 0 2px 6px rgba(0,0,0,.34), 0 18px 30px -14px rgba(0,0,0,.58); }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { border: 10px solid #2a334c; box-shadow: 0 2px 6px rgba(0,0,0,.34), 0 18px 30px -14px rgba(0,0,0,.58); }
 :root[data-theme="washi"] #np .np-title { -webkit-text-stroke: .35px currentColor; text-shadow: 0 1px 0 rgba(255, 251, 243, .55); }
 
 /* the Mincho's thin strokes read grey at this size */
 :root[data-theme="washi"]:where([data-mode="night"]) #np .np-title { text-shadow: 0 1px 0 rgba(42,51,76,.55); }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-title { text-shadow: 0 1px 0 rgba(42,51,76,.55); }
 :root[data-theme="washi"] .np-bg .layer.b.on { opacity: 0; }
 :root[data-theme="washi"] .np-bg .layer.b { animation: none; }
 
 /* (not shown: not turning either, see MIKU) */
 :root[data-theme="washi"] .np-badges .badge { background: rgba(70,50,30,.08); color: #5a4f45; }
 :root[data-theme="washi"]:where([data-mode="night"]) .np-badges .badge { background: rgba(232,226,211,.07); color: #bdb6a6; }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) .np-badges .badge { background: rgba(232,226,211,.07); color: #bdb6a6; }
 :root[data-theme="washi"] .np-ctrl .icon-btn.on { color: #c4432c; }
 :root[data-theme="washi"]:where([data-mode="night"]) .np-ctrl .icon-btn.on { color: #e8674c; }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) .np-ctrl .icon-btn.on { color: #e8674c; }
 :root[data-theme="washi"] .pill.on { background: #2f4b80; }
 :root[data-theme="washi"]:where([data-mode="night"]) .pill.on { background: #86a8e6; }
 :root[data-theme="washi"] .eq-graph { background: rgba(70,50,30,.05); }
@@ -141,6 +145,7 @@
 :root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary) { background: rgba(232,226,211,.06); }
 :root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary):hover { background: rgba(232,226,211,.11); }
 :root[data-theme="washi"] { --dp-ink: var(--teal-2); }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
 
 /* 和紙：小圓角、淡墨的細框，底色帶一點紙的暖色 */
 :root[data-theme="washi"] .dp-sect .dp-group { border-radius: 5px; border: 1px solid rgba(70,50,30,.22); background: rgba(120,90,50,.035); }

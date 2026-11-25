@@ -137,6 +137,7 @@
   --gd-plate: linear-gradient(180deg, #52282f, #46202a 40%, #3e1b24);
   --gd-plate-flat: #46202a;
 }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --bg: #3c1921; --bg-rgb: 60, 25, 33; --bg-2: #371720; --surface: #46202a; --surface-2: #52282f; --surface-3: #63323b; --ink: 255, 230, 180; --line: rgba(255,210,120,.18); --line-2: rgba(255,210,120,.34); --text: #fffaf0; --text-hi: #ffffff; --text-sub: #fbe7c0; --text-2: #f7dc98; --text-3: #ebc56c; --teal: #f2c14e; --teal-rgb: 242, 193, 78; --teal-2: #ffd978; --teal-dim: rgba(242,193,78,.16); --pink: #ff7d92; --pink-dim: rgba(255,125,146,.16); --pink-line: rgba(255,125,146,.5); --pink-text: #ffa3b2; --amber: #f0b54a; --on-accent: #1f1200; --play-ink: #2a1800; --knob: #fffaf0; --knob-off: #f3dca8; --bar-bg: var(--gd-ingot); --pop-bg: #4a222b; --drawer-bg: #431e27; --toast-bg: #52282f; --modal-bg: #46202a; --tip-bg: #ffe7a0; --tip-ink: #2a1800; --shadow-rgb: 18, 4, 8; --sh: .9; --np-filter: blur(70px) sepia(.4) saturate(1.2) brightness(var(--np-dim)); --np-calm: rgba(50,17,25,.72); --ph-s1: 34%; --ph-l1: 34%; --ph-s2: 40%; --ph-l2: 22%; --brand-ink: #1f1200; --brand-track: #8a5a08; --hero-dim: .55; --hero-op: .5; --gd-sheen: linear-gradient(112deg, transparent 0 7%, rgba(255,206,110,.07) 11%, rgba(255,214,130,.11) 12.8%, rgba(255,206,110,.05) 15%, transparent 19% 40%, rgba(255,206,110,.06) 45%, rgba(255,220,140,.12) 48.5%, rgba(255,206,110,.05) 52%, transparent 57% 82%, rgba(255,206,110,.08) 87%, transparent 92%); --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-damask) 0 0 / 64px 104px, var(--gd-sheen), radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%), radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%), #3c1921; --sidebar-bg: var(--gd-quilt) 0 0 / 30px 30px, linear-gradient(90deg, #b8862a 0%, #d0a03e 28%, #ddb252 52%, #d2a444 78%, #b98a2e 100%); --hit: rgba(255,200,80,.3); --gd-glitter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cg fill='%23000' fill-opacity='0'%3E%3C/g%3E%3Cg fill='%23ffd978'%3E%3Ccircle cx='67.9' cy='84.0' r='0.91' fill-opacity='0.51'/%3E%3Ccircle cx='76.2' cy='88.1' r='0.50' fill-opacity='0.53'/%3E%3Ccircle cx='94.5' cy='118.9' r='0.45' fill-opacity='0.46'/%3E%3Ccircle cx='13.6' cy='121.4' r='0.78' fill-opacity='0.36'/%3E%3Ccircle cx='147.3' cy='144.7' r='0.76' fill-opacity='0.57'/%3E%3Ccircle cx='23.6' cy='2.3' r='0.69' fill-opacity='0.37'/%3E%3Ccircle cx='28.5' cy='36.3' r='0.42' fill-opacity='0.51'/%3E%3Ccircle cx='66.1' cy='126.4' r='0.69' fill-opacity='0.57'/%3E%3Ccircle cx='75.0' cy='99.4' r='0.65' fill-opacity='0.45'/%3E%3Ccircle cx='149.6' cy='149.4' r='0.86' fill-opacity='0.60'/%3E%3Ccircle cx='47.3' cy='34.4' r='0.56' fill-opacity='0.37'/%3E%3Ccircle cx='114.9' cy='60.1' r='0.87' fill-opacity='0.49'/%3E%3Ccircle cx='143.7' cy='127.1' r='0.40' fill-opacity='0.42'/%3E%3Ccircle cx='136.5' cy='70.5' r='0.94' fill-opacity='0.49'/%3E%3Ccircle cx='11.0' cy='94.4' r='0.83' fill-opacity='0.44'/%3E%3Ccircle cx='13.1' cy='49.9' r='0.93' fill-opacity='0.62'/%3E%3Ccircle cx='17.7' cy='37.0' r='0.46' fill-opacity='0.37'/%3E%3Ccircle cx='119.6' cy='26.7' r='0.71' fill-opacity='0.51'/%3E%3Ccircle cx='28.6' cy='109.8' r='0.47' fill-opacity='0.58'/%3E%3Ccircle cx='17.5' cy='63.1' r='0.52' fill-opacity='0.44'/%3E%3Ccircle cx='145.6' cy='120.5' r='0.57' fill-opacity='0.66'/%3E%3Ccircle cx='31.6' cy='59.1' r='0.87' fill-opacity='0.57'/%3E%3Ccircle cx='15.0' cy='148.4' r='0.52' fill-opacity='0.44'/%3E%3Ccircle cx='115.9' cy='49.3' r='0.56' fill-opacity='0.38'/%3E%3Ccircle cx='13.5' cy='87.4' r='0.53' fill-opacity='0.56'/%3E%3Ccircle cx='55.8' cy='68.0' r='0.93' fill-opacity='0.52'/%3E%3Ccircle cx='86.2' cy='130.0' r='0.50' fill-opacity='0.40'/%3E%3Ccircle cx='136.3' cy='122.7' r='0.54' fill-opacity='0.42'/%3E%3Ccircle cx='110.9' cy='141.1' r='0.51' fill-opacity='0.68'/%3E%3Ccircle cx='132.3' cy='90.5' r='0.63' fill-opacity='0.39'/%3E%3Ccircle cx='5.8' cy='144.4' r='0.53' fill-opacity='0.60'/%3E%3Ccircle cx='38.5' cy='123.6' r='0.73' fill-opacity='0.45'/%3E%3Ccircle cx='26.3' cy='108.1' r='0.44' fill-opacity='0.43'/%3E%3Ccircle cx='83.9' cy='127.9' r='0.74' fill-opacity='0.45'/%3E%3Ccircle cx='137.6' cy='30.6' r='0.41' fill-opacity='0.44'/%3E%3Ccircle cx='66.9' cy='9.1' r='0.50' fill-opacity='0.48'/%3E%3Ccircle cx='85.8' cy='19.7' r='0.60' fill-opacity='0.66'/%3E%3Ccircle cx='147.1' cy='98.5' r='0.78' fill-opacity='0.55'/%3E%3Ccircle cx='21.1' cy='5.3' r='0.41' fill-opacity='0.67'/%3E%3Ccircle cx='105.1' cy='144.4' r='0.41' fill-opacity='0.57'/%3E%3Ccircle cx='72.3' cy='109.6' r='0.58' fill-opacity='0.70'/%3E%3Ccircle cx='11.3' cy='81.9' r='0.81' fill-opacity='0.67'/%3E%3Ccircle cx='110.6' cy='105.6' r='0.84' fill-opacity='0.67'/%3E%3Ccircle cx='52.8' cy='102.8' r='0.90' fill-opacity='0.65'/%3E%3C/g%3E%3C/svg%3E"); --gd-damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='104' viewBox='0 0 64 104'%3E%3Cdefs%3E%3Cpath id='m' fill-rule='evenodd' d='M0-26C8-16 13-7 13 3S7 18 0 22C-7 18-13 13-13 3S-8-16 0-26ZM0-16C4-10 6.5-4 6.5 3S3.5 11 0 14C-3.5 11-6.5 8-6.5 3S-4-10 0-16ZM0-5L3 1.5L0 8L-3 1.5ZM-2.5 21h5l-1 7h-3zM-15-5C-26-10-31 4-22 12C-21 4-18-1-15-5ZM15-5C26-10 31 4 22 12C21 4 18-1 15-5ZM-6 28C-16 27-21 34-15 40C-14 34-10 31-6 28ZM6 28C16 27 21 34 15 40C14 34 10 31 6 28ZM0-36C3-33 3.5-30 0-28C-3.5-30-3-33 0-36ZM-26-12a2 2 0 1 0 0 .1ZM26-12a2 2 0 1 0 0 .1Z'/%3E%3C/defs%3E%3Cg fill='%23ffd27a' fill-opacity='.09'%3E%3Cuse href='%23m' x='32' y='36'/%3E%3Cuse href='%23m' x='0' y='88'/%3E%3Cuse href='%23m' x='64' y='88'/%3E%3Cuse href='%23m' x='0' y='-16'/%3E%3Cuse href='%23m' x='64' y='-16'/%3E%3C/g%3E%3C/svg%3E"); --gd-line: #e9b949; --gd-plaque-sh: 0 0 0 1px #2a1800, inset 0 1px 0 rgba(255,255,240,.9), inset 0 -1px 0 rgba(110,70,0,.45), 0 2px 0 #4a2f02, 0 4px 10px rgba(0,0,0,.4); --gd-ruby-sh: 0 0 0 1.5px #f8d470, 0 0 0 2.5px #1a0004, inset 0 1px 0 rgba(255,200,205,.55), 0 3px 0 #1a0004, 0 5px 10px rgba(0,0,0,.4); --gd-ingot: linear-gradient(180deg, #f6dc94 0, #e2b650 5%, #d2a03a 26%, #ddb44e 44%, #f2d688 51%, #d9ac46 58%, #c99634 80%, #a06e14 95%, #5e3c04 100%); --gd-well: linear-gradient(180deg, #1f080d, #2e0e15); --gd-well-sh: inset 0 2px 3px rgba(0,0,0,.5), 0 0 0 1.5px #e9b949, 0 1px 0 1.5px rgba(0,0,0,.35); --gd-well-ink: #fbe7c0; --gd-well-ink-2: #f7dc98; --gd-chand-op: .9; --gd-plate: linear-gradient(180deg, #52282f, #46202a 40%, #3e1b24); --gd-plate-flat: #46202a; }
 
 /* ───────────── 3 · 頁面：鏡面黃金＋金箔＋亮片 ─────────────
    頁面的金（body 的 --app-bg）是固定在視窗上的，像一片拋光的金牆：捲動時反光不跟著跑。
@@ -613,6 +614,7 @@
   box-shadow: 0 0 0 1.5px #3d2600, 0 34px 64px -22px rgba(0,0,0,.6), 0 0 44px rgba(255,236,160,.55);
 }
 :root[data-theme="gold"]:where([data-mode="night"]) #np .np-cover { box-shadow: 0 0 0 1.5px #1a0004, 0 34px 64px -22px rgba(0,0,0,.7), 0 0 40px rgba(255,200,80,.25); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-cover { box-shadow: 0 0 0 1.5px #1a0004, 0 34px 64px -22px rgba(0,0,0,.7), 0 0 40px rgba(255,200,80,.25); }
 @media (orientation: landscape) and (max-height: 620px) {:root[data-theme="gold"] #np .np-cover { border-width: 9px; border-image-width: 9px; }
 }
 @media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root[data-theme="gold"] #np:not(.nolyrics) .np-cover { border-width: 5px; border-image-width: 5px; }
@@ -634,14 +636,22 @@
   background: linear-gradient(180deg, #f6dc94, #e6bf62 40%, #d9ac4a) padding-box, var(--gd-frame-grad) border-box;
   box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 1px rgba(110,70,0,.6), 0 12px 26px -12px rgba(0,0,0,.6);
 }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-info {
+  --np-ink: 31, 18, 0; --teal-2: #8c0a1f;
+  background: linear-gradient(180deg, #f6dc94, #e6bf62 40%, #d9ac4a) padding-box, var(--gd-frame-grad) border-box;
+  box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 1px rgba(110,70,0,.6), 0 12px 26px -12px rgba(0,0,0,.6);
+}
 :root[data-theme="gold"]:where([data-mode="night"]) #np .np-info .np-badges .badge:not(.hi):not(.dsd) { background: rgba(255,250,225,.5); box-shadow: inset 0 0 0 1px #6b4506; }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-info .np-badges .badge:not(.hi):not(.dsd) { background: rgba(255,250,225,.5); box-shadow: inset 0 0 0 1px #6b4506; }
 :root[data-theme="gold"]:where([data-mode="night"]) #np .np-info .slider .fill { background: linear-gradient(180deg, #e0405a, #a50f2a 50%, #7a061b); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-info .slider .fill { background: linear-gradient(180deg, #e0405a, #a50f2a 50%, #7a061b); }
 :root[data-theme="gold"] #np .np-seek { margin-top: 16px; }
 :root[data-theme="gold"] #np .np-ctrl { margin-top: 4px; }
 :root[data-theme="gold"] .np-title { color: rgb(var(--np-ink)); }
 :root[data-theme="gold"] .np-artist { color: rgba(var(--np-ink), .88); font-weight: 600; }
 :root[data-theme="gold"] .np-badges .badge { background: rgba(255,250,225,.6); color: rgb(var(--np-ink)); box-shadow: inset 0 0 0 1px #8a5a08; }
 :root[data-theme="gold"]:where([data-mode="night"]) .np-badges .badge { background: rgba(0,0,0,.2); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) .np-badges .badge { background: rgba(0,0,0,.2); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
 :root[data-theme="gold"] .np-badges .badge.hi { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: inset 0 0 0 1px #4a2f02; }
 :root[data-theme="gold"] .np-badges .badge.dsd { background: linear-gradient(180deg, #c8203c, #8e0f24); color: #fff4e0; }
 :root[data-theme="gold"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
@@ -661,18 +671,21 @@
 }
 :root[data-theme="gold"] .np-top .src:not(:empty) { padding: 3px 8px; border-radius: 3px; color: var(--gd-ink); background: rgba(255,246,214,.92); font-weight: 600; box-shadow: inset 0 0 0 1px #8a5a08; }
 :root[data-theme="gold"]:where([data-mode="night"]) .np-top .src:not(:empty) { color: #fbe7c0; background: rgba(46,14,22,.92); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .src:not(:empty) { color: #fbe7c0; background: rgba(46,14,22,.92); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
 :root[data-theme="gold"] .ly-offset { color: rgb(var(--np-ink)); }
 :root[data-theme="gold"] .ly-offset button { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: 0 0 0 1px #3d2600; }
 
 /* 歌詞：還沒唱到、已經唱過的行也要看得清楚；唱到的字是紅寶石色（夜：亮金） */
 :root[data-theme="gold"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .72; }
-:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
 :root[data-theme="gold"] .ly-line { color: rgb(var(--np-ink)); border-radius: 6px; }
 :root[data-theme="gold"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
 :root[data-theme="gold"] .ly-line .w { background-image: linear-gradient(90deg, #8c0a1f 0, #8c0a1f var(--p, 0%), rgba(var(--np-ink), .5) var(--p, 0%)); }
 :root[data-theme="gold"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #ffd978 0, #ffd978 var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); }
-:root[data-theme="gold"]:where(:not([data-mode="night"])) .ly-line.on { text-shadow: 0 1px 0 rgba(255,250,220,.8); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line .w { background-image: linear-gradient(90deg, #ffd978 0, #ffd978 var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); }
+:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line.on { text-shadow: 0 1px 0 rgba(255,250,220,.8); }
 :root[data-theme="gold"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 22px rgba(255,200,80,.3); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line.on { text-shadow: 0 0 22px rgba(255,200,80,.3); }
 :root[data-theme="gold"] .ly-line:hover { background: rgba(var(--np-ink), .07); }
 :root[data-theme="gold"] .theme-pick { --tp-ring: rgba(61,38,3,.5); }
 :root[data-theme="gold"]:where([data-mode="night"]) .theme-pick { --tp-ring: rgba(233,185,73,.55); }
@@ -832,6 +845,15 @@
     var(--gd2-velvet-n) padding-box, var(--gd-frame-grad) border-box;
   background-origin: border-box;
 }
+:root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-info {
+  --np-ink: 255, 236, 200; --teal-2: #ffd770;
+  background:
+    var(--gd-gem) 0 0 / 26px 26px no-repeat, var(--gd-gem) 100% 0 / 26px 26px no-repeat,
+    var(--gd-gem-r) 0 100% / 26px 26px no-repeat, var(--gd-gem-r) 100% 100% / 26px 26px no-repeat,
+    radial-gradient(90% 60% at 50% 0%, rgba(255,140,160,.2), transparent 70%) padding-box,
+    var(--gd2-velvet-n) padding-box, var(--gd-frame-grad) border-box;
+  background-origin: border-box;
+}
 :root:root[data-theme="gold"] #np .np-title {
   color: transparent; background: var(--gd2-foil); -webkit-background-clip: text; background-clip: text; font-weight: 900;
   filter: drop-shadow(0 2px 0 #3d0008) drop-shadow(0 0 10px rgba(255,200,80,.45));
@@ -874,13 +896,15 @@
   animation: gd2-sweep 4.5s ease-in-out infinite;
 }
 :root:root[data-theme="gold"] #lyrics .ly-line.gap::before, :root:root[data-theme="gold"] #lyrics .ly-line.gap::after { content: none; }
-:root:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics .ly-line:not(.on):not(:hover) { opacity: .85; }
-:root:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics .ly-line:not(.on) { color: #3a2200; font-weight: 800; text-shadow: 0 1px 0 rgba(255,250,220,.7); }
+:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line:not(.on):not(:hover) { opacity: .85; }
+:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line:not(.on) { color: #3a2200; font-weight: 800; text-shadow: 0 1px 0 rgba(255,250,220,.7); }
 :root.lite-gold-shine[data-theme="gold"] #lyrics .ly-line.on::after { animation: none; content: none; }
 @media (prefers-reduced-motion: reduce) {:root:root[data-theme="gold"] #lyrics .ly-line.on::after { animation: none; content: none; }
 }
 :root:root[data-theme="gold"]:where([data-mode="night"]) #lyrics .ly-line:not(.on) { color: #f6dca0; font-weight: 800; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+:root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line:not(.on) { color: #f6dca0; font-weight: 800; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
 :root:root[data-theme="gold"]:where([data-mode="night"]) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
 
 /* ── 整面金牆再加一圈從吊燈放射出來的光芒（固定在視窗上，頂列變實心時也接得起來） ── */
 :root[data-theme="gold"] {
@@ -891,6 +915,7 @@
   --gd2-rays: repeating-conic-gradient(from 0deg at 88% -14%, rgba(255,206,110,.12) 0deg 3.5deg, rgba(255,206,110,0) 5deg 10deg, rgba(255,206,110,0) 10deg 12deg);
   --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd2-rays), var(--gd-damask) 0 0 / 64px 104px, var(--gd-sheen), radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%), radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%), #3c1921;
 }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --gd2-rays: repeating-conic-gradient(from 0deg at 88% -14%, rgba(255,206,110,.12) 0deg 3.5deg, rgba(255,206,110,0) 5deg 10deg, rgba(255,206,110,0) 10deg 12deg); --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd2-rays), var(--gd-damask) 0 0 / 64px 104px, var(--gd-sheen), radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%), radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%), #3c1921; }
 :root:root[data-theme="gold"] :is(:is(#topbar.solid, .set-band), .set-band) {
   background:
     var(--gd-glitter) var(--gd-ox) var(--gd-oy) / 150px 150px,
@@ -936,6 +961,7 @@
    頁面的金牆和頂列只留靜止的金，光芒另外疊在上面。輕量化的「金光」或「減少動態」時光芒停住不轉。 */
 :root[data-theme="gold"] { --gd2-rays: linear-gradient(transparent, transparent); --gd2-ray: rgba(255,255,236,.3); }
 :root[data-theme="gold"]:where([data-mode="night"]) { --gd2-ray: rgba(255,206,110,.12); }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --gd2-ray: rgba(255,206,110,.12); }
 :root[data-theme="gold"] body::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background: repeating-conic-gradient(from var(--gd2-a) at 86% -10%, var(--gd2-ray) 0deg 3.5deg, transparent 5deg 12deg);
@@ -957,6 +983,7 @@
 }
 :root[data-theme="gold"] { --dp-ink: #6b4604; }
 :root[data-theme="gold"]:where([data-mode="night"]) { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
+:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
 :root[data-theme="gold"] .dp-sect .dp-greek {
   background: linear-gradient(180deg, #5c3b02 0%, #7d5506 38%, #5a3901 52%, #6e4a05 78%, #4f3301 100%);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
@@ -973,5 +1000,5 @@
   box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px rgba(var(--teal-rgb), .4), 0 1px 0 rgba(90,58,4,.25);
 }
 :root[data-theme="gold"] .dp-sect .dp-group.dp-off { box-shadow: none; }
-:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics { --ly-dim: .48; }
+:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics { --ly-dim: .48; }
 :root:root[data-theme="gold"] #bar .playbtn { box-shadow: 0 0 0 1px #3d2600, 0 0 0 4px #a50f2a, 0 0 0 5px #3d2600, 0 3px 8px rgba(0,0,0,.4), 0 0 12px rgba(255,220,120,.45); }

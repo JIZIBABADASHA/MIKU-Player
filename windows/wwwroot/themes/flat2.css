@@ -99,8 +99,10 @@
 :root[data-theme^="flat"]:where([data-mode="night"]) .dsp-card { background: #1a1a1a; }
 :root[data-theme^="flat"] .np-cover { border-radius: 0; box-shadow: 0 30px 60px rgba(0,0,0,.18); }
 :root[data-theme^="flat"]:where([data-mode="night"]) .np-cover { box-shadow: 0 30px 60px rgba(0,0,0,.54); }
+:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { box-shadow: 0 30px 60px rgba(0,0,0,.54); }
 :root[data-theme^="flat"] .np-badges .badge { background: rgba(0,0,0,.08); color: #333; }
 :root[data-theme^="flat"]:where([data-mode="night"]) .np-badges .badge { background: rgba(255,255,255,.1); color: #d6d6d1; }
+:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) .np-badges .badge { background: rgba(255,255,255,.1); color: #d6d6d1; }
 :root[data-theme^="flat"] .np-bg .layer.b.on { opacity: 0; }
 :root[data-theme^="flat"] .np-bg .layer.b { animation: none; }
 :root[data-theme^="flat"] .ly-line { font-weight: 800; letter-spacing: -.02em; }
@@ -144,6 +146,7 @@
 
 /* 搜尋結果裡比對到的字：橘色的螢光筆（黃色疊在藍上會變成橄欖綠）；app.css 那條是 [^="flat"][data-mode]，這裡要更具體才蓋得過 */
 :root[data-theme="flat2"][data-mode="night"] { --hit: rgba(255,122,61,.5); }
+:root[data-theme="flat2"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --hit: rgba(255,122,61,.5); }
 
 /* ───────────── 3 · 字：大標題、等寬數字 ─────────────
    頁面標題：最粗的字重（Windows 是 Segoe UI Black，Mac 是 Helvetica Neue Bold），字距收緊，行高壓低。 */

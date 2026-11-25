@@ -63,6 +63,7 @@
 :root[data-theme="vinyl"] .paused .np-mini .art img, :root[data-theme="vinyl"] body.paused .np-mini .art img { animation-play-state: paused; }
 :root[data-theme="vinyl"] .np-cover { border-radius: 50%; box-shadow: 0 40px 80px rgba(22,38,30,.45), 0 0 0 10px #15110d, 0 0 0 11px rgba(0,0,0,.2); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .np-cover { box-shadow: 0 40px 80px rgba(0,0,0,.68), 0 0 0 10px #15110d, 0 0 0 11px rgba(0,0,0,.2); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { box-shadow: 0 40px 80px rgba(0,0,0,.68), 0 0 0 10px #15110d, 0 0 0 11px rgba(0,0,0,.2); }
 :root[data-theme="vinyl"] .np-cover img { animation: vinylSpin 9s linear infinite; }
 :root[data-theme="vinyl"] .np-cover::after { content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: 2; pointer-events: none;
   background:
@@ -89,6 +90,7 @@
 :root[data-theme="vinyl"] .ly-line.on { color: var(--text-hi); }
 :root[data-theme="vinyl"] .ly-line .w { background-image: linear-gradient(90deg, #d0612e 0, #d0612e var(--p, 0%), rgba(30,43,36,.35) var(--p, 0%)); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #f09a68 0, #f09a68 var(--p, 0%), rgba(232,238,227,.35) var(--p, 0%)); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line .w { background-image: linear-gradient(90deg, #f09a68 0, #f09a68 var(--p, 0%), rgba(232,238,227,.35) var(--p, 0%)); }
 :root[data-theme="vinyl"] .hero::after { background: linear-gradient(180deg, rgba(227,232,220,.2) 0%, rgba(227,232,220,.65) 60%, rgba(227,232,220,0) 100%); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(21,27,23,.2) 0%, rgba(21,27,23,.65) 60%, rgba(21,27,23,0) 100%); }
 :root[data-theme="vinyl"] .thead { background: #e3e8dc; }
@@ -368,6 +370,7 @@
 :root[data-theme="vinyl"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .2) 0%, rgba(var(--bg-rgb), .68) 60%, rgba(var(--bg-rgb), 0) 100%); }
 :root[data-theme="vinyl"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .4) var(--p, 0%)); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .42) var(--p, 0%)); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .42) var(--p, 0%)); }
 
 /* ───────────── 17 · 正在播放：封面本身就是那張正在轉的黑膠 ─────────────
    跟播放列左下角的小唱片一樣：封面裁成圓形，播放時轉、暫停就停在當下的角度，再播放從那個角度接著轉。
@@ -383,6 +386,7 @@
   box-shadow: 0 28px 54px -18px rgba(22,38,30,.6), 0 0 0 1px rgba(28,41,34,.3);
 }
 :root[data-theme="vinyl"]:where([data-mode="night"]) #np .np-cover { box-shadow: 0 28px 56px -16px rgba(0,0,0,.72), 0 0 0 1px rgba(241,236,220,.22); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-cover { box-shadow: 0 28px 56px -16px rgba(0,0,0,.72), 0 0 0 1px rgba(241,236,220,.22); }
 
 /* 轉的是圖：9 秒一圈（跟舊版一樣慢，旁邊的歌詞讀起來不會被晃到） */
 :root[data-theme="vinyl"] #np .np-cover img { border-radius: 50%; transform: none; animation: vinylSpin 9s linear infinite; will-change: transform; backface-visibility: hidden; }
@@ -424,10 +428,16 @@
 :root[data-theme="vinyl"] #np-close:hover { background: #a2461b; color: #fff; }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .np-top .icon-btn, :root[data-theme="vinyl"]:where([data-mode="night"]) .np-top .pill {
     background: #26342b; color: #fbf9f1; box-shadow: inset 0 0 0 1.5px rgba(241,236,220,.75), 0 0 0 1.5px rgba(16,24,19,.7), 0 3px 10px rgba(0,0,0,.3); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .icon-btn, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .pill {
+    background: #26342b; color: #fbf9f1; box-shadow: inset 0 0 0 1.5px rgba(241,236,220,.75), 0 0 0 1.5px rgba(16,24,19,.7), 0 3px 10px rgba(0,0,0,.3); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .np-top .icon-btn:hover, :root[data-theme="vinyl"]:where([data-mode="night"]) .np-top .pill:hover { background: #304037; color: #fff; }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .icon-btn:hover, :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .pill:hover { background: #304037; color: #fff; }
 :root[data-theme="vinyl"]:where([data-mode="night"]) .np-top .pill.on { background: #f1ecdc; color: #18221c; box-shadow: inset 0 0 0 1.5px #f1ecdc, 0 0 0 1.5px rgba(16,24,19,.7), 0 3px 10px rgba(0,0,0,.3); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .pill.on { background: #f1ecdc; color: #18221c; box-shadow: inset 0 0 0 1.5px #f1ecdc, 0 0 0 1.5px rgba(16,24,19,.7), 0 3px 10px rgba(0,0,0,.3); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) #np-close { background: var(--vy-label); color: #1a120a; box-shadow: inset 0 0 0 1.5px rgba(16,24,19,.6), 0 0 0 1.5px rgba(241,236,220,.75), 0 3px 10px rgba(0,0,0,.3); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np-close { background: var(--vy-label); color: #1a120a; box-shadow: inset 0 0 0 1.5px rgba(16,24,19,.6), 0 0 0 1.5px rgba(241,236,220,.75), 0 3px 10px rgba(0,0,0,.3); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) #np-close:hover { background: #f08a52; color: #120c06; }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np-close:hover { background: #f08a52; color: #120c06; }
 :root[data-theme="vinyl"] .np-top .src { color: rgba(var(--np-ink), .7); }
 
 /* 歌詞：沒唱到的行不要淡到看不清楚（原本 0.6），翻譯行也深一點；目前這行最深 */
@@ -473,6 +483,7 @@
 :root:root[data-theme="vinyl"] #lyrics .ly-line { left: 160px; right: 0; padding-right: calc(14px + 7%); }
 :root:root[data-theme="vinyl"] #lyrics .ly-line.on { color: var(--vy-ink); font-weight: 800; }
 :root:root[data-theme="vinyl"]:where([data-mode="night"]) #lyrics .ly-line.on { color: #fbf7eb; }
+:root:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line.on { color: #fbf7eb; }
 
 /* 唱針：唱到那句前面的一顆紅點 */
 :root:root[data-theme="vinyl"] #lyrics .ly-line.on::after {
@@ -481,6 +492,7 @@
 }
 :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::before, :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::after { content: none; }
 :root[data-theme="vinyl"] { --dp-ink: var(--teal-2); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
 
 /* 黑膠：紙封套裡的內頁：小圓角、封套的細框，底色是紙色 */
 :root[data-theme="vinyl"] .dp-sect .dp-group { border-radius: 6px; border: 1px solid var(--vy-edge); background: var(--vy-paper); box-shadow: none; }

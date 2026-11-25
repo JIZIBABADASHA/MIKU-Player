@@ -103,6 +103,7 @@
 :root[data-theme="poster"] #np::before { content: ""; position: absolute; z-index: 1; inset: 13.5px; pointer-events: none; background-repeat: no-repeat; background-image: linear-gradient(302deg, transparent 0 4vh, var(--ps-band2, #1c1611) 4vh 13vh, transparent 13vh 15vh, var(--ps-red) 15vh 17.5vh, transparent 17.5vh); opacity: 0; transition: opacity .6s var(--ease-out); }
 :root[data-theme="poster"] #np.nolyrics::before { opacity: 1; }
 :root[data-theme="poster"]:where([data-mode="night"]) #np { --ps-stripe: rgba(239,228,203,.82); --ps-band2: rgba(239,228,203,.72); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --ps-stripe: rgba(239,228,203,.82); --ps-band2: rgba(239,228,203,.72); }
 
 /* 角落的按鈕：實心的紙色方塊加墨色框，任何封面上都看得到 */
 :root[data-theme="poster"] .np-top :is(.icon-btn, .pill) { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 2px var(--text); font-weight: 700; }
@@ -111,6 +112,7 @@
 :root[data-theme="poster"] .np-top .src:not(:empty) { background: var(--surface); color: var(--text-2); padding: 3px 8px; box-shadow: inset 0 0 0 1.5px var(--line-2); }
 :root[data-theme="poster"] .np-cover { box-shadow: 0 0 0 1px rgba(var(--np-ink), .2), 14px 14px 0 rgba(var(--np-ink), .9); }
 :root[data-theme="poster"]:where([data-mode="night"]) .np-cover { box-shadow: 0 0 0 1px rgba(239,228,203,.2), 14px 14px 0 #000; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { box-shadow: 0 0 0 1px rgba(239,228,203,.2), 14px 14px 0 #000; }
 :root[data-theme="poster"] .np-ctrl .icon-btn.on { color: var(--teal); }
 :root[data-theme="poster"] .pill.on { background: var(--ps-red); color: #f6eedb; }
 :root[data-theme="poster"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .4) var(--p, 0%)); }
@@ -134,11 +136,13 @@
   box-shadow: none; outline: 2px solid rgba(var(--np-ink), .88); outline-offset: 0;
 }
 :root[data-theme="poster"]:where([data-mode="night"]) .np-cover { box-shadow: none; outline-color: rgba(239, 228, 203, .5); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { box-shadow: none; outline-color: rgba(239, 228, 203, .5); }
 :root[data-theme="poster"] .np-cover::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: rgba(var(--np-ink), .9); translate: 14px 14px;
 }
 :root[data-theme="poster"]:where([data-mode="night"]) .np-cover::after { background: #0c0a08; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover::after { background: #0c0a08; }
 :root[data-theme="poster"] .np-cover::before {
   content: ""; position: absolute; z-index: -2; pointer-events: none;
   /* 半徑 = 82% 封面寬；圓心在封面 (42%, 18%) */
@@ -194,6 +198,9 @@
 :root[data-theme="poster"]:where([data-mode="night"]) .np-bg {
   background: radial-gradient(ellipse 75% 70% at 50% 46%, transparent 62%, rgba(0, 0, 0, .22) 100%), #2b241c;
 }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) .np-bg {
+  background: radial-gradient(ellipse 75% 70% at 50% 46%, transparent 62%, rgba(0, 0, 0, .22) 100%), #2b241c;
+}
 
 /* 框：畫在 #np::after（z 2：在內容層 .np-wrap 上面、頂端按鈕 .np-top 下面），歌詞那一半的「安靜底色」才不會把框蓋淡；
    框離邊 12～24px，內容最少離邊 48px（窄視窗 6vw），不會壓到字 */
@@ -204,6 +211,7 @@
   outline: 1.5px solid rgba(var(--np-ink), .45); outline-offset: -10px;
 }
 :root[data-theme="poster"]:where([data-mode="night"]) #np::after { border-color: rgba(var(--np-ink), .5); outline-color: rgba(var(--np-ink), .28); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np::after { border-color: rgba(var(--np-ink), .5); outline-color: rgba(var(--np-ink), .28); }
 :root[data-theme="poster"] .np-bg::after {
   inset: -120px; background: var(--ps-grain);
   will-change: transform;
@@ -219,8 +227,10 @@
 /* 播放鍵：一塊有墨色硬陰影的紅色方塊，按下去壓進陰影裡 */
 :root[data-theme="poster"] .np-ctrl .playbtn { box-shadow: 4px 4px 0 rgb(var(--np-ink)); }
 :root[data-theme="poster"]:where([data-mode="night"]) .np-ctrl .playbtn { box-shadow: 4px 4px 0 #0c0a08; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) .np-ctrl .playbtn { box-shadow: 4px 4px 0 #0c0a08; }
 :root[data-theme="poster"] .np-ctrl .playbtn:active { translate: 3px 3px; box-shadow: 1px 1px 0 rgb(var(--np-ink)); }
 :root[data-theme="poster"]:where([data-mode="night"]) .np-ctrl .playbtn:active { box-shadow: 1px 1px 0 #0c0a08; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) .np-ctrl .playbtn:active { box-shadow: 1px 1px 0 #0c0a08; }
 
 /* ───────────── 3 · 標題：硬陰影的大字、紅緞帶 ───────────── */
 /* 頁首大標題：大一號（30 → 38px）的墨色窄字，右下一道朱紅硬陰影（老廣告的立體字），下面原本的紅槓保留；
@@ -334,6 +344,7 @@
    上面蓋一層看得見的電視雪花（最高 .5、沒有灰底，顆粒每 60ms 換一格像訊號在跳），加一條很淡的橫向亮帶慢慢往下走，0.4 秒內淡掉。
    這個主題仍不做封面飛到專輯頁的動畫（--album-flip: off，core.js Flip）。 */
 :root[data-theme="poster"] { --album-flip: off; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --album-flip: off; }
 :root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: ps-cut .3s ease-out backwards; }
 :root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after {
   content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
@@ -509,6 +520,7 @@
 :root[data-theme="poster"] #np .np-badges .badge:last-child:not(:first-child)::before { content: "\2605\FE0E\00A0"; color: #c8962a; }
 :root[data-theme="poster"]:where([data-mode="day"]) { --dp-ink: var(--teal); }
 :root[data-theme="poster"]:where([data-mode="night"]) { --dp-ink: var(--teal-2); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
 
 /* 復古海報：方角、平的；上緣一道粗墨線，其他三邊細墨線 */
 :root[data-theme="poster"] .dp-sect .dp-group { border-radius: 0; border: 1.5px solid var(--text); border-top-width: 4px; background: rgba(var(--ink), .03); box-shadow: none; }

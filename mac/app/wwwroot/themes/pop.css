@@ -119,6 +119,7 @@
 :root[data-theme="pop"] .nav-pill { border-color: var(--pop-line); }
 :root[data-theme="pop"] { --app-bg: #fffdf6; --sidebar-bg: #ffcc1f; }
 :root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
 :root[data-theme="pop"] #sidebar { position: relative; isolation: isolate; }
 :root[data-theme="pop"] #sidebar::after { content: ""; position: absolute; right: 0; bottom: 0; width: 300px; max-width: 100%; height: 300px; z-index: -1; pointer-events: none; background: var(--pop-tone-side); -webkit-mask: var(--pop-tone) right bottom / 300px 300px no-repeat; mask: var(--pop-tone) right bottom / 300px 300px no-repeat; }
 :root[data-theme="pop"] #main { isolation: isolate; }
@@ -137,6 +138,7 @@
 :root[data-theme="pop"] .btn.primary { background: var(--pop-yellow); color: #111; }
 :root[data-theme="pop"] .btn.primary:hover { background: var(--pop-yellow); }
 :root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #25242d; --sidebar-bg: #201f27; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --app-bg: #25242d; --sidebar-bg: #201f27; }
 
 /* 開關：關＝灰底、白色圓鈕加黑框；開＝黃底、黑色圓鈕。夜：關是深灰底、米色圓鈕 */
 :root[data-theme="pop"] .switch { background: #d6d2c4; box-shadow: inset 0 0 0 2px var(--pop-line); }
@@ -276,9 +278,13 @@
 
 /* ── 夜：深灰底的框、米色框線；現在這句一樣是黃底黑字黑框 ── */
 :root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line { color: rgba(var(--np-ink), .86); }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line { color: rgba(var(--np-ink), .86); }
 :root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line:has(~ .ly-line.on) { color: rgba(var(--np-ink), .6); border-color: rgba(var(--np-ink), .32); }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line:has(~ .ly-line.on) { color: rgba(var(--np-ink), .6); border-color: rgba(var(--np-ink), .32); }
 :root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line:not(.on):hover { background: var(--surface-3); color: rgb(var(--np-ink)); border-color: var(--pop-line); }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line:not(.on):hover { background: var(--surface-3); color: rgb(var(--np-ink)); border-color: var(--pop-line); }
 :root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line.on { color: #111111; background: linear-gradient(90deg, var(--pop-yellow) 55%, rgba(255,210,63,0) 100%), radial-gradient(rgba(214,92,0,.3) 1.6px, transparent 2.2px) 0 0 / 7px 7px, var(--pop-yellow); }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #lyrics .ly-line.on { color: #111111; background: linear-gradient(90deg, var(--pop-yellow) 55%, rgba(255,210,63,0) 100%), radial-gradient(rgba(214,92,0,.3) 1.6px, transparent 2.2px) 0 0 / 7px 7px, var(--pop-yellow); }
 
 /* ── 動態：輕量化（裝飾動態）或系統要求減少動態時，間奏的點不跳 ── */
 :root[data-theme="pop"].lite-ambient #lyrics .ly-dots i { animation: none !important; }
@@ -290,6 +296,7 @@
   --app-bg: radial-gradient(130% 90% at 70% 0%, #222a6a, #1b2157 55%, #171c4c);
   --sidebar-bg: #ffcc1f;
 }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --app-bg: radial-gradient(130% 90% at 70% 0%, #222a6a, #1b2157 55%, #171c4c); --sidebar-bg: #ffcc1f; }
 
 /* 側欄：和白天一樣的黃色網點紙，黑字；選中的是白底黑框的貼紙 */
 :root[data-theme="pop"]:where([data-mode="night"]) #sidebar {
@@ -302,6 +309,7 @@
 /* 大標題：黃字、黑色的邊（第一道陰影）、紅色錯位陰影 */
 :root[data-theme="pop"]:where([data-mode="night"]) :is(.page-head h1, .hero h1) { color: #ffd23f; text-shadow: 3px 3px 0 #05071a;   /* 原本黃字後面一層亮紅的錯位陰影，黃紅互相「震」看了會暈；只留深色的硬陰影 */ }
 :root[data-theme="pop"]:where([data-mode="night"]) .np-title { color: #ffd23f; text-shadow: 3px 3px 0 #05071a; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) .np-title { color: #ffd23f; text-shadow: 3px 3px 0 #05071a; }
 
 /* 區段標題前的圓點：黃 */
 :root[data-theme="pop"]:where([data-mode="night"]) .rail-head h2::before { background: #ffd23f; border-color: #05071a; }

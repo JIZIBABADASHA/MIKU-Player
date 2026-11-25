@@ -30,7 +30,7 @@
 :root[data-theme="neon"] .playbtn:hover { background: rgba(0,240,255,.12); }
 :root[data-theme="neon"]:where([data-mode="day"]) .playbtn:hover { background: rgba(0,180,204,.12); }
 :root[data-theme="neon"] .np-ctrl .playbtn { color: #00f0ff; }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-ctrl .playbtn { color: #00a6bd; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-ctrl .playbtn { color: #00a6bd; }
 :root[data-theme="neon"] .slider .track { border-radius: 0; background: rgba(160,140,255,.16); overflow: visible; }
 :root[data-theme="neon"]:where([data-mode="day"]) .slider .track { background: rgba(80,60,180,.16); }
 :root[data-theme="neon"] .slider .fill, :root[data-theme="neon"] .slider:hover .fill { border-radius: 0; background: linear-gradient(90deg, #ff2bd6, #00f0ff); box-shadow: 0 0 10px rgba(0,240,255,.7); }
@@ -86,11 +86,11 @@
 :root[data-theme="neon"] .hero::after { background: linear-gradient(180deg, rgba(7,6,14,.2), rgba(7,6,14,.6) 60%, rgba(7,6,14,0)); }
 :root[data-theme="neon"]:where([data-mode="day"]) .hero::after { background: linear-gradient(180deg, rgba(243,241,251,.2), rgba(243,241,251,.6) 60%, rgba(243,241,251,0)); }
 :root[data-theme="neon"] .np-cover { border-radius: 4px; box-shadow: 0 0 0 1px rgba(0,240,255,.5), 0 0 60px rgba(0,240,255,.25), 0 0 120px rgba(255,43,214,.2); }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(0,190,215,.22), 0 0 60px rgba(0,190,215,.22), 0 0 120px rgba(240,31,196,.22); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-cover { box-shadow: 0 0 0 1px rgba(0,190,215,.22), 0 0 60px rgba(0,190,215,.22), 0 0 120px rgba(240,31,196,.22); }
 :root[data-theme="neon"] .ly-line.on { text-shadow: 0 0 12px rgba(0,240,255,.34), 0 1px 2px rgba(0,0,0,.4); }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line.on { text-shadow: 0 0 12px rgba(0,190,215,.22), 0 1px 2px rgba(60,40,140,.15); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line.on { text-shadow: 0 0 12px rgba(0,190,215,.22), 0 1px 2px rgba(60,40,140,.15); }
 :root[data-theme="neon"] .ly-line .w { background-image: linear-gradient(90deg, #e0fdff 0, #e0fdff var(--p, 0%), rgba(236,235,255,.42) var(--p, 0%)); }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line .w { background-image: linear-gradient(90deg, #0c0626 0, #0c0626 var(--p, 0%), rgba(28,20,64,.42) var(--p, 0%)); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line .w { background-image: linear-gradient(90deg, #0c0626 0, #0c0626 var(--p, 0%), rgba(28,20,64,.42) var(--p, 0%)); }
 :root[data-theme="neon"] .pill.on { background: #00f0ff; box-shadow: 0 0 14px rgba(0,240,255,.6); }
 :root[data-theme="neon"]:where([data-mode="day"]) .pill.on { background: #00b4cc; box-shadow: 0 0 14px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .badge.hi { color: #00f0ff; border: 1px solid rgba(0,240,255,.4); }
@@ -136,7 +136,7 @@
   -webkit-mask-image: linear-gradient(0deg, #000 25%, transparent 96%); mask-image: linear-gradient(0deg, #000 25%, transparent 96%);
   opacity: .42;
 }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-bg::before {
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-bg::before {
   background: linear-gradient(rgba(240,31,196,.7) 2px, transparent 2px) 0 100% / 70px 70px, linear-gradient(90deg, rgba(0,160,185,.65) 2px, transparent 2px) 50% 0 / 70px 70px;
   opacity: .32;
 }
@@ -525,7 +525,7 @@
     linear-gradient(#ff2bd6, #ff2bd6) right bottom / 30px 2px no-repeat,
     linear-gradient(#ff2bd6, #ff2bd6) right bottom / 2px 30px no-repeat;
 }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-bg::before {
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-bg::before {
   opacity: .9;
   background:
     linear-gradient(#00a7bf, #00a7bf) left bottom / 30px 2px no-repeat,
@@ -537,13 +537,13 @@
   border-radius: 0; overflow: visible; box-shadow: none; background: none;
   filter: drop-shadow(0 0 1px rgba(0,240,255,.95)) drop-shadow(0 0 18px rgba(0,240,255,.32));
 }
-:root[data-theme="neon"]:where([data-mode="day"]) #np .np-cover { filter: drop-shadow(0 0 1px rgba(0,150,180,.9)) drop-shadow(0 14px 26px rgba(60,40,140,.28)); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-cover { filter: drop-shadow(0 0 1px rgba(0,150,180,.9)) drop-shadow(0 14px 26px rgba(60,40,140,.28)); }
 :root[data-theme="neon"] #np .np-cover > :is(img, .ph) { clip-path: polygon(0 0, calc(100% - var(--nx-cut-c)) 0, 100% var(--nx-cut-c), 100% 100%, var(--nx-cut-c) 100%, 0 calc(100% - var(--nx-cut-c))); }
 :root[data-theme="neon"] #np .np-cover > .ph { background: var(--np-base); }
 
 /* 斜角上的亮線：切角 26 px（斜邊離角 18.4 px），線畫在 17.2–20 px */
 :root[data-theme="neon"] #np .np-cover { --nx-cut-c: 26px; --nx-d1: 17.2px; --nx-d2: 20px; --nx-dt: 38px; --nx-c1: #00f0ff; --nx-c2: #ff2bd6; }
-:root[data-theme="neon"]:where([data-mode="day"]) #np .np-cover { --nx-c1: #00a7bf; --nx-c2: #d41aa6; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-cover { --nx-c1: #00a7bf; --nx-c2: #d41aa6; }
 :root[data-theme="neon"] #np .np-cover::after {
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   clip-path: polygon(0 0, calc(100% - var(--nx-cut-c)) 0, 100% var(--nx-cut-c), 100% 100%, var(--nx-cut-c) 100%, 0 calc(100% - var(--nx-cut-c)));
@@ -559,12 +559,12 @@
 :root[data-theme="neon"] .np-title { font-weight: 800; letter-spacing: 0; text-shadow: none; }
 :root[data-theme="neon"] .np-artist { color: rgba(var(--np-ink), .84); }
 :root[data-theme="neon"] .np-badges .badge { --nx-f: #1c1236; --nx-l: rgba(var(--teal-rgb), .55); color: #e4dffc; }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-badges .badge { --nx-f: #ffffff; --nx-l: #8c80c8; color: #352c63; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-badges .badge { --nx-f: #ffffff; --nx-l: #8c80c8; color: #352c63; }
 :root[data-theme="neon"] .np-seek .times { color: rgba(var(--np-ink), .82); }
 :root[data-theme="neon"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
 :root[data-theme="neon"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .88); }
 :root[data-theme="neon"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-ctrl .icon-btn.on { color: #006b7e; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-ctrl .icon-btn.on { color: #006b7e; }
 
 /* 四個角落按鈕（收起、歌詞不對？、翻譯、歌詞）：實心深色底＋青框（日：白底＋深紫框）；開著的是亮青實心 */
 :root[data-theme="neon"] :is(.np-top .icon-btn, .np-top .pill) {
@@ -574,13 +574,13 @@
 :root[data-theme="neon"] :is(.np-top .icon-btn, .np-top .pill):hover { --nx-f: #2e2152; background: var(--nx-shape); }
 :root[data-theme="neon"] .np-top .pill.on { --nx-f: #00f0ff; --nx-l: #00f0ff; background: var(--nx-solid); color: #10062a; font-weight: 600; box-shadow: none; filter: drop-shadow(0 0 5px rgba(0,240,255,.55)); }
 :root[data-theme="neon"] .np-top .pill.on:hover { --nx-f: #7ff8ff; background: var(--nx-solid); }
-:root[data-theme="neon"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill) { --nx-f: #ffffff; --nx-l: #3e3570; color: #1a1238; }
-:root[data-theme="neon"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill):hover { --nx-f: #e9fbfd; }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-top .pill.on { --nx-f: #22d3ee; --nx-l: #22d3ee; color: #0c0626; filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(.np-top .icon-btn, .np-top .pill) { --nx-f: #ffffff; --nx-l: #3e3570; color: #1a1238; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(.np-top .icon-btn, .np-top .pill):hover { --nx-f: #e9fbfd; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top .pill.on { --nx-f: #22d3ee; --nx-l: #22d3ee; color: #0c0626; filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80); }
 :root[data-theme="neon"] .np-top .src { padding: 3px 8px; font-family: var(--nx-mono); letter-spacing: .04em; }
 :root[data-theme="neon"] .np-top .src:empty { padding: 0; background: none !important; }
 :root[data-theme="neon"] .np-top .src { color: #e4dffc; background: rgba(16,6,42,.72); }
-:root[data-theme="neon"]:where([data-mode="day"]) .np-top .src { color: #352c63; background: rgba(255,255,255,.85); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top .src { color: #352c63; background: rgba(255,255,255,.85); }
 
 /* 歌詞：唱到的那一行是白色（日：深靛），不發光；其他行不要淡到看不清楚 */
 :root[data-theme="neon"] .ly-line { border-radius: 0; padding-left: 22px; }
@@ -590,7 +590,7 @@
 :root[data-theme="neon"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
 :root[data-theme="neon"] .ly-line.on { text-shadow: none; }
 :root[data-theme="neon"] .ly-line .w { background-image: linear-gradient(90deg, #ffffff 0, #ffffff var(--p, 0%), rgba(248,245,255,.5) var(--p, 0%)); }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line .w { background-image: linear-gradient(90deg, #0c0626 0, #0c0626 var(--p, 0%), rgba(26,18,56,.45) var(--p, 0%)); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line .w { background-image: linear-gradient(90deg, #0c0626 0, #0c0626 var(--p, 0%), rgba(26,18,56,.45) var(--p, 0%)); }
 :root[data-theme="neon"] .ly-offset button { --nx-cut: 5px; border-radius: 0; background: var(--nx-shape); }
 
 /* ───────────── 15 · 等化器 ───────────── */
@@ -855,7 +855,7 @@
   opacity: .42;
   animation: nx-rain-np 3.2s steps(77) infinite;
 }
-:root[data-theme="neon"]:where([data-mode="day"]) #np::after { opacity: .24; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np::after { opacity: .24; }
 
 /* 正在播放頁的背景：淡淡的掃描線（只在背景，字在上面） */
 :root[data-theme="neon"] { --np-veil: repeating-linear-gradient(180deg, rgba(12,4,32,.16) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 30% 40%, rgba(31,21,57,.42), rgba(31,21,57,.76)); }
@@ -909,7 +909,7 @@
    換到新的一行時：字先紅青分色一下（0.4 秒），一道霓虹光拖著尾巴從左邊掃過那一行的底下；
    剛唱完的上一行留下洋紅色的餘暉，慢慢熄掉（fx-neon.js 標上 .nx-was）。 */
 :root[data-theme="neon"] .ly-line.on { --nx-halo: 0 0 22px rgba(0,240,255,.3); text-shadow: var(--nx-halo); }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line.on { --nx-halo: none; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line.on { --nx-halo: none; }
 :root[data-theme="neon"] .ly-line::after {
   content: ""; position: absolute; left: 6px; right: 0; bottom: 3px; height: 3px; pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(255,43,214,.0) 18%, var(--nx-trail-hot) 56%, var(--nx-trail) 88%, var(--nx-head-glow));
@@ -926,7 +926,7 @@
 }
 :root[data-theme="neon"] .ly-line.on::before { opacity: 1; transform: translateX(0) skewX(-10deg); }
 :root[data-theme="neon"] .ly-line.gap::after, :root[data-theme="neon"] .ly-line.gap::before { content: none; }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line::before { background: linear-gradient(180deg, #006b7e, #00a7bf); box-shadow: none; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line::before { background: linear-gradient(180deg, #006b7e, #00a7bf); box-shadow: none; }
 :root[data-theme="neon"] .ly-line.on { animation: nx-split .42s steps(1, end); }
 :root[data-theme="neon"] .ly-line.on::after { animation: nx-ly-streak .85s cubic-bezier(.25,.7,.2,1) both; }
 :root[data-theme="neon"] .ly-line.nx-was { animation: nx-ly-after 1.6s ease-out; }
@@ -934,7 +934,7 @@
   background: linear-gradient(90deg, transparent, var(--nx-trail-hot) 70%, rgba(255,160,240,.9));
   animation: nx-ly-leave 1.2s ease-out both;
 }
-:root[data-theme="neon"]:where([data-mode="day"]) .ly-line.nx-was { animation-name: nx-ly-after-day; }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line.nx-was { animation-name: nx-ly-after-day; }
 
 /* 分頁／分段的選中記號滑過去時，後面拖一道光（fx-neon.js：data-nx = r 往右、l 往左） */
 :root[data-theme="neon"] .glide-pill::after {
@@ -1020,7 +1020,7 @@
     linear-gradient(var(--pink), var(--pink)) right bottom / 26px 2px no-repeat,
     linear-gradient(var(--pink), var(--pink)) right bottom / 2px 26px no-repeat;
 }
-:root[data-theme="neon"]:where([data-mode="day"]) #np .np-cover::before {
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-cover::before {
   background:
     linear-gradient(#1a1238, #1a1238) left top / 26px 2px no-repeat,
     linear-gradient(#1a1238, #1a1238) left top / 2px 26px no-repeat,
@@ -1081,6 +1081,7 @@
 }
 :root[data-theme="neon"]:where([data-mode="day"]) { --dp-ink: var(--nx-head); }
 :root[data-theme="neon"]:where([data-mode="night"]) { --dp-ink: var(--teal-2); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
 :root[data-theme="neon"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 10px rgba(0,240,255,.45); }
 
 /* 霓虹賽博：斜切角的小面板（右上、左下切角，細框），左上一個青色、右下一個洋紅的 HUD 角括號；不發光，光留給外面的大面板 */

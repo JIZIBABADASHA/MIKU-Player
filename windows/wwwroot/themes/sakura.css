@@ -79,9 +79,11 @@
 :root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill::before { box-shadow: 0 0 8px rgba(255,143,180,.8); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 1px rgba(255,143,180,.6), 0 0 26px rgba(255,143,180,.25), 0 18px 34px -10px rgba(0,0,0,.75); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .hero .cover, :root[data-theme="sakura"]:where([data-mode="night"]) .np-cover { box-shadow: 0 0 0 1px var(--sk-ring), 0 0 70px rgba(255,143,180,.16), 0 34px 80px -18px rgba(0,0,0,.8); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { box-shadow: 0 0 0 1px var(--sk-ring), 0 0 70px rgba(255,143,180,.16), 0 34px 80px -18px rgba(0,0,0,.8); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .icon-btn.fav-on { filter: drop-shadow(0 0 6px rgba(255,158,192,.5)); }
 :root[data-theme="sakura"]:where([data-mode="night"]) #bar { box-shadow: 0 -6px 24px rgba(255,143,180,.07); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 22px rgba(255,143,180,.35); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line.on { text-shadow: 0 0 22px rgba(255,143,180,.35); }
 
 /* 黑膠、櫻花：用通用的樣子（主題色的淡底＋細框），櫻花的按鈕是圓的，分段按鈕也跟著圓 */
 :root[data-theme="sakura"] .seg, :root[data-theme="sakura"] .set-tabs { border-radius: 19px; }
@@ -346,12 +348,14 @@
 }
 :root[data-theme="sakura"] #np .np-cover { border-radius: 30px 9px 30px 9px; box-shadow: 0 0 0 6px var(--sk-ring), 0 34px 70px -24px rgba(var(--shadow-rgb), .75); }
 :root[data-theme="sakura"]:where([data-mode="night"]) #np .np-cover { box-shadow: 0 0 0 2px var(--sk-ring), 0 34px 70px -22px rgba(0,0,0,.6); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) #np .np-cover { box-shadow: 0 0 0 2px var(--sk-ring), 0 34px 70px -22px rgba(0,0,0,.6); }
 :root[data-theme="sakura"] .np-title { font-weight: 700; }
 :root[data-theme="sakura"] .np-artist { color: rgba(var(--np-ink), .82); }
 :root[data-theme="sakura"] .np-badges .badge { border-radius: 9px 3px 9px 3px; }
-:root[data-theme="sakura"]:where([data-mode="day"]) .np-badges .badge { background: #ffffff; color: #573849; box-shadow: inset 0 0 0 1px #efc9d7; }
-:root[data-theme="sakura"]:where([data-mode="day"]) .np-badges .badge.hi { color: #3f7a34; }
+:root[data-theme="sakura"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-badges .badge { background: #ffffff; color: #573849; box-shadow: inset 0 0 0 1px #efc9d7; }
+:root[data-theme="sakura"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-badges .badge.hi { color: #3f7a34; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .np-badges .badge { background: rgba(42,27,49,.78); color: #f3e3ec; box-shadow: inset 0 0 0 1px rgba(255,214,232,.28); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .np-badges .badge { background: rgba(42,27,49,.78); color: #f3e3ec; box-shadow: inset 0 0 0 1px rgba(255,214,232,.28); }
 :root[data-theme="sakura"] .np-seek .times { color: rgba(var(--np-ink), .8); }
 :root[data-theme="sakura"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .86); }
 :root[data-theme="sakura"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
@@ -360,26 +364,32 @@
 /* 四個角落按鈕：實心底、粉色框 */
 :root[data-theme="sakura"] :is(.np-top .icon-btn, .np-top .pill) { border: 1.5px solid var(--sk-edge-2); box-shadow: 0 4px 12px -6px rgba(var(--shadow-rgb), .5); }
 :root[data-theme="sakura"] .np-top .pill { border-radius: 999px; }
-:root[data-theme="sakura"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill) { background: #ffffff; color: #3b2230; }
-:root[data-theme="sakura"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill):hover { background: #fde4ed; }
+:root[data-theme="sakura"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(.np-top .icon-btn, .np-top .pill) { background: #ffffff; color: #3b2230; }
+:root[data-theme="sakura"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(.np-top .icon-btn, .np-top .pill):hover { background: #fde4ed; }
 :root[data-theme="sakura"]:where([data-mode="night"]) :is(.np-top .icon-btn, .np-top .pill) { background: #382540; color: #fff8fb; border-color: #c79bb3; }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.np-top .icon-btn, .np-top .pill) { background: #382540; color: #fff8fb; border-color: #c79bb3; }
 :root[data-theme="sakura"]:where([data-mode="night"]) :is(.np-top .icon-btn, .np-top .pill):hover { background: #4a3352; }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.np-top .icon-btn, .np-top .pill):hover { background: #4a3352; }
 :root[data-theme="sakura"] .np-top .pill.on { background: var(--sk-deep); color: #ffffff; border-color: var(--sk-deep); font-weight: 650; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .np-top .pill.on { background: #ff9ec0; color: #3a1426; border-color: #ffc0d6; }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .pill.on { background: #ff9ec0; color: #3a1426; border-color: #ffc0d6; }
 :root[data-theme="sakura"] .np-top .src { padding: 3px 10px; border-radius: 999px; }
 :root[data-theme="sakura"] .np-top .src:empty { padding: 0; background: none !important; }
-:root[data-theme="sakura"]:where([data-mode="day"]) .np-top .src { color: #573849; background: rgba(255,255,255,.85); }
+:root[data-theme="sakura"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top .src { color: #573849; background: rgba(255,255,255,.85); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .np-top .src { color: #ead6e2; background: rgba(42,27,49,.78); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top .src { color: #ead6e2; background: rgba(42,27,49,.78); }
 
 /* 歌詞：還沒唱到、已經唱過的行不要淡到看不清楚 */
 :root[data-theme="sakura"] .ly-line { border-radius: 16px 5px 16px 5px; }
 :root[data-theme="sakura"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
 :root[data-theme="sakura"] .ly-line .tr { color: rgba(var(--np-ink), .95); }
-:root[data-theme="sakura"]:where([data-mode="day"]) .ly-line .w { background-image: linear-gradient(90deg, #b8325f 0, #b8325f var(--p, 0%), rgba(59,34,48,.5) var(--p, 0%)); }
+:root[data-theme="sakura"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line .w { background-image: linear-gradient(90deg, #b8325f 0, #b8325f var(--p, 0%), rgba(59,34,48,.5) var(--p, 0%)); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #ffc0d6 0, #ffc0d6 var(--p, 0%), rgba(255,246,250,.55) var(--p, 0%)); }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line .w { background-image: linear-gradient(90deg, #ffc0d6 0, #ffc0d6 var(--p, 0%), rgba(255,246,250,.55) var(--p, 0%)); }
 
 /* ───────────── 15 · 夜：拿掉舊版的發光，只留很淡的影子 ───────────── */
 :root[data-theme="sakura"]:where([data-mode="night"]) :is(.page-head h1, .ly-line.on) { text-shadow: none; }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.page-head h1, .ly-line.on) { text-shadow: none; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill { background: var(--surface-2); box-shadow: inset 0 0 0 1px #6e5277, 0 4px 12px -6px rgba(0,0,0,.5); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill::before { box-shadow: none; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--teal), 0 16px 30px -10px rgba(0,0,0,.6); }
@@ -396,7 +406,7 @@
 /* 櫻花：花瓣角（左上、右下大，另兩角小），粉色細框 */
 :root[data-theme="sakura"] .dp-sect .dp-group { border-radius: var(--sk-r-m); border: 1px solid var(--sk-edge); background: rgba(var(--ink), .025); }
 :root[data-theme="sakura"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
-:root[data-theme="sakura"]:where(:not([data-mode="night"])) #lyrics { --ly-dim: .48; }
+:root[data-theme="sakura"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics { --ly-dim: .48; }
 
 /* 播放列的特殊格式標籤（Hi-Res、DSD、升頻、DSP）跟同一個主題其他框框同一種外形，不再一律圓角／膠囊 */
 :root:root[data-theme="sakura"] #bar .sig:is(.hires, .dsd, .upsample, .dsp) { border-radius: 999px; }

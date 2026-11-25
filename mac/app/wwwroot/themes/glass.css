@@ -54,13 +54,13 @@
 :root[data-theme="glass"] .hero::after { background: linear-gradient(180deg, transparent 0%, rgba(11,16,34,.15) 70%, transparent 100%); }
 :root[data-theme="glass"]:where([data-mode="day"]) .hero::after { background: linear-gradient(180deg, transparent 0%, rgba(28,36,68,.15) 70%, transparent 100%); }
 :root[data-theme="glass"] #np { inset: 12px 12px calc(var(--bar) + 24px) 12px; border-radius: 24px; border: 1px solid rgba(255,255,255,.14); }
-:root[data-theme="glass"]:where([data-mode="day"]) #np { border: 1px solid rgba(255,255,255,.75); }
+:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np { border: 1px solid rgba(255,255,255,.75); }
 :root[data-theme="glass"] .np-cover, :root[data-theme="glass"] .np-info { width: clamp(180px, min(calc(100vh - var(--bar) - 380px), 100%), 520px); }
 :root[data-theme="glass"] .np-right { height: calc(100vh - var(--bar) - 136px); }
 :root[data-theme="glass"] .nav-label, :root[data-theme="glass"] .nav a .count { color: rgba(220,228,255,.6); }
 :root[data-theme="glass"]:where([data-mode="day"]) .nav-label, :root[data-theme="glass"]:where([data-mode="day"]) .nav a .count { color: rgba(24,32,72,.54); }
 :root[data-theme="glass"] .np-cover { border-radius: 22px; box-shadow: 0 0 0 1px rgba(255,255,255,.2), 0 40px 90px rgba(4,6,20,.55); }
-:root[data-theme="glass"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(255,255,255,.8), 0 40px 90px rgba(60,70,130,.25); }
+:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-cover { box-shadow: 0 0 0 1px rgba(255,255,255,.8), 0 40px 90px rgba(60,70,130,.25); }
 :root[data-theme="glass"] .switch.on { background: linear-gradient(90deg, #8be3ff, #c9b8ff); }
 :root[data-theme="glass"]:where([data-mode="day"]) .switch.on { background: linear-gradient(90deg, #4aa8f0, #8f7bff); }
 :root[data-theme="glass"] #content::-webkit-scrollbar-track { margin-bottom: 14px; }
@@ -128,7 +128,7 @@
 :root[data-theme="glass"]:where([data-mode="day"]) :is(.card .art, .pl-art)::after { box-shadow: inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.18); }
 
 /* 正在播放的玻璃外框：白天也用白色的框（原本是夜裡的淡白框，在淺色上看不見） */
-:root:root[data-theme="glass"]:where([data-mode="day"]) #np::after { border-color: rgba(255,255,255,.8); box-shadow: 0 0 0 1px var(--gl-edge); }
+:root:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np::after { border-color: rgba(255,255,255,.8); box-shadow: 0 0 0 1px var(--gl-edge); }
 
 /* ───────────── 4 · 開關 ─────────────
    夜：關＝淡玻璃底＋看得見的白色細框、淺色的鈕；開＝主色漸層（水藍到淡紫）、深藍的鈕（白鈕在淺色漸層上幾乎看不見）。
@@ -180,15 +180,15 @@
    白天用「變亮」混合，比淡灰藍暗的地方才被提上來。這一層是靜態的一片色塊，不模糊。 */
 :root[data-theme="glass"] .np-bg { isolation: isolate; }
 :root[data-theme="glass"] .np-bg::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: rgba(74,80,142,.88); mix-blend-mode: darken; }
-:root[data-theme="glass"]:where([data-mode="day"]) .np-bg::before { background: rgba(212,217,240,.82); mix-blend-mode: lighten; }
+:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-bg::before { background: rgba(212,217,240,.82); mix-blend-mode: lighten; }
 
 /* 左上角收合鈕、右上角的膠囊按鈕：自己有一塊玻璃底和細框，任何封面上都看得清楚 */
 :root[data-theme="glass"] :is(.np-top .icon-btn, .np-top .pill:not(.on)) { background: rgba(14,18,44,.5); color: #ffffff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.26), inset 0 1px 0 rgba(255,255,255,.2); }
 :root[data-theme="glass"] :is(.np-top .icon-btn, .np-top .pill:not(.on)):hover { background: rgba(30,36,72,.66); }
 :root[data-theme="glass"] .np-top .pill.on { background: rgba(255,255,255,.94); color: #0b1022; box-shadow: 0 0 0 1px rgba(255,255,255,.5), 0 4px 14px rgba(4,6,20,.3); }
-:root[data-theme="glass"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill:not(.on)) { background: rgba(255,255,255,.78); color: #161d3c; box-shadow: inset 0 0 0 1px rgba(36,44,90,.2), 0 1px 4px rgba(60,70,130,.16); }
-:root[data-theme="glass"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill:not(.on)):hover { background: #ffffff; }
-:root[data-theme="glass"]:where([data-mode="day"]) .np-top .pill.on { background: #1c2448; color: #ffffff; box-shadow: 0 4px 14px rgba(28,36,72,.25); }
+:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(.np-top .icon-btn, .np-top .pill:not(.on)) { background: rgba(255,255,255,.78); color: #161d3c; box-shadow: inset 0 0 0 1px rgba(36,44,90,.2), 0 1px 4px rgba(60,70,130,.16); }
+:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(.np-top .icon-btn, .np-top .pill:not(.on)):hover { background: #ffffff; }
+:root[data-theme="glass"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top .pill.on { background: #1c2448; color: #ffffff; box-shadow: 0 4px 14px rgba(28,36,72,.25); }
 
 /* 「歌詞來源」、演出者、時間：原本太淡 */
 :root[data-theme="glass"] .np-top .src { color: rgba(var(--np-ink), .78); }

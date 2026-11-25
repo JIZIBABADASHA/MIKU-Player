@@ -72,7 +72,7 @@
 
 /* ───────────────────── 日／夜版本的補充修正 ───────────────────── */
 /* 白天：正在播放的封面陰影改成淡淡的木色，不是黑色的光暈 */
-:root[data-theme="wood"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(60,42,24,.08), 0 30px 60px -12px rgba(70,48,24,.38); }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-cover { box-shadow: 0 0 0 1px rgba(60,42,24,.08), 0 30px 60px -12px rgba(70,48,24,.38); }
 
 /* 白天：側欄是較深的橡木，上面的數字和小標用深一點的字色才看得清楚 */
 :root[data-theme="wood"]:where([data-mode="day"]) #sidebar { --text-3: #6f5c45; }
@@ -422,7 +422,7 @@
   background: var(--surface-2);
   box-shadow: 0 30px 60px -20px rgba(var(--shadow-rgb), .8), 0 4px 8px rgba(var(--shadow-rgb), .35);
 }
-:root[data-theme="wood"]:where([data-mode="day"]) #np .np-cover { box-shadow: 0 30px 60px -22px rgba(70,48,24,.55), 0 4px 8px rgba(70,48,24,.2); }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-cover { box-shadow: 0 30px 60px -22px rgba(70,48,24,.55), 0 4px 8px rgba(70,48,24,.2); }
 
 /* 窄或矮的視窗裡封面變小（responsive.css）：木框跟著變細 */
 @media (orientation: landscape) and (max-height: 620px) {:root[data-theme="wood"] #np .np-cover { border-width: 9px; border-image-width: 9px; }
@@ -433,12 +433,12 @@
 :root[data-theme="wood"] .np-artist { color: rgba(var(--np-ink), .84); }
 :root[data-theme="wood"] .np-badges .badge { border-radius: 3px; background: var(--wd-np-btn); color: var(--wd-np-btn-ink); box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .55); }
 :root[data-theme="wood"] .np-badges .badge.hi { color: var(--teal-2); }
-:root[data-theme="wood"]:where([data-mode="day"]) .np-badges .badge.hi { color: #6a4512; }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-badges .badge.hi { color: #6a4512; }
 :root[data-theme="wood"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
 :root[data-theme="wood"] .np-seek .times { color: rgba(var(--np-ink), .82); }
 :root[data-theme="wood"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .9); }
 :root[data-theme="wood"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
-:root[data-theme="wood"]:where([data-mode="day"]) .np-ctrl .icon-btn.on { color: #6a4512; }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-ctrl .icon-btn.on { color: #6a4512; }
 :root[data-theme="wood"] .np-top :is(.icon-btn, .pill) {
   background: var(--wd-np-btn); color: var(--wd-np-btn-ink); border: 0;
   box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 rgba(255,240,210,.12), 0 2px 0 rgba(10,6,2,.35), 0 4px 12px rgba(0,0,0,.25);
@@ -449,23 +449,24 @@
   background: var(--wd-brass); color: var(--wd-brass-ink);
   box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(10,6,2,.35), 0 4px 12px rgba(0,0,0,.25);
 }
-:root[data-theme="wood"]:where([data-mode="day"]) .np-top :is(.icon-btn, .pill) { box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 #fff, 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
-:root[data-theme="wood"]:where([data-mode="day"]) .np-top .pill.on { box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top :is(.icon-btn, .pill) { box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 #fff, 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top .pill.on { box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
 :root[data-theme="wood"] .np-top .src { padding: 3px 8px; border-radius: 3px; color: var(--wd-np-btn-ink); background: var(--wd-np-btn); opacity: .92; }
 :root[data-theme="wood"] .np-top .src:empty { padding: 0; background: none; }
 
 /* 歌詞：還沒唱到、已經唱過的行不要淡到看不清楚，翻譯行也深一點 */
 :root[data-theme="wood"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .64; }
-:root[data-theme="wood"]:where([data-mode="day"]) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
 :root[data-theme="wood"] .ly-line { border-radius: 4px; }
 :root[data-theme="wood"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
-:root[data-theme="wood"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+:root[data-theme="wood"]:where(:not([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio)))) .ly-line.on { text-shadow: 0 1px 2px rgba(0,0,0,.3); }
 
 /* ───────────── 17 · 動態：按鍵下沉的動畫在「減少動態」時關掉 ───────────── */
 @media (prefers-reduced-motion: reduce) {:root[data-theme="wood"] :is(.btn, .round-btn, .playbtn):active { transform: none; }
 :root[data-theme="wood"] .nav a.on { transition-delay: 0s; }
 }
 :root[data-theme="wood"] { --dp-ink: var(--teal-2); }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
 
 /* 木質調：像音響面板上嵌進去的一塊：小圓角、木鍵邊框、內凹一點 */
 :root[data-theme="wood"] .dp-sect .dp-group {
@@ -474,4 +475,4 @@
 }
 :root[data-theme="wood"]:where([data-mode="day"]) .dp-sect .dp-group { background: #f6efe2; box-shadow: inset 0 1px 2px rgba(90,60,24,.12), 0 1px 0 #fff; }
 :root[data-theme="wood"] .dp-sect .dp-group.dp-off { box-shadow: none; background: transparent; }
-:root[data-theme="wood"]:where([data-mode="day"]) #lyrics { --ly-dim: .48; }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics { --ly-dim: .48; }

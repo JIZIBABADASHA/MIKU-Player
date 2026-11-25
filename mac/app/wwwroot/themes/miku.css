@@ -14,7 +14,7 @@
 :root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 8px 24px rgba(16,154,148,.45); }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .slider .track { background: rgba(255,255,255,.14); }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .slider .fill, :root[data-theme="miku"]:where(:not([data-mode="night"])) .slider:hover .fill { background: linear-gradient(90deg, #2cbcb4, #5fdcd3); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob, :root[data-theme="miku"]:where(:not([data-mode="night"])) .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(226,53,133,.22), 0 2px 8px rgba(226,53,133,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob, :root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(226,53,133,.22), 0 2px 8px rgba(226,53,133,.45); }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 
 /* (not the Hi-Res / DSD / upsampling plates: their own grounds; with #bar this rule outweighed them and the gold plate went dark under its dark text) */
@@ -100,23 +100,23 @@
 :root[data-theme="miku"]:where(:not([data-mode="night"])) ::-webkit-scrollbar-thumb:hover { background-color: rgba(20,90,95,.3); }
 
 /* 正在播放：明亮水色、六角格紋 */
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-bg .layer.b.on { opacity: 0; }
 
 /* (not shown in this theme: it must not keep turning either. An animated layer, even one that is fully transparent,
    makes the whole window be drawn again for every frame of the screen, for as long as the page is open.) */
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-bg .layer.b { animation: none; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-cover { border-radius: 18px; box-shadow: 0 0 0 5px rgba(255,255,255,.85), 0 40px 80px -20px rgba(16,72,78,.45); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-title { font-weight: 750; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-badges .badge { background: rgba(255,255,255,.75); color: #45585c; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-badges .badge.hi { color: #0b847e; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-seek .slider .track { background: rgba(20,70,75,.14); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-ctrl .icon-btn.on { color: #0b847e; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-ctrl .playbtn { box-shadow: 0 0 0 6px rgba(44,188,180,.16), 0 14px 30px -6px rgba(16,154,148,.55); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-top .icon-btn { background: rgba(255,255,255,.7); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-bg .layer.b { animation: none; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-cover { border-radius: 18px; box-shadow: 0 0 0 5px rgba(255,255,255,.85), 0 40px 80px -20px rgba(16,72,78,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-title { font-weight: 750; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-badges .badge { background: rgba(255,255,255,.75); color: #45585c; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-badges .badge.hi { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-seek .slider .track { background: rgba(20,70,75,.14); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-ctrl .icon-btn.on { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-ctrl .playbtn { box-shadow: 0 0 0 6px rgba(44,188,180,.16), 0 14px 30px -6px rgba(16,154,148,.55); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-top .icon-btn { background: rgba(255,255,255,.7); }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .pill { background: rgba(255,255,255,.7); }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .pill.on { background: linear-gradient(160deg, #22b2ab, #109a94); color: #fff; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .ly-line .w { background-image: linear-gradient(90deg, #0b847e 0, #0b847e var(--p, 0%), rgba(24,44,48,.38) var(--p, 0%)); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .ly-line:hover { background: rgba(255,255,255,.55); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line .w { background-image: linear-gradient(90deg, #0b847e 0, #0b847e var(--p, 0%), rgba(24,44,48,.38) var(--p, 0%)); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .ly-line:hover { background: rgba(255,255,255,.55); }
 
 /* 側欄：夜裡的灰色襯衫，底部六角格紋微光 */
 :root[data-theme="miku"]:where([data-mode="night"]) #sidebar { position: relative; isolation: isolate; border-right: 1px solid rgba(160,230,230,.07); }
@@ -163,6 +163,7 @@
 :root[data-theme="miku"]:where([data-mode="night"]) .slider .track { background: rgba(160,230,230,.13); }
 :root[data-theme="miku"]:where([data-mode="night"]) .slider .fill, :root[data-theme="miku"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(90deg, #22aaa2, #6fe3da); box-shadow: 0 0 8px rgba(57,197,187,.6); }
 :root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob, :root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .knob { background: #ff5aa5; opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(232,64,143,.25), 0 0 12px rgba(232,64,143,.75); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-seek .slider .knob { background: #ff5aa5; opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(232,64,143,.25), 0 0 12px rgba(232,64,143,.75); }
 :root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 
 /* 列表 */
@@ -197,12 +198,18 @@
 
 /* 正在播放：夜色舞台 */
 :root[data-theme="miku"]:where([data-mode="night"]) .np-cover { border-radius: 18px; box-shadow: 0 0 0 1px rgba(160,240,235,.14), 0 0 80px rgba(57,197,187,.18), 0 40px 90px -20px rgba(0,0,0,.8); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-cover { border-radius: 18px; box-shadow: 0 0 0 1px rgba(160,240,235,.14), 0 0 80px rgba(57,197,187,.18), 0 40px 90px -20px rgba(0,0,0,.8); }
 :root[data-theme="miku"]:where([data-mode="night"]) .np-ctrl .icon-btn.on { color: #7fe3db; }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-ctrl .icon-btn.on { color: #7fe3db; }
 :root[data-theme="miku"]:where([data-mode="night"]) .np-ctrl .playbtn { box-shadow: 0 0 0 6px rgba(57,197,187,.16), 0 0 34px rgba(57,197,187,.55); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-ctrl .playbtn { box-shadow: 0 0 0 6px rgba(57,197,187,.16), 0 0 34px rgba(57,197,187,.55); }
 :root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .track { background: rgba(235,250,250,.16); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-seek .slider .track { background: rgba(235,250,250,.16); }
 :root[data-theme="miku"]:where([data-mode="night"]) .pill.on { background: var(--play-bg); color: #062a28; box-shadow: 0 0 16px rgba(57,197,187,.45); }
 :root[data-theme="miku"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 14px rgba(57,197,187,.26), 0 1px 2px rgba(0,0,0,.35); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line.on { text-shadow: 0 0 14px rgba(57,197,187,.26), 0 1px 2px rgba(0,0,0,.35); }
 :root[data-theme="miku"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #e6fffc 0, #e6fffc var(--p, 0%), rgba(235,250,250,.42) var(--p, 0%)); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line .w { background-image: linear-gradient(90deg, #e6fffc 0, #e6fffc var(--p, 0%), rgba(235,250,250,.42) var(--p, 0%)); }
 
 /* 白天：側欄小標淡了一點點，加深 */
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-label { color: #6f878a; }
@@ -218,6 +225,7 @@
 
 /* 有自己主色的主題：希臘字標誌用主色（大字，對面板都在 4.5:1 以上） */
 :root[data-theme="miku"] { --dp-ink: var(--teal-2); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
 
 /* ───────────── 3 · 各主題的卡片 ───────────── */
 /* 未來：圓角 14px（和 DSP 卡片一樣），日＝淡青灰底＋青灰框；夜＝透一點亮的青色玻璃 */
