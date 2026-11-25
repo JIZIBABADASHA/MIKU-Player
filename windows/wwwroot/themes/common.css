@@ -1267,6 +1267,7 @@
 :root:not([data-theme="gold"]) #gold-glints, :root.lite-gold-coins #gold-glints { display: none !important; }
 @media (prefers-reduced-motion: reduce) {#gold-glints { display: none !important; }
 }
+@keyframes gd2-sweep { 0%, 55% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
 
 /* ═════════════════════════════ 霓虹賽博（neon）· 賽博龐克 HUD ═════════════════════════════
    像科幻電影裡的抬頭顯示器（HUD），而不是儀表板（未來才是方正的儀器面板、刻度燈、不發光）：
@@ -1949,6 +1950,8 @@
 /* 歌詞欄後面那層安靜的底：跟著新底色 */
 [data-theme="vinyl"] { --np-calm: rgba(229,234,221,.72); }
 [data-theme="vinyl"]:where([data-mode="night"]) { --np-calm: rgba(29,42,35,.66); }
+@keyframes vn-ly-out { from { translate: .9em 0; } to { translate: 0 0; } }
+@keyframes vn-ly-spin { to { rotate: 1turn; } }
 
 /* ═════════════════════════════ 木質調（wood）· 胡桃木音響櫃 ═════════════════════════════
    像一台七〇年代的類比音響：胡桃木的櫃身、黃銅的按鍵與旋鈕、暖色的燈。

@@ -701,6 +701,230 @@
 }
 :root[data-theme="gold"].lite-gold-shine .page-head h1, :root[data-theme="gold"].lite-gold-shine .page-head h1::after, :root[data-theme="gold"].lite-gold-shine #sidebar::before, :root[data-theme="gold"].lite-gold-shine .nav-pill::after, :root[data-theme="gold"].lite-gold-shine .rail-head h2::after, :root[data-theme="gold"].lite-gold-shine #topbar::after, :root[data-theme="gold"].lite-gold-shine #bar::after, :root[data-theme="gold"].lite-gold-shine .playbtn::after, :root[data-theme="gold"].lite-gold-shine .card:hover .art::after { animation: none !important; }
 :root[data-theme="gold"].lite-gold-shine #sidebar::before, :root[data-theme="gold"].lite-gold-shine #bar::after { display: none; }
+
+/* ═════════════════════ 第二版：能多浮誇就多浮誇 ═════════════════════
+   專輯頁的曲目表、正在播放的名牌、歌詞全部重做：每一列是一條金條、曲號是一枚金幣、播放中的那列是紅絲絨配金繩和皇冠、
+   碟號是一條紅緞帶；正在播放的名牌是紅絲絨板、四角鑲寶石、格式標籤是三顆寶石；歌詞唱到的那句掛上一塊金框紅絲絨招牌，
+   字是金箔字，每隔幾秒一道白光掃過。會動的（掃光）跟著輕量化的「金光」開關。 */
+:root[data-theme="gold"] {
+  --gd2-velvet: radial-gradient(120% 140% at 30% 0%, #d01f3e 0%, #9e0b26 38%, #6e0418 72%, #4a0210 100%);
+  --gd2-velvet-n: radial-gradient(120% 140% at 30% 0%, #b3142f 0%, #85071f 38%, #5a0314 72%, #3a010c 100%);
+  --gd2-foil: linear-gradient(180deg, #fffbe0 0%, #ffe88a 22%, #f5c443 45%, #b8800e 52%, #e9b53a 62%, #fff0a8 82%, #d9a024 100%);
+  --gd2-rope: repeating-linear-gradient(135deg, #fff2b0 0 2px, #e2a930 2px 4px, #8a5a08 4px 5px);
+  --gd2-bar: linear-gradient(180deg, #fff7d4 0%, #fbe39a 18%, #f0c55e 50%, #e2ad3c 51%, #f2c962 80%, #fbe29a 100%);
+  --gd2-bar-2: linear-gradient(180deg, #fff2c6 0%, #f6d886 18%, #e9b94c 50%, #d99f30 51%, #ebbd55 80%, #f7d98c 100%);
+  --gd2-bar-n: linear-gradient(180deg, #6a2c36 0%, #55202a 50%, #4a1922 51%, #56212b 100%);
+  --gd2-bar-n2: linear-gradient(180deg, #5f2630 0%, #4b1b24 50%, #41141d 51%, #4d1c26 100%);
+}
+
+/* ── 曲目表：表頭是一條紅漆金字的橫匾，兩端各一顆寶石 ── */
+:root:root[data-theme="gold"] .thead {
+  color: var(--gd-gold-ink); font-weight: 900; letter-spacing: .16em; text-shadow: 0 1px 0 #3d0008, 0 0 10px rgba(255,200,80,.45);
+  background: var(--gd-gem-r) 6px 50% / 22px 22px no-repeat, var(--gd-gem-r) calc(100% - 6px) 50% / 22px 22px no-repeat, var(--gd2-velvet);
+  border-radius: 6px; height: 42px; padding-left: 34px; padding-right: 34px;
+  box-shadow: 0 0 0 2px #f8d470, 0 0 0 3.5px #3d2600, 0 0 0 6px #e9b949, 0 0 0 7px #3d2600, 0 8px 16px -6px rgba(0,0,0,.5);
+  margin: 8px 7px 14px;
+}
+:root:root[data-theme="gold"]:where([data-mode="night"]) .thead { background: var(--gd-gem-r) 6px 50% / 22px 22px no-repeat, var(--gd-gem-r) calc(100% - 6px) 50% / 22px 22px no-repeat, var(--gd2-velvet-n); }
+
+/* ── 每一列＝一條金條：上亮下暗的斜面，一條一條疊起來；單雙列的金色深淺不同 ── */
+:root:root[data-theme="gold"] .tracks .row {
+  margin-bottom: 5px; border-radius: 5px; background: var(--gd2-bar);
+  box-shadow: inset 0 1px 0 rgba(255,255,240,.95), inset 0 -2px 0 rgba(110,70,0,.35), 0 0 0 1px #8a5a08, 0 3px 0 #6b4506, 0 5px 8px -2px rgba(60,30,0,.35);
+}
+:root:root[data-theme="gold"] .tracks .row:nth-child(even of .row) { background: var(--gd2-bar-2); }
+:root:root[data-theme="gold"]:where([data-mode="night"]) .tracks .row { background: var(--gd2-bar-n); box-shadow: inset 0 1px 0 rgba(255,214,120,.35), inset 0 -2px 0 rgba(0,0,0,.3), 0 0 0 1px #c9952e, 0 3px 0 #1a0004, 0 5px 8px -2px rgba(0,0,0,.45); }
+:root:root[data-theme="gold"]:where([data-mode="night"]) .tracks .row:nth-child(even of .row) { background: var(--gd2-bar-n2); }
+:root:root[data-theme="gold"] .tracks .row:hover { background: linear-gradient(180deg, #fffdf0, #fff0b8 40%, #f8d778 60%, #fde7a4); box-shadow: inset 0 1px 0 #fff, 0 0 0 1.5px #3d2600, 0 3px 0 #6b4506, 0 0 18px rgba(255,236,150,.9); }
+:root:root[data-theme="gold"]:where([data-mode="night"]) .tracks .row:hover { background: linear-gradient(180deg, #7d3541, #642631 50%, #55202a); box-shadow: inset 0 1px 0 rgba(255,214,120,.5), 0 0 0 1.5px #f8d470, 0 3px 0 #1a0004, 0 0 18px rgba(255,200,80,.35); }
+:root:root[data-theme="gold"] .tracks .row .tt div:first-child { font-weight: 800; color: #2a1600; }
+:root:root[data-theme="gold"]:where([data-mode="night"]) .tracks .row .tt div:first-child { color: #ffe9b0; }
+:root:root[data-theme="gold"] .tracks .row :is(.tt .a, .al, .fmt, .d) { color: #5a3a06; font-weight: 600; }
+:root:root[data-theme="gold"]:where([data-mode="night"]) .tracks .row :is(.tt .a, .al, .fmt, .d) { color: #f3cf86; }
+
+/* 曲號＝一枚金幣（數字壓在幣面上），播放中那列是紅寶石幣 */
+:root:root[data-theme="gold"] .tracks .row .n::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; z-index: 0;
+  background: radial-gradient(circle, transparent 0 11.5px, rgba(110,70,0,.55) 12px 12.6px, transparent 13px), var(--gd-coin);
+  box-shadow: 0 0 0 1.5px #4a2f02, inset 0 1px 0 rgba(255,255,240,.9), 0 2px 3px rgba(60,30,0,.45);
+}
+:root:root[data-theme="gold"] .tracks .row .n > span { position: relative; z-index: 1; color: #3d2200; font-weight: 900; font-size: 13px; text-shadow: 0 1px 0 rgba(255,250,220,.8); }
+:root:root[data-theme="gold"] .tracks .row .n .pi { z-index: 1; color: #3d2200; }
+:root:root[data-theme="gold"] .tracks .row .n .eq { z-index: 1; }
+:root:root[data-theme="gold"] .tracks .row.playing .n::before { background: radial-gradient(circle at 36% 30%, #ffb3c0 0 10%, #e0304e 30%, #a50f2a 60%, #5a0414 100%); box-shadow: 0 0 0 2px #f8d470, 0 0 0 3px #3d2600, 0 0 12px rgba(255,80,110,.6); }
+:root:root[data-theme="gold"] .tracks .row.playing .n .eq i { background: linear-gradient(180deg, #fffbe0, #ffd770); }
+
+/* 播放中：紅絲絨，外面一圈扭成麻花的金繩，左上角斜戴一頂皇冠，右邊一顆大鑽石 */
+:root:root[data-theme="gold"] .tracks .row.playing {
+  background: var(--gd-diamond-img) calc(100% - 14px) 50% / 28px 24px no-repeat, var(--gd2-velvet);
+  box-shadow: 0 0 0 3px transparent, 0 0 0 1px #3d2600, 0 0 0 4px #e9b949, 0 0 0 5px #3d2600, 0 6px 0 #3d2600, 0 0 26px rgba(255,190,60,.75);
+  outline: 3px solid transparent; position: relative; z-index: 1; margin: 10px 0 12px;
+}
+:root:root[data-theme="gold"] .tracks .row.playing::before {
+  content: ""; position: absolute; inset: -4px; border-radius: 8px; pointer-events: none; padding: 3px;
+  background: var(--gd2-rope); -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+:root:root[data-theme="gold"] .tracks .row.playing::after {
+  content: ""; position: absolute; left: -12px; top: -15px; width: 34px; height: 25px; pointer-events: none; rotate: -22deg;
+  background: var(--gd-crown) center / contain no-repeat; filter: drop-shadow(0 2px 1px rgba(60,20,0,.6));
+}
+:root:root[data-theme="gold"] .tracks .row.playing .tt div:first-child {
+  color: transparent; background: var(--gd2-foil); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 1px 0 #3d0008) drop-shadow(0 0 6px rgba(255,200,80,.5)); font-weight: 900;
+}
+:root:root[data-theme="gold"] .tracks .row.playing :is(.tt .a, .al, .fmt, .d) { color: #ffe2a8; }
+:root:root[data-theme="gold"] .tracks .row.playing .d { padding-right: 40px; }
+
+/* 碟號：一條紅緞帶（燕尾），金字，前面一顆鑽石 */
+:root:root[data-theme="gold"] .tracks .disc {
+  width: fit-content; margin: 22px 0 12px 4px; padding: 7px 34px 7px 40px; color: var(--gd-gold-ink); font-weight: 900; font-size: 13px; letter-spacing: .22em;
+  text-shadow: 0 1px 0 #3d0008;
+  background: var(--gd-diamond-img) 12px 50% / 20px 17px no-repeat, var(--gd2-velvet);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 50%, 100% 100%, 0 100%);
+  box-shadow: inset 0 2px 0 #f8d470, inset 0 -2px 0 #f8d470;
+}
+
+/* ── 專輯頁大標題：深色立體字疊三層金邊（日）／金箔字（夜）；「專輯」是一小條紅緞帶 ── */
+:root:root[data-theme="gold"] .hero h1 {
+  color: #3a0610; text-shadow: 1px 1px 0 #fff0b0, 2px 2px 0 #f2c14e, 3px 3px 0 #c48a16, 4px 4px 0 #8a5a08, 5px 5px 0 #4a2f02, 7px 8px 10px rgba(60,20,0,.45);
+}
+:root:root[data-theme="gold"]:where([data-mode="night"]) .hero h1 { color: #ffe08a; text-shadow: 1px 1px 0 #c48a16, 2px 2px 0 #8a5a08, 3px 3px 0 #4a2f02, 4px 4px 0 #1a0004, 0 0 30px rgba(255,200,80,.45); }
+:root:root[data-theme="gold"] .hero .kind {
+  display: inline-block; padding: 4px 22px 4px 12px; color: var(--gd-gold-ink); font-weight: 900; letter-spacing: .3em; text-shadow: 0 1px 0 #3d0008;
+  background: var(--gd2-velvet); clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%); box-shadow: inset 0 1.5px 0 #f8d470, inset 0 -1.5px 0 #f8d470;
+}
+:root:root[data-theme="gold"] .hero .by, :root:root[data-theme="gold"] .hero .by a { font-weight: 800; }
+
+/* ── 格式標籤（專輯頁、正在播放）：三顆鑲在金托裡的寶石：翡翠、藍寶石、紫水晶，金字 ── */
+:root:root:root[data-theme="gold"] :is(.hero .facts, #np .np-badges) .badge:not(#_) {
+  --gem: radial-gradient(120% 140% at 30% 15%, #8ff0c4 0%, #19a46c 28%, #087446 58%, #03442a 100%);
+  border-radius: 999px; padding: 3px 12px; color: #fff8dc; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0,0,0,.6);
+  background: linear-gradient(170deg, rgba(255,255,255,.55) 0 22%, transparent 34%) padding-box, var(--gem) padding-box;
+  border: 2px solid transparent; background-clip: padding-box;
+  box-shadow: 0 0 0 2px #f8d470, 0 0 0 3px #4a2f02, inset 0 -3px 6px rgba(0,0,0,.35), 0 3px 6px rgba(60,30,0,.45);
+}
+:root:root:root[data-theme="gold"] :is(.hero .facts, #np .np-badges) .badge:nth-child(3n+2):not(#_) { --gem: radial-gradient(120% 140% at 30% 15%, #a9c8ff 0%, #2c62d6 28%, #163c98 58%, #0a1f5c 100%); }
+:root:root:root[data-theme="gold"] :is(.hero .facts, #np .np-badges) .badge:nth-child(3n):not(#_) { --gem: radial-gradient(120% 140% at 30% 15%, #f0b8ff 0%, #9b3fd0 28%, #6a1f9a 58%, #3e0b5e 100%); }
+:root:root:root[data-theme="gold"] .hero .facts .badge:not(#_):not(#_) { --gem: radial-gradient(120% 140% at 30% 15%, #8ff0c4 0%, #19a46c 28%, #087446 58%, #03442a 100%); margin-left: 6px; }
+
+/* ── 正在播放的名牌：紅絲絨板、外框三圈金、四角各鑲一顆寶石；歌名是金箔字 ── */
+:root:root[data-theme="gold"] #np .np-info {
+  --np-ink: 255, 236, 200; --teal-2: #ffd770;
+  border: 6px solid transparent; border-radius: 6px; padding: 18px 22px 10px;
+  background:
+    var(--gd-gem) 0 0 / 26px 26px no-repeat, var(--gd-gem) 100% 0 / 26px 26px no-repeat,
+    var(--gd-gem-r) 0 100% / 26px 26px no-repeat, var(--gd-gem-r) 100% 100% / 26px 26px no-repeat,
+    radial-gradient(90% 60% at 50% 0%, rgba(255,140,160,.25), transparent 70%) padding-box,
+    var(--gd2-velvet) padding-box, var(--gd-frame-grad) border-box;
+  background-origin: border-box;
+  box-shadow: 0 0 0 1.5px #3d2600, 0 0 0 4px #f8d470, 0 0 0 5.5px #3d2600, inset 0 0 0 1.5px #3d0008, inset 0 0 26px rgba(0,0,0,.45), 0 18px 36px -12px rgba(0,0,0,.6), 0 0 40px rgba(255,200,80,.45);
+}
+:root:root[data-theme="gold"]:where([data-mode="night"]) #np .np-info {
+  --np-ink: 255, 236, 200; --teal-2: #ffd770;
+  background:
+    var(--gd-gem) 0 0 / 26px 26px no-repeat, var(--gd-gem) 100% 0 / 26px 26px no-repeat,
+    var(--gd-gem-r) 0 100% / 26px 26px no-repeat, var(--gd-gem-r) 100% 100% / 26px 26px no-repeat,
+    radial-gradient(90% 60% at 50% 0%, rgba(255,140,160,.2), transparent 70%) padding-box,
+    var(--gd2-velvet-n) padding-box, var(--gd-frame-grad) border-box;
+  background-origin: border-box;
+}
+:root:root[data-theme="gold"] #np .np-title {
+  color: transparent; background: var(--gd2-foil); -webkit-background-clip: text; background-clip: text; font-weight: 900;
+  filter: drop-shadow(0 2px 0 #3d0008) drop-shadow(0 0 10px rgba(255,200,80,.45));
+}
+:root:root[data-theme="gold"] #np .np-artist, :root:root[data-theme="gold"] #np .np-artist a { color: #ffe6b8; font-weight: 700; }
+:root:root[data-theme="gold"] #np .np-badges { gap: 10px; margin-top: 12px; }
+
+/* 進度條：一條金鍊子（一節一節），走過的是亮金；拉桿是一顆鑽石 */
+:root:root[data-theme="gold"] #np .np-seek .slider .track {
+  height: 6px; border-radius: 3px;
+  background: radial-gradient(ellipse 4px 2.4px at 50% 50%, transparent 0 60%, #c99320 70% 100%) 0 0 / 7px 6px repeat-x, rgba(0,0,0,.4);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.5);
+}
+:root:root[data-theme="gold"] #np .np-seek .slider .fill { background: linear-gradient(180deg, #fffbe0, #ffd770 40%, #c48a16) !important; box-shadow: 0 0 10px rgba(255,214,110,.9); }
+:root:root[data-theme="gold"] #np .np-seek .slider .knob {
+  width: 18px; height: 18px; border-radius: 2px; rotate: 45deg;
+  background: linear-gradient(135deg, #ffffff 0 30%, #dff1ff 45%, #9ec0dc 70%, #ffffff 100%);
+  box-shadow: 0 0 0 1.5px #3d2600, 0 0 0 3px #f8d470, 0 0 14px rgba(255,255,255,.9);
+}
+:root:root[data-theme="gold"] #np .np-seek .times { color: #ffe2a8; text-shadow: 0 1px 0 #3d0008; }
+:root:root[data-theme="gold"] #np .np-ctrl .icon-btn { color: #3d2200; background: var(--gd-coin); box-shadow: 0 0 0 1.5px #4a2f02, inset 0 1px 0 rgba(255,255,240,.9), 0 3px 0 #3d2600, 0 4px 8px rgba(0,0,0,.4); }
+:root:root[data-theme="gold"] #np .np-ctrl .icon-btn.on { color: #a50f2a; box-shadow: 0 0 0 1.5px #4a2f02, 0 0 0 3.5px #ff5c7a, inset 0 1px 0 rgba(255,255,240,.9), 0 3px 0 #3d2600, 0 0 14px rgba(255,80,110,.7); }
+
+/* ── 歌詞：唱到的那句掛一塊金框紅絲絨招牌，金箔字；兩端各一顆鑽石；每隔幾秒一道白光從招牌上掃過 ── */
+:root[data-theme="gold"] #lyrics { --ly-fit: 1; --ly-gap: 18px; --ly-blur: 0; }
+:root:root[data-theme="gold"] #lyrics .ly-line { left: 30px; padding: 10px 36px; isolation: isolate; }
+:root:root[data-theme="gold"] #lyrics .ly-line.on { color: #ffe08a; opacity: 1; text-shadow: 0 2px 0 #3d0008, 0 0 14px rgba(255,200,80,.6); font-weight: 900; }
+:root:root[data-theme="gold"] #lyrics .ly-line.on .tr { color: #ffe6b8; text-shadow: 0 1px 0 #3d0008; }
+:root:root[data-theme="gold"] #lyrics .ly-line.on .w { background-image: linear-gradient(90deg, #fffbe0 0, #ffe08a var(--p, 0%), rgba(255,224,138,.5) var(--p, 0%)); }
+:root:root[data-theme="gold"] #lyrics .ly-line.on::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 6px; pointer-events: none;
+  background:
+    var(--gd-diamond-img) 8px 50% / 20px 17px no-repeat, var(--gd-diamond-img) calc(100% - 8px) 50% / 20px 17px no-repeat,
+    radial-gradient(90% 70% at 40% 0%, rgba(255,150,170,.3), transparent 70%), var(--gd2-velvet);
+  box-shadow: 0 0 0 2px #f8d470, 0 0 0 3.5px #3d2600, 0 0 0 6px #e9b949, 0 0 0 7.5px #3d2600, 0 10px 20px -6px rgba(0,0,0,.55), 0 0 34px rgba(255,200,80,.55);
+}
+:root:root[data-theme="gold"] #lyrics .ly-line.on::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 6px; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.55) 48%, rgba(255,240,190,.2) 52%, transparent 60%) -150% 0 / 250% 100% no-repeat;
+  animation: gd2-sweep 4.5s ease-in-out infinite;
+}
+:root:root[data-theme="gold"] #lyrics .ly-line.gap::before, :root:root[data-theme="gold"] #lyrics .ly-line.gap::after { content: none; }
+:root:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics .ly-line:not(.on):not(:hover) { opacity: .85; }
+:root:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics .ly-line:not(.on) { color: #3a2200; font-weight: 800; text-shadow: 0 1px 0 rgba(255,250,220,.7); }
+:root.lite-gold-shine[data-theme="gold"] #lyrics .ly-line.on::after { animation: none; content: none; }
+@media (prefers-reduced-motion: reduce) {:root:root[data-theme="gold"] #lyrics .ly-line.on::after { animation: none; content: none; }
+}
+:root:root[data-theme="gold"]:where([data-mode="night"]) #lyrics .ly-line:not(.on) { color: #f6dca0; font-weight: 800; text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+:root:root[data-theme="gold"]:where([data-mode="night"]) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+
+/* ── 整面金牆再加一圈從吊燈放射出來的光芒（固定在視窗上，頂列變實心時也接得起來） ── */
+:root[data-theme="gold"] {
+  --gd2-rays: repeating-conic-gradient(from 0deg at 86% -10%, rgba(255,255,236,.3) 0deg 3.5deg, rgba(255,255,236,0) 5deg 10deg, rgba(255,255,236,0) 10deg 12deg);
+  --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd2-rays), var(--gd-leaf) 0 0 / 144px 144px, radial-gradient(760px 420px at 86% -10%, rgba(255,252,236,.8), transparent 62%), var(--gd-polish);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) {
+  --gd2-rays: repeating-conic-gradient(from 0deg at 88% -14%, rgba(255,206,110,.12) 0deg 3.5deg, rgba(255,206,110,0) 5deg 10deg, rgba(255,206,110,0) 10deg 12deg);
+  --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd2-rays), var(--gd-damask) 0 0 / 64px 104px, var(--gd-sheen), radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%), radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%), #3c1921;
+}
+:root:root[data-theme="gold"] :is(:is(#topbar.solid, .set-band), .set-band) {
+  background:
+    var(--gd-glitter) var(--gd-ox) var(--gd-oy) / 150px 150px,
+    var(--gd2-rays) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    var(--gd-leaf) var(--gd-ox) var(--gd-oy) / 144px 144px,
+    radial-gradient(760px 420px at 86% -10%, rgba(255,252,236,.8), transparent 62%) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    var(--gd-polish) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat;
+}
+:root:root[data-theme="gold"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) {
+  background:
+    var(--gd-glitter) var(--gd-ox) var(--gd-oy) / 150px 150px,
+    var(--gd2-rays) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    var(--gd-damask) var(--gd-ox) var(--gd-oy) / 64px 104px,
+    var(--gd-sheen) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    #3c1921;
+}
+
+/* ── 首頁每一排的標題：掛成一塊紅絲絨金框的小招牌（元寶在招牌裡、閃光在角上）；「顯示全部」是一顆金牌按鈕 ── */
+:root:root[data-theme="gold"] .rail-head h2 {
+  padding: 7px 18px 7px 10px; border-radius: 4px; color: #ffe08a; font-weight: 800; text-shadow: 0 2px 0 #3d0008, 0 0 10px rgba(255,200,80,.5);
+  background: radial-gradient(120% 90% at 50% -20%, rgba(255,140,150,.35), transparent 60%), var(--gd2-velvet);
+  box-shadow: 0 0 0 2px #f8d470, 0 0 0 3.5px #3d2600, 0 4px 0 1.5px #3d2600, 0 8px 14px rgba(60,20,0,.4);
+}
+:root:root[data-theme="gold"] .rail-head h2::after { left: auto; right: -9px; top: -10px; width: 20px; height: 20px; }
+:root:root[data-theme="gold"] .rail-head > a, :root:root[data-theme="gold"] .rail-head .more {
+  padding: 4px 12px; border-radius: 999px; color: var(--gd-ink); font-weight: 800; background: var(--gd-plaque); box-shadow: var(--gd-plaque-sh);
+}
+
+/* 正在播放整頁也放光芒：從上緣中間的金珠串後面放射出來，在封面和歌詞後面 */
+:root[data-theme="gold"] {
+  --np-veil: var(--gd-glitter) 0 0 / 150px 150px, repeating-conic-gradient(from 0deg at 50% -6%, rgba(255,255,236,.3) 0deg 3.5deg, rgba(255,255,236,0) 5deg 12deg), var(--gd-leaf) 0 0 / 144px 144px, var(--gd-polish-a);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) {
+  --np-veil: var(--gd-glitter) 0 0 / 150px 150px, repeating-conic-gradient(from 0deg at 50% -6%, rgba(255,206,110,.12) 0deg 3.5deg, rgba(255,206,110,0) 5deg 12deg), var(--gd-damask) 0 0 / 64px 104px, radial-gradient(120% 95% at 50% 44%, rgba(80,24,36,.4), rgba(46,14,22,.82));
+}
 :root[data-theme="gold"] { --dp-ink: #6b4604; }
 :root[data-theme="gold"]:where([data-mode="night"]) { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
 :root[data-theme="gold"] .dp-sect .dp-greek {

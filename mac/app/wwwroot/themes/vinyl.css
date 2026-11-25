@@ -465,6 +465,51 @@
 @media (prefers-reduced-motion: reduce) {:root[data-theme="vinyl"] .card:not(.artist)::before, :root[data-theme="vinyl"] .card:not(.artist) .art { transition: none; }
 :root[data-theme="vinyl"] .np-mini .art img { animation: none; }
 }
+
+/* ───────────── 歌詞：唱到的那句像一張從紙封套裡抽出來的唱片 ─────────────
+   那一句印在一張奶油色的紙封套上（夜：深綠的封套、奶油色字），封套左邊露出半張黑膠，正在以 33⅓ 轉轉動；
+   換句時唱片從封套裡滑出來一點。暫停、「減少動態」、輕量化的「關閉黑膠持續旋轉」時唱片不轉。 */
+:root[data-theme="vinyl"] #lyrics { --ly-fit: 1; --ly-gap: 16px; }
+:root:root[data-theme="vinyl"] #lyrics .ly-line { left: 1.25em; padding: 9px 22px 10px 26px; isolation: isolate; border-radius: 4px; }
+:root:root[data-theme="vinyl"] #lyrics .ly-line.on { color: var(--vy-ink); }
+:root:root[data-theme="vinyl"] #lyrics .ly-line.on .tr { color: rgba(var(--vy-ink-rgb), .86); }
+:root:root[data-theme="vinyl"] #lyrics .ly-line.on .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--vy-ink-rgb), .45) var(--p, 0%)); }
+
+/* 紙封套：奶油色紙、紙邊一點陰影 */
+:root:root[data-theme="vinyl"] #lyrics .ly-line.on::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 4px; pointer-events: none;
+  background:
+    var(--grain), linear-gradient(180deg, #fffdf4, #f6f0dd);
+  box-shadow: 0 0 0 1px rgba(28,41,34,.18), 0 1px 0 rgba(255,255,255,.7) inset, 0 6px 14px -6px rgba(28,41,34,.45);
+}
+
+/* 半張黑膠：在封套後面，從左邊露出來；溝紋＋一道反光＋中間的橘色圓標 */
+:root:root[data-theme="vinyl"] #lyrics .ly-line.on::after {
+  content: ""; position: absolute; z-index: -2; pointer-events: none; border-radius: 50%;
+  width: 1.9em; height: 1.9em; left: -1.05em; top: calc(50% - .95em);
+  background:
+    radial-gradient(circle, #171513 0 4%, var(--vy-label-hi) 4.5% 30%, rgba(0,0,0,.35) 31%, transparent 32%),
+    conic-gradient(from 30deg, transparent 0 10%, rgba(255,255,255,.16) 14%, transparent 20% 52%, rgba(255,255,255,.12) 58%, transparent 64%),
+    repeating-radial-gradient(circle, #1b1917 0 1.2px, #2b2825 1.6px 2.4px),
+    #171513;
+  box-shadow: 0 3px 8px rgba(0,0,0,.35);
+  animation: vn-ly-out .5s cubic-bezier(.2,.8,.2,1) both, vn-ly-spin 1.8s linear infinite;
+}
+:root:root[data-theme="vinyl"] #np.paused #lyrics .ly-line.on::after { animation-play-state: running, paused; }
+:root.lite-vinyl[data-theme="vinyl"] #lyrics .ly-line.on::after { animation: vn-ly-out .5s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) {:root:root[data-theme="vinyl"] #lyrics .ly-line.on::after { animation: none; }
+}
+:root:root[data-theme="vinyl"] #lyrics .ly-line.gap::before, :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::after { content: none; }
+
+/* 夜：深綠的封套、奶油色字 */
+:root:root[data-theme="vinyl"]:where([data-mode="night"]) #lyrics .ly-line.on { color: #fbf7eb; }
+:root:root[data-theme="vinyl"]:where([data-mode="night"]) #lyrics .ly-line.on .tr { color: rgba(251,247,235,.85); }
+:root:root[data-theme="vinyl"]:where([data-mode="night"]) #lyrics .ly-line.on .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(251,247,235,.45) var(--p, 0%)); }
+:root:root[data-theme="vinyl"]:where([data-mode="night"]) #lyrics .ly-line.on::before {
+  background:
+    var(--grain), linear-gradient(180deg, #25342b, #1c2922);
+  box-shadow: 0 0 0 1px rgba(251,247,235,.16), 0 1px 0 rgba(255,255,255,.08) inset, 0 8px 18px -6px rgba(0,0,0,.6);
+}
 :root[data-theme="vinyl"] { --dp-ink: var(--teal-2); }
 
 /* 黑膠：紙封套裡的內頁：小圓角、封套的細框，底色是紙色 */
