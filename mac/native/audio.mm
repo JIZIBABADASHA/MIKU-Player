@@ -46,7 +46,6 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
-#include "device_volume.h"
 
 extern char **environ;
 static volatile sig_atomic_t quitting = 0;
@@ -1459,7 +1458,7 @@ public:
     void command(NSDictionary *m) {
         NSString *cmd = text(m[@"c"]) ?: @""; NSNumber *seq = [m[@"seq"] isKindOfClass:[NSNumber class]] ? m[@"seq"] : @0;
         if (is(cmd, @"overlay")) { playOverlay(m); return; }
-        const bool quiet = is(cmd, @"devices") || is(cmd, @"probe") || is(cmd, @"gain") || is(cmd, @"dsp") || is(cmd, @"volume");
+        const bool quiet = is(cmd, @"devices") || is(cmd, @"probe") || is(cmd, @"gain") || is(cmd, @"dsp");
         auto t0 = Clock::now();
         Busy busy(literal(cmd));
         if (!quiet) trace("> %s device=%s exclusive=%d rate=%.0f pos=%.2f play=%d", cmd.UTF8String, (text(m[@"device"]) ?: @"-").UTF8String,
@@ -1479,15 +1478,6 @@ public:
                 NSDictionary *info = d ? deviceInfo(d) : nil;
                 NSMutableDictionary *caps = [(info ?: @{}) mutableCopy]; caps[@"fallback"] = @(fb);
                 emit(@{@"e":@"probe", @"seq":seq, @"caps":caps});
-            }
-            else if (is(cmd, @"volume")) {
-                // the hardware volume of the device held in exclusive mode (device_volume.h): nobody else may change it
-                NSNumber *sc = [m[@"scalar"] isKindOfClass:[NSNumber class]] ? m[@"scalar"] : nil, *db = [m[@"db"] isKindOfClass:[NSNumber class]] ? m[@"db"] : nil,
-                         *mu = [m[@"muted"] isKindOfClass:[NSNumber class]] ? m[@"muted"] : nil;
-                const double scv = sc.doubleValue, dbv = db.doubleValue; const bool muv = mu.boolValue;
-                const auto v = miku::device_volume(sc ? &scv : nullptr, db ? &dbv : nullptr, mu ? &muv : nullptr);
-                emit(@{@"e":@"volume", @"seq":seq, @"volume":v.ok ? @{@"scalar":@(v.scalar), @"db":@(v.db), @"min_db":@(v.min_db), @"max_db":@(v.max_db),
-                    @"muted":@(v.muted), @"can_mute":@(v.can_mute)} : [NSNull null]});
             }
             else if (is(cmd, @"load")) load(m, seq);
             else if (is(cmd, @"seek")) seek(m, seq);
@@ -1624,7 +1614,7 @@ static int selfTest() {
 
 // A stable C string for a command name (the watchdog reads it from another thread).
 static const char *literal(NSString *cmd) {
-    static const char *const known[] = {"devices", "probe", "volume", "load", "seek", "config", "preload", "clearNext", "pause", "resume", "stop", "gain", "dsp"};
+    static const char *const known[] = {"devices", "probe", "load", "seek", "config", "preload", "clearNext", "pause", "resume", "stop", "gain", "dsp"};
     for (const char *k : known) if ([cmd isEqualToString:@(k)]) return k;
     return "command";
 }

@@ -166,26 +166,3 @@ Object.assign(I18N_DICT["ja"], {
   "缺少原生音訊元件，請安裝新版 MIKU 才能使用獨佔與自動匹配。": "ネイティブ音声コンポーネントがありません。排他モードと自動マッチングを使うには、新しい MIKU をインストールしてください。",
   "無損音訊以 Core Audio 輸出；此路徑未確認原始樣本數值。": "ロスレス音声を Core Audio で出力しています。この経路では元のサンプル値を確認していません。",
 });
-
-// the held device's hardware volume and the volume keys in exclusive mode
-Object.assign(I18N_DICT['zh-Hans'], {
-  "允許…": "允许…",
-  "獨佔時使用鍵盤音量鍵": "独占时使用键盘音量键",
-  "需要 macOS「輔助使用」權限，請允許 MIKU Volume Keys。在那之前請用 MIKU 的音量滑桿。": "需要 macOS「辅助功能」权限，请允许 MIKU Volume Keys。在那之前请用 MIKU 的音量滑块。",
-  "MIKU 獨佔裝置時，macOS 不能調整它的音量。開啟後，鍵盤音量鍵會直接調整裝置的硬體音量，不影響 Bit-perfect。": "MIKU 独占设备时，macOS 不能调整它的音量。开启后，键盘音量键会直接调整设备的硬件音量，不影响 Bit-perfect。",
-  "數位音量在 64-bit 運算中處理；固定音量保持 0 dB，獨佔時音量滑桿調整裝置的硬體音量，否則請用 DAC 或系統音量調整。": "数字音量在 64-bit 运算中处理；固定音量保持 0 dB，独占时音量滑块调整设备的硬件音量，否则请用 DAC 或系统音量调整。",
-});
-Object.assign(I18N_DICT.en, {
-  "允許…": "Allow…",
-  "獨佔時使用鍵盤音量鍵": "Use the volume keys in exclusive mode",
-  "需要 macOS「輔助使用」權限，請允許 MIKU Volume Keys。在那之前請用 MIKU 的音量滑桿。": "Needs the macOS Accessibility permission: allow MIKU Volume Keys. Until then, use MIKU’s volume slider.",
-  "MIKU 獨佔裝置時，macOS 不能調整它的音量。開啟後，鍵盤音量鍵會直接調整裝置的硬體音量，不影響 Bit-perfect。": "While MIKU holds a device, macOS can’t change its volume. With this on, the volume keys set the device’s own hardware volume; playback stays bit-perfect.",
-  "數位音量在 64-bit 運算中處理；固定音量保持 0 dB，獨佔時音量滑桿調整裝置的硬體音量，否則請用 DAC 或系統音量調整。": "Digital volume is processed in 64-bit. Fixed volume stays at 0 dB: in exclusive mode the slider sets the device’s hardware volume, otherwise use the DAC’s or the system’s volume.",
-});
-Object.assign(I18N_DICT.ja, {
-  "允許…": "許可…",
-  "獨佔時使用鍵盤音量鍵": "排他モードで音量キーを使う",
-  "需要 macOS「輔助使用」權限，請允許 MIKU Volume Keys。在那之前請用 MIKU 的音量滑桿。": "macOS の「アクセシビリティ」の許可が必要です。MIKU Volume Keys を許可してください。それまでは MIKU の音量スライダーを使ってください。",
-  "MIKU 獨佔裝置時，macOS 不能調整它的音量。開啟後，鍵盤音量鍵會直接調整裝置的硬體音量，不影響 Bit-perfect。": "MIKU がデバイスを排他使用している間、macOS は音量を変更できません。オンにすると音量キーがデバイスのハードウェア音量を直接調整し、ビットパーフェクトに影響しません。",
-  "數位音量在 64-bit 運算中處理；固定音量保持 0 dB，獨佔時音量滑桿調整裝置的硬體音量，否則請用 DAC 或系統音量調整。": "デジタル音量は 64-bit 演算で処理します。固定音量は 0 dB のままで、排他モードではスライダーがデバイスのハードウェア音量を調整します。それ以外は DAC かシステムの音量で調整してください。",
-});

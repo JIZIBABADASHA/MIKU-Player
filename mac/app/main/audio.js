@@ -87,8 +87,6 @@ class AudioEngine extends EventEmitter {
   setDevice(...a) { return this.changeTask.then(() => this.backend ? this.backend.setDevice(...a) : undefined); }
   listDevices() { return this.backend ? this.backend.listDevices() : Promise.resolve([]); }
   probeDevice(...a) { return this.backend?.probeDevice ? this.backend.probeDevice(...a) : Promise.resolve(null); }
-  /** The hardware volume of the device held in exclusive mode (device-volume.js); null when there is none. */
-  deviceVolume(change) { return this.backend?.deviceVolume ? this.backend.deviceVolume(change) : Promise.resolve(null); }
   /** Exclusive mode with the device in use: only the engine can make a sound on it (see main.js overlay.play). */
   overlayReady() { return this.s.outputMode === 'coreaudio-exclusive' && !!this.backend?.overlayReady?.(); }
   playOverlay(cue) { if (!this.overlayReady()) return false; this.backend.playOverlay(cue); return true; }
