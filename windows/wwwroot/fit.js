@@ -11,7 +11,9 @@
    4. balanceTitle: a title printed on a card (the poster's title plaque) gets as much card above its letters as below,
       whatever font the system picks: a Mac's Japanese fonts sit higher in the line than Windows' or Linux's, which put
       the first line against the card's top edge.
-   5. lyricsRoom: the lyric timing row (歌詞時間 − 0.0s + 自動, shown while the pointer is over the lyrics) gets its own
+   5. wrapTitle: a title that takes exactly two lines gets two lines of about the same length (never one character alone
+      on the second line); on a card, the card closes up to the text.
+   6. lyricsRoom: the lyric timing row (歌詞時間 − 0.0s + 自動, shown while the pointer is over the lyrics) gets its own
       strip under the lyrics, so it never sits on a line of lyrics, whatever size the window is and wherever a theme
       puts the row. */
 (() => {
@@ -68,7 +70,12 @@
     };
     const placeSticker = () => {
       if (!left || !cover) return;
-      const lr = left.getBoundingClientRect(), cr = cover.getBoundingClientRect();
+      // the cover where the layout puts it, not where a transform shows it at this moment (it shrinks a little while
+      // paused, with a spring): the sticker belongs to the cover's place, which does not move
+      const lr = left.getBoundingClientRect();
+      const cr = cover.offsetParent === left
+        ? (({ x, y, w, h }) => ({ left: x, top: y, right: x + w, bottom: y + h, width: w, height: h }))({ x: lr.left + left.clientLeft + cover.offsetLeft, y: lr.top + left.clientTop + cover.offsetTop, w: cover.offsetWidth, h: cover.offsetHeight })
+        : cover.getBoundingClientRect();
       if (!cr.width) return;
       left.style.setProperty('--np-cv-l', (cr.left - lr.left).toFixed(1) + 'px');
       left.style.setProperty('--np-cv-t', (cr.top - lr.top).toFixed(1) + 'px');
@@ -92,6 +99,30 @@
         return;
       }
       left.dataset.st = 'off';   // nowhere free: leave it out rather than cover the title
+    };
+    // Two lines: data-lines="2" switches on text-wrap: balance (responsive.css). Longer titles, cut after two lines with
+    // an ellipsis, keep filling their lines (balancing them would show less of the title). --np-t-w: the wider of the
+    // two balanced lines, for a card (--np-t-card: 1) to close up to.
+    const titleLines = () => {
+      const r = document.createRange(); r.selectNodeContents(titleEl); const m = new Map();
+      for (const q of r.getClientRects()) { if (q.width < 1) continue; const k = Math.round(q.top), v = m.get(k); m.set(k, v ? [Math.min(v[0], q.left), Math.max(v[1], q.right)] : [q.left, q.right]); }
+      return [...m.values()];
+    };
+    const titleEl = np.querySelector('.np-title');
+    const wrapTitle = () => {
+      if (!titleEl) return;
+      if (titleEl.dataset.lines) delete titleEl.dataset.lines;
+      titleEl.style.removeProperty('--np-t-w');
+      if (!titleEl.offsetHeight || !titleEl.textContent.trim()) return;
+      const rot = titleEl.style.rotate; titleEl.style.rotate = 'none';
+      if (titleLines().length === 2) {
+        titleEl.dataset.lines = '2';
+        if (getComputedStyle(titleEl).getPropertyValue('--np-t-card').trim() === '1') {
+          const ls = titleLines(), r = titleEl.getBoundingClientRect();
+          if (ls.length === 2 && r.width) titleEl.style.setProperty('--np-t-w', (Math.ceil(Math.max(...ls.map(([a, b]) => b - a)) * titleEl.offsetWidth / r.width) + 1) + 'px');
+        }
+      }
+      titleEl.style.rotate = rot;
     };
     // The theme opts in with --np-t-card: 1 and draws the card's top and bottom edges from --np-t-bt / --np-t-bb. The
     // letters are measured on a canvas in the title's own font (the same fallback fonts as the page) and placed on the
@@ -156,6 +187,7 @@
       // (removed only when it is there: writing a class, even an unchanged one, wakes every observer of #np's class)
       if (!np.classList.contains('on')) { if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
       lyricsRoom();
+      wrapTitle();
       balanceTitle();
       fitInfo();
       // hidden buttons (visibility: hidden) keep their layout box, so they can be measured without un-hiding them
@@ -200,6 +232,12 @@
     let lastLy = lyKind();
     if (lyBox) new MutationObserver(() => { const k = lyKind(); if (k === lastLy) return; lastLy = k; if (np.classList.contains('on')) now(); })
       .observe(lyBox, { childList: true });
+    // anything else that changes the cover's, the column's or the title's size (a MoodWave mode, a theme's own rule, a
+    // lyrics column coming or going): measured again, so the sticker and the cover never keep an old window's size
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => { if (np.classList.contains('on')) now(); });
+      for (const e of [cover, left, np.querySelector('.np-title')]) if (e) ro.observe(e);
+    }
     // fonts arriving change the text's height
     if (document.fonts) document.fonts.addEventListener('loadingdone', () => { if (np.classList.contains('on')) now(); });
     np.addEventListener('transitionend', e => { if (e.target.classList?.contains('np-wrap')) now(); });
@@ -228,7 +266,11 @@
       for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
         const [a, ra] = rs[i], [b, rb] = rs[j];
         if (a.contains(b) || b.contains(a)) continue;
-        if (ra.left < rb.right - 1 && rb.left < ra.right - 1 && ra.top < rb.bottom - 1 && rb.top < ra.bottom - 1) return true;
+        if (!(ra.left < rb.right - 1 && rb.left < ra.right - 1)) continue;
+        // side by side in one row and running into each other: that is what getting narrower fixes. Something tall in
+        // the lower row that reaches a few pixels into the seek bar's row above is not (it once emptied the whole bar)
+        const v = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+        if (v > 1 && v > .3 * Math.min(ra.height, rb.height)) return true;
       }
       return false;
     };

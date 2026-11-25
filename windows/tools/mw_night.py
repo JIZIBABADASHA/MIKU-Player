@@ -35,7 +35,28 @@ def decls(body):
 def vars_only(body, drop=KEEP_MW):
     keep = [x for x in decls(body) if x.startswith('--') and x.split(':', 1)[0].strip() not in drop]
     return ' ' + '; '.join(keep) + '; ' if keep else None
-stats = {'np': 0, 'vars': 0, 'day': 0, 'barvars': 0, 'slider': 0}
+def split_mixed(s):
+    """':is(#sidebar, #bar) .x' names things on the page/bar AND things elsewhere in one list: two selectors, so only the
+    page/bar half is treated as such (the other half keeps its day or night look as written). Returns [(selector, is_np_or_bar)]."""
+    hit = lambda t: bool(NP.search(t) or BAR.search(t))
+    if not hit(s): return [(s, False)]
+    for m in re.finditer(r':(?:is|where)\(', s):
+        i = m.end(); d = 1; j = i
+        while j < len(s) and d:
+            d += s[j] == '('; d -= s[j] == ')'; j += 1
+        inner = s[i:j - 1]
+        items = [x.strip() for x in sp.split_sel(inner)]
+        if len(items) < 2 or 'data-mode' in inner or 'data-ext-source' in inner: continue
+        yes = [x for x in items if hit(x)]; no = [x for x in items if not hit(x)]
+        if not yes or not no or hit(s[:m.start()] + s[j:]): continue
+        # each half keeps the whole list's specificity (:is() takes its most specific item's): the other half's items
+        # stay in the list, made to match nothing with :not(*)
+        dead = lambda x: x if '::' in x else x + ':not(*)'
+        mk = lambda keep, drop: s[:i] + ', '.join(keep + [dead(x) for x in drop]) + s[j - 1:]
+        stats['mixed'] += 1
+        return [(mk(no, yes), False), (mk(yes, no), True)]
+    return [(s, True)]
+stats = {'np': 0, 'vars': 0, 'day': 0, 'barvars': 0, 'slider': 0, 'mixed': 0}
 NIGHT_BASE = set()   # themes whose plain colours are the night ones (their day look is a [data-mode="day"] block)
 def theme_of(s):
     m = re.search(r'data-theme\^?="([a-z0-9]+)"', s); return m and m.group(1)
@@ -55,13 +76,13 @@ def walk(css):
         if pre.startswith('@'): out.append(raw); continue
         sels = sp.split_sel(pre)
         np_copy, var_copy, new, slider_copy = [], [], [], []
-        for s in sels:
-            s0 = s.strip()
-            if (NP.search(s0) or BAR.search(s0)) and has_day(s0) and 'data-theme' in s0: s0 = no_day(s0); stats['day'] += 1
+        for s, target in [x for s in sels for x in (split_mixed(s.strip()) if 'data-theme' in s and (has_day(s) or has_night(s)) else [(s.strip(), bool(NP.search(s) or BAR.search(s)))])]:
+            s0 = s
+            if target and has_day(s0) and 'data-theme' in s0: s0 = no_day(s0); stats['day'] += 1
             new.append(s0)
             if root_only(s0) and not has_day(s0) and (has_night(s0) or theme_of(s0) in NIGHT_BASE):
                 var_copy.append((to_mw(s0) if has_night(s0) else s0 + MW) + ' #np')
-            elif has_night(s0) and (NP.search(s0) or BAR.search(s0)):
+            elif has_night(s0) and target:
                 np_copy.append(to_mw(s0))
         # sliders are styled app-wide (.slider .fill), so a theme's night slider never reached the dark page or bar:
         # the night version, scoped to the page and the bar in channel mode (a dark fill on the dark page vanished)

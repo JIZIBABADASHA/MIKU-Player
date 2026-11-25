@@ -3,7 +3,8 @@
  * things that overlap (check.js), with a mock host (mock.js) so no player is needed.
  *
  *   node sweep.js --root ../../wwwroot --out /tmp/sweep [--engine webkit|chromium] [--themes poster,gold] [--scen np,home]
- *                 scenarios: home album set homemw np np2 npnl npmw npplain npplainmw (plain = lyrics without timing)
+ *                 scenarios: home album set homemw homeradio np np2 npnl npmw npradio npplain npplainmw
+ *                 (mw = a MoodWave channel, radio = a MoodWave station, plain = lyrics without timing)
  *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
  *
  * Writes <out>/report.json, <out>/summary.txt, a screenshot (JPEG) per failing combination, and with --shots sheet a contact
@@ -30,20 +31,36 @@ const mwCss = fs.existsSync(mwFile) ? fs.readFileSync(mwFile, 'utf8') : '';
 if (!mwCss) console.warn('no MoodWave stylesheet at ' + mwFile + ': the MoodWave pages use only the band and backdrop');
 const MW = `(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(mwCss)};document.head.append(s);
 document.documentElement.dataset.extSource='moodchannels';
-const e=document.querySelector('#b-ext');e.hidden=false;const b=document.createElement('div');b.className='mc-band';b.style.cssText='width:200px;height:56px;background:rgba(255,255,255,.12);flex:none';e.append(b);
+const e=document.querySelector('#b-ext');e.hidden=false;const b=document.createElement('div');b.className='mc-band';${mwCss ? "" : "b.style.cssText='width:200px;height:68px;flex:none';"}
+const arrow='<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg>';
+b.innerHTML='<button class="mc-band-step" title="上一個頻道">'+arrow+'</button><span class="mc-band-name" role="link" tabindex="0"><span class="mc-roll"><span class="mc-roll-item"><i class="mc-band-logo" style="display:block;background:#fff;border-radius:50%"></i><span>Energetic</span></span></span></span><button class="mc-band-step down" title="下一個頻道">'+arrow+'</button><div class="mc-votes"><button class="mc-vote" title="不喜歡">'+arrow+'</button><button class="mc-vote" title="喜歡">'+arrow+'</button></div>';
+e.append(b);
+const fitBand=()=>{const mini=b.closest('.np-mini'),art=mini&&mini.querySelector('.art');const room=mini?mini.clientWidth-120-(art?art.offsetWidth:0)-28:999;const t=room-76<90;b.classList.toggle('mc-tight',t);b.style.width=(t?120:196)+'px'};
+fitBand();addEventListener('resize',()=>setTimeout(fitBand,60));
 const g=document.createElement('div');g.className='mc-barbg on';g.style.backgroundImage='linear-gradient(100deg,#1b1030,#2a1840 40%,#0e1422)';document.querySelector('#bar').prepend(g);
 const p=document.querySelector('#np .np-bg');const d=document.createElement('div');d.className='mc-npbg on';d.style.backgroundImage='linear-gradient(90deg,#101428,#1a1020)';p.append(d);})()`;
-const LONG = { title: 'ハッピー・ハッピー・フレンズ', artist: 'わたてん☆5', album: '気ままな天使たち / ハッピー・ハッピー・フレンズ' };
+// MoodWave's radio (a station, not a channel): the page keeps the theme; a station label on the bar and, on wide pages,
+// a station rail at the left of now playing
+const MWR = `(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(mwCss)};document.head.append(s);
+const r=document.documentElement;r.dataset.extSource='moodchannels';r.classList.add('mc-radio');
+const e=document.querySelector('#b-ext');e.hidden=false;const b=document.createElement('div');b.className='mc-radio-band';b.innerHTML='<span class="mc-radio-mark"><i class="mc-logo" style="display:block;background:#888;border-radius:50%"></i></span><span class="mc-radio-text"><small>MoodWave 電台</small><b>Energetic</b></span>';e.append(b);
+const n=document.querySelector('#np-ext');n.hidden=false;const rl=document.createElement('div');rl.className='mc-radio-rail';rl.innerHTML='<span class="mc-radio-mark"><i class="mc-logo" style="display:block;background:#888;border-radius:50%"></i></span><span class="mc-radio-text"><small>MoodWave 電台</small><b>Energetic</b></span>';n.append(rl);})()`;
+const TITLE = arg('title');
+const LONG = TITLE ? { title: TITLE, artist: arg('artist', 'ヨルシカ'), album: arg('album', '盗作') } : { title: 'ハッピー・ハッピー・フレンズ', artist: 'わたてん☆5', album: '気ままな天使たち / ハッピー・ハッピー・フレンズ' };
 const LONG2 = { title: 'Violin Concerto No. 5 in A major, K. 219 "Turkish": III. Rondeau — Tempo di Menuetto', artist: 'Hilary Hahn, Paavo Järvi, The Deutsche Kammerphilharmonie Bremen', album: 'Mozart 5, Vieuxtemps 4: Violin Concertos' };
 const SCEN = {
-  home: { hash: '#/home' }, album: { hash: '#/album/a15' }, set: { hash: '#/settings/look' },
+  home: { hash: '#/home', q: { rl: '1' } }, album: { hash: '#/album/a15' }, set: { hash: '#/settings/look' },
   homemw: { hash: '#/home', eval: MW, q: LONG },
   np: { hash: '#/home', np: true, q: LONG }, np2: { hash: '#/home', np: true, q: LONG2 },
   npnl: { hash: '#/home', np: true, q: Object.assign({ ly: '0' }, LONG2) }, npmw: { hash: '#/home', np: true, q: LONG, eval: MW },
+  homeradio: { hash: '#/home', eval: MWR, q: LONG }, npradio: { hash: '#/home', np: true, q: LONG, eval: MWR },
   npplain: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG) }, npplainmw: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG), eval: MW },
 };
 const scen = (arg('scen', 'all') === 'all' ? Object.keys(SCEN) : arg('scen').split(',')).map(n => Object.assign({ name: n }, SCEN[n]));
 const mock = fs.readFileSync(path.join(HERE, 'mock.js'), 'utf8');
+// text too faint to read, from the pixels (contrast.js): at these sizes (the full sidebar, the folded one, the two-row bar)
+const contrast = fs.readFileSync(path.join(HERE, 'contrast.js'), 'utf8');
+const FAINT = +arg('faint', 2.05), FAINT_SIZES = ['1512x913', '1100x700', '980x640'];
 const check = fs.readFileSync(path.join(HERE, 'check.js'), 'utf8');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 const hue = s => { let h = 7; for (const c of s) h = (h * 131 + c.charCodeAt(0) * 97) % 3600; return (h * 37) % 360; };
@@ -85,6 +102,10 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
           await page.setViewportSize({ width: w, height: h });
           await page.waitForTimeout(700);
           const issues = await page.evaluate(check);
+          if (FAINT > 0 && FAINT_SIZES.includes(w + 'x' + h)) {
+            const png = await page.screenshot({ type: 'png' });
+            for (const x of await page.evaluate(`(${contrast})(${JSON.stringify(png.toString('base64'))}, ${FAINT})`)) issues.push({ kind: 'faint', el: x.el + ' "' + x.text + '"', detail: 'contrast ' + x.ratio + ':1' });
+          }
           const name = `${t}-${m}-${s.name}-${w}x${h}`;
           if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) await page.screenshot({ path: path.join(outdir, 'shots', name + '.jpg'), type: 'jpeg', quality: 80 });
           report.push({ name, t, m, s: s.name, w, h, issues });

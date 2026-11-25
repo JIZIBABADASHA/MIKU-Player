@@ -390,8 +390,8 @@
 :root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) .ly-line .w { background-image: linear-gradient(90deg, #ffc0d6 0, #ffc0d6 var(--p, 0%), rgba(255,246,250,.55) var(--p, 0%)); }
 
 /* ───────────── 15 · 夜：拿掉舊版的發光，只留很淡的影子 ───────────── */
-:root[data-theme="sakura"]:where([data-mode="night"]) :is(.page-head h1, .ly-line.on) { text-shadow: none; }
-:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.page-head h1, .ly-line.on) { text-shadow: none; }
+:root[data-theme="sakura"]:where([data-mode="night"]) :is(.page-head h1, .ly-line.on:not(*)), :root[data-theme="sakura"]:where([data-mode="night"]) :is(.ly-line.on, .page-head h1:not(*)) { text-shadow: none; }
+:root[data-theme="sakura"][data-ext-source="moodchannels"]:not(.mc-radio) :is(.ly-line.on, .page-head h1:not(*)) { text-shadow: none; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill { background: var(--surface-2); box-shadow: inset 0 0 0 1px #6e5277, 0 4px 12px -6px rgba(0,0,0,.5); }
 :root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill::before { box-shadow: none; }
 :root[data-theme="sakura"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--teal), 0 16px 30px -10px rgba(0,0,0,.6); }

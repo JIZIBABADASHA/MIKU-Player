@@ -345,3 +345,9 @@
 /* 普普：間奏的圓形對話框，尾巴對準框的垂直中線，從圓弧的最左邊長出來（不會在弧線旁邊留縫），內層黃色剛好接進框裡 */
 :root:root[data-theme="pop"] #lyrics .ly-line.gap.on::before { left: -19px; top: calc(50% - 11px); width: 19px; height: 22px; clip-path: polygon(100% 0, 0 75%, 100% 100%); }
 :root:root[data-theme="pop"] #lyrics .ly-line.gap.on::after { left: -13px; top: calc(50% - 6.5px); width: 16px; height: 14.5px; clip-path: polygon(100% 0, 0 83%, 100% 100%); }
+
+/* ═════════ 側欄的「本地／遠端」切換（配對了另一台電腦才有）：字的顏色要配它自己的底，不是配側欄 ═════════
+   側欄把文字變數換成自己的（深色側欄用淺字），但這個切換鈕的底是主題「面板」的顏色：兩個一疊就變成同色的字和底。
+   檢查工具量到四個幾乎看不到的：普普・夜「遠端」（深藍字在深藍底）、黑膠・日「遠端」（米白字在米白底）、
+   霓虹・日「遠端」（淡紫字在淡紫底）、黃金・夜選中的「本地」（淡金字在亮金鈕上）。 */
+:root:root[data-theme="pop"]:where([data-mode="night"]) #sidebar .rl-src button:not(.on) { color: #fff8e6; }

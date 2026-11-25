@@ -9,6 +9,13 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **overlap**: now-playing info parts on top of each other, a sticker over the title, lyrics over the info column,
   play bar items on top of each other, parts of one sidebar link on top of each other
 - **offscreen**: a key control outside the window or under the play bar
+- **touch**: the now-playing buttons touching each other, or a round button squashed out of shape
+- **orphan**: a two-line title whose second line is a single character or a short stub
+- **squeeze**: the play bar dropped the song title although there is room for it
+- **faint**: text too faint to read. `contrast.js` measures it from the pixels of a screenshot (so gradients, pictures
+  and textures count): the line's median pixel is the paper, the text's own colour laid over it is the ink, and their
+  contrast ratio must reach 2.05:1 (`--faint 0` switches it off). Measured at three sizes: the full sidebar, the folded
+  one, the two-row bar.
 
 ```
 npm i playwright && npx playwright install webkit      # once
@@ -16,5 +23,7 @@ node sweep.js --root ../../wwwroot --out /tmp/sweep --engine webkit --shots shee
 ```
 
 `summary.txt` lists every problem; `sheets/<theme>-<mode>.jpg` shows the pages at six window sizes (red frame = the
-checker found something there). Pages: home, album, settings, home with a MoodWave channel playing (`homemw`), now
-playing with a Japanese title (`np`), a very long title (`np2`), no lyrics (`npnl`) and a MoodWave channel (`npmw`).
+checker found something there). Pages: home (paired with another computer, so the 本地 / 遠端 switch shows), album,
+settings, home with a MoodWave channel (`homemw`) or station (`homeradio`) playing, now playing with a Japanese title
+(`np`), a very long title (`np2`), no lyrics (`npnl`), lyrics without timing (`npplain`), a MoodWave channel (`npmw`,
+`npplainmw`) and a MoodWave station (`npradio`). `--title 'レプリカント'` tries one title of your own.

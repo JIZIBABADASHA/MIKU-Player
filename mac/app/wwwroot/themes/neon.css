@@ -1172,3 +1172,5 @@
 :root:root[data-theme="neon"] #sidebar:has(.cd-task:not([hidden]))::after { display: none; }
 @media (max-width: 1180px) {:root:root[data-theme="neon"] .nav-pill::before { left: -8px; }
 }
+:root:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .rl-src > button:not(.on) { color: #4d4380; }
+:root:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .rl-src > button:not(.on):hover { color: #0c0626; }

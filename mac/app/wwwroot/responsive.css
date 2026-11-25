@@ -296,12 +296,22 @@
   :root:has(#b-ext:not([hidden])) #bar { gap: 18px; }
 }
 
+/* 兩列的播放列左邊有擴充功能的頻道條時（MoodWave 的頻道條高 68px，上下各一個換頻道的箭頭）：下面那列要整條放得下，
+   主題上緣的粗框線（海報 5px、MIKU 夜 3px）也算進去。以前列高 104px 不夠，頻道條被擠出視窗底邊，「下一個頻道」被切掉 */
+@media (max-width: 1440px) {
+  :root:has(#b-ext:not([hidden])) { --bar: 110px; }
+  :root:has(#b-ext:not([hidden])) #bar { padding-top: 5px; padding-bottom: 5px; }
+}
+
 /* ───── 正在播放：左欄永遠放得下（fit.js） ─────
    fit.js 依實際內容（歌名幾行、演出者幾行、Mac 的日文字型比較高）把封面縮到剛好放得下（--np-cover-max），
    資訊欄跟著封面同寬；最小的封面還放不下時，先拿掉格式標籤，再讓歌名和演出者各留一行。 */
 :root:root #np .np-cover { max-width: var(--np-cover-max, none); }
 :root:root #np .np-info { max-width: min(100%, max(var(--np-cover-max, 100%), 320px)); }
 :root:root #np[data-fit~="tight"] .np-badges { display: none; }
+/* 剛好兩行的歌名：兩行排成差不多長，不會第二行只剩一個字（fit.js 量到兩行才加 data-lines；更長、要截斷的歌名照舊排滿） */
+:root:root #np .np-title[data-lines="2"] { text-wrap: balance; }
+:root:root #np[data-fit~="tighter"] .np-title[data-lines] { text-wrap: wrap; }   /* 只剩一行時照舊排滿 */
 :root:root #np[data-fit~="tighter"] :is(.np-title, .np-artist) { -webkit-line-clamp: 1; }
 
 /* ───── 播放列：撞到就一步一步收（fit.js 依實際寬度加 data-sq），任何東西都不會被切掉或疊在一起 ───── */

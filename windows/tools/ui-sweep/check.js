@@ -4,6 +4,10 @@
  *   hcut     a line of text cut sideways without an ellipsis
  *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info)
  *   offscreen a key control outside the window
+ *   touch    buttons of one row touching each other, or a round button squashed out of shape
+ *   orphan   a title's last line is a single character (or a stub) on its own
+ *   squeeze  the play bar dropped the song title although there is room for it
+ * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
  */
 (() => {
   const W = innerWidth, H = innerHeight, out = [], seen = new Set();
@@ -63,6 +67,12 @@
     const full = r.width * r.height, v = area(inter(r, c)), f = v / full;
     if (f > 0.02 && f < 0.97) add('clip', desc(e), Math.round(f * 100) + '% visible');
     if (f <= 0.02 && e.closest('#bar, .np-ctrl, .np-top, #topbar') && !e.closest('.mc-band')) add('offscreen', desc(e), 'not visible');
+  }
+  // 1b. round and square buttons keep their shape (a flex row short of room squashes them into ovals)
+  for (const e of document.querySelectorAll('#bar .icon-btn, #bar .playbtn, #np .np-ctrl > *, #np .np-top .icon-btn, #topbar .round-btn')) {
+    if (skipRegion(e) || hidden(e)) continue;
+    const w = e.offsetWidth, h = e.offsetHeight; if (w < 2 || h < 2) continue;
+    if (Math.min(w, h) < 0.86 * Math.max(w, h)) add('touch', desc(e), 'squashed to ' + w + '×' + h);
   }
   // 2. text lines cut (measured unrotated: a tilted card's bounding boxes would overlap its own clip edge)
   const tilted = [];
@@ -174,6 +184,26 @@
         if (o.right > W + 0.5 || o.left < -0.5 || o.bottom > H + 0.5 || o.top < -0.5) add('offscreen', 'lyric timing row', 'outside the window');
       }
     }
+    // the row of buttons: none touching its neighbour (rings and shadows need air), none squashed
+    const ctl = [...document.querySelectorAll('#np .np-ctrl > *')].filter(e => !hidden(e) && e.getBoundingClientRect().width > 1);
+    for (let i = 1; i < ctl.length; i++) { const a = box(ctl[i - 1]), b = box(ctl[i]); if (b.left - a.right < 2 && hit({ ...a, right: a.right + 2 }, b, 0)) add('touch', desc(ctl[i - 1]) + ' × ' + desc(ctl[i]), 'gap ' + (b.left - a.right).toFixed(1) + 'px'); }
+    // the seek knob travels the whole bar: wherever it is now, it must clear the times printed under the bar's ends
+    const knob = document.querySelector('#np .np-seek .slider .knob'), sl = document.querySelector('#np .np-seek .slider');
+    if (knob && sl && !hidden(knob)) {
+      const kr = box(knob), sr = box(sl);
+      for (const t of document.querySelectorAll('#np .np-seek .times > span')) {
+        if (hidden(t)) continue; const tb = textBox(t) || box(t);
+        if (kr.width > 1 && kr.top < tb.bottom - 1 && tb.top < kr.bottom - 1 && sr.left - kr.width / 2 < tb.right && tb.left < sr.right + kr.width / 2) add('overlap', 'seek knob × ' + desc(t), 'the knob covers the time at the end of the bar (' + (kr.bottom - tb.top).toFixed(1) + 'px)');
+      }
+    }
+    // a two-line title never ends in a single character or a short stub
+    const tt = document.querySelector('#np .np-title');
+    if (tt && !hidden(tt)) {
+      const rr = document.createRange(); rr.selectNodeContents(tt); const m = new Map();
+      for (const q of rr.getClientRects()) { if (q.width < 1) continue; const k = Math.round(q.top); m.set(k, (m.get(k) || 0) + q.width); }
+      const ws = [...m.values()];
+      if (ws.length === 2 && ws[1] < 0.3 * ws[0] && ws[1] < 2.2 * parseFloat(getComputedStyle(tt).fontSize)) add('orphan', desc(tt), 'second line ' + Math.round(ws[1]) + 'px of ' + Math.round(ws[0]) + 'px');
+    }
     // top buttons over the info
     for (const e of document.querySelectorAll('#np .np-top > *, #np .np-top .pill')) {
       if (hidden(e)) continue; const a = box(e); if (a.width < 2) continue;
@@ -190,6 +220,13 @@
       if (ta && tb && hit(ta, tb, 1.5)) add('overlap', desc(a) + ' × ' + desc(b), 'bar items overlap');
     }
     for (const e of all) { const r = box(e); if (r.right > W + 0.5 || r.left < -0.5 || r.bottom > H + 0.5) add('offscreen', desc(e), 'bar item outside the window'); }
+    // the bar gave up the song title (fit.js data-sq 8) with plenty of room left: something else made it give up
+    const barEl = document.querySelector('#bar');
+    if (barEl && !hidden(barEl) && /\b8\b/.test(barEl.dataset.sq || '')) {
+      const used = [...barEl.querySelectorAll('.np-mini > *, .transport .btns > *, .right-tools > *')].filter(e => !hidden(e)).reduce((a, e) => a + e.getBoundingClientRect().width, 0);
+      const free = barEl.getBoundingClientRect().width - used;
+      if (free > 260) add('squeeze', 'div#bar', 'song title dropped with ' + Math.round(free) + 'px free');
+    }
     // sidebar: the parts of one link never overlap (icon, label, badges)
     for (const a of document.querySelectorAll('#sidebar :is(a, button, .nav-item)')) {
       if (hidden(a)) continue;

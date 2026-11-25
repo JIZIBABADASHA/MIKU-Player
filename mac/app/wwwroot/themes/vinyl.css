@@ -505,3 +505,5 @@
 :root[data-theme="vinyl"]:where([data-mode="day"]) .dp-sect .dp-group { background: #f5f0df; }
 :root[data-theme="vinyl"] .dp-sect .dp-group.dp-off { background: transparent; }
 :root[data-theme="vinyl"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
+:root:root[data-theme="vinyl"]:where(:not([data-mode="night"])) #sidebar .rl-src button:not(.on) { color: #46574c; }
+:root:root[data-theme="vinyl"]:where(:not([data-mode="night"])) #sidebar .rl-src button:not(.on):hover { color: #101913; }

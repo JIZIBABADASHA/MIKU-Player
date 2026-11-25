@@ -4,7 +4,7 @@
 :root[data-theme="poster"] .tp-opt.on { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
 
 /* 日：側欄和播放列是墨黑的，裡面的字用米色 */
-:root[data-theme="poster"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(#sidebar, #bar) {
+:root[data-theme="poster"]:where(:not([data-mode="night"])) :is(#sidebar, #bar:not(*)), :root[data-theme="poster"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(#bar, #sidebar:not(*)) {
   color: #efe4cb; --text: #efe4cb; --text-hi: #fff8e8; --text-sub: #d4c7aa; --text-2: #cdbf9f; --text-3: #a3967a;
   --ink: 239, 228, 203; --line: rgba(239,228,203,.12); --line-2: rgba(239,228,203,.26);
   --surface: #2b241c; --surface-2: #2b241c; --surface-3: #3b3127; --teal: #e0473c; --teal-rgb: 224, 71, 60; --teal-2: #f0695e;
@@ -534,6 +534,7 @@
 /* 海報的字卡：奶油色的內距改成同色的框（框不會被裁切畫進去），墨色粗框改用 outline 畫在外面，紅色硬陰影跟著外移 */
 :root:root[data-theme="poster"] #np .np-title {
   padding: 0; line-height: 1.32; border-style: solid; border-color: #f6ecd6; border-width: var(--np-t-bt, .06em) .42em var(--np-t-bb, .06em);
+  max-width: min(calc(100% - 10px), calc(var(--np-t-w, 9999px) + .84em));   /* 兩行的歌名排成差不多長之後（fit.js），字卡收到剛好包住字 */
   --np-t-card: 1;   /* fit.js evens out the cream edge above and below the letters for the font the system uses */
   outline: 2.5px solid #1a120c; outline-offset: 0;
   box-shadow: 5px 5px 0 2.5px var(--ps-red), 5px 5px 0 5px #1a120c;

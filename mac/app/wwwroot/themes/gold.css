@@ -1033,3 +1033,12 @@
   -webkit-background-clip: text; background-clip: text;
   filter: drop-shadow(0 1px 0 #3d0008) drop-shadow(0 -1px 0 #3d0008) drop-shadow(1px 0 0 #3d0008) drop-shadow(-1px 0 0 #3d0008) drop-shadow(0 0 10px rgba(255,200,80,.4));
 }
+:root:root[data-theme="gold"]:where([data-mode="night"]) #sidebar .rl-src button.on { color: #3d2200; text-shadow: 0 1px 0 rgba(255,250,225,.6); }
+
+/* ═════════ 黃金的「正在播放」名牌：小視窗 ═════════
+   名牌以前跟著封面縮到 260px，裡面只剩 204px，放不下一排五顆按鈕（44×4＋60），按鈕擠到互相壓住。
+   最窄 336px（欄位更窄時跟著欄位）；封面可以比名牌窄。 */
+:root:root:root[data-theme="gold"] #np .np-info { min-width: min(336px, 100%); }
+
+/* 進度條的鑽石拉桿比進度條高很多，走到兩端時壓到下面的時間：時間往下讓開 */
+:root:root:root[data-theme="gold"] #np .np-seek .times { margin-top: 12px; }

@@ -4,7 +4,7 @@
 :root[data-theme="luka"] .tp-opt.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .85); }
 
 /* 日：側欄和播放列是黑漆的，字是象牙白，強調是金色 */
-:root[data-theme="luka"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(#sidebar, #bar) {
+:root[data-theme="luka"]:where([data-mode="day"]) :is(#sidebar, #bar:not(*)), :root[data-theme="luka"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(#bar, #sidebar:not(*)) {
   color: #fbf7ef; --text: #fbf7ef; --text-hi: #fffdf8; --text-sub: #e9e2d6; --text-2: #ddd6c9; --text-3: #c3bbad;
   --ink: 247, 242, 232; --line: rgba(226,194,126,.14); --line-2: rgba(226,194,126,.28);
   --surface: #2a2723; --surface-2: #33302b; --surface-3: #403c37; --bg-rgb: 27, 25, 22;
