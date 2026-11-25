@@ -212,8 +212,46 @@
     return [a, Math.max(b, a + 1)];
   }
 
+  // Kanji / kana typed as written with romaji right after, the way an IME is half done ("小sa" for 小さな恋のうた,
+  // "夜ni" for 夜に駆ける): the written runs must be in the name as they are, each romaji run must read what comes
+  // right after (or, before a written run, right before it). Returns the runs, or null when the query isn't mixed.
+  function mixedRuns(q) {
+    q = (q || '').normalize('NFKC').toLowerCase().replace(/\s+/g, '');
+    if (!CJK.test(q) || !/[a-z]/.test(q)) return null;
+    const runs = [];
+    for (const m of q.matchAll(JA_RUN)) {
+      if (m[1]) runs.push({ lit: vfold(m[1]) });
+      else { const r = foldQuery(m[2]); if (r) runs.push({ rom: r }); }
+    }
+    return runs.some(r => r.lit) && runs.some(r => r.rom) ? runs : null;
+  }
+  // where the runs are in `text`: [start, end), or null
+  function findMixed(text, runs) {
+    if (!text || !runs) return null;
+    const t = vfold((text || '').normalize('NFKC').toLowerCase());
+    if (t.length !== text.length || !runs.every(r => !r.lit || t.includes(r.lit))) return null;
+    const step = (pos, k) => {
+      if (k === runs.length) return pos;
+      const r = runs[k];
+      if (r.lit) return t.startsWith(r.lit, pos) ? step(pos + r.lit.length, k + 1) : -1;
+      if (pos >= text.length) return -1;
+      const kk = key(text.slice(pos));
+      if (!kk.key.startsWith(r.rom)) return -1;
+      const n = r.rom.length;
+      if (k === runs.length - 1) return pos + (n < kk.src.length ? Math.max(kk.src[n], kk.src[n - 1] + 1) : text.length - pos);
+      // the next written run starts where this reading ends
+      if (n < kk.src.length && kk.src[n] === kk.src[n - 1]) return -1;
+      return step(pos + (n < kk.src.length ? kk.src[n] : text.length - pos), k + 1);
+    };
+    for (let i = 0; i < text.length; i++) {
+      if (runs[0].lit && !t.startsWith(runs[0].lit, i)) continue;
+      const end = step(i, 0);
+      if (end > i) return [i, end];
+    }
+    return null;
+  }
   const hasJa = s => !!s && CJK.test(s);
-  const api = { key, keys, find, foldQuery, foldMixed, hasKana, vfold, hasJa, _dict: dict, _use(d) { D = d; cache.clear(); } };
+  const api = { key, keys, find, mixedRuns, findMixed, foldQuery, foldMixed, hasKana, vfold, hasJa, _dict: dict, _use(d) { D = d; cache.clear(); } };
   root.SearchJa = api;
   if (typeof module === 'object' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

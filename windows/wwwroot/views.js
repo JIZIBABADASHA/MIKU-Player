@@ -588,7 +588,7 @@ function searchRomaji(terms) {
   if (!terms.length || !terms.every(t => /^[a-z0-9'\-.]+$/.test(t) || SearchJa.hasJa(t))) return null;
   if (!terms.some(t => /[a-z]/.test(t) || SearchJa.hasKana(t))) return null;
   const whole = SearchJa.foldMixed(terms.join(''));
-  return whole.length >= 2 ? { whole, parts: terms.map(t => SearchJa.foldMixed(t)) } : null;
+  return whole.length >= 2 ? { whole, parts: terms.map(t => SearchJa.foldMixed(t)), runs: SearchJa.mixedRuns(terms.join('')) } : null;
 }
 // how well a romaji key matches: the whole name, its start, inside it
 const romajiScore = (keys, q) => {
@@ -657,7 +657,13 @@ function searchRomajiMatch(item, fields, terms, s, ro) {
   const texts = fields(item).map(([text, weight]) => [String(text || ''), weight]);
   const keys = texts.map(([text]) => SearchJa.hasJa(text) ? SearchJa.keys(text).map(k => k.key) : [SearchJa.foldQuery(text)]);
   let score = 0, tier = 0, named = false;
-  const whole = keys.map(k => romajiScore(k, ro.whole));
+  // (a half-typed "小sa": the written part as it is, the romaji reading what follows it)
+  const whole = keys.map((k, f) => {
+    const v = romajiScore(k, ro.whole);
+    if (v || !ro.runs) return v;
+    const at = SearchJa.findMixed(texts[f][0], ro.runs);
+    return !at ? 0 : at[0] === 0 && at[1] >= texts[f][0].length ? 95 : at[0] === 0 ? 75 : 50;
+  });
   if (whole.some(Boolean)) {
     for (let f = 0; f < texts.length; f++) score = Math.max(score, whole[f] * texts[f][1]);
     score *= terms.length;
@@ -727,7 +733,7 @@ function searchHighlight(root, terms) {
       for (const term of terms) for (let i = low.indexOf(term); i >= 0; i = low.indexOf(term, i + term.length)) spans.push([i, i + term.length]);
       // romaji: the part of a Japanese / Korean name it was found in
       if (!spans.length && ro && SearchJa.hasJa(text)) {
-        const whole = SearchJa.find(text, ro.whole);
+        const whole = SearchJa.find(text, ro.whole) || SearchJa.findMixed(text, ro.runs);
         if (whole) spans.push(whole);
         else ro.parts.forEach(part => { const r = part.length >= 3 && SearchJa.find(text, part); if (r) spans.push(r); });
       }
