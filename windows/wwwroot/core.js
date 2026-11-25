@@ -375,7 +375,7 @@ function artistLinks(names, before) {
 }
 
 const Lib = {
-  albums: [], tracks: [], albumById: new Map(), trackById: new Map(), artists: [], artistMap: new Map(), loaded: false,
+  albums: [], tracks: [], albumById: new Map(), trackById: new Map(), away: new Map(), artists: [], artistMap: new Map(), loaded: false,
   async load() {
     let data;
     try {
@@ -432,7 +432,12 @@ const Lib = {
     for (const t of tracks) { t.s = norm(t.title + ' ' + t.artist + ' ' + (t.album ? t.album.title : '')); t.na = norm(t.artist); }
     const shownTracks = tracks.filter(t => !t.album?.hidden);
     const coll = new Intl.Collator(['ja', 'zh-Hant', 'en'], { sensitivity: 'base', numeric: true });
+    // switching between 本地 and 遠端 swaps the whole library, but the queue keeps playing the other one's songs: keep
+    // the track objects of the library shown before (away), so the now-playing bar and the queue can still draw them
+    const away = new Map();
+    if (this.loaded) for (const m of [this.away, this.trackById]) for (const [id, t] of m) if (!trackById.has(id)) away.set(id, t);
     Object.assign(this, {
+      away,
       // albums / tracks: what lists show (one version per album); allAlbums / allTracks: everything
       albums: shown, tracks: shownTracks, allAlbums: albums, allTracks: tracks, albumById, trackById, artistMap, loaded: true, collator: coll, hasFolders: !!dirs,
       artists: [...new Set(artistMap.values())].sort((a, b) => coll.compare(a.name, b.name)),
@@ -966,9 +971,9 @@ const App = {
       return { id: 'yt-live', live: true, title: l.title || 'YouTube Music', artist: l.artist || '', albumId: null,
         album: { title: l.album || '', artist: l.artist || '' }, codec: 'YouTube', rate: 48000, bits: 0, img: l.img || '' };
     }
-    // the song keeps playing when the library shown changes (本地 ⇄ 遠端) and it isn't in the new one: keep the last
-    // track object drawn for it, so the now-playing bar keeps its cover, title and artist
-    const t = Lib.trackById.get(s.trackId);
+    // the song keeps playing when the library shown changes (本地 ⇄ 遠端) and it isn't in the new one: draw it from
+    // the library shown before (the next songs of the queue are there too), or keep the last track object drawn for it
+    const t = Lib.trackById.get(s.trackId) || Lib.away.get(s.trackId);
     if (t) this.npTrack = t;
     return t || (this.npTrack && this.npTrack.id === s.trackId ? this.npTrack : undefined);
   },
@@ -2220,7 +2225,7 @@ const Queue = {
       return m;
     };
     const row = (id, i) => {
-      const t = Lib.trackById.get(id) || stub(id);
+      const t = Lib.trackById.get(id) || Lib.away.get(id) || stub(id);
       const r = h('div', { class: 'qrow' + (i === index ? ' cur' : '') + (i < index ? ' past' : ''), draggable: 'true', 'data-i': i, 'data-id': id },
         artBox('thumb', ...(t.stub ? ['t', id] : trackArt(t)), 48, t.album?.title),
         h('div', { style: { minWidth: 0 } }, h('div', { class: 't' }, t.title), h('div', { class: 'a' }, t.artist)),
