@@ -396,7 +396,7 @@
 }
 :root[data-theme="vinyl"] #np .np-cover::before {
   background:
-    conic-gradient(from 28deg, rgba(255,255,255,.2), transparent 9%, transparent 46%, rgba(255,255,255,.15) 54%, transparent 63%),
+    conic-gradient(from 28deg, transparent 0%, rgba(255,255,255,.17) 5%, transparent 12%, transparent 44%, rgba(255,255,255,.13) 54%, transparent 64%, transparent 100%),   /* 反光兩頭都淡進淡出：原本起點是一刀亮的，會在封面上切出一條斜線 */
     repeating-radial-gradient(circle closest-side, rgba(10,8,6,.13) 0, rgba(10,8,6,.04) 1.4px, rgba(10,8,6,0) 2px 3px);
   -webkit-mask: radial-gradient(circle closest-side, transparent 0 26%, #000 46% 93%, transparent 94%);
           mask: radial-gradient(circle closest-side, transparent 0 26%, #000 46% 93%, transparent 94%);

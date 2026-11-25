@@ -1579,8 +1579,16 @@
   62%  { opacity: 1; }
   100% { opacity: 0; transform: scale(1.18) rotate(10deg); }
 }
-@keyframes ps-cut { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-@keyframes ps-flash { from { opacity: .14; } to { opacity: 0; } }
+@keyframes ps-cut { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ps-static-fade { 0% { opacity: .5; } 35% { opacity: .38; } 100% { opacity: 0; } }
+@keyframes ps-static-jump {
+  0%   { background-position: 0 0, 0 -30%; }
+  16%  { background-position: -173px 91px, 0 0%; }
+  33%  { background-position: 211px -57px, 0 30%; }
+  50%  { background-position: -67px 143px, 0 60%; }
+  66%  { background-position: 129px 17px, 0 90%; }
+  83%, 100% { background-position: -31px -113px, 0 120%; }
+}
 
 /* ───────────── 8 · 彈出的小視窗：「噹」一下彈出來（選單維持淡入：彈動會讓項目滑到滑鼠底下） ───────────── */
 @keyframes ps-pop { from { opacity: 0; transform: scale(.84); } 35% { opacity: 1; } to { opacity: 1; transform: none; } }

@@ -915,7 +915,7 @@
   opacity: 0; transform-origin: left center;
 }
 :root[data-theme="neon"] .ly-line::after {
-  content: ""; position: absolute; left: 5px; top: 50%; width: 4px; height: 1em; margin-top: -.5em; pointer-events: none;   /* 斜了以後也整支在歌詞框裡（框的左邊會裁切） */
+  content: ""; position: absolute; left: 5px; top: calc(9px + .66em); width: 4px; height: .9em; margin-top: -.47em; pointer-events: none;   /* 對準第一行字的中線（行上 9px 內距＋半個 1.32 行高），有沒有翻譯都一樣 */   /* 斜了以後也整支在歌詞框裡（框的左邊會裁切） */
   background: linear-gradient(180deg, var(--nx-head-glow), var(--teal) 30%, var(--teal));
   box-shadow: 0 0 8px rgba(var(--teal-rgb), .8);
   opacity: 0; transform: translateX(-6px) skewX(-10deg);

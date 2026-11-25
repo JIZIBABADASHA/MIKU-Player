@@ -171,7 +171,7 @@
 :root[data-theme="gold"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .modal-head h2, .np-title) { font-family: var(--font-display); }
 :root[data-theme="gold"] :is(.ly-line, .ly-plain) { font-family: var(--font); }
 :root[data-theme="gold"] .page-head h1 {
-  position: relative; font-weight: 700; letter-spacing: .03em; padding: 14px 18px 12px; margin-left: -4px;
+  position: relative; font-weight: 700; letter-spacing: .03em; padding: 13px 18px 13px; margin-left: -4px;
   /* 字在招牌裡上下置中：行框切到大寫字高～基線，跟字型的行高設定無關（Mac 的宋體行高偏上，字才會沉到框底）；
      漢字比大寫字高出上 .19em、下 .12em，所以上面多留 2px */
   text-box: trim-both cap alphabetic;

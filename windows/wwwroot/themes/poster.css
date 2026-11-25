@@ -329,16 +329,18 @@
   animation: ps-burst .75s cubic-bezier(.2, .8, .3, 1);
 }
 
-/* ───────────── 7 · 換頁：輕輕轉台（第五版） ─────────────
-   第四版的轉台（滿屏雜訊＋上下捲＋抖動＋亮度跳）太劇烈、看了會暈。改成跟一般主題換頁一樣的淡入（.26 秒），
-   只多一層很淡的顆粒在開頭一閃就退（最高 .14、不蓋底色），畫面從上面 4px 滑順落定。沒有抖動、沒有亮度跳、不用 steps。
+/* ───────────── 7 · 換頁：老電視的雪花（第六版） ─────────────
+   第四版太劇烈（抖動＋亮度跳＋滿屏灰底）、第五版的雪花又淡到看不見。現在：畫面不抖、不跳亮，跟一般換頁一樣淡入；
+   上面蓋一層看得見的電視雪花（最高 .5、沒有灰底，顆粒每 60ms 換一格像訊號在跳），加一條很淡的橫向亮帶慢慢往下走，0.4 秒內淡掉。
    這個主題仍不做封面飛到專輯頁的動畫（--album-flip: off，core.js Flip）。 */
 :root[data-theme="poster"] { --album-flip: off; }
-:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: ps-cut .26s var(--ease, ease-out) backwards; }
+:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: ps-cut .3s ease-out backwards; }
 :root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after {
   content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 240px 240px;
-  animation: ps-flash .22s ease-out;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 1.6 -.55 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 240px 240px,
+    linear-gradient(180deg, transparent 0 40%, rgba(255,250,236,.35) 48% 52%, transparent 60% 100%) 0 0 / 100% 40% no-repeat;
+  animation: ps-static-fade .4s ease-out, ps-static-jump .4s steps(1, end);
 }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: none; }
 :root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after { animation: none; }
