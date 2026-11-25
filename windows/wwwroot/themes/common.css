@@ -2198,6 +2198,10 @@
    不管哪個主題、哪種字型（Cascadia Mono、Segoe、蘋方），FLAC 16/44.1 都和左邊的圓點／星星在同一條中線上 */
 :root:root #bar :is(#b-sigtxt, #b-outname) { text-box: trim-both cap alphabetic; }
 
+/* 輸出鈕的字有 overflow: hidden（名稱太長時出現「…」），裁掉行距後框只剩大寫字高，0、9、g、漢字的上下緣會被切平。
+   上下各加 .3em 的 padding（再用負 margin 抵掉，位置不變）：裁切範圍放大到整個字形，置中不受影響。 */
+:root:root #bar :is(#b-sigtxt, #b-outname) { padding-block: .3em; margin-block: -.3em; }
+
 /* 頁首大標題不被右邊的篩選列擠成一字一行（視窗 1280 以下「專輯」會斷成兩行）：標題照字寬、不縮；
    只有很長的標題（搜尋字串）超過 46vw 才換行。路徑列後面的資料夾標題維持原本的截斷。 */
 :root:root .page-head:not(.fcrumbs + .page-head) > h1 { flex: 0 0 auto; max-width: 46vw; }
