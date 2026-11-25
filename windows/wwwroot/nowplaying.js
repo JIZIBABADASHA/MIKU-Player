@@ -473,16 +473,21 @@ const NowPlaying = {
     this._ro?.disconnect();
     this._ro = new ResizeObserver(() => {
       cancelAnimationFrame(this._mf);
-      this._mf = requestAnimationFrame(() => this.measure());
+      this._mf = requestAnimationFrame(() => this.measure(true));
     });
     this._ro.observe(box);
     this.lines.forEach(el => this._ro.observe(el));
   },
 
-  measure() {
+  /** glide: a line changed size while the box stayed the same (a line restyled as it becomes current, the translation
+   *  wrapping differently, a late font): the lines glide to their new places. Snapping them there (as on a resize)
+   *  made the move to the next line jump instead of slide whenever it coincided with such a change. */
+  measure(glide) {
     if (!this.lines.length) return;
     const box = $('#lyrics');
     if (!box.clientHeight) return;   // hidden: measured again once it has a size
+    const size = box.clientWidth + 'x' + box.clientHeight + document.documentElement.dataset.theme;
+    glide = glide && size === this._measured && this.tops.length === this.lines.length; this._measured = size;
     // a theme can give the lines more room and pick where the current line sits, in CSS on #lyrics: --ly-gap (px between
     // lines, 16 if unset), --ly-anchor (the current line's middle, as a fraction of the box height, .43 if unset) and
     // --ly-start (at the start of a song the first line sits this far down instead of at the anchor, so the box is not
@@ -506,7 +511,7 @@ const NowPlaying = {
     this.heights = this.lines.map(el => el.offsetHeight);
     this.tops = this.heights.map(height => { const top = y; y += height + this.gap; return top; });
     this.boxH = box.clientHeight;
-    this.layoutLines(false, true);
+    this.layoutLines(false, !glide);
   },
 
   /**
