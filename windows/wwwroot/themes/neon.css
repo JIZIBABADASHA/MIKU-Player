@@ -1174,3 +1174,8 @@
 }
 :root:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .rl-src > button:not(.on) { color: #4d4380; }
 :root:root[data-theme="neon"]:where([data-mode="day"]) #sidebar .rl-src > button:not(.on):hover { color: #0c0626; }
+
+/* 霓虹：播放列右上角的條碼。左邊有 MoodWave 頻道時，1440px 以下播放列是兩列（進度條在上），總時間就在條碼正下方，
+   數字的上半被條碼蓋住（Mac 實機截圖看到的，1280×800）：兩列時不畫條碼（1180px 以下本來就不畫）。 */
+@media (max-width: 1440px) {:root[data-theme="neon"]:has(#b-ext:not([hidden])) #bar::after { display: none; }
+}

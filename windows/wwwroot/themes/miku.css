@@ -253,4 +253,4 @@
 }
 
 /* 初音・日：側欄選中那一格右邊的漸層太淺，白色的數量（細斜體）對比只有 1.9:1。右端收在主題的青綠 #39c5bb，左端深一點。 */
-:root:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-pill { background: linear-gradient(100deg, #27b5ad, #39c5bb); }
+:root:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-pill { background: linear-gradient(100deg, #1fa8a0, #33bdb4); }

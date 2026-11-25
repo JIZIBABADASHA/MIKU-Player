@@ -624,3 +624,8 @@
 :root:root[data-theme="terminal"]:where([data-mode="day"]) .cd-task { background: #fbfbf6; }
 @media (max-width: 1180px) {:root:root[data-theme="terminal"] .nav-pill::before { left: -11px; color: var(--teal); }
 }
+
+/* Mac 的字比較粗，量到 2.0:1，再深一點 */
+/* MoodWave 的頻道輪（正在播放左邊那一欄）：頻道名用主題的字，終端機的等寬字比較寬，
+   「Shuffle All」要 146px、欄位只有 134px，被截成「Shuffle A…」（Windows 實機看到的）。字小一級就放得下。 */
+:root[data-theme="terminal"] #np-ext .mc-rail-text b { font-size: 19px; }

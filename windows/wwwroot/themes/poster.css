@@ -572,3 +572,10 @@
 :root:root[data-theme="poster"] .nav a.on::after { display: none; }
 :root:root[data-theme="poster"] .nav a.on svg.i { margin-left: 0; }
 }
+
+/* 海報：上下排（直放或很窄的視窗）時演出者、標籤、按鈕都置中，只有歌名的字卡靠左（它的寬度跟著字走），看起來沒對齊：
+   字卡也置中，歪的那一點改成繞著中心轉。精簡的上下排（封面在左、歌名在右）照舊靠左。 */
+@media (orientation: portrait), (max-width: 760px) {:root:root[data-theme="poster"] #np .np-title { margin-left: auto; margin-right: auto; transform-origin: center; }
+}
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root:root[data-theme="poster"] #np:not(.nolyrics) .np-title { margin-left: 0; margin-right: 0; transform-origin: left center; }
+}

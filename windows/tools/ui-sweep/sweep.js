@@ -25,7 +25,8 @@ const modes = arg('modes', 'day,night').split(',');
 const SIZES = [[2560, 1440], [1920, 1080], [1512, 913], [1440, 900], [1280, 800], [1180, 760], [1100, 700], [980, 640], [1600, 640], [1366, 600], [900, 1200], [760, 900], [800, 600], [2560, 1000]];
 const SHEET_SIZES = ['1920x1080', '1512x913', '1280x800', '980x640', '1366x600', '900x1200'];
 const sizes = arg('sizes') ? arg('sizes').split(',').map(s => s.split('x').map(Number)) : SIZES;
-// MoodWave's channel mode, imitated: its stylesheet, the band on the bar, the channel's dark picture on the bar and page.
+// MoodWave's channel mode, imitated: its stylesheet, the band on the bar, the channel's dark picture on the bar and page,
+// and the channel wheel at the left of now playing (its names are in the theme's font: a wide one cut "Shuffle All").
 // The band comes in as in the app: MIKU swaps the bar's left part as a whole (core.js BarSwap: a copy of the old one over
 // it, the new one sliding in from the edge). Measured on the way, the bar once went as compact as it can and stayed so.
 const mwFile = arg('mw', path.join(HERE, '..', '..', '..', 'Extensions', 'MoodWave', 'miku', 'web', 'moodchannels.css'));
@@ -41,7 +42,10 @@ e.append(b);
 const fitBand=()=>{const mini=b.closest('.np-mini'),art=mini&&mini.querySelector('.art');const room=mini?mini.clientWidth-120-(art?art.offsetWidth:0)-28:999;const t=room-76<90;b.classList.toggle('mc-tight',t);b.style.width=(t?120:196)+'px'};
 fitBand();addEventListener('resize',()=>setTimeout(fitBand,60));
 const g=document.createElement('div');g.className='mc-barbg on';g.style.backgroundImage='linear-gradient(100deg,#1b1030,#2a1840 40%,#0e1422)';document.querySelector('#bar').prepend(g);
-const p=document.querySelector('#np .np-bg');const d=document.createElement('div');d.className='mc-npbg on';d.style.backgroundImage='linear-gradient(90deg,#101428,#1a1020)';p.append(d);if(go)go();})()`;
+const p=document.querySelector('#np .np-bg');const d=document.createElement('div');d.className='mc-npbg on';d.style.backgroundImage='linear-gradient(90deg,#101428,#1a1020)';p.append(d);
+const n=document.querySelector('#np-ext');n.hidden=false;const r=document.createElement('div');r.className='mc-rail';
+r.innerHTML='<a class="mc-rail-head"><i class="mc-rail-logo" style="display:block;background:#fff;border-radius:50%"></i><span class="mc-brand">MoodWave</span></a><button class="mc-rail-step">'+arrow+'</button><div class="mc-wheel"><div class="mc-votes"><button class="mc-vote yes">'+arrow+'</button><button class="mc-vote no">'+arrow+'</button></div>'+['Extreme','Shuffle All','Morning','Energetic','Relax','Mellow','Upbeat'].map((x,k)=>'<button class="mc-rail-item'+(k===3?' on':'')+'" style="--o:'+(k-3)+';--a:'+Math.abs(k-3)+';--sc:'+(k===3?1:.8)+';--art:linear-gradient(135deg,#456,#a67)"><i class="mc-rail-art"></i><span class="mc-rail-text"><b>'+x+'</b><small>充滿活力・節奏強烈</small></span></button>').join('')+'</div><button class="mc-rail-step down">'+arrow+'</button>';
+n.append(r);if(go)go();})()`;
 // MoodWave's radio (a station, not a channel): the page keeps the theme; a station label on the bar and, on wide pages,
 // a station rail at the left of now playing
 const MWR = `(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(mwCss)};document.head.append(s);
@@ -99,7 +103,8 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
         await page.goto(`http://miku.test/index.html?${q}${s.hash || '#/home'}`, { waitUntil: 'load' });
         await page.waitForTimeout(1100);
         if (s.np) { await page.evaluate(() => document.querySelector('#b-art') && document.querySelector('#b-art').click()); await page.waitForTimeout(2600); }
-        if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(1100); }
+        // the swap of the bar's left part runs on frames: wait for it to end (a slow machine draws few), then let things settle
+        if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(600); await page.waitForFunction(() => typeof BarSwap === 'undefined' || !BarSwap.cur, null, { timeout: 10000 }).catch(() => { }); await page.waitForTimeout(500); }
         await page.addStyleTag({ content: STILL });
         for (const [w, h] of sizes) {
           await page.setViewportSize({ width: w, height: h });

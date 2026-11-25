@@ -2,11 +2,13 @@
  *   clip     an interactive control partly cut off by a non-scrolling clipping ancestor or the window
  *   half     a line of text only partly visible (cut top/bottom)
  *   hcut     a line of text cut sideways without an ellipsis
- *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info)
+ *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info,
+ *            a theme's ornament in a corner of the bar over the times)
  *   offscreen a key control outside the window
  *   touch    buttons of one row touching each other, or a round button squashed out of shape
  *   orphan   a title's last line is a single character (or a stub) on its own
  *   squeeze  the play bar dropped the song title although there is room for it
+ *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel)
  * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
  */
 (() => {
@@ -90,7 +92,8 @@
     const p = n.parentElement; if (!p || /^(SCRIPT|STYLE|TITLE|OPTION|TEXTAREA)$/.test(p.tagName)) continue;
     let info = parents.get(p);
     if (info === undefined) {
-      info = (skipRegion(p) || hidden(p)) ? null : clipOf(p, true);
+      // not MoodWave's channel wheel: its channels are turned in 3D, so their lines measure shorter than they are
+      info = (skipRegion(p) || hidden(p) || p.closest('.mc-wheel')) ? null : clipOf(p, true);
       if (info && (info.scroll || info.mask)) info = null;
       parents.set(p, info);
     }
@@ -227,12 +230,34 @@
       const free = barEl.getBoundingClientRect().width - used;
       if (free > 260) add('squeeze', 'div#bar', 'song title dropped with ' + Math.round(free) + 'px free');
     }
+    // a theme's ornament in a corner of the bar (a pseudo-element: neon's label and barcode) over the times or the title:
+    // in the two-row bar the total time sits right under the top right corner
+    if (barEl && !hidden(barEl)) for (const ps of ['::before', '::after']) {
+      const cs = getComputedStyle(barEl, ps);
+      if (cs.content === 'none' || cs.display === 'none' || cs.position !== 'absolute' || +cs.opacity < 0.05) continue;
+      const w = parseFloat(cs.width), h = parseFloat(cs.height), l = parseFloat(cs.left), t = parseFloat(cs.top);
+      if (!(w > 0 && h > 0 && isFinite(l) && isFinite(t)) || w > 400 || h > 40) continue;   // an ornament, not a backdrop or an edge across the bar
+      const br = barEl.getBoundingClientRect(), bc = getComputedStyle(barEl);
+      const x = br.left + parseFloat(bc.borderLeftWidth) + l, y = br.top + parseFloat(bc.borderTopWidth) + t;
+      const o = { left: x, top: y, right: x + w, bottom: y + h, width: w, height: h };
+      for (const e of barEl.querySelectorAll('.seek .time, #b-title, #b-artist')) {
+        if (hidden(e)) continue;
+        const tb = textBox(e) || box(e);
+        if (tb && hit(o, tb, 1)) add('overlap', 'div#bar' + ps + ' × ' + desc(e), 'bar ornament over text');
+      }
+    }
     // sidebar: the parts of one link never overlap (icon, label, badges)
     for (const a of document.querySelectorAll('#sidebar :is(a, button, .nav-item)')) {
       if (hidden(a)) continue;
       const kids = [...a.children].filter(k => !hidden(k) && k.getBoundingClientRect().width > 1);
       for (let i = 0; i < kids.length; i++) for (let j = i + 1; j < kids.length; j++) if (hit(box(kids[i]), box(kids[j]), 1.5)) add('overlap', desc(kids[i]) + ' × ' + desc(kids[j]), 'sidebar link parts overlap');
     }
+  }
+  // MoodWave's channel wheel on now playing: every channel's name whole (it is set in the theme's font, and a wide one
+  // cut "Shuffle All" to "Shuffle A…")
+  if (npOn) for (const b of document.querySelectorAll('#np-ext .mc-rail-item:not(.far) .mc-rail-text b')) {
+    if (hidden(b)) continue;
+    if (b.scrollWidth > b.clientWidth + 1) add('short', desc(b), 'needs ' + b.scrollWidth + 'px, has ' + b.clientWidth + 'px');
   }
   return out;
 })()
