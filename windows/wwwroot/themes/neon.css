@@ -1179,3 +1179,10 @@
    數字的上半被條碼蓋住（Mac 實機截圖看到的，1280×800）：兩列時不畫條碼（1180px 以下本來就不畫）。 */
 @media (max-width: 1440px) {:root[data-theme="neon"]:has(#b-ext:not([hidden])) #bar::after { display: none; }
 }
+
+/* 霓虹：兩列的播放列（進度條在上），已播時間就在左上角黃色標籤的正下方，只隔 2px（Windows 實機和 Mac 都看到）。
+   進度條那一列往下 3px，標籤和數字之間有 5px。 */
+@media (max-width: 1080px) {:root[data-theme="neon"] #bar .seek { translate: 0 3px; }
+}
+@media (max-width: 1440px) {:root[data-theme="neon"]:has(#b-ext:not([hidden])) #bar .seek { translate: 0 3px; }
+}

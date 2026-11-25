@@ -579,3 +579,10 @@
 }
 @media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root:root[data-theme="poster"] #np:not(.nolyrics) .np-title { margin-left: 0; margin-right: 0; transform-origin: left center; }
 }
+
+/* 海報：矮視窗（封面在左、歌名在右）和精簡的上下排，別的主題歌名都縮到 20px／18px，海報的字卡還是 26px，
+   同一首歌別的主題兩行放得下、海報被截成「ハッピー…」（980×640）。字卡跟著縮，內容多看得到一截。 */
+@media (max-height: 680px) and (orientation: landscape) and (min-width: 761px) {:root:root[data-theme="poster"] #np .np-title { font-size: 19px; letter-spacing: 0; }
+}
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root:root[data-theme="poster"] #np:not(.nolyrics) .np-title { font-size: 18px; }
+}
