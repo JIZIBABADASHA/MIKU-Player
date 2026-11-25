@@ -104,7 +104,8 @@ def walk(css, buckets_text, keys):
             o = owner(s)
             if o is None: per.setdefault('common', []).append(s.strip())
             else:
-                for t in o: per.setdefault(t, []).append(s.strip())
+                for t in THEMES:   # THEMES order, not set order: a set's order changes from run to run, and so did which file got the comment
+                    if t in o: per.setdefault(t, []).append(s.strip())
         for k, ss in per.items():
             put(k, ', '.join(ss) + ' {' + body + '}\n')
 HEAD = {

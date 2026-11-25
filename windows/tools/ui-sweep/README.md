@@ -11,7 +11,9 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **offscreen**: a key control outside the window or under the play bar
 - **touch**: the now-playing buttons touching each other, or a round button squashed out of shape
 - **orphan**: a two-line title whose second line is a single character or a short stub
-- **squeeze**: the play bar dropped the song title although there is room for it
+- **squeeze**: the play bar dropped the song title although there is room for it. The MoodWave pages bring the
+  channel's strip in the way the app does (the bar's left part slides in from the edge), because measuring on the
+  way once left the bar compact until the window was resized
 - **faint**: text too faint to read. `contrast.js` measures it from the pixels of a screenshot (so gradients, pictures
   and textures count): the line's median pixel is the paper, the text's own colour laid over it is the ink, and their
   contrast ratio must reach 2.05:1 (`--faint 0` switches it off). Measured at three sizes: the full sidebar, the folded

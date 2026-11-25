@@ -204,6 +204,9 @@
    每個主題放的位置不同也一樣。沒有時間軸的歌詞（純文字）和「找不到歌詞」不能調時間，這一排不顯示。 ───── */
 :root:root:root #np .np-right { padding-bottom: var(--ly-off-room, 0px); }
 #np .np-right:has(#lyrics :is(.ly-plain, .ly-empty)) .ly-offset { display: none; }
+/* 純文字歌詞（沒有時間軸）：橫排時歌詞欄和視窗一樣高，字從上面 24vh 開始；上下排時歌詞欄只有畫面下面三分之一，
+   24vh 把字推到欄底，只看得到兩行、上面空一大片。上下排改成從欄頂（淡出的那一段下面）開始。 */
+@media (orientation: portrait), (max-width: 760px) { #np .ly-plain { padding-top: 6vh; padding-bottom: 12vh; } }
 @media (max-width: 760px), (orientation: portrait) {
   #np .ly-offset { right: 10px; }
 }

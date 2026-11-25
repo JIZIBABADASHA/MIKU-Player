@@ -1042,3 +1042,12 @@
 
 /* 進度條的鑽石拉桿比進度條高很多，走到兩端時壓到下面的時間：時間往下讓開 */
 :root:root:root[data-theme="gold"] #np .np-seek .times { margin-top: 12px; }
+
+/* 黃金・日：矮視窗（封面在左、歌名在右）和精簡的上下排不畫紅底名牌，歌名、演出者、時間直接排在金色的頁面上，
+   原本給紅底用的淺金字就讀不到了（對比 1.2:1）：改成深酒紅字，下面一條淺色的細邊。夜和 MoodWave 頻道的頁面是暗的，照舊。 */
+@media (max-height: 680px) and (orientation: landscape) and (min-width: 761px) {:root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-artist, :root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-artist a { color: #5a0a14; text-shadow: 0 1px 0 rgba(255,248,220,.8); }
+:root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np .np-seek .times { color: #4a0a12; text-shadow: 0 1px 0 rgba(255,248,220,.8); }
+}
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np:not(.nolyrics) .np-artist, :root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np:not(.nolyrics) .np-artist a { color: #5a0a14; text-shadow: 0 1px 0 rgba(255,248,220,.8); }
+:root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np:not(.nolyrics) .np-seek .times { color: #4a0a12; text-shadow: 0 1px 0 rgba(255,248,220,.8); }
+}

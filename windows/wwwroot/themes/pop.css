@@ -351,3 +351,8 @@
    檢查工具量到四個幾乎看不到的：普普・夜「遠端」（深藍字在深藍底）、黑膠・日「遠端」（米白字在米白底）、
    霓虹・日「遠端」（淡紫字在淡紫底）、黃金・夜選中的「本地」（淡金字在亮金鈕上）。 */
 :root:root[data-theme="pop"]:where([data-mode="night"]) #sidebar .rl-src button:not(.on) { color: #fff8e6; }
+
+/* ═════════ 第二次全面檢查（Mac 字型＋Windows 實機）找到的 ═════════ */
+/* 普普的「正在播放」卡片：跟著封面縮到 260px 時，五顆按鈕之間只剩 1.5px，播放鈕幾乎貼著左右兩顆。
+   最窄 288px（欄位更窄時跟著欄位），按鈕之間至少 8px；封面可以比卡片窄。 */
+:root:root:root[data-theme="pop"] #np .np-info { min-width: min(288px, 100%); }

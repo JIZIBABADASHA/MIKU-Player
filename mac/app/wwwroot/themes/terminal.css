@@ -316,6 +316,14 @@
    還沒唱到的行不顯示（滑鼠移到歌詞上才淡淡出現，可以點），所以下面不會空著一片。行距比別的主題窄一點，像一行一行的文字。 */
 :root[data-theme="terminal"] #lyrics { --ly-anchor: .66; --ly-start: .06; --ly-gap: 8px; --ly-blur: .45; --ly-dim: .74; }
 :root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np { --tm-ly-l: 36px; --tm-ly-r: 38px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np {
+  --tm-ly-on: #eafff1;  --tm-ly-next: #b2e4c1;  --tm-ly-past: #8cc39d;
+  --tm-ly-tr-on: #bfeacb; --tm-ly-tr-next: #9fd2ad; --tm-ly-tr-past: #8ac19c;
+  --tm-ly-ts: #7fb690;  --tm-ly-ts-on-bg: #5cf093; --tm-ly-ts-on: #062011;
+  --tm-ly-cur: #9dffbf;
+  --tm-ly-glow: 0 0 1px rgba(170,255,200,.55), 0 0 9px rgba(92,240,147,.42), 0 0 22px rgba(92,240,147,.2);
+  --tm-ly-hover: rgba(92,240,147,.08);
+}
 
 /* 歌詞欄＝螢幕（夜）：圓角、機殼框、暈影、掃描線、反光，全是不動的漸層 */
 :root[data-theme="terminal"] #np .np-right {

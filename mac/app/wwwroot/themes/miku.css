@@ -251,3 +251,6 @@
    圖示永遠在塊的正中間。所有主題同一個規則：塊＝選中，左邊一個小標記＝主題的記號 */
 @media (max-width: 1180px) {:root:root[data-theme="miku"]:where([data-mode="night"]) .nav-pill::before { left: -8px; }
 }
+
+/* 初音・日：側欄選中那一格右邊的漸層太淺，白色的數量（細斜體）對比只有 1.9:1。右端收在主題的青綠 #39c5bb，左端深一點。 */
+:root:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-pill { background: linear-gradient(100deg, #27b5ad, #39c5bb); }

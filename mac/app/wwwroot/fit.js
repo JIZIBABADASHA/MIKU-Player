@@ -256,12 +256,23 @@
   const init = () => {
     const bar = document.getElementById('bar'); if (!bar) return;
     const MAX = 9;
-    const leaves = () => [...bar.querySelectorAll('.np-mini > *, .transport .btns > *, .right-tools > *:not(.tool-sep), .right-tools .vol > :not(.db):not(.hover-tip), .seek')]
+    // not the picture of the old left part that MIKU keeps over the bar while it swaps it (core.js BarSwap): it lies
+    // exactly on the real one
+    const leaves = () => [...bar.querySelectorAll('.np-mini:not(.bar-swap-old) > *, .transport .btns > *, .right-tools > *:not(.tool-sep), .right-tools .vol > :not(.db):not(.hover-tip), .seek')]
       .filter(e => e.offsetParent && getComputedStyle(e).visibility !== 'hidden' && !e.classList.contains('vol'));
+    // Where a part will be once it has come in: the bar's left part slides in from the edge when a module's band comes
+    // or goes (BarSwap), and measured on the way it was outside the bar, so the bar got as compact as it can and
+    // stayed so (no title, half the bar empty) until the window was resized.
+    const group = e => { while (e.parentElement && e.parentElement !== bar) e = e.parentElement; return e; };
+    const settled = () => { const dx = new Map(); return e => {
+      const r = e.getBoundingClientRect(), g = group(e); let x = dx.get(g);
+      if (x === undefined) { const t = getComputedStyle(g).transform; x = t && t !== 'none' ? new DOMMatrixReadOnly(t).m41 : 0; dx.set(g, x); }
+      return x ? { left: r.left - x, right: r.right - x, top: r.top, bottom: r.bottom, width: r.width, height: r.height } : r; }; };
     const collide = () => {
       const br = bar.getBoundingClientRect(), cs = getComputedStyle(bar);
       const L = br.left + parseFloat(cs.paddingLeft) - 1, R = br.right - parseFloat(cs.paddingRight) + 1;
-      const rs = leaves().map(e => [e, e.getBoundingClientRect()]).filter(([, r]) => r.width > 1);
+      const at = settled();
+      const rs = leaves().map(e => [e, at(e)]).filter(([, r]) => r.width > 1);
       for (const [, r] of rs) if (r.left < L || r.right > R) return true;
       for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
         const [a, ra] = rs[i], [b, rb] = rs[j];
@@ -275,15 +286,28 @@
       return false;
     };
     const set = n => { const v = n ? Array.from({ length: n }, (_, i) => i + 1).join(' ') : ''; if ((bar.dataset.sq || '') !== v) { if (v) bar.dataset.sq = v; else delete bar.dataset.sq; } };
-    let raf = 0, busy = false;
-    const fit = () => {
+    let raf = 0, busy = false, again = 0, tries = 0;
+    const moving = new WeakSet();
+    const fit = recheck => {
       raf = 0; busy = true;
       let n = 0; set(0);
       while (n < MAX && collide()) set(++n);
       busy = false;
+      // once more when a part of the bar has finished moving (a swap, an entrance), and, when the bar came out compact,
+      // twice more a moment later (then no more): what made it so may have been passing, and nothing here changes size
+      // when it has gone
+      for (const a of bar.getAnimations({ subtree: true })) {
+        const e = a.effect, el = e && e.target;
+        if (moving.has(a) || !el || (el !== bar && el.parentElement !== bar) || !isFinite(e.getComputedTiming().endTime)) continue;
+        moving.add(a); a.finished.then(now, now);
+      }
+      clearTimeout(again);
+      if (recheck !== true) tries = 0;
+      if (n && tries < 2) again = setTimeout(() => { tries++; fit(true); }, tries ? 3000 : 900);
     };
-    const now = () => { if (!busy && !raf) raf = requestAnimationFrame(fit); };
+    const now = () => { if (!busy && !raf) raf = requestAnimationFrame(() => fit()); };
     addEventListener('resize', now);
+    new MutationObserver(now).observe(bar, { childList: true });   // the swap's picture put over the bar, and taken away
     const ro = new ResizeObserver(now);
     for (const id of ['bar', 'b-ext', 'b-out', 'b-sig', 'b-title', 'b-artist']) { const e = document.getElementById(id); if (e) ro.observe(e); }
     if (document.fonts) document.fonts.addEventListener('loadingdone', now);

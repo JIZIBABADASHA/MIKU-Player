@@ -25,12 +25,15 @@ const modes = arg('modes', 'day,night').split(',');
 const SIZES = [[2560, 1440], [1920, 1080], [1512, 913], [1440, 900], [1280, 800], [1180, 760], [1100, 700], [980, 640], [1600, 640], [1366, 600], [900, 1200], [760, 900], [800, 600], [2560, 1000]];
 const SHEET_SIZES = ['1920x1080', '1512x913', '1280x800', '980x640', '1366x600', '900x1200'];
 const sizes = arg('sizes') ? arg('sizes').split(',').map(s => s.split('x').map(Number)) : SIZES;
-// MoodWave's channel mode, imitated: its stylesheet, the band on the bar, the channel's dark picture on the bar and page
+// MoodWave's channel mode, imitated: its stylesheet, the band on the bar, the channel's dark picture on the bar and page.
+// The band comes in as in the app: MIKU swaps the bar's left part as a whole (core.js BarSwap: a copy of the old one over
+// it, the new one sliding in from the edge). Measured on the way, the bar once went as compact as it can and stayed so.
 const mwFile = arg('mw', path.join(HERE, '..', '..', '..', 'Extensions', 'MoodWave', 'miku', 'web', 'moodchannels.css'));
 const mwCss = fs.existsSync(mwFile) ? fs.readFileSync(mwFile, 'utf8') : '';
 if (!mwCss) console.warn('no MoodWave stylesheet at ' + mwFile + ': the MoodWave pages use only the band and backdrop');
 const MW = `(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(mwCss)};document.head.append(s);
 document.documentElement.dataset.extSource='moodchannels';
+const go=typeof BarSwap!=='undefined'?BarSwap.begin():null;
 const e=document.querySelector('#b-ext');e.hidden=false;const b=document.createElement('div');b.className='mc-band';${mwCss ? "" : "b.style.cssText='width:200px;height:68px;flex:none';"}
 const arrow='<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg>';
 b.innerHTML='<button class="mc-band-step" title="上一個頻道">'+arrow+'</button><span class="mc-band-name" role="link" tabindex="0"><span class="mc-roll"><span class="mc-roll-item"><i class="mc-band-logo" style="display:block;background:#fff;border-radius:50%"></i><span>Energetic</span></span></span></span><button class="mc-band-step down" title="下一個頻道">'+arrow+'</button><div class="mc-votes"><button class="mc-vote" title="不喜歡">'+arrow+'</button><button class="mc-vote" title="喜歡">'+arrow+'</button></div>';
@@ -38,7 +41,7 @@ e.append(b);
 const fitBand=()=>{const mini=b.closest('.np-mini'),art=mini&&mini.querySelector('.art');const room=mini?mini.clientWidth-120-(art?art.offsetWidth:0)-28:999;const t=room-76<90;b.classList.toggle('mc-tight',t);b.style.width=(t?120:196)+'px'};
 fitBand();addEventListener('resize',()=>setTimeout(fitBand,60));
 const g=document.createElement('div');g.className='mc-barbg on';g.style.backgroundImage='linear-gradient(100deg,#1b1030,#2a1840 40%,#0e1422)';document.querySelector('#bar').prepend(g);
-const p=document.querySelector('#np .np-bg');const d=document.createElement('div');d.className='mc-npbg on';d.style.backgroundImage='linear-gradient(90deg,#101428,#1a1020)';p.append(d);})()`;
+const p=document.querySelector('#np .np-bg');const d=document.createElement('div');d.className='mc-npbg on';d.style.backgroundImage='linear-gradient(90deg,#101428,#1a1020)';p.append(d);if(go)go();})()`;
 // MoodWave's radio (a station, not a channel): the page keeps the theme; a station label on the bar and, on wide pages,
 // a station rail at the left of now playing
 const MWR = `(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(mwCss)};document.head.append(s);
@@ -96,7 +99,7 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
         await page.goto(`http://miku.test/index.html?${q}${s.hash || '#/home'}`, { waitUntil: 'load' });
         await page.waitForTimeout(1100);
         if (s.np) { await page.evaluate(() => document.querySelector('#b-art') && document.querySelector('#b-art').click()); await page.waitForTimeout(2600); }
-        if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(500); }
+        if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(1100); }
         await page.addStyleTag({ content: STILL });
         for (const [w, h] of sizes) {
           await page.setViewportSize({ width: w, height: h });
