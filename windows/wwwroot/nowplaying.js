@@ -491,10 +491,15 @@ const NowPlaying = {
     this.gap = num('--ly-gap', 16); this.anchor = num('--ly-anchor', 0.43); this.start = num('--ly-start', NaN);
     // --ly-blur: how strongly the lines not being sung blur (1 = the usual, 0 = sharp); the theme sets it on #lyrics
     this.blurK = num('--ly-blur', 1);
-    // --ly-arc: a radius in px (0 / unset: off). The lines then bow along a circle through the current line, the ones
-    // further up and down sliding back left by up to --ly-arc-max px, like the grooves round the record beside them (黑膠).
-    // --ly-reach on #lyrics is then kept at the gap from the cover's round edge to the current line's left edge.
+    // --ly-arc: a radius in px (0 / unset: off). The lines then bow along a curve through the current line, the ones
+    // further up and down sliding back left, approaching --ly-arc-max px, like the grooves round the record beside them (黑膠).
     this.arc = num('--ly-arc', 0); this.arcMax = num('--ly-arc-max', 60);
+    // --ly-on-scale: the current line's size (1 if unset); --ly-shrink: each line further away is this much smaller
+    // again (0 / unset: all the others the same size), down to --ly-shrink-min
+    // --ly-arc-clear: the lines bending back left keep at least this many px between their text and the cover / song info
+    // beside them (the curve is flattened to fit when the window leaves less room)
+    this.arcClear = num('--ly-arc-clear', 64);
+    this.onScale = num('--ly-on-scale', 1); this.shrink = num('--ly-shrink', 0); this.shrinkMin = num('--ly-shrink-min', 0.85);
     this.fitLines(num('--ly-fit', 0) > 0);
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
@@ -530,19 +535,17 @@ const NowPlaying = {
     this.lines.forEach((el, i) => { if (widths[i]) el.style.width = widths[i] + 'px'; });
   },
 
-  /** --ly-arc themes: the gap from the cover's round edge to the current line's left edge (where it will settle), on
-   *  .np-wrap as --ly-reach (its width, 0 when the line is above or below the cover), --ly-reach-x / -y (where it starts,
-   *  in .np-wrap's own px: it moves with the cover and the lyrics): a theme draws a link across it outside the lyrics box (the box clips its lines). */
-  reach(cur, scroll) {
-    const np = $('#np .np-wrap'), box = $('#lyrics'), cover = $('#np-cover');
-    if (!np || !cur || !cover) { if (np) np.style.setProperty('--ly-reach', '0px'); return; }
-    const n = np.getBoundingClientRect(), c = cover.getBoundingClientRect(), b = box.getBoundingClientRect(), a = this.active;
-    const r = c.width / 2, cx = c.left + r, cy = c.top + c.height / 2;
-    const cs = getComputedStyle(cur), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3;
-    const y = b.top + box.clientTop + cur.offsetTop + this.tops[a] - scroll + parseFloat(cs.paddingTop) + lh / 2, x = b.left + box.clientLeft + cur.offsetLeft, dy = y - cy;
-    const rim = Math.abs(dy) < r ? cx + Math.sqrt(r * r - dy * dy) : NaN, ok = Number.isFinite(rim) && x > rim;
-    np.style.setProperty('--ly-reach', (ok ? Math.round(x - rim) : 0) + 'px');
-    if (ok) { np.style.setProperty('--ly-reach-x', Math.round(rim - n.left) + 'px'); np.style.setProperty('--ly-reach-y', Math.round(y - n.top) + 'px'); }
+  /** --ly-arc themes: how far left the lines may bend: --ly-arc-max, or less so their text keeps --ly-arc-clear px from
+   *  the right edge of the cover and song info (both are in the same scaled .np-wrap, so the rects compare fine). */
+  arcRoom(box) {
+    const el = this.lines[0], parts = document.querySelectorAll('#np-cover, #np .np-info > *');
+    if (!el || !parts.length) return this.arcMax;
+    let right = -Infinity;
+    parts.forEach(p => { const r = p.getBoundingClientRect(); if (r.width && r.height) right = Math.max(right, r.right); });
+    if (!Number.isFinite(right)) return this.arcMax;
+    const b = box.getBoundingClientRect(), k = box.offsetWidth ? b.width / box.offsetWidth : 1;
+    const text = b.left + (box.clientLeft + el.offsetLeft + (parseFloat(getComputedStyle(el).paddingLeft) || 0)) * k;
+    return Math.max(0, Math.min(this.arcMax, (text - right) / k - this.arcClear));
   },
 
   /** Scroll that puts line i where the current line sits. */
@@ -577,6 +580,7 @@ const NowPlaying = {
     const theme = document.documentElement.dataset.theme, small = theme === 'terminal' ? 1 : 0.965;
     // the line being sung is the sharpest; the others blur a little, more the further away (lightweight blur: none)
     const k = PageEffects.reduced('blur') ? 0 : (this.blurK ?? 1);
+    const M = this.arc > 0 ? this.arcRoom(box) : 0;
     this.lines.forEach((el, i) => {
       const d = i - a;
       const dist = Math.abs(d);
@@ -586,15 +590,17 @@ const NowPlaying = {
       if (instant) el.style.transitionDuration = '0s';
       let dx = 0;
       if (this.arc > 0) {
-        const dy = (this.tops[i] + this.heights[i] / 2) - (this.tops[a] + this.heights[a] / 2), R = this.arc;
-        dx = -Math.min(this.arcMax, Math.abs(dy) >= R ? this.arcMax : R - Math.sqrt(R * R - dy * dy));
+        // a curve that keeps bending all the way out (no flat run where it hits the limit): a circle of radius R near the
+        // current line, easing towards --ly-arc-max further away, so two lines never end up at the same x
+        const dy = (this.tops[i] + this.heights[i] / 2) - (this.tops[a] + this.heights[a] / 2);
+        dx = M > 0 ? -M * Math.tanh(dy * dy / (2 * this.arc) / M) : 0;
       }
-      el.style.transform = `translate(${dx.toFixed(1)}px, ${this.tops[i] - scroll}px) scale(${i === this.active ? 1 : small})`;
+      const sc = i === this.active ? this.onScale : Math.max(Math.min(small, this.shrinkMin), small - this.shrink * (dist - 1));
+      el.style.transform = `translate(${dx.toFixed(1)}px, ${this.tops[i] - scroll}px) scale(${sc.toFixed(3)})`;
       el.style.filter = i === this.active || scrolling || !k ? 'none' : `blur(${(Math.min(0.3 + dist * 0.5, 2.4) * k).toFixed(2)}px)`;
       el.classList.toggle('on', i === this.active);
     });
     const cur = this.lines[this.active] || null;
-    if (this.arc > 0) this.reach(cur, scroll);
     if (cur !== this._tyEl || theme !== this._tyTheme) { this._tyEl = cur; this._tyTheme = theme; if (cur && theme === 'terminal') this.typeLine(cur, this.active); }
     // a theme's own effects can follow the lyrics: 'miku-lyric-line' fires once each time another line becomes the current one
     if (cur !== this._evLine) { this._evLine = cur; if (cur) window.dispatchEvent(new CustomEvent('miku-lyric-line', { detail: { el: cur, index: this.active, manual: !!manual } })); }

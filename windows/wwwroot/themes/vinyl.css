@@ -465,37 +465,20 @@
 @media (prefers-reduced-motion: reduce) {:root[data-theme="vinyl"] .card:not(.artist)::before, :root[data-theme="vinyl"] .card:not(.artist) .art { transition: none; }
 :root[data-theme="vinyl"] .np-mini .art img { animation: none; }
 }
+:root[data-theme="vinyl"] .np-mini .art img, :root[data-theme="vinyl"] #np .np-cover img { animation-name: vinylSpinCCW; }
+:root[data-theme="vinyl"] #lyrics { --ly-arc: 640; --ly-arc-max: 150; --ly-blur: .7; --ly-on-scale: 1.07; --ly-shrink: .022; --ly-shrink-min: .89; }
 
-/* ───────────── 歌詞：跟旁邊那張轉著的唱片連在一起 ─────────────
-   · 歌詞沿著一道大圓弧排（nowplaying.js 的 --ly-arc）：唱到的那句最靠近唱片，往上往下的句子慢慢往左彎回去，像唱片的溝紋；
-   · 唱片的邊緣到唱到的那句之間拉一條溝紋（虛線），一格一格從唱片流向歌詞，速度跟唱片轉的一樣（9 秒一圈）；
-     溝紋的盡頭是一顆唱針的小紅點，換句時溝紋跟著伸長縮短；
-   · 暫停時溝紋停住；「減少動態」或輕量化的「關閉黑膠持續旋轉」時溝紋不流動。 */
-:root[data-theme="vinyl"] #lyrics { --ly-arc: 900; --ly-arc-max: 56; --ly-blur: .7; }
-:root:root[data-theme="vinyl"] #lyrics .ly-line { left: 60px; right: 0; }
+/* 歌詞框往左多拉 100px，彎回去的句子才有地方去（框會切掉超出去的字）；句子本身的位置不變 */
+:root:root[data-theme="vinyl"] #np:not(.nolyrics) #lyrics { margin-left: -100px; }
+:root:root[data-theme="vinyl"] #lyrics .ly-line { left: 160px; right: 0; padding-right: calc(14px + 7%); }
 :root:root[data-theme="vinyl"] #lyrics .ly-line.on { color: var(--vy-ink); font-weight: 800; }
 :root:root[data-theme="vinyl"]:where([data-mode="night"]) #lyrics .ly-line.on { color: #fbf7eb; }
-:root:root[data-theme="vinyl"] #np .np-wrap::after {
-  content: ""; position: absolute; z-index: 2; pointer-events: none;
-  left: var(--ly-reach-x, 0px); top: var(--ly-reach-y, 0px); width: calc(var(--ly-reach, 0px) + 2px); height: 3px; margin-top: -1.5px; border-radius: 2px;
-  background: repeating-linear-gradient(90deg, rgba(var(--vy-ink-rgb), .55) 0 7px, transparent 7px 12px) 0 0 / 24px 100%;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10px); mask-image: linear-gradient(90deg, transparent, #000 10px);
-  transition: left .52s cubic-bezier(.2,.75,.25,1), top .52s cubic-bezier(.2,.75,.25,1), width .52s cubic-bezier(.2,.75,.25,1), opacity .3s;
-  animation: vn-groove 1.2s linear infinite;
-}
-:root:root[data-theme="vinyl"] #np .np-wrap:not(:has(#lyrics .ly-line.on:not(.gap)))::after { opacity: 0; }
-:root:root[data-theme="vinyl"]:where([data-mode="night"]) #np .np-wrap::after { background-image: repeating-linear-gradient(90deg, rgba(251,247,235,.5) 0 7px, transparent 7px 12px); }
 
-/* 唱針：溝紋盡頭的一顆紅點 */
+/* 唱針：唱到那句前面的一顆紅點 */
 :root:root[data-theme="vinyl"] #lyrics .ly-line.on::after {
   content: ""; position: absolute; left: 0; top: calc(.5lh + 9px); width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle at 35% 30%, #ffd2b8, var(--vy-label-hi) 45%, #7a2a0c); box-shadow: 0 0 0 2px rgba(var(--bg-rgb), .8), 0 0 10px rgba(var(--teal-rgb), .7);
 }
-:root:root[data-theme="vinyl"] #np.paused .np-wrap::after { animation-play-state: paused; }
-:root.lite-vinyl[data-theme="vinyl"] #np .np-wrap::after { animation: none; }
-@media (prefers-reduced-motion: reduce) {:root:root[data-theme="vinyl"] #np .np-wrap::after { animation: none; }
-}
-:root:root[data-theme="vinyl"] #np.nolyrics .np-wrap::after { display: none; }
 :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::before, :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::after { content: none; }
 :root[data-theme="vinyl"] { --dp-ink: var(--teal-2); }
 
