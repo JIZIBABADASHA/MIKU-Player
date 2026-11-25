@@ -1,0 +1,473 @@
+/* MIKU theme 'terminal': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="terminal"] .tp-opt.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] #sidebar { border-right: 1px dashed var(--line-2); }
+:root[data-theme="terminal"]:where([data-mode="day"]) #sidebar { padding-right: 34px; }
+@media (max-width: 1180px) {:root[data-theme="terminal"]:where([data-mode="day"]) #sidebar { padding-right: 12px; background: #f6f7f0; }
+}
+:root[data-theme="terminal"] .nav a { border-radius: 0; }
+:root[data-theme="terminal"] .nav a:hover { background: rgba(var(--teal-rgb), .1); color: var(--text-hi); }
+:root[data-theme="terminal"] .nav-label { color: var(--text-3); letter-spacing: .08em; text-transform: uppercase; }
+:root[data-theme="terminal"] .nav-label::before { content: "> "; color: var(--teal); }
+:root[data-theme="terminal"] .nav-pill { background: var(--tm-fill); border-radius: 0; box-shadow: none; }
+:root[data-theme="terminal"] .nav-pill::before { display: none; }
+:root[data-theme="terminal"] .nav a.on, :root[data-theme="terminal"] .nav a.on svg.i, :root[data-theme="terminal"] .nav a.on .count, :root[data-theme="terminal"] .nav a.on:hover { color: var(--on-accent); }
+:root[data-theme="terminal"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .92); }
+:root[data-theme="terminal"] .page-head h1, :root[data-theme="terminal"] .hero h1, :root[data-theme="terminal"] .np-title { text-shadow: var(--tm-glow); letter-spacing: -.02em; }
+:root[data-theme="terminal"] .page-head h1::after { content: "▌"; color: var(--teal); margin-left: .1em; font-weight: 400; }
+:root[data-theme="terminal"] .rail-head h2::before { content: "$ "; color: var(--teal); }
+:root[data-theme="terminal"] .sect h2::before { content: "# "; color: var(--teal); }
+:root[data-theme="terminal"] :is(.search, .round-btn, .btn, .seg, .seg button, .chip, .sig, .out-btn, select.sel, input.inp, .badge, .switch, .row, .qrow, .sect, .dsp-card, .drawer, .pop, .modal, .toast, .card .art, .card .play, .hero .cover, .np-cover, .playbtn, .pill, .np-top .icon-btn, .scroll-bubble, .msel-btn, .msel-menu, .msel-opt, .eq-graph, .eq-handle) { border-radius: 0; }
+:root[data-theme="terminal"] .switch::after, :root[data-theme="terminal"] .slider .track, :root[data-theme="terminal"] .slider .fill { border-radius: 0; }
+:root[data-theme="terminal"] .search { background: transparent; border: 1px solid var(--line-2); }
+:root[data-theme="terminal"] .search:focus-within { border-color: var(--teal); box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"] .round-btn { background: transparent; border: 1px solid var(--line-2); }
+:root[data-theme="terminal"] .btn { background: transparent; border: 1px solid var(--line-2); box-shadow: none; }
+:root[data-theme="terminal"] .btn:hover { background: rgba(var(--teal-rgb), .1); }
+:root[data-theme="terminal"] .btn.primary { background: var(--tm-fill); border-color: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .btn.ghost { border-color: transparent; }
+:root[data-theme="terminal"] .seg { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="terminal"] .seg button.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .switch { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="terminal"] .switch.on { background: var(--tm-fill); box-shadow: none; }
+:root[data-theme="terminal"] .switch.on::after { background: var(--on-accent); }
+:root[data-theme="terminal"] .chip.on { border-color: var(--teal); color: var(--teal); }
+:root[data-theme="terminal"] .badge { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="terminal"] .badge.hi { color: var(--teal); box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .55); }
+:root[data-theme="terminal"] .badge.dsd { color: var(--pink); box-shadow: inset 0 0 0 1px var(--pink-line); }
+:root[data-theme="terminal"] .icon-btn.on { color: var(--teal); }
+:root[data-theme="terminal"] .icon-btn.fav-on { color: var(--pink); }
+
+/* 播放鈕：空心方框；進度與音量：一格一格 */
+:root[data-theme="terminal"] .playbtn { background: transparent; color: var(--teal); box-shadow: inset 0 0 0 2px var(--teal), var(--tm-glow-box); }
+:root[data-theme="terminal"] .playbtn:hover { background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="terminal"] .slider .track { background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="terminal"] .slider .fill, :root[data-theme="terminal"] .slider:hover .fill { background: repeating-linear-gradient(90deg, var(--teal) 0 6px, transparent 6px 8px); }
+:root[data-theme="terminal"] .slider .knob { border-radius: 0; width: 6px; height: 14px; margin: -7px 0 0 -3px; background: var(--teal); box-shadow: var(--tm-glow-box); }
+:root[data-theme="terminal"] .seek .slider .knob, :root[data-theme="terminal"] .np-seek .slider .knob { opacity: 1; transform: none; }
+
+/* 卡片 */
+:root[data-theme="terminal"] .card .art { box-shadow: 0 0 0 1px var(--line-2); }
+:root[data-theme="terminal"] .card:hover .art { box-shadow: 0 0 0 1px var(--teal), var(--tm-glow-box); }
+:root[data-theme="terminal"] .card:hover .t1 { color: var(--teal); }
+:root[data-theme="terminal"] .card .play { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .card .t2, :root[data-theme="terminal"] .row .tt .a { color: var(--text-3); }
+
+/* 列表與面板 */
+:root[data-theme="terminal"] .thead { background: var(--bg); border-bottom: 1px dashed var(--line-2); text-transform: uppercase; letter-spacing: .06em; }
+:root[data-theme="terminal"] .row:hover { background: rgba(var(--teal-rgb), .08); }
+:root[data-theme="terminal"] .row.playing { background: rgba(var(--teal-rgb), .14); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="terminal"] .row.playing .tt div:first-child, :root[data-theme="terminal"] .qrow.cur .t { color: var(--teal); text-shadow: var(--tm-glow); }
+:root[data-theme="terminal"] .eq i { background: var(--teal); }
+:root[data-theme="terminal"] .sect, :root[data-theme="terminal"] .dsp-card { background: rgba(var(--bg-rgb), .72); border: 1px solid var(--line-2); box-shadow: none; }
+:root[data-theme="terminal"] .drawer, :root[data-theme="terminal"] .pop, :root[data-theme="terminal"] .modal { border: 1px solid var(--line-2); }
+:root[data-theme="terminal"] .toast { border: 1px solid var(--line-2); border-left: 3px solid var(--teal); }
+:root[data-theme="terminal"] .toast.err { border-left-color: var(--pink); }
+:root[data-theme="terminal"] #bar { border-top: 1px solid var(--line-2); backdrop-filter: none; }
+:root[data-theme="terminal"] .hero .cover { box-shadow: 0 0 0 1px var(--line-2), 0 24px 50px -14px rgba(var(--shadow-rgb), calc(.8 * var(--sh))); }
+:root[data-theme="terminal"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .75) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="terminal"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+:root[data-theme="terminal"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--teal-rgb), .24); border-radius: 0; }
+:root[data-theme="terminal"] .np-cover { box-shadow: 0 0 0 1px var(--line-2), 0 30px 70px -20px rgba(var(--shadow-rgb), calc(.9 * var(--sh))); }
+:root[data-theme="terminal"] .np-ctrl .icon-btn.on { color: var(--teal); }
+:root[data-theme="terminal"] .pill.on { background: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .ly-line.on { text-shadow: var(--tm-glow); }
+:root[data-theme="terminal"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .38) var(--p, 0%)); }
+:root[data-theme="terminal"] .scroll-bubble { background: var(--tm-fill); color: var(--on-accent); }
+
+/* 日：報表紙的綠條紋畫在列上（每隔一列），會跟著列表一起捲動 */
+:root[data-theme="terminal"]:where([data-mode="day"]) .tracks > .row:where(:nth-child(even of .row)) { background: var(--tm-bar); }
+:root[data-theme="terminal"]:where([data-mode="day"]) .tracks .vlist { background: repeating-linear-gradient(180deg, transparent 0 68px, var(--tm-bar) 68px 136px); }
+:root[data-theme="terminal"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="terminal"] .np-bg .layer.b { animation: none; }
+
+/* 終端機・日：右邊的送紙孔畫在這層上面，才不會被蓋掉 */
+:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
+  background: radial-gradient(circle, rgba(24,70,40,.16) 0 5px, transparent 5.6px) right 10px top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
+              linear-gradient(90deg, transparent 40%, var(--np-calm) 50%);
+}
+
+/* 終端機：直角、細框，選中的是實心的綠 */
+:root[data-theme="terminal"] .set-tabs, :root[data-theme="terminal"] .set-tabs button { border-radius: 0; }
+:root[data-theme="terminal"] .set-tabs { background: rgba(var(--bg-rgb), .94); border-color: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="terminal"] .set-tabs button.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .page-head .tools > .btn.small { border-radius: 0; }
+
+/* 標題後面的游標：用一塊方塊畫，和字的高度對齊（原本的 ▌ 字元會掉到字的下面） */
+:root[data-theme="terminal"] .page-head h1::after { content: ""; display: inline-block; width: .28em; height: .84em; margin-left: .14em; vertical-align: -.06em; background: var(--teal); box-shadow: var(--tm-glow-box); }
+
+/* 側欄分組的「#」：用不斷行空白，原本的「> 」在彈性排版裡空白被吃掉，變成「>音樂庫」 */
+:root[data-theme="terminal"] .nav-label::before { content: "#\00a0"; color: var(--teal); font-weight: 700; }
+
+/* ───────────── 4 · 方框：設定區塊、DSP 卡片、抽屜、選單、對話框 ─────────────
+   細框線＋四個較亮的轉角（┌ ┐ └ ┘），轉角畫在一層不擋滑鼠的 ::before 上。面板一律是實心底，字不會壓在掃描線上。 */
+:root[data-theme="terminal"] :is(.sect, .dsp-card, .drawer, .modal, .pop, .msel-menu) {
+  --tm-k: 12px;   /* 轉角的長度 */
+  --tm-corners:
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left top / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left top / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right top / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right top / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left bottom / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left bottom / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / 2px var(--tm-k) no-repeat;
+}
+:root[data-theme="terminal"] .sect { position: relative; overflow: visible; margin-top: 34px; background: var(--surface); border: 1px solid var(--tm-frame); box-shadow: none; }
+:root[data-theme="terminal"] .sect::before { content: ""; position: absolute; inset: -1px; z-index: 2; pointer-events: none; background: var(--tm-corners); }
+:root[data-theme="terminal"] .dsp-card { position: relative; background: var(--surface); border: 1px solid var(--tm-frame); }
+:root[data-theme="terminal"] .dsp-card::before { content: ""; position: absolute; inset: -1px; z-index: 3; pointer-events: none; background: var(--tm-corners); }
+:root[data-theme="terminal"] :is(.drawer, .modal) { border: 1px solid var(--tm-frame); background: var(--tm-corners), var(--drawer-bg); box-shadow: 0 24px 60px rgba(var(--shadow-rgb), .5); backdrop-filter: none; }
+:root[data-theme="terminal"] .modal { background: var(--tm-corners), var(--modal-bg); }
+:root[data-theme="terminal"] :is(.pop, .msel-menu) { --tm-k: 9px; border: 1px solid var(--tm-frame); background: var(--tm-corners), var(--pop-bg); backdrop-filter: none; box-shadow: 0 16px 40px rgba(var(--shadow-rgb), .45); }
+
+/* 設定區塊的標題嵌在上框線上：「[ 取樣率 ]」，實心底把框線斷開，像文字介面的視窗標題 */
+:root[data-theme="terminal"] .sect > h2, :root[data-theme="terminal"] .sect .theme-head h2 {
+  display: table; position: relative; z-index: 3; margin: -12px 0 8px 14px; padding: 0 6px; line-height: 22px;
+  font-size: 15px; font-weight: 700; letter-spacing: .02em; background: var(--surface); color: var(--text-hi);
+}
+:root[data-theme="terminal"] .sect > h2::before, :root[data-theme="terminal"] .sect .theme-head h2::before { content: "[\00a0"; color: var(--teal); font-weight: 700; }
+:root[data-theme="terminal"] .sect > h2::after, :root[data-theme="terminal"] .sect .theme-head h2::after { content: "\00a0]"; color: var(--teal); font-weight: 700; }
+:root[data-theme="terminal"] .sect > h2 + .hint { padding-top: 0; }
+:root[data-theme="terminal"] .sect .theme-head { padding-top: 12px; }
+:root[data-theme="terminal"] .sect .theme-head h2 { margin: -24px 0 8px -8px; }
+:root[data-theme="terminal"] .tp { border-radius: 0; }
+
+/* ───────────── 5 · 標題與提示符號 ─────────────
+   頁面標題：「$ 專輯█」，方塊游標慢慢閃（減少動態時不閃）；首頁的列標題前面也是「$」。
+   磷光只留一層很淡的光暈。 */
+:root[data-theme="terminal"] .page-head h1, :root[data-theme="terminal"] .hero h1, :root[data-theme="terminal"] .np-title { text-shadow: var(--tm-glow); }
+
+/* 「$」掛在標題左邊的留白裡，不佔標題的寬度（工具列很長的頁面，標題才不會被擠到換行） */
+:root[data-theme="terminal"] .page-head h1 { position: relative; }
+:root[data-theme="terminal"] .page-head h1::before { content: "$"; position: absolute; right: 100%; bottom: .12em; margin-right: .3em; font-size: .72em; line-height: 1; color: var(--teal); font-weight: 700; text-shadow: none; }
+:root[data-theme="terminal"] .page-head h1::after { animation: tm-blink 1.1s step-end infinite; }
+:root[data-theme="terminal"] .rail-head h2::before { content: "$\00a0"; color: var(--teal); }
+:root[data-theme="terminal"] .drawer-head h2::before, :root[data-theme="terminal"] .modal-head h2::before { content: "$\00a0"; color: var(--teal); }
+
+/* ───────────── 6 · 按鈕：方括號 [ … ] ─────────────
+   一般按鈕沒有圓角外框，只有左右兩個方括號（畫在背景上，不佔位置、不改字）；滑過時填一層淡綠。
+   主要按鈕（播放、套用）是反白：實心綠底、深色字。 */
+:root[data-theme="terminal"] :is(.btn, .round-btn, .out-btn, .sig, .pill, .chip, .rail-btn, .search, .set-tabs, .seg) {
+  --tm-b: var(--tm-brk-c);
+  --tm-brk:
+    linear-gradient(var(--tm-b), var(--tm-b)) left top / 2px 100% no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) left top / 7px 2px no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) left bottom / 7px 2px no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) right top / 2px 100% no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) right top / 7px 2px no-repeat,
+    linear-gradient(var(--tm-b), var(--tm-b)) right bottom / 7px 2px no-repeat;
+}
+:root[data-theme="terminal"] :is(.btn:not(.primary), .round-btn, .out-btn, .sig, .chip:not(.on), .rail-btn) { background: var(--tm-brk); border-color: transparent; box-shadow: none; }
+:root[data-theme="terminal"] :is(.btn:not(.primary), .round-btn, .out-btn, .sig, .chip:not(.on), .rail-btn):hover { --tm-b: var(--teal); background: var(--tm-brk), rgba(var(--teal-rgb), .12); color: var(--text-hi); }
+:root[data-theme="terminal"] .btn.primary, :root[data-theme="terminal"] .btn.primary:hover { background: var(--tm-fill); border-color: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .btn.bp-apply { background: var(--tm-brk), rgba(var(--teal-rgb), .1); box-shadow: none; }
+:root[data-theme="terminal"] .chip.on { background: var(--tm-fill); border-color: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .round-btn:disabled { opacity: .4; }
+
+/* 搜尋框：實心底、細框，焦點時框變亮綠 */
+:root[data-theme="terminal"] .search { background: var(--surface); border: 1px solid var(--tm-frame); }
+:root[data-theme="terminal"] .search:focus-within { background: var(--surface); border-color: var(--teal); box-shadow: none; }
+:root[data-theme="terminal"] .search kbd { border-radius: 0; border-color: var(--tm-frame); color: var(--text-2); }
+
+/* 文字輸入框：方形、實心底、細框 */
+:root[data-theme="terminal"] :is(input.inp, select.sel) { border-radius: 0; background-color: var(--surface-2); border-color: var(--tm-frame); color: var(--text); }
+:root[data-theme="terminal"] :is(input.inp, select.sel):focus { border-color: var(--teal); }
+
+/* 下拉選單按鈕：方形、細框，前面的點改成方塊 */
+:root[data-theme="terminal"] .msel-btn { border-radius: 0; background: var(--surface-2); border-color: var(--tm-frame); box-shadow: none; }
+:root[data-theme="terminal"] .msel-btn::before { border-radius: 0; width: 6px; height: 10px; box-shadow: none; }
+:root[data-theme="terminal"] .msel-chev { border-radius: 0; }
+:root[data-theme="terminal"] .msel-opt { border-radius: 0; }
+:root[data-theme="terminal"] .msel-opt.on { background: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .msel-opt.on::before { display: none; }
+:root[data-theme="terminal"] .msel-opt.on .msel-ck { background: var(--on-accent); color: var(--tm-fill); border-radius: 0; }
+
+/* 右鍵選單：滑過的那一行反白 */
+:root[data-theme="terminal"] .menu button { border-radius: 0; }
+:root[data-theme="terminal"] .menu button:hover { background: var(--tm-fill); color: var(--on-accent); }
+:root[data-theme="terminal"] .menu button:hover svg.i { color: var(--on-accent); }
+:root[data-theme="terminal"] .menu hr { border-top: 1px dashed var(--line-2); }
+
+/* ───────────── 7 · 分段按鈕、設定分頁 ─────────────
+   整組是一個 [ … ] 欄位，選中的那一格反白。 */
+:root[data-theme="terminal"] .seg { background: var(--tm-brk), var(--surface); box-shadow: none; }
+:root[data-theme="terminal"] .seg button { color: var(--text-2); }
+:root[data-theme="terminal"] .seg button:hover { color: var(--text-hi); }
+:root[data-theme="terminal"] .seg button.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: none; }
+:root[data-theme="terminal"] .set-tabs { background: var(--tm-brk), var(--surface); box-shadow: none; padding: 4px 6px; }
+:root[data-theme="terminal"] .set-tabs button { color: var(--text-2); }
+:root[data-theme="terminal"] .set-tabs button:hover { color: var(--text-hi); }
+
+/* ───────────── 8 · 開關：[█   ] ─────────────
+   關：有外框的空格（外框是第三層字的顏色，看得見），左邊一塊暗色方塊。
+   開：整格填滿綠色，深色方塊在右邊。大小和原本一樣。 */
+:root[data-theme="terminal"] .switch { border-radius: 0; background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--text-3); }
+:root[data-theme="terminal"] .switch::after { border-radius: 0; left: 4px; top: 4px; width: 14px; height: 16px; background: var(--knob-off); box-shadow: none; }
+:root[data-theme="terminal"] .switch.on { background: var(--tm-fill); box-shadow: inset 0 0 0 1.5px var(--tm-fill); }
+:root[data-theme="terminal"] .switch.on::after { transform: translateX(20px); background: var(--on-accent); }
+:root[data-theme="terminal"]:where([data-mode="day"]) .switch { background: #ffffff; }
+
+/* ───────────── 9 · 側欄 ─────────────
+   選到的項目反白，前面多一個「>」（畫在滑動的反白條上，不推動文字）。 */
+:root[data-theme="terminal"] #sidebar { border-right: 1px solid var(--line-2); }
+:root[data-theme="terminal"] .nav-pill { background: var(--tm-fill); }
+:root[data-theme="terminal"] .nav-pill::before {
+  display: block; content: ">"; position: absolute; left: 4px; top: 0; bottom: 0; width: auto; height: auto; border-radius: 0;
+  background: none; box-shadow: none; color: var(--on-accent); font: 700 13px/38px var(--font);
+}
+
+/* 為了「>」，所有項目的圖示和字一起往右挪 5px（每一項都一樣，選到時字不會動）；側欄收成圖示時不挪 */
+@media (min-width: 1181px) {:root[data-theme="terminal"] .nav a { padding-left: 17px; }
+}
+:root[data-theme="terminal"] .nav-edit { opacity: .85; border-radius: 0; }
+:root[data-theme="terminal"] .nav a:hover:not(.on) { background: rgba(var(--teal-rgb), .1); color: var(--text-hi); }
+:root[data-theme="terminal"] .nav a .count { color: var(--text-3); }
+:root[data-theme="terminal"] .nav a.on .count { color: var(--on-accent); }
+
+/* ───────────── 10 · 卡片與列表 ─────────────
+   專輯封面：細框；滑過時不浮起，四角出現亮綠的轉角，像被游標框選。 */
+:root[data-theme="terminal"] .card:hover .art { transform: none; box-shadow: 0 0 0 1px var(--teal); }
+:root[data-theme="terminal"] .card::before {
+  content: ""; position: absolute; left: -4px; right: -4px; top: -4px; aspect-ratio: 1; z-index: 3; pointer-events: none; opacity: 0;
+  --tm-c: var(--teal);
+  background:
+    linear-gradient(var(--tm-c), var(--tm-c)) left top / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) left top / 2px 14px no-repeat,
+    linear-gradient(var(--tm-c), var(--tm-c)) right top / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) right top / 2px 14px no-repeat,
+    linear-gradient(var(--tm-c), var(--tm-c)) left bottom / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) left bottom / 2px 14px no-repeat,
+    linear-gradient(var(--tm-c), var(--tm-c)) right bottom / 14px 2px no-repeat, linear-gradient(var(--tm-c), var(--tm-c)) right bottom / 2px 14px no-repeat;
+}
+:root[data-theme="terminal"] .card:hover::before { opacity: 1; }
+:root[data-theme="terminal"] .card.artist::before { display: none; }
+:root[data-theme="terminal"] .card .t2 { color: var(--text-2); }
+:root[data-theme="terminal"] .row .tt .a { color: var(--text-2); }
+:root[data-theme="terminal"] .thead { border-bottom: 1px dashed var(--line-2); color: var(--text-2); }
+:root[data-theme="terminal"] .row.playing { background: rgba(var(--teal-rgb), .13); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="terminal"] .row.playing .tt div:first-child, :root[data-theme="terminal"] .qrow.cur .t { color: var(--teal); text-shadow: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]) .row.playing .tt div:first-child, :root[data-theme="terminal"]:where([data-mode="day"]) .qrow.cur .t { color: var(--teal-2); }
+
+/* 播放佇列裡已經播過的歌：淡一點就好，字還是讀得到 */
+:root[data-theme="terminal"] .qrow.past { opacity: .72; }
+:root[data-theme="terminal"]:where([data-mode="day"]) .qrow.past { opacity: .85; }
+:root[data-theme="terminal"] .qrow:hover { background: rgba(var(--teal-rgb), .1); }
+:root[data-theme="terminal"] .badge { box-shadow: inset 0 0 0 1px var(--tm-frame); color: var(--text-2); }
+
+/* 設定頁的滑桿（原生 range）：方形的滑塊 */
+:root[data-theme="terminal"] .range { border-radius: 0; background: rgba(var(--teal-rgb), .2); }
+:root[data-theme="terminal"] .range::-webkit-slider-thumb { border-radius: 0; width: 8px; height: 16px; background: var(--teal); box-shadow: none; }
+
+/* ───────────── 11 · 播放列：狀態列 ─────────────
+   上緣是雙線（═），像文字介面最下面的狀態列。播放鍵是方框。 */
+:root[data-theme="terminal"] #bar { border-top: 1px solid var(--tm-frame); background: linear-gradient(var(--tm-frame), var(--tm-frame)) left 0 top 2px / 100% 1px no-repeat, var(--bar-bg); }
+:root[data-theme="terminal"] .playbtn { box-shadow: inset 0 0 0 2px var(--teal); }
+:root[data-theme="terminal"] .sig, :root[data-theme="terminal"] .out-btn { color: var(--text-2); }
+:root[data-theme="terminal"] .np-top .icon-btn, :root[data-theme="terminal"] .np-top .pill {
+  --tm-b: rgba(var(--np-ink), .75);
+  background: var(--tm-brk), rgba(var(--np-btn), .94); color: rgb(var(--np-ink)); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .32);
+}
+:root[data-theme="terminal"] .np-top .icon-btn { --np-btn: 22, 36, 28; border-radius: 0; background: rgba(var(--np-btn), .94); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .55); }
+:root[data-theme="terminal"] .np-top .pill { --np-btn: 22, 36, 28; }
+:root[data-theme="terminal"] .np-top :is(.icon-btn, .pill):hover { background: var(--tm-brk), rgba(var(--teal-rgb), .3); }
+:root[data-theme="terminal"] .np-top .icon-btn:hover { background: rgba(var(--teal-rgb), .3); }
+:root[data-theme="terminal"] .np-top .pill.on { background: var(--tm-fill); color: var(--on-accent); box-shadow: inset 0 0 0 1px var(--tm-fill); }
+:root[data-theme="terminal"] .np-top .src { color: rgba(var(--np-ink), .8); background: rgba(var(--np-btn, 22, 36, 28), .8); padding: 3px 6px; }
+:root[data-theme="terminal"] .np-top .src:empty { display: none; }
+:root[data-theme="terminal"]:where([data-mode="day"]) .np-top :is(.icon-btn, .pill, .src) { --np-btn: 255, 255, 255; }
+:root[data-theme="terminal"] .np-badges .badge { background: rgba(var(--np-ink), .06); box-shadow: inset 0 0 0 1px rgba(var(--np-ink), .4); color: rgb(var(--np-ink)); }
+:root[data-theme="terminal"] .np-seek .times { color: rgba(var(--np-ink), .78); }
+:root[data-theme="terminal"] .np-artist { color: rgba(var(--np-ink), .82); }
+:root[data-theme="terminal"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .88); border-radius: 0; }
+
+/* 歌詞的樣子在第 14 段（映像管螢幕／報表紙、打字） */
+:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before {
+  background: radial-gradient(circle, rgba(24,70,40,.2) 0 4.5px, transparent 5px) right 0 top calc(149px - var(--np-lift, 0px)) / 22px 34px repeat-y,
+              linear-gradient(90deg, transparent 40%, var(--np-calm) 50%);
+}
+
+/* ───────────── 13 · 正在播放的歌詞：映像管螢幕（夜）／點陣印表機的報表紙（日） ─────────────
+   歌詞那一欄變成一台機器的畫面：
+   · 夜：一面老式映像管螢幕。微凸的圓角、外面一圈深色的機殼框，玻璃中間亮、四邊暗（暈影），很淡的掃描線和一道左上的反光，
+     偶爾有一條很淡的亮帶從上往下掃過（像映像管的掃描）。正在唱的那一行是磷光綠的亮字、外面一層光暈。
+   · 日：一張從點陣印表機印出來的連續報表紙：兩邊有送紙孔和撕線，每一行歌詞輪流印在淺綠條紋和白底上，墨色的等寬字。
+   · 每一行前面是 [分:秒] 的時間欄（像紀錄檔），正在唱的那一行時間反白；唱過的行像捲上去的舊輸出，比較淡；還沒唱的也淡，
+     但比唱過的亮一點，往下讀得到。所有行都一樣大、不模糊，字清楚。
+   · 正在唱的那一行一個字一個字打出來（nowplaying.js typeLine），打字的游標是一格方塊；打完之後方塊游標在行尾閃。
+     翻譯在這一行打完時才出現（像指令打完、輸出跟著出來）。逐字歌詞（卡拉 OK 填色）一樣照唱的進度填色。
+   · 輕量化頁面（背景與裝飾動畫）或系統「減少動態」：整行直接出現，游標不閃，亮帶不掃。
+   歌詞的面板只是靜態的漸層（不動、不模糊），亮帶只動 transform，打字只切換 visibility，很省。 */
+/* 共用的尺寸：時間欄的寬度、行的左右留白 */
+:root[data-theme="terminal"] #np {
+  --tm-ts-w: 54px;          /* [分:秒] 時間欄 */
+  --tm-ly-l: 16px;          /* 行和螢幕（紙）左邊的距離 */
+  --tm-ly-r: 18px;
+}
+:root[data-theme="terminal"]:where([data-mode="day"]) #np { --tm-ly-l: 36px; --tm-ly-r: 38px; }
+
+/* 歌詞欄＝螢幕（夜）：圓角、機殼框、暈影、掃描線、反光，全是不動的漸層 */
+:root[data-theme="terminal"] #np .np-right {
+  overflow: hidden; isolation: isolate;
+  border-radius: 28px / 24px;
+  background:
+    radial-gradient(130% 100% at 50% 46%, transparent 52%, rgba(5,12,8,.5) 100%),
+    radial-gradient(60% 34% at 26% 8%, rgba(215,255,228,.07), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.17) 0 1px, transparent 1px 3px),
+    radial-gradient(110% 85% at 50% 45%, #22392c 0, #1c3126 55%, #15261c 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(150,255,185,.22), inset 0 0 46px rgba(0,0,0,.34),
+    0 0 0 7px #142019, 0 0 0 8px rgba(150,255,185,.18), 0 28px 60px -20px rgba(0,0,0,.6);
+  transition: opacity .45s ease .16s;
+}
+:root[data-theme="terminal"] #np.nolyrics .np-right { opacity: 0; transition: opacity .3s ease; }
+
+/* 掃描亮帶：一條很淡的亮帶，九秒從上掃到下（只動 transform）；正在播放關著、或沒有歌詞時不動 */
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np .np-right::after {
+  content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; height: 22%; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(170,255,200,.03) 55%, rgba(170,255,200,.05) 62%, transparent);
+  transform: translateY(-100%);
+}
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right::after { animation: tm-roll 9s linear infinite; will-change: transform; }
+
+/* 歌詞欄＝報表紙（日）：白紙、兩邊送紙孔與撕線、紙的陰影；直角 */
+:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-right {
+  border-radius: 0;
+  background:
+    radial-gradient(circle, #e3e9dc 0 5px, rgba(24,70,40,.22) 5.4px 6.2px, transparent 6.8px) left 4px top 10px / 22px 30px repeat-y,
+    radial-gradient(circle, #e3e9dc 0 5px, rgba(24,70,40,.22) 5.4px 6.2px, transparent 6.8px) right 4px top 10px / 22px 30px repeat-y,
+    linear-gradient(rgba(24,70,40,.3) 50%, transparent 0) left 28px top 0 / 1px 6px repeat-y,
+    linear-gradient(rgba(24,70,40,.3) 50%, transparent 0) right 28px top 0 / 1px 6px repeat-y,
+    #fdfdf9;
+  box-shadow: 0 0 0 1px rgba(24,70,40,.16), 0 18px 38px -18px rgba(24,46,30,.4);
+}
+
+/* 日：頁面右邊原本的送紙孔會貼著紙的送紙孔，歌詞開著時只留淡底 */
+:root[data-theme="terminal"]:where([data-mode="day"]) #np .np-wrap::before { background: linear-gradient(90deg, transparent 40%, var(--np-calm) 50%); }
+
+/* 每一行：等寬字、不縮小、不模糊、不半透明（淡的行用比較淡的顏色，字一樣清楚） */
+:root[data-theme="terminal"] #lyrics .ly-line {
+  left: var(--tm-ly-l); right: var(--tm-ly-r);
+  padding: 7px 14px 7px calc(14px + var(--tm-ts-w));
+  font-family: var(--font); font-weight: 600; letter-spacing: 0;
+  color: var(--tm-ly-past); opacity: 1 !important; filter: none !important; text-shadow: none;
+  border-radius: 0;
+  transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .28s var(--ease), filter .35s var(--ease), background .2s, color .4s var(--ease);
+}
+@media (min-width: 761px) and (orientation: landscape) {:root[data-theme="terminal"] #lyrics .ly-line { font-size: clamp(20px, 2.05vw, 29px); line-height: 1.36; }
+}
+:root[data-theme="terminal"] #lyrics .ly-line.on ~ .ly-line, :root[data-theme="terminal"] #lyrics:not(:has(.ly-line.on)) .ly-line { color: var(--tm-ly-next); }
+:root[data-theme="terminal"] #lyrics .ly-line.on { color: var(--tm-ly-on); text-shadow: var(--tm-ly-glow); transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .28s var(--ease), filter .35s var(--ease), background .2s; }
+:root[data-theme="terminal"] #lyrics .ly-line:hover { background: var(--tm-ly-hover); }
+
+/* 翻譯：小一號的等寬字，跟著那一行的明暗 */
+:root[data-theme="terminal"] #lyrics .ly-line .tr { font-family: var(--font); font-weight: 500; color: var(--tm-ly-tr-past); text-shadow: none; }
+:root[data-theme="terminal"] #lyrics .ly-line.on ~ .ly-line .tr, :root[data-theme="terminal"] #lyrics:not(:has(.ly-line.on)) .ly-line .tr { color: var(--tm-ly-tr-next); }
+:root[data-theme="terminal"] #lyrics .ly-line.on .tr { color: var(--tm-ly-tr-on); }
+
+/* 日：每一行輪流印在淺綠條紋上（綠條紋報表紙），條紋跟著行一起捲動 */
+:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line:nth-child(even) { background: rgba(92,170,110,.14); }
+:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line:nth-child(even):hover { background: rgba(92,170,110,.24); }
+
+/* [分:秒] 時間欄：掛在行首左邊的留白裡、和歌詞同一條基線；正在唱的反白 */
+:root[data-theme="terminal"] #lyrics .ly-line[data-ts]:not(.gap)::before {
+  content: attr(data-ts); display: inline-block; box-sizing: border-box;
+  width: var(--tm-ts-w); margin-left: calc(-1 * var(--tm-ts-w)); padding-right: 10px;
+  font: 600 13px/1.5 var(--font); letter-spacing: 0; color: var(--tm-ly-ts); text-shadow: none; vertical-align: .18em;
+}
+:root[data-theme="terminal"] #lyrics .ly-line.on[data-ts]::before {
+  color: var(--tm-ly-ts-on); background: linear-gradient(var(--tm-ly-ts-on-bg), var(--tm-ly-ts-on-bg)) left center / calc(100% - 6px) 100% no-repeat;
+  padding-left: 3px;
+}
+
+/* 逐字歌詞（卡拉 OK）：唱到的字是亮的磷光綠／墨色，還沒唱到的淡。沒在唱的行就是一般的字（舊規則把填色畫成整塊底色） */
+:root[data-theme="terminal"] #lyrics .ly-line:not(.on) .w { background: none; color: inherit; }
+:root[data-theme="terminal"] #lyrics .ly-line.on .w { background-image: linear-gradient(90deg, var(--tm-ly-on) 0, var(--tm-ly-on) var(--p, 0%), color-mix(in srgb, var(--tm-ly-on) 45%, transparent) var(--p, 0%)); }
+
+/* 方塊游標：在行尾；正在唱的那一行才有 */
+:root[data-theme="terminal"] #lyrics .tm-cur {
+  display: inline-block; width: .56em; height: 1.02em; margin: 0 -.62em 0 .06em; vertical-align: -.17em;
+  background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
+  animation: tm-cur-blink 1.06s step-end infinite;
+}
+:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .tm-cur { box-shadow: none; }
+:root[data-theme="terminal"] #lyrics .ly-line:not(.on) .tm-cur { display: none; }
+
+/* 打字（.tm-ty，nowplaying.js 加的）：第 i 格的字在 (i + 寬) × 每格秒數時出現；還沒出現的字先藏起來（保留位置，行不會跳），
+   游標畫在下一個要打的字的位置；打完（--ty-total）之後游標移到行尾開始閃、翻譯出現。--ty-skip：跳到一行的中間時已經打了的時間。 */
+:root[data-theme="terminal"] #lyrics .ly-line.on.tm-ty .tm-c {
+  position: relative;
+  animation: tm-ty-hide calc((var(--i) + var(--w, 1)) * var(--ty-u)) linear calc(-1 * var(--ty-skip));
+}
+:root[data-theme="terminal"] #lyrics .ly-line.on.tm-ty .tm-c::after {
+  content: ""; position: absolute; left: .06em; width: .56em; top: .1em; bottom: .04em; visibility: hidden;
+  background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
+  animation: tm-ty-show calc(var(--w, 1) * var(--ty-u)) linear calc(var(--i) * var(--ty-u) - var(--ty-skip));
+}
+:root[data-theme="terminal"]:where([data-mode="day"]) #lyrics .ly-line.on.tm-ty .tm-c::after { box-shadow: none; }
+
+/* 夜：剛打出來的字先是白熱的亮，半秒內退回磷光綠（映像管的餘輝）；逐字歌詞的字用填色，不做這個 */
+:root[data-theme="terminal"]:where(:not([data-mode="day"])) #lyrics .ly-line.on.tm-ty > .tm-c {
+  animation: tm-ty-hide calc((var(--i) + var(--w, 1)) * var(--ty-u)) linear calc(-1 * var(--ty-skip)),
+             tm-ty-bloom .5s ease-out calc((var(--i) + var(--w, 1)) * var(--ty-u) - var(--ty-skip));
+}
+:root[data-theme="terminal"] #lyrics .ly-line.on.tm-ty .tm-cur {
+  animation: tm-ty-hide var(--ty-total) linear calc(-1 * var(--ty-skip)),
+             tm-cur-blink 1.06s step-end calc(var(--ty-total) - var(--ty-skip)) infinite;
+}
+:root[data-theme="terminal"] #lyrics .ly-line.on.tm-ty .tr > span { animation: tm-ty-hide var(--ty-total) linear calc(-1 * var(--ty-skip)); }
+
+/* 兩段歌詞之間的空檔：三個小方塊輪流亮（像在等輸出） */
+:root[data-theme="terminal"] #lyrics .ly-line.gap { padding-left: calc(14px + var(--tm-ts-w)); }
+:root[data-theme="terminal"] #lyrics .ly-dots { gap: 9px; padding: 16px 0; }
+:root[data-theme="terminal"] #lyrics .ly-dots i { width: 11px; height: 11px; border-radius: 0; opacity: 1; background: color-mix(in srgb, var(--tm-ly-past) 40%, transparent); }
+:root[data-theme="terminal"] #lyrics .ly-line.on .ly-dots { animation: none; }
+:root[data-theme="terminal"] #lyrics .ly-line.on .ly-dots i { animation: tm-dot 1.5s step-end infinite; }
+:root[data-theme="terminal"] #lyrics .ly-line.on .ly-dots i:nth-child(2) { animation-delay: .5s; }
+:root[data-theme="terminal"] #lyrics .ly-line.on .ly-dots i:nth-child(3) { animation-delay: 1s; }
+
+/* 正在播放關著的時候游標不閃、方塊不輪流亮（再打開時 nowplaying.js 會依當時的進度重設這一行） */
+:root[data-theme="terminal"] #np:not(.on) #lyrics :is(.tm-cur, .ly-dots i) { animation: none; }
+
+/* 沒有時間的歌詞（整段文字）、找不到歌詞：一樣是等寬字，留在螢幕（紙）裡 */
+:root[data-theme="terminal"] #lyrics .ly-plain { font-family: var(--font); font-weight: 500; color: var(--tm-ly-next); padding-left: calc(var(--tm-ly-l) + 14px); padding-right: calc(var(--tm-ly-r) + 14px); }
+:root[data-theme="terminal"] #lyrics .ly-empty { font-family: var(--font); color: var(--tm-ly-next); }
+:root[data-theme="terminal"] #lyrics .ly-empty::before { content: ">\00a0"; color: var(--tm-ly-ts); }
+
+/* 歌詞時間（滑過才出現的 − 0.0s + 自動）：方形的按鈕 */
+:root[data-theme="terminal"] .ly-offset { right: calc(var(--tm-ly-r) + 6px); bottom: 10px; color: var(--tm-ly-next); }
+:root[data-theme="terminal"] .ly-offset button { border-radius: 0; background: color-mix(in srgb, var(--tm-ly-next) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tm-ly-next) 45%, transparent); color: var(--tm-ly-on); }
+:root[data-theme="terminal"] .ly-offset button:hover { background: color-mix(in srgb, var(--tm-ly-next) 26%, transparent); }
+
+/* 窄視窗（上下排）：沒有時間欄，行首直接是歌詞 */
+@media (orientation: portrait), (max-width: 760px) {:root[data-theme="terminal"] #np { --tm-ts-w: 0px; }
+:root[data-theme="terminal"] #lyrics .ly-line[data-ts]:not(.gap)::before { display: none; }
+}
+
+/* ───────────── 14 · 減少動態 ─────────────
+   系統設定「減少動態」或 App 的輕量化頁面打開時：標題的游標不閃；歌詞整行直接出現、游標不閃、掃描亮帶不動、空檔的方塊不輪流亮。 */
+@media (prefers-reduced-motion: reduce) {:root[data-theme="terminal"] .page-head h1::after { animation: none; }
+:root[data-theme="terminal"] #lyrics :is(.tm-c, .tm-cur, .tr > span, .ly-dots i), :root[data-theme="terminal"] #lyrics .tm-c::after { animation: none !important; }
+:root[data-theme="terminal"] #np .np-right::after { animation: none; display: none; }
+}
+:root[data-theme="terminal"].lite-page .page-head h1::after { animation: none; }
+:root[data-theme="terminal"].lite-ambient #lyrics :is(.tm-c, .tm-cur, .tr > span, .ly-dots i), :root[data-theme="terminal"].lite-ambient #lyrics .tm-c::after { animation: none !important; }
+:root[data-theme="terminal"].lite-ambient #np .np-right::after { animation: none; display: none; }
+:root[data-theme="terminal"] { --dp-ink: var(--teal); }
+:root[data-theme="terminal"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); }
+:root[data-theme="terminal"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 6px rgba(92,240,147,.35); }
+
+/* 終端機：方框、細綠框＋四個較亮的轉角（和設定區塊、DSP 卡片一樣） */
+:root[data-theme="terminal"] .dp-sect .dp-group { position: relative; overflow: visible; border-radius: 0; border: 1px solid var(--tm-frame); background: var(--surface); box-shadow: none; }
+:root[data-theme="terminal"] .dp-sect .dp-group::before { content: ""; position: absolute; inset: -1px; z-index: 3; pointer-events: none; background: var(--tm-corners); }
+:root[data-theme="terminal"] .dp-sect .dp-group {
+  --tm-k: 9px;
+  --tm-corners:
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left top / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left top / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right top / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right top / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left bottom / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) left bottom / 2px var(--tm-k) no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / var(--tm-k) 2px no-repeat,
+    linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / 2px var(--tm-k) no-repeat;
+}
+:root[data-theme="terminal"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }

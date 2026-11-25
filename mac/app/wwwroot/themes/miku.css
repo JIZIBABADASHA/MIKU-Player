@@ -1,0 +1,233 @@
+/* MIKU theme 'miku': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+/* 深色播放列：在 #bar 內部換回淺色文字 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar {
+  --ink: 255, 255, 255; --line: rgba(255,255,255,.08); --line-2: rgba(255,255,255,.15);
+  --text: #f1f6f6; --text-hi: #fff; --text-sub: #b3c2c4; --text-2: #9fb0b3; --text-3: #7d8b8f;
+  --surface-2: #343b40; --surface-3: #414a50; --teal-2: #6fe0d8;
+  color: var(--text); color-scheme: dark;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 46px, rgba(0,0,0,.035) 46px 92px), linear-gradient(180deg, #2a3035, #1e2225);
+  border-top: 3px solid #39c5bb; box-shadow: 0 -10px 30px rgba(16,72,78,.12); backdrop-filter: none;
+}
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .playbtn { box-shadow: 0 0 0 3px rgba(57,197,187,.18), 0 6px 18px rgba(16,154,148,.35); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 8px 24px rgba(16,154,148,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .slider .track { background: rgba(255,255,255,.14); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .slider .fill, :root[data-theme="miku"]:where(:not([data-mode="night"])) .slider:hover .fill { background: linear-gradient(90deg, #2cbcb4, #5fdcd3); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob, :root[data-theme="miku"]:where(:not([data-mode="night"])) .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(226,53,133,.22), 0 2px 8px rgba(226,53,133,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+
+/* (not the Hi-Res / DSD / upsampling plates: their own grounds; with #bar this rule outweighed them and the gold plate went dark under its dark text) */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .sig:not(.hires):not(.dsd):not(.upsample), :root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .out-btn { background: rgba(255,255,255,.06); }
+
+/* 側欄：白→淡灰（襯衫色），底部淡淡的六角格紋 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #sidebar { position: relative; isolation: isolate; border-right: 1px solid #dbe8ea; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #sidebar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 46%; z-index: -1; pointer-events: none; background: var(--hex) 0 0 / 42px 72px; -webkit-mask-image: linear-gradient(180deg, transparent, #000 85%); mask-image: linear-gradient(180deg, transparent, #000 85%); opacity: .7; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav a { color: #4d6266; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-label { color: #8aa0a3; font-weight: 600; letter-spacing: .14em; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-pill { background: linear-gradient(100deg, #2cbcb4, #4fd0c8); border-radius: 12px; box-shadow: 0 6px 16px -4px rgba(16,154,148,.45), inset 0 1px 0 rgba(255,255,255,.35); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-pill::before { display: none; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav a.on, :root[data-theme="miku"]:where(:not([data-mode="night"])) .nav a.on svg.i, :root[data-theme="miku"]:where(:not([data-mode="night"])) .nav a.on .count, :root[data-theme="miku"]:where(:not([data-mode="night"])) .nav a.on:hover { color: #fff; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav a:hover { background: rgba(44,188,180,.08); color: #1c2b2e; }
+
+/* 內容區：右上角鋼琴捲軸（音符方塊）裝飾 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #main { isolation: isolate; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #main::before { content: ""; position: absolute; top: 0; right: 0; width: min(760px, 66%); height: 230px; z-index: -1; pointer-events: none; opacity: .6; background: var(--roll) right top / 760px 448px no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 20%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); -webkit-mask-composite: source-in; mask-image: linear-gradient(180deg, #000 20%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); mask-composite: intersect; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) :is(#topbar.solid, .set-band) { background: rgba(241,249,249,.86); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .search { background: #fff; border: 1px solid #d3e6e6; box-shadow: 0 2px 8px rgba(16,72,78,.05); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .search:focus-within { border-color: #2cbcb4; background: #fff; box-shadow: 0 0 0 3px rgba(44,188,180,.15); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .round-btn { background: #fff; border: 1px solid #d3e6e6; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .page-head h1 { color: #1c2b2e; font-weight: 750; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .rail-head h2::before { content: ""; display: inline-block; width: 4px; height: 18px; margin-right: 10px; vertical-align: -2px; border-radius: 2px; background: linear-gradient(180deg, #2cbcb4 0 62%, #e23585 62% 100%); }
+
+/* 卡片 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card .art { border-radius: 12px; box-shadow: 0 1px 2px rgba(16,72,78,.10), 0 8px 18px -6px rgba(16,72,78,.22); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card:hover .art { box-shadow: 0 0 0 2px #2cbcb4, 0 18px 34px -8px rgba(16,120,120,.38); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card .t1 { color: #1c2b2e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card:hover .t1 { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card .t2 { color: #5d7175; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .card .play { background: var(--play-bg); color: #fff; box-shadow: 0 8px 20px rgba(16,154,148,.4); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .ph { color: rgba(20,70,75,.42); }
+
+/* 按鈕與控制項 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .btn { background: #fff; border: 1px solid #d3e6e6; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .btn:hover { background: #f4fbfb; border-color: #b9dbda; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .btn.primary { background: linear-gradient(160deg, #22b2ab, #109a94); border-color: transparent; color: #fff; box-shadow: 0 6px 16px -4px rgba(16,154,148,.5); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .btn.primary:hover { background: linear-gradient(160deg, #2cbcb4, #0f948e); box-shadow: 0 8px 22px -4px rgba(16,154,148,.55); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .btn.ghost { background: transparent; border-color: transparent; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .seg { background: #e3efef; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .seg button.on { background: #fff; color: #0b847e; font-weight: 600; box-shadow: 0 1px 3px rgba(16,72,78,.15); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .switch { background: #cfe0e0; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .switch::after { box-shadow: 0 1px 3px rgba(16,72,78,.25); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .switch.on { background: #2cbcb4; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .chip.on { border-color: #2cbcb4; color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .badge { background: #e3efef; color: #4d6266; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .badge.hi { background: rgba(44,188,180,.15); color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .badge.dsd { background: rgba(226,53,133,.11); color: #c4166a; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .icon-btn.on { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .icon-btn.on { color: #5fdcd3; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .icon-btn.fav-on { color: #e23585; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .slider .track { background: #d5e6e6; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) select.sel, :root[data-theme="miku"]:where(:not([data-mode="night"])) input.inp { background-color: #fff; border-color: #d3e6e6; }
+
+/* 列表 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .thead { background: #f1f9f9; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row:hover { background: rgba(255,255,255,.85); box-shadow: 0 1px 3px rgba(16,72,78,.06); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row .tt div:first-child { color: #1c2b2e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row:hover .tt div:first-child { color: #0a1517; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row .tt .a { color: #5d7175; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row.playing { background: linear-gradient(90deg, rgba(44,188,180,.12), rgba(44,188,180,0) 70%); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .row.playing .tt div:first-child { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .qrow.cur .t { color: #0b847e; }
+
+/* 專輯／演出者頁頂部 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .hero .cover { border-radius: 14px; box-shadow: 0 0 0 4px #fff, 0 24px 50px -10px rgba(16,72,78,.35); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .hero.artist .cover { border-radius: 50%; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .hero::after { background: linear-gradient(180deg, rgba(241,249,249,.40), rgba(241,249,249,.72) 60%, rgba(241,249,249,0)); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+
+/* 面板、選單、提示 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .sect { background: #fff; border: 1px solid #dceaea; border-radius: 18px; box-shadow: 0 1px 2px rgba(16,72,78,.05), 0 10px 26px -14px rgba(16,72,78,.18); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .sect h2 { font-weight: 700; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .dsp-card { background: #fff; border-color: #dceaea; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .eq-graph { background: var(--hex-soft) 0 0 / 42px 72px, #f3fafa; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .eq-handle { box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(16,72,78,.3); background: #22b2ab; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .drawer, :root[data-theme="miku"]:where(:not([data-mode="night"])) .pop, :root[data-theme="miku"]:where(:not([data-mode="night"])) .modal { border-color: #d3e6e6; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .toast { color: #f1f6f6; border-color: rgba(255,255,255,.08); border-left: 3px solid #39c5bb; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .toast.err { border-left-color: #e23585; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .scroll-bubble { background: var(--play-bg); color: #fff; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) ::-webkit-scrollbar-thumb { background-color: rgba(20,90,95,.18); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) ::-webkit-scrollbar-thumb:hover { background-color: rgba(20,90,95,.3); }
+
+/* 正在播放：明亮水色、六角格紋 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-bg .layer.b.on { opacity: 0; }
+
+/* (not shown in this theme: it must not keep turning either. An animated layer, even one that is fully transparent,
+   makes the whole window be drawn again for every frame of the screen, for as long as the page is open.) */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-bg .layer.b { animation: none; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-cover { border-radius: 18px; box-shadow: 0 0 0 5px rgba(255,255,255,.85), 0 40px 80px -20px rgba(16,72,78,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-title { font-weight: 750; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-badges .badge { background: rgba(255,255,255,.75); color: #45585c; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-badges .badge.hi { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-seek .slider .track { background: rgba(20,70,75,.14); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-ctrl .icon-btn.on { color: #0b847e; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-ctrl .playbtn { box-shadow: 0 0 0 6px rgba(44,188,180,.16), 0 14px 30px -6px rgba(16,154,148,.55); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .np-top .icon-btn { background: rgba(255,255,255,.7); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .pill { background: rgba(255,255,255,.7); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .pill.on { background: linear-gradient(160deg, #22b2ab, #109a94); color: #fff; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .ly-line .w { background-image: linear-gradient(90deg, #0b847e 0, #0b847e var(--p, 0%), rgba(24,44,48,.38) var(--p, 0%)); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .ly-line:hover { background: rgba(255,255,255,.55); }
+
+/* 側欄：夜裡的灰色襯衫，底部六角格紋微光 */
+:root[data-theme="miku"]:where([data-mode="night"]) #sidebar { position: relative; isolation: isolate; border-right: 1px solid rgba(160,230,230,.07); }
+:root[data-theme="miku"]:where([data-mode="night"]) #sidebar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 46%; z-index: -1; pointer-events: none; background: var(--hex-n) 0 0 / 42px 72px; -webkit-mask-image: linear-gradient(180deg, transparent, #000 85%); mask-image: linear-gradient(180deg, transparent, #000 85%); }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav a { color: #a9c0c2; }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav a:hover { background: rgba(57,197,187,.07); color: #fff; }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav-label { color: #6a868a; font-weight: 600; letter-spacing: .14em; }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav-pill { background: linear-gradient(90deg, rgba(57,197,187,.24), rgba(57,197,187,.06)); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(160,240,235,.08); }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav-pill::before { left: 3px; top: 9px; bottom: 9px; width: 4px; border-radius: 4px; background: linear-gradient(180deg, #a6f3ec, #39c5bb); box-shadow: 0 0 10px #39c5bb, 0 0 22px rgba(57,197,187,.6); }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav a.on { color: #f2fffd; }
+:root[data-theme="miku"]:where([data-mode="night"]) .nav a.on svg.i { color: #7fe3db; filter: drop-shadow(0 0 5px rgba(57,197,187,.7)); }
+
+/* 內容區：右上角鋼琴捲軸，像夜空中的音符 */
+:root[data-theme="miku"]:where([data-mode="night"]) #main { isolation: isolate; }
+
+/* the piano roll stays in the top bar's band: lower down its notes sat behind the page tools (sort / per-row controls) and read as stray boxes */
+:root[data-theme="miku"]:where([data-mode="night"]) #main::before { content: ""; position: absolute; top: 0; right: 0; width: min(760px, 66%); height: 80px; z-index: -1; pointer-events: none; opacity: .7; background: var(--roll-n) right top / 760px 448px no-repeat; -webkit-mask-image: linear-gradient(180deg, #000 25%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); -webkit-mask-composite: source-in; mask-image: linear-gradient(180deg, #000 25%, transparent 100%), linear-gradient(90deg, transparent, #000 45%); mask-composite: intersect; }
+:root[data-theme="miku"]:where([data-mode="night"]) :is(#topbar.solid, .set-band) { background: rgba(11,22,25,.84); }
+:root[data-theme="miku"]:where([data-mode="night"]) .search { background: rgba(255,255,255,.045); border: 1px solid rgba(160,230,230,.10); }
+:root[data-theme="miku"]:where([data-mode="night"]) .search:focus-within { border-color: rgba(57,197,187,.7); box-shadow: 0 0 0 3px rgba(57,197,187,.14), 0 0 18px rgba(57,197,187,.18); }
+:root[data-theme="miku"]:where([data-mode="night"]) .round-btn { background: rgba(255,255,255,.045); border: 1px solid rgba(160,230,230,.08); }
+:root[data-theme="miku"]:where([data-mode="night"]) .page-head h1 { text-shadow: 0 0 28px rgba(57,197,187,.28); }
+:root[data-theme="miku"]:where([data-mode="night"]) .rail-head h2::before { content: ""; display: inline-block; width: 4px; height: 18px; margin-right: 10px; vertical-align: -2px; border-radius: 2px; background: linear-gradient(180deg, #39c5bb 0 62%, #e8408f 62% 100%); box-shadow: 0 0 10px rgba(57,197,187,.6); }
+
+/* 卡片 */
+:root[data-theme="miku"]:where([data-mode="night"]) .card .art { border-radius: 12px; box-shadow: 0 0 0 1px rgba(160,230,230,.06), 0 12px 26px -10px rgba(0,0,0,.7); }
+:root[data-theme="miku"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 1px rgba(57,197,187,.6), 0 0 26px rgba(57,197,187,.28), 0 18px 34px -10px rgba(0,0,0,.75); }
+:root[data-theme="miku"]:where([data-mode="night"]) .card .t1 { color: #eef8f8; }
+:root[data-theme="miku"]:where([data-mode="night"]) .card:hover .t1 { color: #7fe3db; }
+:root[data-theme="miku"]:where([data-mode="night"]) .card .t2 { color: #94aeb1; }
+:root[data-theme="miku"]:where([data-mode="night"]) .card .play { background: var(--play-bg); color: #062a28; box-shadow: 0 0 18px rgba(57,197,187,.55); }
+
+/* 按鈕與控制項 */
+:root[data-theme="miku"]:where([data-mode="night"]) .btn { background: rgba(255,255,255,.06); }
+:root[data-theme="miku"]:where([data-mode="night"]) .btn.primary { background: var(--play-bg); color: #062a28; box-shadow: 0 0 0 1px rgba(160,240,235,.25) inset, 0 6px 22px -4px rgba(57,197,187,.55); }
+:root[data-theme="miku"]:where([data-mode="night"]) .btn.primary:hover { box-shadow: 0 0 0 1px rgba(160,240,235,.35) inset, 0 8px 28px -4px rgba(57,197,187,.75); }
+:root[data-theme="miku"]:where([data-mode="night"]) .seg button.on { background: rgba(57,197,187,.18); color: #a6f3ec; }
+:root[data-theme="miku"]:where([data-mode="night"]) .switch { background: #24393e; }
+:root[data-theme="miku"]:where([data-mode="night"]) .switch.on { background: #39c5bb; box-shadow: 0 0 12px rgba(57,197,187,.5); }
+:root[data-theme="miku"]:where([data-mode="night"]) .chip.on { border-color: #39c5bb; color: #7fe3db; }
+:root[data-theme="miku"]:where([data-mode="night"]) .badge.hi { background: rgba(57,197,187,.16); color: #8fe9e2; }
+:root[data-theme="miku"]:where([data-mode="night"]) .icon-btn.on { color: #7fe3db; }
+:root[data-theme="miku"]:where([data-mode="night"]) .icon-btn.fav-on { color: #ff5aa5; filter: drop-shadow(0 0 6px rgba(232,64,143,.55)); }
+:root[data-theme="miku"]:where([data-mode="night"]) .slider .track { background: rgba(160,230,230,.13); }
+:root[data-theme="miku"]:where([data-mode="night"]) .slider .fill, :root[data-theme="miku"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(90deg, #22aaa2, #6fe3da); box-shadow: 0 0 8px rgba(57,197,187,.6); }
+:root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob, :root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .knob { background: #ff5aa5; opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(232,64,143,.25), 0 0 12px rgba(232,64,143,.75); }
+:root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+
+/* 列表 */
+:root[data-theme="miku"]:where([data-mode="night"]) .thead { background: rgba(11,22,25,.92); backdrop-filter: blur(12px); }
+:root[data-theme="miku"]:where([data-mode="night"]) .row:hover { background: rgba(160,230,230,.05); }
+:root[data-theme="miku"]:where([data-mode="night"]) .row.playing { background: linear-gradient(90deg, rgba(57,197,187,.14), rgba(57,197,187,0) 70%); }
+:root[data-theme="miku"]:where([data-mode="night"]) .row.playing .tt div:first-child { color: #7fe3db; text-shadow: 0 0 12px rgba(57,197,187,.45); }
+:root[data-theme="miku"]:where([data-mode="night"]) .eq i { box-shadow: 0 0 6px rgba(57,197,187,.8); }
+:root[data-theme="miku"]:where([data-mode="night"]) .qrow.cur .t { color: #7fe3db; }
+
+/* 專輯／演出者頁 */
+:root[data-theme="miku"]:where([data-mode="night"]) .hero .cover { border-radius: 14px; box-shadow: 0 0 0 1px rgba(160,230,230,.12), 0 0 50px rgba(57,197,187,.16), 0 28px 60px -12px rgba(0,0,0,.75); }
+:root[data-theme="miku"]:where([data-mode="night"]) .hero.artist .cover { border-radius: 50%; }
+:root[data-theme="miku"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(11,22,25,.2), rgba(11,22,25,.6) 60%, rgba(11,22,25,0)); }
+:root[data-theme="miku"]:where([data-mode="night"]) .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+
+/* 面板 */
+:root[data-theme="miku"]:where([data-mode="night"]) .sect { background: linear-gradient(180deg, rgba(26,47,53,.72), rgba(17,33,38,.72)); border: 1px solid rgba(160,230,230,.08); border-radius: 18px; box-shadow: inset 0 1px 0 rgba(160,240,235,.05); }
+:root[data-theme="miku"]:where([data-mode="night"]) .dsp-card { background: rgba(26,47,53,.45); border-color: rgba(160,230,230,.08); }
+:root[data-theme="miku"]:where([data-mode="night"]) .eq-graph { background: var(--hex-ns) 0 0 / 42px 72px, rgba(0,10,12,.4); }
+:root[data-theme="miku"]:where([data-mode="night"]) .eq-handle { box-shadow: 0 0 0 3px rgba(11,22,25,.8), 0 0 12px rgba(57,197,187,.6); }
+:root[data-theme="miku"]:where([data-mode="night"]) .drawer, :root[data-theme="miku"]:where([data-mode="night"]) .pop, :root[data-theme="miku"]:where([data-mode="night"]) .modal { border-color: rgba(57,197,187,.18); }
+:root[data-theme="miku"]:where([data-mode="night"]) .toast { border-left: 3px solid #39c5bb; }
+:root[data-theme="miku"]:where([data-mode="night"]) .toast.err { border-left-color: #e8408f; }
+:root[data-theme="miku"]:where([data-mode="night"]) ::-webkit-scrollbar-thumb { background-color: rgba(160,230,230,.14); }
+:root[data-theme="miku"]:where([data-mode="night"]) ::-webkit-scrollbar-thumb:hover { background-color: rgba(160,230,230,.26); }
+
+/* 播放列：黑色裙襬＋發光的蔥綠滾邊 */
+:root[data-theme="miku"]:where([data-mode="night"]) #bar { background: repeating-linear-gradient(90deg, rgba(255,255,255,.01) 0 46px, rgba(0,0,0,.1) 46px 92px), linear-gradient(180deg, #11181b, #080c0e); border-top: 3px solid #39c5bb; box-shadow: 0 -1px 0 rgba(166,243,236,.35), 0 -6px 24px rgba(57,197,187,.18); backdrop-filter: none; }
+:root[data-theme="miku"]:where([data-mode="night"]) #bar .playbtn { box-shadow: 0 0 0 3px rgba(57,197,187,.2), 0 0 22px rgba(57,197,187,.55); }
+:root[data-theme="miku"]:where([data-mode="night"]) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 0 30px rgba(57,197,187,.75); }
+
+/* 正在播放：夜色舞台 */
+:root[data-theme="miku"]:where([data-mode="night"]) .np-cover { border-radius: 18px; box-shadow: 0 0 0 1px rgba(160,240,235,.14), 0 0 80px rgba(57,197,187,.18), 0 40px 90px -20px rgba(0,0,0,.8); }
+:root[data-theme="miku"]:where([data-mode="night"]) .np-ctrl .icon-btn.on { color: #7fe3db; }
+:root[data-theme="miku"]:where([data-mode="night"]) .np-ctrl .playbtn { box-shadow: 0 0 0 6px rgba(57,197,187,.16), 0 0 34px rgba(57,197,187,.55); }
+:root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .track { background: rgba(235,250,250,.16); }
+:root[data-theme="miku"]:where([data-mode="night"]) .pill.on { background: var(--play-bg); color: #062a28; box-shadow: 0 0 16px rgba(57,197,187,.45); }
+:root[data-theme="miku"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 14px rgba(57,197,187,.26), 0 1px 2px rgba(0,0,0,.35); }
+:root[data-theme="miku"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #e6fffc 0, #e6fffc var(--p, 0%), rgba(235,250,250,.42) var(--p, 0%)); }
+
+/* 白天：側欄小標淡了一點點，加深 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .nav-label { color: #6f878a; }
+
+/* 未來・日：淺青的底、選中的是白色 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .set-tabs { background: rgba(227,239,239,.94); border-color: transparent; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .set-tabs button.on { background: #fff; color: #0b847e; box-shadow: 0 1px 3px rgba(16,72,78,.15); }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .page-head .tools > .btn.small:not(.primary) { background: #e3efef; border-color: transparent; }
+:root[data-theme="miku"]:where(:not([data-mode="night"])) .page-head .tools > .btn.small:not(.primary):hover { background: #d6e9e9; }
+
+/* 未來・夜 */
+:root[data-theme="miku"]:where([data-mode="night"]) .set-tabs button.on { background: rgba(57,197,187,.18); color: #a6f3ec; }
+
+/* 有自己主色的主題：希臘字標誌用主色（大字，對面板都在 4.5:1 以上） */
+:root[data-theme="miku"] { --dp-ink: var(--teal-2); }
+
+/* ───────────── 3 · 各主題的卡片 ───────────── */
+/* 未來：圓角 14px（和 DSP 卡片一樣），日＝淡青灰底＋青灰框；夜＝透一點亮的青色玻璃 */
+:root[data-theme="miku"] .dp-sect .dp-group { border-radius: 14px; background: #f5fafa; border: 1px solid #c9dfdf; }
+:root[data-theme="miku"]:where([data-mode="night"]) .dp-sect .dp-group { background: rgba(160,230,230,.045); border-color: rgba(160,230,230,.22); }
+
+/* one line, cut with …: room above for accents and tall CJK, below for descenders */
+/* ── 頂欄（捲動後）與設定頁分頁列後面的底：幾乎不透明 ──
+   頁面內容在 #view 裡，而 #view 自己是一個 backdrop root（見 app.css），頂欄與分頁列的背景模糊取不到捲上去的內容，
+   半透明的底就讓字清楚地透出來（玻璃質感 35% 的底下面，曲目名和主題清單都看得到）。各主題的色調不變，只把透明度
+   提高到幾乎不透明；模糊照舊（取得到時仍有毛玻璃感）。 */
+:root[data-theme="miku"]:where(:not([data-mode="night"])) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(241,249,249,.95); }
+:root[data-theme="miku"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(11,22,25,.95); }

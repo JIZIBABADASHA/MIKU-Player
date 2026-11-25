@@ -1,0 +1,295 @@
+/* MIKU theme 'pop': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="pop"] .theme-pick { --tp-ring: var(--pop-line); --tp-or: 6px; }
+:root[data-theme="pop"] .tp-stage .tp-screen { box-shadow: 0 0 0 2px var(--pop-line), 5px 5px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .tp-opt.on { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); font-weight: 800; }
+:root[data-theme="pop"] #sidebar { border-right: 3px solid var(--pop-line); }
+:root[data-theme="pop"] .nav a { color: var(--text); font-weight: 600; }
+:root[data-theme="pop"] .nav a:hover { background: rgba(var(--ink), .08); color: var(--text-hi); }
+:root[data-theme="pop"] .nav-label { color: var(--text); font-family: var(--font-display); font-weight: 900; letter-spacing: .1em; opacity: .62; }
+:root[data-theme="pop"] .nav-pill { background: var(--pop-pill); border: 2px solid #111; border-radius: 8px; box-shadow: 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .nav-pill::before { display: none; }
+:root[data-theme="pop"] .nav a.on, :root[data-theme="pop"] .nav a.on svg.i, :root[data-theme="pop"] .nav a.on .count, :root[data-theme="pop"] .nav a.on:hover { color: #111; }
+:root[data-theme="pop"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .94); }
+:root[data-theme="pop"] .page-head h1, :root[data-theme="pop"] .hero h1 { font-family: var(--font-display); font-weight: 900; letter-spacing: -.01em; text-shadow: 3px 3px 0 var(--pop-title); }
+:root[data-theme="pop"] .rail-head h2, :root[data-theme="pop"] .sect h2, :root[data-theme="pop"] .np-title, :root[data-theme="pop"] .drawer-head h2 { font-family: var(--font-display); font-weight: 900; }
+:root[data-theme="pop"] .rail-head h2::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 10px; vertical-align: 0; background: var(--pink); border: 2px solid var(--pop-line); border-radius: 50%; }
+:root[data-theme="pop"] .search, :root[data-theme="pop"] .round-btn { background: var(--pop-panel); border: 2px solid var(--pop-line); box-shadow: 2px 2px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .search { border-radius: 8px; }
+:root[data-theme="pop"] .search:focus-within { box-shadow: 3px 3px 0 var(--teal); }
+
+/* 按鈕：粗框＋硬陰影，滑過浮起、按下壓扁 */
+:root[data-theme="pop"] .btn { background: var(--pop-panel); border: 2px solid var(--pop-line); border-radius: 8px; box-shadow: 2px 2px 0 var(--pop-shadow); font-weight: 700; }
+:root[data-theme="pop"] .btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .btn.primary { background: var(--teal); color: #fff; }
+:root[data-theme="pop"] .btn.ghost { border-color: transparent; background: transparent; box-shadow: none; }
+:root[data-theme="pop"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: inset 0 0 0 2px #111, 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .seg { background: var(--pop-panel); border-radius: 8px; box-shadow: inset 0 0 0 2px var(--pop-line), 2px 2px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .seg button { border-radius: 6px; font-weight: 600; }
+:root[data-theme="pop"] .seg button.on { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111; }
+:root[data-theme="pop"] .switch { background: var(--pop-panel); box-shadow: inset 0 0 0 2px var(--pop-line); }
+:root[data-theme="pop"] .switch.on { background: var(--teal); }
+:root[data-theme="pop"] .switch::after { background: #fff; box-shadow: 0 0 0 2px #111; }
+:root[data-theme="pop"] .chip.on { border-color: var(--pop-line); background: var(--pop-yellow); color: #111; }
+:root[data-theme="pop"] .slider .track { background: rgba(var(--ink), .16); }
+:root[data-theme="pop"] .slider .fill, :root[data-theme="pop"] .slider:hover .fill { background: var(--pink); }
+:root[data-theme="pop"] .slider .knob { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: var(--pop-yellow); box-shadow: 0 0 0 2px #111; }
+:root[data-theme="pop"] .seek .slider .knob, :root[data-theme="pop"] .np-seek .slider .knob { opacity: 1; transform: none; }
+:root[data-theme="pop"] .badge { background: var(--pop-panel); color: var(--text); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--pop-line); }
+:root[data-theme="pop"] .badge.hi { background: var(--teal); color: #fff; }
+:root[data-theme="pop"] .badge.dsd { background: var(--pink); color: #fff; }
+:root[data-theme="pop"] .sig, :root[data-theme="pop"] .out-btn { box-shadow: inset 0 0 0 1.5px var(--pop-line); }
+:root[data-theme="pop"] .icon-btn.on { color: var(--teal); }
+:root[data-theme="pop"] .icon-btn.fav-on { color: var(--pink); }
+
+/* 卡片：封面像貼在紙上的漫畫格 */
+:root[data-theme="pop"] .card .art { border-radius: 6px; border: 2px solid var(--pop-line); box-shadow: 5px 5px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .card:hover .art { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--pink); }
+:root[data-theme="pop"] .card .t1 { font-weight: 800; }
+:root[data-theme="pop"] .card:hover .t1 { color: var(--teal); }
+:root[data-theme="pop"] .card .play { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111, 2px 2px 0 #111; }
+
+/* 列表與面板 */
+:root[data-theme="pop"] .thead { background: var(--bg); border-bottom: 2px solid var(--pop-line); font-weight: 800; }
+:root[data-theme="pop"] .row { border-radius: 6px; }
+:root[data-theme="pop"] .row:hover { background: rgba(var(--ink), .06); }
+:root[data-theme="pop"] .row.playing { background: var(--pop-playing); box-shadow: inset 0 0 0 2px var(--pop-line); }
+:root[data-theme="pop"] .row.playing .tt div:first-child, :root[data-theme="pop"] .qrow.cur .t { color: var(--text-hi); font-weight: 800; }
+
+/* 夜：播放中的列和白天一樣是實心黃底，字改成黑色；側欄右邊的粗框也是黃色 */
+:root[data-theme="pop"]:where([data-mode="night"]) .row.playing { --text: #111111; --text-hi: #000000; --text-sub: #2a2a2a; --text-2: #2a2a2a; --text-3: #3d3a30; --ink: 17, 17, 17; color: #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) .row.playing .eq i { background: #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) #sidebar { border-right-color: #ffd23f; }
+:root[data-theme="pop"] .eq i { background: var(--pink); }
+:root[data-theme="pop"] .sect, :root[data-theme="pop"] .dsp-card { background: var(--pop-panel); border: 2px solid var(--pop-line); border-radius: 10px; box-shadow: 5px 5px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .drawer, :root[data-theme="pop"] .pop, :root[data-theme="pop"] .modal { border: 2px solid var(--pop-line); box-shadow: 6px 6px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .toast { border: 2px solid var(--pop-line); box-shadow: 4px 4px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .toast.err { background: var(--pink); color: #fff; }
+:root[data-theme="pop"] #bar { border-top: 3px solid var(--pop-line); backdrop-filter: none; }
+:root[data-theme="pop"] .hero .cover { border: 3px solid var(--pop-line); border-radius: 6px; box-shadow: 8px 8px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .hero.artist .cover { border-radius: 50%; }
+:root[data-theme="pop"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .45), rgba(var(--bg-rgb), .8) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="pop"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+:root[data-theme="pop"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--ink), .3); }
+
+/* 正在播放 */
+:root[data-theme="pop"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="pop"] .np-bg .layer.b { animation: none; }
+
+/* (not shown: not turning either, see MIKU) */
+:root[data-theme="pop"] .np-cover { border: 3px solid var(--pop-line); border-radius: 8px; box-shadow: 10px 10px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .np-ctrl .icon-btn.on { color: var(--teal); }
+:root[data-theme="pop"] .pill { box-shadow: inset 0 0 0 2px var(--pop-line); }
+:root[data-theme="pop"] .pill.on { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111; }
+:root[data-theme="pop"] .ly-line { font-weight: 800; }
+:root[data-theme="pop"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .38) var(--p, 0%)); }
+:root[data-theme="pop"] .scroll-bubble { background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111, 3px 3px 0 #111; }
+
+/* 普普：所有按鈕列都是同一套——白底（夜：深底）、2px 的框、硬陰影；選中的是實心黃，不另外加框 */
+:root[data-theme="pop"] .seg { padding: 4px; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .seg button.on { box-shadow: none; font-weight: 800; }
+:root[data-theme="pop"] .page-head .tools > .btn.small { height: 38px; border-radius: 8px; }
+:root[data-theme="pop"] .set-tabs { background: var(--pop-panel); border: 0; border-radius: 8px; padding: 4px; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); backdrop-filter: none; }
+:root[data-theme="pop"] .set-tabs button { border-radius: 6px; font-weight: 700; color: var(--text); }
+:root[data-theme="pop"] .set-tabs button.on { background: var(--pop-yellow); color: #111; box-shadow: none; font-weight: 800; }
+
+/* 開關：圓鈕縮小一點，整顆都在框裡面 */
+:root[data-theme="pop"] .switch::after { left: 5px; top: 5px; width: 14px; height: 14px; }
+
+/* 下拉選單：粗框、硬陰影，右邊的箭頭是黃色小方塊 */
+:root[data-theme="pop"] .msel-btn { background: var(--pop-panel); border: 2px solid var(--pop-line); border-radius: 8px; box-shadow: 3px 3px 0 var(--pop-shadow); font-weight: 700; }
+:root[data-theme="pop"] .msel-btn:hover { border-color: var(--pop-line); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .msel-btn:focus-visible, :root[data-theme="pop"] .msel.open .msel-btn { border-color: var(--pop-line); box-shadow: 4px 4px 0 var(--teal); }
+:root[data-theme="pop"] .msel-btn::before { width: 8px; height: 8px; background: var(--pink); box-shadow: none; }
+:root[data-theme="pop"] .msel-chev { border-radius: 5px; background: var(--pop-yellow); color: #111; box-shadow: inset 0 0 0 2px #111; }
+:root[data-theme="pop"] .msel.open .msel-chev { background: var(--pop-yellow); }
+:root[data-theme="pop"] .msel-menu { border: 2px solid var(--pop-line); border-radius: 10px; box-shadow: 5px 5px 0 var(--pop-shadow); backdrop-filter: none; }
+:root[data-theme="pop"] .msel-opt { border-radius: 6px; font-weight: 600; color: var(--text); }
+:root[data-theme="pop"] .msel-opt.on, :root[data-theme="pop"] .msel-opt.on.act { background: var(--pop-yellow); color: #111; font-weight: 800; }
+:root[data-theme="pop"] .msel-opt.on::before { display: none; }
+:root[data-theme="pop"] .msel-opt.on .msel-ck { background: #111; color: var(--pop-yellow); }
+
+/* 普普：按鈕、搜尋框、選單的硬陰影都一樣是 3px；側欄選中的那列框線和分段按鈕同色 */
+:root[data-theme="pop"] .btn, :root[data-theme="pop"] .search, :root[data-theme="pop"] .round-btn { box-shadow: 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .btn:hover { box-shadow: 4px 4px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .btn.ghost, :root[data-theme="pop"] .btn.ghost:hover { box-shadow: none; }
+:root[data-theme="pop"] .search:focus-within { box-shadow: 4px 4px 0 var(--teal); }
+:root[data-theme="pop"] .nav-pill { border-color: var(--pop-line); }
+:root[data-theme="pop"] { --app-bg: #fffdf6; --sidebar-bg: #ffcc1f; }
+:root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
+:root[data-theme="pop"] #sidebar { position: relative; isolation: isolate; }
+:root[data-theme="pop"] #sidebar::after { content: ""; position: absolute; right: 0; bottom: 0; width: 300px; max-width: 100%; height: 300px; z-index: -1; pointer-events: none; background: var(--pop-tone-side); -webkit-mask: var(--pop-tone) right bottom / 300px 300px no-repeat; mask: var(--pop-tone) right bottom / 300px 300px no-repeat; }
+:root[data-theme="pop"] #main { isolation: isolate; }
+:root[data-theme="pop"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: 300px; height: 300px; z-index: -1; pointer-events: none; background: var(--pop-tone-c); -webkit-mask: var(--pop-tone) 0 0 / 300px 300px no-repeat; mask: var(--pop-tone) 0 0 / 300px 300px no-repeat; transform: scaleY(-1); }
+:root[data-theme="pop"] .np-bg::before { content: ""; position: absolute; z-index: 1; left: 0; top: 0; width: 360px; height: 360px; pointer-events: none; background: var(--pop-tone-np); -webkit-mask: var(--pop-tone) 0 0 / 360px 360px no-repeat; mask: var(--pop-tone) 0 0 / 360px 360px no-repeat; transform: scale(-1, -1); }
+
+/* 普普：資料夾頁的表頭、排序、資料夾小標也用普普的配色（原本是藍色的淡底） */
+:root[data-theme="pop"] .ft-head { border-radius: 8px; background: var(--pop-panel); box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); font-weight: 700; }
+:root[data-theme="pop"] .ft-h { border-radius: 6px; }
+:root[data-theme="pop"] .ft-h.on { background: var(--pop-yellow); color: #111; font-weight: 800; }
+:root[data-theme="pop"] .ft-thumb { border-radius: 6px; box-shadow: 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .ft-tab { border-radius: 5px; background: var(--pop-yellow); color: #111; box-shadow: 0 0 0 2px #111; }
+:root[data-theme="pop"] .ft-q:not(.plain) { background: var(--pop-panel); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--pop-line); }
+
+/* 主要按鈕（播放）：和播放鍵一樣是黃色，不是藍色 */
+:root[data-theme="pop"] .btn.primary { background: var(--pop-yellow); color: #111; }
+:root[data-theme="pop"] .btn.primary:hover { background: var(--pop-yellow); }
+:root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #25242d; --sidebar-bg: #201f27; }
+
+/* 開關：關＝灰底、白色圓鈕加黑框；開＝黃底、黑色圓鈕。夜：關是深灰底、米色圓鈕 */
+:root[data-theme="pop"] .switch { background: #d6d2c4; box-shadow: inset 0 0 0 2px var(--pop-line); }
+:root[data-theme="pop"] .switch::after { left: 5px; top: 5px; width: 14px; height: 14px; background: #ffffff; box-shadow: 0 0 0 2px #111111; }
+:root[data-theme="pop"] .switch.on { background: var(--pop-yellow); }
+:root[data-theme="pop"] .switch.on::after { background: #111111; box-shadow: 0 0 0 2px #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch { background: #4b4a57; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch::after { background: #f5f1e6; box-shadow: 0 0 0 2px #111111; }
+:root[data-theme="pop"]:where([data-mode="night"]) .switch.on { background: var(--pop-yellow); box-shadow: inset 0 0 0 2px #111111; }
+:root[data-theme="pop"] .np-bg::before { display: none; }
+:root[data-theme="pop"] #np .np-wrap::before { display: none; }
+
+/* 歌名、歌手、格式、進度條、時間、按鈕：一個實心的漫畫格（白底／夜是深灰底），粗黑框加錯開的硬陰影 */
+:root[data-theme="pop"] .np-cover { width: clamp(180px, min(calc(100vh - var(--bar) - 372px), 100%), 520px); }
+:root[data-theme="pop"] #np .np-info { width: clamp(260px, min(calc(100vh - var(--bar) - 372px), 100%), 520px); margin-top: 24px; padding: 14px 18px 10px; background: var(--pop-panel); border: 3px solid var(--pop-line); border-radius: 12px; box-shadow: 8px 8px 0 var(--pop-shadow); }
+:root[data-theme="pop"] #np .np-seek { margin-top: 16px; }
+:root[data-theme="pop"] #np .np-seek .times { color: rgba(var(--np-ink), .78); font-weight: 600; }
+:root[data-theme="pop"] #np .np-artist { color: rgba(var(--np-ink), .78); }
+:root[data-theme="pop"] #np .np-ctrl { margin-top: 6px; }
+
+/* 歌詞：另一個實心的漫畫格；歌詞關掉時一起淡出 */
+:root[data-theme="pop"] #np .np-right { padding: 16px 6px 16px 10px; background: var(--pop-panel); border: 3px solid var(--pop-line); border-radius: 14px; box-shadow: 8px 8px 0 var(--pop-shadow); transition: opacity .35s var(--ease); }
+:root[data-theme="pop"] #np.nolyrics .np-right { opacity: 0; }
+:root[data-theme="pop"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="pop"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+
+/* 角落的按鈕：實心的貼紙（白底／夜是深灰底、粗框、硬陰影），選中的是黃色 */
+:root[data-theme="pop"] .np-top :is(.icon-btn, .pill) { background: var(--pop-panel); color: rgb(var(--np-ink)); border-radius: 8px; box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); font-weight: 800; }
+:root[data-theme="pop"] .np-top :is(.icon-btn, .pill):hover { background: var(--surface-3); }
+:root[data-theme="pop"] .np-top .pill.on { background: var(--pop-yellow); color: #111111; box-shadow: inset 0 0 0 2px #111111, 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] .np-top .src:not(:empty) { background: var(--pop-panel); color: rgb(var(--np-ink)); padding: 3px 8px; border-radius: 6px; box-shadow: inset 0 0 0 1.5px var(--pop-line); font-weight: 600; }
+
+/* 好讀優先：播過的佇列、側欄的數字、黃底上的愛心、夜裡的格式標籤 */
+:root[data-theme="pop"] .qrow.past { opacity: .8; }
+:root[data-theme="pop"] .nav-label .nav-edit { color: var(--text); opacity: .85; }
+:root[data-theme="pop"]:where(:not([data-mode="night"])) #sidebar .nav a em { color: #3a372d; }
+:root[data-theme="pop"] .row.playing .icon-btn.fav-on { color: #c0122a; }
+:root[data-theme="pop"]:where([data-mode="night"]) :is(.badge.hi, .badge.dsd) { color: #111111; }
+
+/* ═════════════════════════════ 普普：正在播放的歌詞（第七輪） ═════════════════════════════
+   Adolf：「這看起來歌詞又擠又醜」——右半邊是一大塊空白的白框，灰字擠在下半部、長句貼到右邊。
+   改成漫畫頁：右邊不再是一大塊白框，每一句歌詞是一格自己的漫畫旁白框（白底、黑框），格與格之間留白；
+   正在唱的那句是黃色的對話框（粗黑框、錯開的硬陰影、右邊一點網點、左邊的尾巴指向封面）；接下來的句子是白框，
+   唱過的字和框一起變淡（框的底仍是實心，網點不會透進來）。
+   字永遠在實心的底上（普普的規矩），行長有上限，現在這句放在偏上的閱讀位置，歌曲一開始也不會上半部空著。
+   只寫普普自己（:root[data-theme="pop"]），夜版是深灰底、米色框（:where([data-mode="night"]) 的規則）。 */
+/* ── 1. 右欄：拿掉原本的大白框，歌詞直接放在網點頁面上 ── */
+:root[data-theme="pop"] #np .np-right { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+
+/* ── 2. 歌詞框：行距、現在這句的位置（nowplaying.js 讀這三個值）、上下淡出改短 ──
+   --ly-gap：句與句之間的空隙（格與格之間的白邊）；--ly-anchor：現在這句的中線在框高的位置（偏上，眼睛不用往下找）；
+   --ly-start：歌曲剛開始時第一句的位置（不從中間開始，上半部不會空著）；
+   --ly-fit：長句換行時兩行一樣長（app.css 的 text-wrap: balance），框的寬度縮到最長的那一行，框裡不會空一大塊 */
+:root[data-theme="pop"] #lyrics {
+  --ly-gap: 14px; --ly-anchor: .4; --ly-start: .07; --ly-fit: 1;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 6%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 6%, #000 86%, transparent 100%);
+}
+
+/* ── 3. 每一句：一格旁白框（寬度跟著字，最寬不超過一個舒服的行長）；左邊留 18px 給對話框的尾巴 ──
+   框線：一般的句子 2px、現在這句 3px，內距差 1px 補回來，字不會跳 */
+:root[data-theme="pop"] #lyrics .ly-line {
+  left: 18px; right: auto; width: fit-content; max-width: min(calc(100% - 30px), 26em);
+  font: 800 clamp(19px, 1.95vw, 28px)/1.36 var(--font-display); letter-spacing: 0;
+  color: rgba(var(--np-ink), .8);
+  padding: 11px 19px 12px; border: 2px solid var(--pop-line); border-radius: 6px;
+  background: var(--pop-panel);
+  transition: transform .52s cubic-bezier(.2,.75,.25,1), opacity .28s var(--ease), background-color .2s, box-shadow .2s, color .2s, border-color .2s;
+}
+:root[data-theme="pop"] #lyrics .ly-line:not(.on):not(:hover) { opacity: 1; }
+
+/* 唱過的：字和框線變淡，底仍是實心的 */
+:root[data-theme="pop"] #lyrics .ly-line:has(~ .ly-line.on) { color: rgba(var(--np-ink), .63); border-color: rgba(var(--np-ink), .34); }
+:root[data-theme="pop"] #lyrics:not(.ly-notr) .ly-line:has(~ .ly-line.on) .tr { opacity: 1; }
+
+/* 現在這句：黃色對話框、黑字、粗黑框、錯開的硬陰影；右邊淡淡的網點（左邊沒有，字在上面一樣清楚） */
+:root[data-theme="pop"] #lyrics .ly-line.on {
+  padding: 10px 18px 11px; border: 3px solid #111111; color: #111111;
+  background: linear-gradient(90deg, var(--pop-yellow) 55%, rgba(255,204,31,0) 100%), radial-gradient(rgba(214,92,0,.26) 1.6px, transparent 2.2px) 0 0 / 7px 7px, var(--pop-yellow);
+  box-shadow: 6px 6px 0 var(--pop-shadow);
+}
+
+/* 對話框的尾巴：從框的左邊指向封面（黑色的楔形，裡面再疊一個黃色的） */
+:root[data-theme="pop"] #lyrics .ly-line.on::before, :root[data-theme="pop"] #lyrics .ly-line.on::after { content: ""; position: absolute; top: 9px; pointer-events: none; }
+:root[data-theme="pop"] #lyrics .ly-line.on::before { left: -20px; width: 18px; height: 24px; background: #111111; clip-path: polygon(100% 0, 0 78%, 100% 100%); }
+:root[data-theme="pop"] #lyrics .ly-line.on::after { left: -14px; top: 13.5px; width: 17px; height: 16px; background: var(--pop-yellow); clip-path: polygon(100% 0, 0 82%, 100% 100%); }
+
+/* 滑過：可以點的那句變淡黃 */
+:root[data-theme="pop"] #lyrics .ly-line:hover { opacity: 1 !important; }
+:root[data-theme="pop"] #lyrics .ly-line:not(.on):hover { background: var(--surface-2); color: rgb(var(--np-ink)); border-color: var(--pop-line); }
+
+/* 翻譯：同一格裡的小一號字 */
+:root[data-theme="pop"] #lyrics .ly-line .tr { font: 600 .6em/1.42 var(--font); color: inherit; opacity: .92; margin-top: 3px; }
+:root[data-theme="pop"] #lyrics.ly-notr .ly-line .tr { margin-top: 0; opacity: 0; }
+
+/* 逐字歌詞：唱到的字是黑的，還沒唱到的字淡一半（黃底上仍看得清楚）；其他句子是普通的字（舊規則在別句也畫了底色） */
+:root[data-theme="pop"] #lyrics .ly-line .w { background: none; color: inherit; }
+:root[data-theme="pop"] #lyrics .ly-line.on .w { background: linear-gradient(90deg, #111111 0, #111111 var(--p, 0%), rgba(17,17,17,.5) var(--p, 0%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* ── 4. 間奏：三個點放在一個圓圓的對話框裡；唱到這裡時三個點輪流跳一下 ── */
+:root[data-theme="pop"] #lyrics .ly-line.gap { height: auto; border-radius: 999px; padding: 4px 17px; }
+:root[data-theme="pop"] #lyrics .ly-line.gap.on { padding: 3px 16px; }
+:root[data-theme="pop"] #lyrics .ly-line.gap.on::before { top: 4px; }
+:root[data-theme="pop"] #lyrics .ly-line.gap.on::after { top: 8.5px; }
+:root[data-theme="pop"] #lyrics .ly-dots { gap: 8px; padding: 9px 0; }
+:root[data-theme="pop"] #lyrics .ly-dots i { width: 10px; height: 10px; background: currentColor; opacity: 1; }
+:root[data-theme="pop"] #lyrics .ly-line.on .ly-dots { animation: none; }
+:root[data-theme="pop"] #np.on #lyrics .ly-line.on .ly-dots i { animation: pop-ly-hop 1.2s ease-in-out infinite; }
+:root[data-theme="pop"] #np.on #lyrics .ly-line.on .ly-dots i:nth-child(2) { animation-delay: .16s; }
+:root[data-theme="pop"] #np.on #lyrics .ly-line.on .ly-dots i:nth-child(3) { animation-delay: .32s; }
+
+/* ── 5. 沒有時間軸的歌詞：一格可以捲動的白色漫畫格；框畫在外層，裡面的字捲到上下邊時淡出，不會貼著框線 ── */
+:root[data-theme="pop"] #lyrics:has(.ly-plain) {
+  height: calc(100% - 12px); max-width: min(calc(100% - 12px), 36em);
+  background: var(--pop-panel); border: 3px solid var(--pop-line); border-radius: 8px; box-shadow: 6px 6px 0 var(--pop-shadow);
+  -webkit-mask-image: none; mask-image: none;
+}
+:root[data-theme="pop"] #lyrics .ly-plain {
+  padding: 26px 30px 34vh; scroll-padding: 26px;
+  font: 700 clamp(17px, 1.6vw, 21px)/1.75 var(--font-display); color: rgb(var(--np-ink)); text-wrap: pretty;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 44px), transparent 100%);
+}
+
+/* 找不到歌詞／純音樂（歌詞欄收起前一瞬間才看得到）：置中的粗字，不用淡灰 */
+:root[data-theme="pop"] #lyrics .ly-empty { color: rgb(var(--np-ink)); font: 800 16px/1.4 var(--font-display); }
+
+/* ── 6. 歌詞時間（滑過歌詞欄時出現的 − 0.0s + 自動）：原本靠白框墊底，現在自己是一張小貼紙 ── */
+:root[data-theme="pop"] #np .ly-offset { right: 26px; bottom: 4px; gap: 6px; padding: 5px 6px 5px 12px; border-radius: 8px; color: rgb(var(--np-ink)); font-weight: 700;
+  background: var(--pop-panel); box-shadow: inset 0 0 0 2px var(--pop-line), 3px 3px 0 var(--pop-shadow); }
+:root[data-theme="pop"] #np .ly-offset button { color: rgb(var(--np-ink)); font-weight: 800; background: var(--pop-panel); box-shadow: inset 0 0 0 2px var(--pop-line); }
+:root[data-theme="pop"] #np .ly-offset button:hover { background: var(--pop-yellow); color: #111111; box-shadow: inset 0 0 0 2px #111111; }
+
+/* ── 直放螢幕或很窄的視窗：歌詞在下面、整個寬度都能用，字放大一點 ── */
+@media (orientation: portrait), (max-width: 760px) {:root[data-theme="pop"] #lyrics .ly-line { font-size: clamp(19px, 3.6vw, 28px); }
+}
+
+/* ── 夜：深灰底的框、米色框線；現在這句一樣是黃底黑字黑框 ── */
+:root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line { color: rgba(var(--np-ink), .86); }
+:root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line:has(~ .ly-line.on) { color: rgba(var(--np-ink), .6); border-color: rgba(var(--np-ink), .32); }
+:root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line:not(.on):hover { background: var(--surface-3); color: rgb(var(--np-ink)); border-color: var(--pop-line); }
+:root[data-theme="pop"]:where([data-mode="night"]) #lyrics .ly-line.on { color: #111111; background: linear-gradient(90deg, var(--pop-yellow) 55%, rgba(255,210,63,0) 100%), radial-gradient(rgba(214,92,0,.3) 1.6px, transparent 2.2px) 0 0 / 7px 7px, var(--pop-yellow); }
+
+/* ── 動態：輕量化（裝飾動態）或系統要求減少動態時，間奏的點不跳 ── */
+:root[data-theme="pop"].lite-ambient #lyrics .ly-dots i { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="pop"] #lyrics .ly-dots i { animation: none !important; }
+}
+
+/* 標誌的特別處理：普普＝大標題那種硬陰影；黃金＝鏡面金的字；霓虹夜、終端機夜＝淡淡的光 */
+:root[data-theme="pop"] .dp-sect .dp-greek { text-shadow: 2px 2px 0 #ffcc1f; }
+:root[data-theme="pop"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 2px 2px 0 #ff4f63; }
+
+/* 普普：粗墨框＋往右下的硬陰影（比外面的面板小一號） */
+:root[data-theme="pop"] .dp-sect .dp-group { border-radius: 8px; border: 2px solid var(--pop-line); background: var(--pop-panel); box-shadow: 4px 4px 0 var(--pop-shadow); margin-right: 18px; margin-bottom: 18px; }
+:root[data-theme="pop"] .dp-sect .dp-group.dp-off { box-shadow: none; }
+:root[data-theme="pop"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }

@@ -1,0 +1,476 @@
+/* MIKU theme 'wood': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="wood"] #sidebar { border-right: 1px solid #0b0806; box-shadow: inset -1px 0 0 rgba(255,220,170,.06); }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar { border-right: 1px solid #b89468; box-shadow: inset -1px 0 0 rgba(255,255,255,.35); }
+:root[data-theme="wood"] .nav a { color: #e3d2b8; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a { color: #3d2f1f; }
+:root[data-theme="wood"] .nav a:hover { background: rgba(0,0,0,.14); color: #fff7ea; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a:hover { background: rgba(255,250,240,.34); color: #1a130b; }
+:root[data-theme="wood"] .nav-label { color: #b79c7c; letter-spacing: .16em; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-label { color: #7b6244; }
+:root[data-theme="wood"] .nav-pill { background: rgba(0,0,0,.22); border-radius: 8px; box-shadow: inset 0 1px 2px rgba(0,0,0,.25), 0 1px 0 rgba(255,225,180,.06); }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-pill { background: rgba(255,250,240,.53); box-shadow: inset 0 1px 2px rgba(90,60,30,.14), 0 1px 0 rgba(255,255,255,.5); }
+:root[data-theme="wood"] .nav-pill::before { background: #c4a06a; box-shadow: none; width: 2px; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-pill::before { background: #a77b3c; }
+:root[data-theme="wood"] .nav a.on svg.i { color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a.on svg.i { color: #8a6128; }
+:root[data-theme="wood"] :is(#topbar.solid, .set-band) { background: rgba(29,25,21,.9); }
+:root[data-theme="wood"]:where([data-mode="day"]) :is(#topbar.solid, .set-band) { background: rgba(244,238,227,.9); }
+:root[data-theme="wood"] #bar { background: #171410; border-top: 1px solid rgba(196,160,106,.22); backdrop-filter: none; }
+:root[data-theme="wood"]:where([data-mode="day"]) #bar { background: #ece3d3; border-top: 1px solid rgba(167,123,60,.22); }
+:root[data-theme="wood"] .playbtn { box-shadow: inset 0 1px 0 rgba(255,240,210,.45), 0 2px 8px rgba(0,0,0,.4); }
+:root[data-theme="wood"]:where([data-mode="day"]) .playbtn { box-shadow: inset 0 1px 0 rgba(255,250,235,.45), 0 2px 8px rgba(70,48,24,.16); }
+:root[data-theme="wood"] .playbtn:hover { background: #cfac78; }
+:root[data-theme="wood"]:where([data-mode="day"]) .playbtn:hover { background: #b58847; }
+:root[data-theme="wood"] .slider .track { background: rgba(255,230,195,.12); }
+:root[data-theme="wood"]:where([data-mode="day"]) .slider .track { background: rgba(60,42,24,.16); }
+:root[data-theme="wood"] .slider .fill, :root[data-theme="wood"] .slider:hover .fill { background: #c4a06a; }
+:root[data-theme="wood"]:where([data-mode="day"]) .slider .fill, :root[data-theme="wood"]:where([data-mode="day"]) .slider:hover .fill { background: #a77b3c; }
+:root[data-theme="wood"] .search, :root[data-theme="wood"] .round-btn { background: rgba(255,230,195,.05); }
+:root[data-theme="wood"]:where([data-mode="day"]) .search, :root[data-theme="wood"]:where([data-mode="day"]) .round-btn { background: rgba(60,42,24,.07); }
+:root[data-theme="wood"] .card .art { border-radius: 4px; box-shadow: 0 0 0 1px rgba(255,230,195,.06), 0 10px 22px -10px rgba(0,0,0,.7); }
+:root[data-theme="wood"]:where([data-mode="day"]) .card .art { box-shadow: 0 0 0 1px rgba(60,42,24,.08), 0 10px 22px -10px rgba(70,48,24,.28); }
+:root[data-theme="wood"] .card:hover .art { box-shadow: 0 0 0 1px rgba(196,160,106,.5), 0 16px 30px -10px rgba(0,0,0,.8); }
+:root[data-theme="wood"]:where([data-mode="day"]) .card:hover .art { box-shadow: 0 0 0 1px rgba(167,123,60,.5), 0 16px 30px -10px rgba(70,48,24,.32); }
+:root[data-theme="wood"] .card:hover .t1 { color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .card:hover .t1 { color: #8a6128; }
+:root[data-theme="wood"] .page-head h1, :root[data-theme="wood"] .hero h1, :root[data-theme="wood"] .sect h2, :root[data-theme="wood"] .drawer-head h2 { font-family: var(--font-display); font-weight: 600; }
+:root[data-theme="wood"] .rail-head h2 { font-weight: 650; }
+:root[data-theme="wood"] .btn.primary { background: #c4a06a; color: #1f150b; box-shadow: inset 0 1px 0 rgba(255,240,210,.45); }
+:root[data-theme="wood"]:where([data-mode="day"]) .btn.primary { background: #a77b3c; color: #fffaf0; box-shadow: inset 0 1px 0 rgba(255,250,235,.45); }
+:root[data-theme="wood"] .btn.primary:hover { background: #cfac78; }
+:root[data-theme="wood"]:where([data-mode="day"]) .btn.primary:hover { background: #b58847; }
+:root[data-theme="wood"] .seg button.on { background: rgba(196,160,106,.16); color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .seg button.on { background: rgba(167,123,60,.16); color: #8a6128; }
+:root[data-theme="wood"] .switch { background: #3a2e24; }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch { background: #d6c7ae; }
+:root[data-theme="wood"] .switch.on { background: #c4a06a; }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch.on { background: #a77b3c; }
+:root[data-theme="wood"] .sect { background: #231e19; border-color: rgba(240,225,200,.06); }
+:root[data-theme="wood"]:where([data-mode="day"]) .sect { background: #fbf7ef; border-color: rgba(60,42,24,.09); }
+:root[data-theme="wood"] .thead { background: #1d1915; }
+:root[data-theme="wood"]:where([data-mode="day"]) .thead { background: #f4eee3; }
+:root[data-theme="wood"] .row:hover { background: rgba(240,225,200,.035); }
+:root[data-theme="wood"]:where([data-mode="day"]) .row:hover { background: rgba(60,42,24,.05); }
+:root[data-theme="wood"] .row.playing .tt div:first-child { color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .row.playing .tt div:first-child { color: #8a6128; }
+:root[data-theme="wood"] .hero .cover { border-radius: 4px; }
+:root[data-theme="wood"] .hero::after { background: linear-gradient(180deg, rgba(29,25,21,.3), rgba(29,25,21,.7) 60%, #1d1915); }
+:root[data-theme="wood"]:where([data-mode="day"]) .hero::after { background: linear-gradient(180deg, rgba(244,238,227,.3), rgba(244,238,227,.7) 60%, #f4eee3); }
+:root[data-theme="wood"] .badge.hi { background: rgba(196,160,106,.14); color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .badge.hi { background: rgba(167,123,60,.14); color: #8a6128; }
+:root[data-theme="wood"] .np-cover { border-radius: 6px; }
+:root[data-theme="wood"] .pill.on { background: #c4a06a; }
+:root[data-theme="wood"]:where([data-mode="day"]) .pill.on { background: #a77b3c; }
+
+/* 柔和版：降低大量文字的亮度與粗細，避免暖黑底上奶油白粗字刺眼 */
+:root[data-theme="wood"] .row .tt div:first-child { font-weight: 500; }
+:root[data-theme="wood"] .row .tt .a { font-weight: 400; color: var(--text-2); }
+:root[data-theme="wood"] .row:hover .tt div:first-child { color: var(--text-hi); }
+:root[data-theme="wood"] .hero h1, :root[data-theme="wood"] .page-head h1 { color: var(--text); }
+
+/* ───────────────────── 日／夜版本的補充修正 ───────────────────── */
+/* 白天：正在播放的封面陰影改成淡淡的木色，不是黑色的光暈 */
+:root[data-theme="wood"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px rgba(60,42,24,.08), 0 30px 60px -12px rgba(70,48,24,.38); }
+
+/* 白天：側欄是較深的橡木，上面的數字和小標用深一點的字色才看得清楚 */
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar { --text-3: #6f5c45; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar .nav-label { color: #5f4a31; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar .seg button.on { background: rgba(255,248,235,.5); color: #5a3d16; }
+
+/* 木質調 */
+:root[data-theme="wood"] .set-tabs button.on { background: rgba(196,160,106,.16); color: #d9bd8f; }
+:root[data-theme="wood"]:where([data-mode="day"]) .set-tabs button.on { background: rgba(167,123,60,.16); color: #8a6128; }
+
+/* @@wood-tex-end@@ */
+/* ───────────── 3 · 字體：標題用襯線字，歌詞與內文維持易讀的原字體 ───────────── */
+:root[data-theme="wood"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .modal-head h2, .np-title) { font-family: var(--font-display); }
+:root[data-theme="wood"] :is(.page-head h1, .hero h1) { font-weight: 700; letter-spacing: 0; color: var(--text); }
+:root[data-theme="wood"] :is(.rail-head h2, .sect h2, .drawer-head h2) { font-weight: 700; letter-spacing: .005em; color: var(--text); }
+:root[data-theme="wood"] :is(.ly-line, .ly-plain) { font-family: var(--font); }
+:root[data-theme="wood"] .page-head .sub { color: var(--text-2); }
+:root[data-theme="wood"] .rail-head a { color: var(--text-2); }
+:root[data-theme="wood"] .rail-head a:hover { color: var(--teal-2); }
+
+/* ───────────── 4 · 黃銅裝飾：頁面標題下「—◆—」、首頁每排標題後的菱形＋細線 ─────────────
+   都用遮罩畫，顏色跟著 --wd-orn；只在標題下方的留白裡，不碰到字。 */
+:root[data-theme="wood"] .page-head h1 { position: relative; }
+:root[data-theme="wood"] .page-head h1::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 9px; pointer-events: none;
+  background: var(--wd-orn); opacity: .8;
+  -webkit-mask: var(--wd-lozenge) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, #000) left center / calc(50% - 9px) 1px no-repeat, linear-gradient(90deg, #000, transparent) right center / calc(50% - 9px) 1px no-repeat;
+  mask: var(--wd-lozenge) center / 9px 9px no-repeat, linear-gradient(90deg, transparent, #000) left center / calc(50% - 9px) 1px no-repeat, linear-gradient(90deg, #000, transparent) right center / calc(50% - 9px) 1px no-repeat;
+}
+:root[data-theme="wood"] .rail-head::after {
+  content: ""; order: 1; flex: 1 1 0; min-width: 24px; height: 10px; align-self: center; margin-left: 6px; pointer-events: none;
+  background: var(--wd-orn); opacity: .6;
+  -webkit-mask: var(--wd-lozenge) left center / 9px 9px no-repeat, linear-gradient(90deg, #000, transparent) left 14px center / calc(100% - 14px) 1px no-repeat;
+  mask: var(--wd-lozenge) left center / 9px 9px no-repeat, linear-gradient(90deg, #000, transparent) left 14px center / calc(100% - 14px) 1px no-repeat;
+}
+:root[data-theme="wood"] .rail-head .rail-nav { order: 2; margin-left: 0; }
+
+/* ───────────── 5 · 側欄：胡桃木櫃的側板 ─────────────
+   板面是一整片真木紋的胡桃木（日版是淺橡木），最右邊一條另一塊較深的木條（封邊），中間一條黃銅鑲線。
+   木紋上的字：夜版主文字對最亮的木紋仍有 8:1 以上，日版對最深的年輪線仍有 6:1 以上。
+   選中的項目是一塊黃銅名牌：實心黃銅底、深色字，兩端各一顆小螺絲。 */
+:root[data-theme="wood"] #sidebar {
+  border-right: 1px solid #1c120b;
+  background:
+    linear-gradient(#e9c88e, #b48a4f) right 7px top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)) right 8px top 0 / 1px 100% no-repeat,
+    linear-gradient(90deg, rgba(0,0,0,.3), transparent 60%, rgba(255,230,190,.07)) right top / 7px 100% no-repeat,
+    var(--wd-strip) right top / 7px 1100px repeat-y,
+    var(--sidebar-bg);
+  box-shadow: none;
+}
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar {
+  border-right: 1px solid #9c7a52;
+  background:
+    linear-gradient(#a87b3a, #7c5524) right 7px top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(255,250,236,.7), rgba(255,250,236,.7)) right 8px top 0 / 1px 100% no-repeat,
+    linear-gradient(90deg, rgba(110,76,36,.2), transparent 60%, rgba(255,250,236,.25)) right top / 7px 100% no-repeat,
+    var(--wd-strip) right top / 7px 1100px repeat-y,
+    var(--sidebar-bg);
+}
+:root[data-theme="wood"] .nav a { color: #f6ead6; border-radius: 4px; }
+
+/* 木紋上的字：夜版一道很淡的深色陰影、日版一道淺色的底光，讓字從木紋裡浮出來（黃銅名牌上的字不用） */
+:root[data-theme="wood"] #sidebar :is(.nav a, .nav-label, .nav-edit) { text-shadow: 0 1px 2px rgba(18,9,3,.6); }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar :is(.nav a, .nav-label, .nav-edit) { text-shadow: 0 1px 0 rgba(255,248,230,.55); }
+:root[data-theme="wood"] #sidebar .nav a.on { text-shadow: none; }
+:root[data-theme="wood"] .nav a .count { color: #dcc7a6; font-style: normal; }
+:root[data-theme="wood"] .nav-label { color: #dcc7a6; letter-spacing: .18em; font-weight: 600; }
+:root[data-theme="wood"] .nav a:hover { background: rgba(255,230,190,.08); color: #ffffff; }
+:root[data-theme="wood"] .nav a svg.i { color: #ecd8b6; }
+:root[data-theme="wood"] .nav a.on, :root[data-theme="wood"] .nav a.on:hover { color: var(--wd-brass-ink); background: transparent; font-weight: 600; }
+
+/* 名牌滑過去的途中，新選中項目的字先維持淺色，名牌到了才換成深色（不會有深字壓在木頭上的一瞬間） */
+:root[data-theme="wood"] .nav a.on { transition: background .18s var(--ease), color .2s var(--ease) .26s; }
+:root[data-theme="wood"] .nav a.on .count, :root[data-theme="wood"] .nav a.on svg.i { color: var(--wd-brass-ink); filter: none; }
+:root[data-theme="wood"] .nav-pill {
+  border-radius: 4px; background: var(--wd-brass);
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.75), inset 0 -1px 0 rgba(110,70,25,.35), 0 2px 0 1px rgba(20,10,3,.3);
+}
+
+/* 名牌兩端的小螺絲（原本左邊的亮條拿掉） */
+:root[data-theme="wood"] .nav-pill::before {
+  left: 0; right: 0; top: 0; bottom: 0; width: auto; border-radius: 0; box-shadow: none;
+  background: var(--wd-screw) left 2px center / 7px 7px no-repeat, var(--wd-screw) right 2px center / 7px 7px no-repeat;
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a { color: #2e2013; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a .count, :root[data-theme="wood"]:where([data-mode="day"]) .nav-label { color: #45301a; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a svg.i { color: #3f2c1a; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a:hover { background: rgba(255,250,238,.4); color: #150e06; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav a.on, :root[data-theme="wood"]:where([data-mode="day"]) .nav a.on:hover { color: var(--wd-brass-ink); background: transparent; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar { --text-3: #45301a; }
+:root[data-theme="wood"]:where([data-mode="day"]) #sidebar .nav-label { color: #45301a; }
+
+/* 側欄裡的分段按鈕（本地／遠端）也是黃銅鍵（蓋過舊版白天的淡色底） */
+:root[data-theme="wood"] #sidebar .seg button.on { background: var(--wd-brass); color: var(--wd-brass-ink); }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-pill { box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,250,232,.8), inset 0 -1px 0 rgba(110,70,25,.3), 0 2px 0 1px rgba(90,60,25,.18); }
+:root[data-theme="wood"] .nav-edit { border-radius: 4px; color: #dcc7a6; opacity: .9; }
+:root[data-theme="wood"]:where([data-mode="day"]) .nav-edit { color: #45301a; }
+
+/* ───────────── 6 · 頂列：搜尋框是凹槽，上一頁／下一頁是小的木鍵 ───────────── */
+:root[data-theme="wood"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .94); border-bottom-color: var(--wd-brass-line); }
+:root[data-theme="wood"] .search {
+  border-radius: 6px; background: var(--wd-well); border: 1px solid var(--line-2); box-shadow: var(--wd-well-sh);
+}
+:root[data-theme="wood"] .search:focus-within { background: var(--wd-well); border-color: var(--teal); box-shadow: var(--wd-well-sh), 0 0 0 1px var(--teal); }
+:root[data-theme="wood"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="wood"] .search kbd { border-radius: 3px; color: var(--text-2); border-color: var(--line-2); background: var(--surface); }
+:root[data-theme="wood"] .round-btn {
+  background: var(--wd-key); color: var(--text);
+  box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] .round-btn:hover { background: var(--wd-key-hover); color: var(--text-hi); }
+:root[data-theme="wood"] .round-btn:disabled { opacity: .5; }
+:root[data-theme="wood"] .round-btn:active { transform: translateY(1px); box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 2px rgba(0,0,0,.3); }
+
+/* ───────────── 7 · 專輯卡：裝在細木框裡的照片 ─────────────
+   框用 border-image 畫（斜接四角、木紋、黃銅內緣），外面一道淡淡的落影；滑過時整張微微抬起。
+   演出者是圓形照片：圓的木框（左上受光、右下背光）＋黃銅細邊。 */
+:root[data-theme="wood"] .card .art {
+  border-radius: 0; border: 7px solid transparent; border-image: var(--wd-frame) 24 / 7px stretch;
+  box-shadow: 0 10px 18px -10px rgba(var(--shadow-rgb), .75), 0 2px 3px rgba(var(--shadow-rgb), .3);
+}
+:root[data-theme="wood"] .card:hover .art { box-shadow: 0 18px 26px -12px rgba(var(--shadow-rgb), .8), 0 3px 4px rgba(var(--shadow-rgb), .3); }
+:root[data-theme="wood"] .card.artist .art {
+  border-radius: 50%; border: 6px solid transparent; border-image: none;
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    radial-gradient(closest-side, transparent calc(100% - 6px), var(--wd-slip) calc(100% - 6px) calc(100% - 4.6px), transparent calc(100% - 4.6px)) border-box,
+    linear-gradient(135deg, var(--wd-ring-shade)) border-box,
+    var(--wd-panel) center / 240px 1100px border-box;
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .card .art { box-shadow: 0 10px 18px -10px rgba(70,48,24,.45), 0 2px 3px rgba(70,48,24,.16); }
+:root[data-theme="wood"]:where([data-mode="day"]) .card:hover .art { box-shadow: 0 18px 26px -12px rgba(70,48,24,.5), 0 3px 4px rgba(70,48,24,.18); }
+:root[data-theme="wood"] .card .t1 { color: var(--text); }
+:root[data-theme="wood"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="wood"] .card .t2 { color: var(--text-sub); }
+
+/* 封面上的播放鍵：黃銅旋鈕 */
+:root[data-theme="wood"] .card .play {
+  background: var(--wd-brass); color: var(--wd-brass-ink);
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 var(--wd-drop), 0 6px 12px rgba(0,0,0,.35);
+}
+:root[data-theme="wood"] .card .play:hover { background: var(--wd-brass-hover); }
+:root[data-theme="wood"] .scroll-bubble { background: var(--wd-brass); color: var(--wd-brass-ink); border-radius: 4px; box-shadow: 0 0 0 1px var(--wd-brass-edge); }
+
+/* ───────────── 8 · 曲目表 ─────────────
+   表頭下緣一條黃銅細線；播放中的那一列左邊是一盞暖色的指示燈＋淡黃銅底。 */
+:root[data-theme="wood"] .thead {
+  background: var(--bg); color: var(--text-2); letter-spacing: .08em; backdrop-filter: none;
+  border-bottom: 1px solid var(--wd-brass-line);
+}
+:root[data-theme="wood"] .row { border-radius: 4px; }
+:root[data-theme="wood"] .row:hover { background: rgba(var(--ink), .06); }
+:root[data-theme="wood"] .row.sel { background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="wood"] .row .tt div:first-child { color: var(--text); font-weight: 600; }
+:root[data-theme="wood"] .row .tt .a { color: var(--text-sub); font-weight: 500; }
+:root[data-theme="wood"] :is(.row .al, .row .d, .row .fmt) { color: var(--text-2); }
+:root[data-theme="wood"] .row .n .pi { color: var(--teal-2); }
+:root[data-theme="wood"] .row.playing { background: linear-gradient(90deg, var(--wd-sel), transparent 75%); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="wood"] .row.playing .tt div:first-child { color: var(--teal-2); }
+:root[data-theme="wood"] .row .thumb { border-radius: 2px; box-shadow: 0 0 0 1px rgba(var(--shadow-rgb), .45); }
+:root[data-theme="wood"] .qrow { border-radius: 4px; }
+:root[data-theme="wood"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="wood"] .qrow.past { opacity: .74; }
+:root[data-theme="wood"] .qrow.past .a { color: var(--text-sub); }
+
+/* ───────────── 9 · 按鈕：凸起的黃銅鍵 ─────────────
+   主要按鈕：黃銅漸層、上緣反光、下緣一道實邊（凸起），按下時沉下 1px、光線反過來。
+   一般按鈕：深色木鍵（日版是象牙白的鍵）＋黃銅細框。 */
+:root[data-theme="wood"] .btn {
+  border-radius: 5px; background: var(--wd-key); color: var(--text); border: 0;
+  box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] .btn:hover { background: var(--wd-key-hover); transform: none; box-shadow: 0 0 0 1px var(--teal), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .btn:active { transform: translateY(2px); box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 2px 3px rgba(0,0,0,.3); }
+:root[data-theme="wood"] .btn.primary {
+  background: var(--wd-brass); color: var(--wd-brass-ink); font-weight: 700;
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), inset 0 -1px 0 rgba(110,70,25,.3), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] .btn.primary:hover { background: var(--wd-brass-hover); box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,250,232,.9), inset 0 -1px 0 rgba(110,70,25,.3), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .btn.primary:active { background: var(--wd-brass-on); box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 2px 3px rgba(80,48,14,.4); }
+:root[data-theme="wood"] .btn.ghost { background: transparent; box-shadow: none; color: var(--text-2); }
+:root[data-theme="wood"] .btn.ghost:hover { background: rgba(var(--ink), .07); color: var(--text); box-shadow: none; }
+:root[data-theme="wood"] .btn.bp-apply { background: var(--wd-key); color: var(--text); box-shadow: 0 0 0 1px var(--teal), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .btn.bp-apply svg.i { color: var(--teal-2); }
+:root[data-theme="wood"] .page-head .tools > .btn.small { border-radius: 5px; }
+:root[data-theme="wood"] .page-head .tools > .btn.small:not(.primary) { background: var(--wd-key); border: 0; }
+:root[data-theme="wood"] .page-head .tools > .btn.small:not(.primary):hover { background: var(--wd-key-hover); }
+:root[data-theme="wood"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="wood"] .icon-btn.fav-on { color: var(--pink); }
+
+/* ───────────── 10 · 分段按鈕與設定分頁：凹槽裡一排鍵，選中的是凸起的黃銅鍵 ───────────── */
+:root[data-theme="wood"] .seg, :root[data-theme="wood"] .set-tabs {
+  border-radius: 6px; background: var(--wd-well); border: 0; box-shadow: var(--wd-well-sh); backdrop-filter: none;
+}
+:root[data-theme="wood"] .set-tabs { padding: 4px; }
+:root[data-theme="wood"] :is(.seg, .set-tabs) button { border-radius: 4px; color: var(--text-2); }
+:root[data-theme="wood"] :is(.seg, .set-tabs) button:hover { color: var(--text); background: rgba(var(--ink), .06); }
+:root[data-theme="wood"] :is(.seg, .set-tabs) button.on {
+  background: var(--wd-brass); color: var(--wd-brass-ink); font-weight: 600;
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 1px 0 1px rgba(10,6,2,.25);
+}
+
+/* 選中的記號滑動時（core.js Glide 的替身）：滑過去的途中字先用一般的亮色，到了才換成黃銅上的深色字 */
+:root[data-theme="wood"] :is(.seg, .set-tabs, .chips) > .glide-pill { border-radius: 4px !important; }
+:root[data-theme="wood"] .glide-run > :is(button, a).on { color: var(--text); }
+:root[data-theme="wood"] .chip { border-radius: 4px; background: var(--wd-key); border-color: var(--wd-key-edge); color: var(--text-2); }
+:root[data-theme="wood"] .chip:hover { background: var(--wd-key-hover); color: var(--text); }
+:root[data-theme="wood"] .chip.on { background: var(--wd-brass); border-color: var(--wd-brass-edge); color: var(--wd-brass-ink); }
+:root[data-theme="wood"] .badge { border-radius: 3px; background: rgba(var(--ink), .1); color: var(--text-sub); }
+:root[data-theme="wood"] .badge.hi { background: rgba(var(--teal-rgb), .2); color: var(--teal-2); }
+
+/* ───────────── 11 · 開關：實體的撥動開關 ─────────────
+   方形的槽（凹進去）、撥桿是有止滑紋的方塊。
+   關：深色凹槽＋淺色外框，撥桿在左、象牙色，右邊一個「O」；開：黃銅色的槽，撥桿在右、深胡桃色，左邊一條「I」。
+   （日版顏色反過來：關是淺槽＋深色撥桿，開是古銅槽＋象牙色撥桿。） */
+:root[data-theme="wood"] .switch {
+  border-radius: 5px; background: var(--wd-sw-off);
+  box-shadow: 0 0 0 1.5px var(--wd-sw-off-edge), inset 0 2px 3px rgba(0,0,0,.35);
+}
+:root[data-theme="wood"] .switch::before {
+  content: ""; position: absolute; top: 50%; right: 6px; width: 8px; height: 8px; margin-top: -4px; box-sizing: border-box;
+  border: 1.5px solid var(--wd-sw-mark-off); border-radius: 50%;
+}
+:root[data-theme="wood"] .switch::after {
+  left: 3px; top: 3px; width: 16px; height: 18px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent 4px, var(--wd-sw-grip-off) 4px 5px, transparent 5px 7.5px, var(--wd-sw-grip-off) 7.5px 8.5px, transparent 8.5px 11px, var(--wd-sw-grip-off) 11px 12px, transparent 12px) center / 100% 10px no-repeat, var(--wd-sw-cap-off);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(90,60,25,.35);
+}
+:root[data-theme="wood"] .switch.on { background: var(--wd-sw-on); box-shadow: 0 0 0 1.5px var(--wd-sw-on-edge), inset 0 2px 3px rgba(60,35,8,.35); }
+:root[data-theme="wood"] .switch.on::before { right: auto; left: 8px; width: 2px; height: 10px; margin-top: -5px; border: 0; border-radius: 1px; background: var(--wd-sw-mark-on); }
+:root[data-theme="wood"] .switch.on::after {
+  transform: translateX(20px);
+  background: linear-gradient(90deg, transparent 4px, var(--wd-sw-grip-on) 4px 5px, transparent 5px 7.5px, var(--wd-sw-grip-on) 7.5px 8.5px, transparent 8.5px 11px, var(--wd-sw-grip-on) 11px 12px, transparent 12px) center / 100% 10px no-repeat, var(--wd-sw-cap-on);
+  box-shadow: 0 1px 2px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,235,200,.25), inset 0 -1px 0 rgba(0,0,0,.35);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .switch { box-shadow: 0 0 0 1.5px var(--wd-sw-off-edge), inset 0 2px 3px rgba(90,60,24,.2); }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch::after { box-shadow: 0 1px 2px rgba(60,40,15,.4), inset 0 1px 0 rgba(255,230,190,.3), inset 0 -1px 0 rgba(0,0,0,.25); }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch.on { box-shadow: 0 0 0 1.5px var(--wd-sw-on-edge), inset 0 2px 3px rgba(40,22,4,.35); }
+:root[data-theme="wood"]:where([data-mode="day"]) .switch.on::after { box-shadow: 0 1px 2px rgba(40,22,4,.45), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(120,80,30,.3); }
+
+/* ───────────── 12 · 設定頁：每個面板像音響的面板，四角各一顆小螺絲 ───────────── */
+:root[data-theme="wood"] .sect {
+  border-radius: 6px; border: 1px solid var(--wd-key-edge);
+  background:
+    var(--wd-screw) left 6px top 6px / 8px 8px no-repeat, var(--wd-screw) right 6px top 6px / 8px 8px no-repeat,
+    var(--wd-screw) left 6px bottom 6px / 8px 8px no-repeat, var(--wd-screw) right 6px bottom 6px / 8px 8px no-repeat,
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,236,200,.05), 0 2px 0 rgba(var(--shadow-rgb), .2);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .sect { box-shadow: inset 0 1px 0 #fff, 0 2px 0 rgba(90,60,24,.08); }
+:root[data-theme="wood"] .field { border-top-color: var(--line); }
+:root[data-theme="wood"] :is(.sect .hint, .field .lbl small) { color: var(--text-3); }
+:root[data-theme="wood"] .dsp-card { border-radius: 6px; border-color: var(--wd-key-edge); background: var(--surface); }
+:root[data-theme="wood"] :is(select.sel, input.inp) { border-radius: 5px; background-color: var(--wd-well); border-color: var(--line-2); box-shadow: var(--wd-well-sh); }
+
+/* 下拉選單按鈕：木鍵＋前面一盞暖色指示燈 */
+:root[data-theme="wood"] .msel-btn {
+  border-radius: 5px; background: var(--wd-key); border: 0; color: var(--text);
+  box-shadow: 0 0 0 1px var(--wd-key-edge), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] :is(.msel-btn:hover, .msel-btn:focus-visible, .msel.open .msel-btn) { box-shadow: 0 0 0 1px var(--teal), inset 0 1px 0 var(--wd-key-hi), 0 2px 0 var(--wd-drop); }
+:root[data-theme="wood"] .msel-btn::before { width: 7px; height: 7px; background: radial-gradient(circle at 40% 35%, #fff2cc, var(--wd-lamp) 60%); box-shadow: 0 0 6px rgba(255,170,60,.55); }
+:root[data-theme="wood"] .msel-chev { border-radius: 3px; color: var(--teal-2); background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="wood"] .msel-menu { border-radius: 6px; border-color: var(--wd-key-edge); }
+:root[data-theme="wood"] .msel-opt { border-radius: 4px; }
+:root[data-theme="wood"] .msel-opt.on { background: var(--wd-sel); }
+:root[data-theme="wood"] .msel-opt.on::before { border-radius: 1px; box-shadow: none; background: var(--teal); }
+:root[data-theme="wood"] .msel-opt.on .msel-ck { background: var(--wd-brass); color: var(--wd-brass-ink); }
+:root[data-theme="wood"]:where([data-mode="day"]) .eq-handle.off { background: #cdbfa8; }
+:root[data-theme="wood"] .eq-graph { border-radius: 4px; background: var(--wd-well); box-shadow: var(--wd-well-sh); }
+
+/* ───────────── 13 · 選單、抽屜、對話框、提示 ───────────── */
+:root[data-theme="wood"] :is(.pop, .drawer, .modal) { border-radius: 8px; border-color: var(--wd-key-edge); }
+:root[data-theme="wood"] .menu button { border-radius: 4px; }
+:root[data-theme="wood"] .menu button.is-selected { background: var(--wd-sel); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="wood"] .menu button.is-selected svg.i { color: var(--teal-2); }
+:root[data-theme="wood"] .toast { border-radius: 6px; border-color: var(--wd-key-edge); border-left: 3px solid var(--teal); }
+:root[data-theme="wood"] .slider .hover-tip { border-radius: 3px; }
+:root[data-theme="wood"] ::-webkit-scrollbar-thumb { border-radius: 3px; }
+
+/* ───────────── 14 · 專輯頁的大封面：一樣裝在木框裡 ───────────── */
+:root[data-theme="wood"] .hero:not(.artist) .cover {
+  border-radius: 0; border: 12px solid transparent; border-image: var(--wd-frame) 24 / 12px stretch;
+  box-shadow: 0 24px 44px -18px rgba(var(--shadow-rgb), .75);
+}
+:root[data-theme="wood"] .hero.artist .cover {
+  border: 8px solid transparent;
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
+    radial-gradient(closest-side, transparent calc(100% - 8px), var(--wd-slip) calc(100% - 8px) calc(100% - 6.2px), transparent calc(100% - 6.2px)) border-box,
+    linear-gradient(135deg, var(--wd-ring-shade)) border-box,
+    var(--wd-panel) center / 240px 1100px border-box;
+}
+:root[data-theme="wood"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .72) 60%, var(--bg)); }
+:root[data-theme="wood"] .hero .kind { color: var(--text-2); letter-spacing: .16em; }
+:root[data-theme="wood"] .hero .facts { color: var(--text-2); }
+
+/* ───────────── 15 · 播放列：音響的面板 ─────────────
+   上緣一道黃銅細線＋一道暗縫；播放鍵是車了同心紋的黃銅旋鈕；進度條是黃銅色。 */
+:root[data-theme="wood"] #bar {
+  backdrop-filter: none; border-top: 1px solid #c9a063;
+  background: linear-gradient(180deg, rgba(0,0,0,.28), transparent 3px), linear-gradient(180deg, #2c2119, #231a12);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) #bar {
+  border-top: 1px solid #a87b3a;
+  background: linear-gradient(180deg, rgba(255,255,255,.65), transparent 2px), linear-gradient(180deg, #ece2d0, #e4d7c1);
+}
+:root[data-theme="wood"] .playbtn {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,250,235,.0) 0 1.5px, rgba(255,250,235,.16) 1.5px 2px, rgba(90,55,15,.06) 2px 3px),
+    radial-gradient(circle at 50% 30%, #f8e4b6, #ddb775 48%, #b98d4b 100%);
+  color: var(--wd-brass-ink);
+}
+:root[data-theme="wood"] #bar .playbtn, :root[data-theme="wood"] .np-ctrl .playbtn {
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,250,232,.85), inset 0 -2px 3px rgba(110,70,25,.35), 0 2px 0 var(--wd-drop), 0 5px 12px rgba(var(--shadow-rgb), .4);
+}
+:root[data-theme="wood"] .playbtn:hover {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,250,235,.0) 0 1.5px, rgba(255,250,235,.2) 1.5px 2px, rgba(90,55,15,.06) 2px 3px),
+    radial-gradient(circle at 50% 30%, #fff0cc, #e6c383 48%, #c49852 100%);
+}
+:root[data-theme="wood"] .np-mini .art { border-radius: 0; border: 4px solid transparent; border-image: var(--wd-frame) 24 / 4px stretch; box-shadow: 0 3px 8px rgba(var(--shadow-rgb), .4); }
+:root[data-theme="wood"] .slider .track { background: rgba(var(--ink), .16); border-radius: 2px; }
+:root[data-theme="wood"] .slider .fill, :root[data-theme="wood"] .slider:hover .fill { background: linear-gradient(180deg, #ecca8e, #c49a58); border-radius: 2px; }
+:root[data-theme="wood"]:where([data-mode="day"]) .slider .fill, :root[data-theme="wood"]:where([data-mode="day"]) .slider:hover .fill { background: linear-gradient(180deg, #c99a52, #946726); }
+:root[data-theme="wood"] .slider .knob { background: var(--wd-brass); box-shadow: 0 0 0 1px var(--wd-brass-edge), 0 1px 3px rgba(0,0,0,.4); }
+
+/* 設定頁的滑桿（緩衝大小、文字大小…）：凹槽＋黃銅的推桿帽（像混音台的推桿），中間一道刻線 */
+:root[data-theme="wood"] .range { height: 6px; border-radius: 3px; background: var(--wd-well); box-shadow: var(--wd-well-sh); }
+:root[data-theme="wood"] .range::-webkit-slider-thumb {
+  width: 14px; height: 20px; border-radius: 3px;
+  background: linear-gradient(transparent 9px, var(--wd-brass-ink) 9px 11px, transparent 11px), var(--wd-brass);
+  box-shadow: 0 0 0 1px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 var(--wd-drop);
+}
+:root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 4px; background: var(--wd-well); box-shadow: var(--wd-well-sh); color: var(--text-2); }
+:root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn):hover { color: var(--text); }
+:root[data-theme="wood"] .seek { color: var(--text-2); }
+:root[data-theme="wood"]:where([data-mode="day"]) #bar { --text-3: #5e4a34; }
+
+/* ───────────── 16 · 正在播放：同一座音響櫃 ─────────────
+   封面裝在較寬的木框裡（框只在封面上，不會碰到文字、進度條或按鈕）；標題用襯線字。
+   左上的收起鈕和右上的「歌詞不對？」「翻譯」「歌詞」都是實心底＋黃銅框；選中的是黃銅鍵＋深色字。 */
+:root[data-theme="wood"] #np::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--wd-np-cheeks); }
+:root[data-theme="wood"] #np .np-cover {
+  border-radius: 0; border: 16px solid transparent; border-image: var(--wd-frame) 24 / 16px stretch;
+  background: var(--surface-2);
+  box-shadow: 0 30px 60px -20px rgba(var(--shadow-rgb), .8), 0 4px 8px rgba(var(--shadow-rgb), .35);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) #np .np-cover { box-shadow: 0 30px 60px -22px rgba(70,48,24,.55), 0 4px 8px rgba(70,48,24,.2); }
+
+/* 窄或矮的視窗裡封面變小（responsive.css）：木框跟著變細 */
+@media (orientation: landscape) and (max-height: 620px) {:root[data-theme="wood"] #np .np-cover { border-width: 9px; border-image-width: 9px; }
+}
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root[data-theme="wood"] #np:not(.nolyrics) .np-cover { border-width: 5px; border-image-width: 5px; }
+}
+:root[data-theme="wood"] .np-title { font-weight: 700; letter-spacing: 0; }
+:root[data-theme="wood"] .np-artist { color: rgba(var(--np-ink), .84); }
+:root[data-theme="wood"] .np-badges .badge { border-radius: 3px; background: var(--wd-np-btn); color: var(--wd-np-btn-ink); box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .55); }
+:root[data-theme="wood"] .np-badges .badge.hi { color: var(--teal-2); }
+:root[data-theme="wood"]:where([data-mode="day"]) .np-badges .badge.hi { color: #6a4512; }
+:root[data-theme="wood"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
+:root[data-theme="wood"] .np-seek .times { color: rgba(var(--np-ink), .82); }
+:root[data-theme="wood"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .9); }
+:root[data-theme="wood"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="wood"]:where([data-mode="day"]) .np-ctrl .icon-btn.on { color: #6a4512; }
+:root[data-theme="wood"] .np-top :is(.icon-btn, .pill) {
+  background: var(--wd-np-btn); color: var(--wd-np-btn-ink); border: 0;
+  box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 rgba(255,240,210,.12), 0 2px 0 rgba(10,6,2,.35), 0 4px 12px rgba(0,0,0,.25);
+}
+:root[data-theme="wood"] .np-top .pill { border-radius: 6px; }
+:root[data-theme="wood"] .np-top :is(.icon-btn, .pill):hover { background: var(--wd-np-btn-hover); color: var(--wd-np-btn-ink); }
+:root[data-theme="wood"] .np-top .pill.on, :root[data-theme="wood"] .np-top .pill.on:hover {
+  background: var(--wd-brass); color: var(--wd-brass-ink);
+  box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(10,6,2,.35), 0 4px 12px rgba(0,0,0,.25);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .np-top :is(.icon-btn, .pill) { box-shadow: 0 0 0 1.5px var(--wd-np-btn-edge), inset 0 1px 0 #fff, 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
+:root[data-theme="wood"]:where([data-mode="day"]) .np-top .pill.on { box-shadow: 0 0 0 1.5px var(--wd-brass-edge), inset 0 1px 0 rgba(255,248,226,.8), 0 2px 0 rgba(90,60,24,.25), 0 4px 12px rgba(70,48,24,.15); }
+:root[data-theme="wood"] .np-top .src { padding: 3px 8px; border-radius: 3px; color: var(--wd-np-btn-ink); background: var(--wd-np-btn); opacity: .92; }
+:root[data-theme="wood"] .np-top .src:empty { padding: 0; background: none; }
+
+/* 歌詞：還沒唱到、已經唱過的行不要淡到看不清楚，翻譯行也深一點 */
+:root[data-theme="wood"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .64; }
+:root[data-theme="wood"]:where([data-mode="day"]) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root[data-theme="wood"] .ly-line { border-radius: 4px; }
+:root[data-theme="wood"] .ly-line .tr { color: rgba(var(--np-ink), .9); }
+:root[data-theme="wood"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 1px 2px rgba(0,0,0,.3); }
+
+/* ───────────── 17 · 動態：按鍵下沉的動畫在「減少動態」時關掉 ───────────── */
+@media (prefers-reduced-motion: reduce) {:root[data-theme="wood"] :is(.btn, .round-btn, .playbtn):active { transform: none; }
+:root[data-theme="wood"] .nav a.on { transition-delay: 0s; }
+}
+:root[data-theme="wood"] { --dp-ink: var(--teal-2); }
+
+/* 木質調：像音響面板上嵌進去的一塊：小圓角、木鍵邊框、內凹一點 */
+:root[data-theme="wood"] .dp-sect .dp-group {
+  border-radius: 5px; border: 1px solid var(--wd-key-edge); background: rgba(0,0,0,.1);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.25), 0 1px 0 rgba(255,236,200,.06);
+}
+:root[data-theme="wood"]:where([data-mode="day"]) .dp-sect .dp-group { background: #f6efe2; box-shadow: inset 0 1px 2px rgba(90,60,24,.12), 0 1px 0 #fff; }
+:root[data-theme="wood"] .dp-sect .dp-group.dp-off { box-shadow: none; background: transparent; }

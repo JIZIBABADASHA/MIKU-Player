@@ -1,0 +1,359 @@
+/* MIKU theme 'poster': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="poster"] .tp-opt.on { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
+
+/* 日：側欄和播放列是墨黑的，裡面的字用米色 */
+:root[data-theme="poster"]:where(:not([data-mode="night"])) :is(#sidebar, #bar) {
+  color: #efe4cb; --text: #efe4cb; --text-hi: #fff8e8; --text-sub: #d4c7aa; --text-2: #cdbf9f; --text-3: #a3967a;
+  --ink: 239, 228, 203; --line: rgba(239,228,203,.12); --line-2: rgba(239,228,203,.26);
+  --surface: #2b241c; --surface-2: #2b241c; --surface-3: #3b3127; --teal: #e0473c; --teal-rgb: 224, 71, 60; --teal-2: #f0695e;
+  --knob: #efe4cb; --knob-off: #1c1611; --bg-rgb: 28, 22, 17; --pink: #e8554a;
+}
+
+/* 側欄：右邊一條粗紅線；選中的是一塊米色、後面錯開一塊紅 */
+:root[data-theme="poster"] #sidebar { border-right: 5px solid var(--ps-red); }
+:root[data-theme="poster"] .nav a { font-weight: 600; color: var(--text); }
+:root[data-theme="poster"] .nav a:hover { background: rgba(var(--ink), .08); color: var(--text-hi); }
+:root[data-theme="poster"] .nav-label { color: #d9ccae; font-family: var(--font-display); font-stretch: condensed; font-weight: 700; letter-spacing: .22em; opacity: .85; }
+:root[data-theme="poster"] .nav-pill { background: var(--ps-pill); border-radius: 0; box-shadow: 4px 4px 0 var(--ps-red); }
+:root[data-theme="poster"] .nav-pill::before { display: none; }
+:root[data-theme="poster"] .nav a.on, :root[data-theme="poster"] .nav a.on svg.i, :root[data-theme="poster"] .nav a.on .count, :root[data-theme="poster"] .nav a.on:hover { color: var(--ps-pill-ink); }
+:root[data-theme="poster"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .95); }
+
+/* 標題：粗體窄字；頁首大標題是墨色（夜是米色）的大字，下面一條短而粗的紅槓，左緣和下面的內容對齊 */
+:root[data-theme="poster"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .np-title) { font-family: var(--font-display); font-stretch: condensed; font-weight: 700; letter-spacing: .01em; }
+:root[data-theme="poster"] .page-head h1 { color: var(--text); font-weight: 800; padding-bottom: 12px; background: linear-gradient(var(--ps-red), var(--ps-red)) left bottom / 1.3em 6px no-repeat; }
+:root[data-theme="poster"] .fcrumbs + .page-head h1 { padding: 0 0 12px; margin: 0; }
+:root[data-theme="poster"] .hero h1 { font-weight: 800; }
+:root[data-theme="poster"] .rail-head h2::before { content: ""; display: inline-block; width: 9px; height: .82em; margin-right: 12px; vertical-align: -.06em; background: var(--teal); transform: skewX(-18deg); }
+
+/* 搜尋與按鈕：直角、平塗，框線是墨色 */
+:root[data-theme="poster"] :is(.search, .round-btn, .btn, .seg, .seg button, .set-tabs, .set-tabs button, .chip, .sig, .out-btn, select.sel, input.inp, .badge, .switch, .switch::after, .sect, .dsp-card, .drawer, .pop, .modal, .toast, .card .art, .card .play, .hero .cover, .np-cover, .playbtn, .pill, .np-top .icon-btn, .msel-btn, .msel-menu, .msel-opt, .msel-chev, .row, .qrow, .ft-head, .ft-h, .ft-thumb, .ft-tab, .slider .track, .slider .fill, .scroll-bubble) { border-radius: 0; }
+:root[data-theme="poster"] .search, :root[data-theme="poster"] .round-btn { background: var(--surface); border: 2px solid var(--text); }
+:root[data-theme="poster"] .search:focus-within { border-color: var(--teal); }
+:root[data-theme="poster"] .btn { background: var(--surface); border: 2px solid var(--text); box-shadow: none; font-weight: 700; }
+:root[data-theme="poster"] .btn:hover { background: var(--surface-2); }
+:root[data-theme="poster"] .btn.primary { background: var(--ps-red); border-color: var(--ps-red); color: #f6eedb; }
+:root[data-theme="poster"] .btn.primary:hover { background: var(--teal-2); border-color: var(--teal-2); box-shadow: none; }
+:root[data-theme="poster"] .btn.ghost { background: transparent; border-color: transparent; }
+:root[data-theme="poster"] .page-head .tools > .btn.small { height: 36px; }
+:root[data-theme="poster"] :is(.seg, .set-tabs) { background: var(--surface); border: 0; box-shadow: inset 0 0 0 2px var(--text); backdrop-filter: none; }
+:root[data-theme="poster"] .seg { padding: 4px; }
+:root[data-theme="poster"] .seg button { height: 28px; font-weight: 600; }
+:root[data-theme="poster"] :is(.seg, .set-tabs) button { color: var(--text-2); }
+:root[data-theme="poster"] :is(.seg, .set-tabs) button.on { background: var(--ps-red); color: #f6eedb; box-shadow: none; font-weight: 700; }
+:root[data-theme="poster"] #sidebar .seg { box-shadow: inset 0 0 0 2px rgba(239,228,203,.5); background: transparent; }
+:root[data-theme="poster"] .switch { background: transparent; box-shadow: inset 0 0 0 2px var(--text); }
+:root[data-theme="poster"] .switch::after { left: 4px; top: 4px; width: 16px; height: 16px; background: var(--text); }
+:root[data-theme="poster"] .switch.on { background: var(--teal); box-shadow: inset 0 0 0 2px var(--teal); }
+:root[data-theme="poster"] .switch.on::after { background: #f6eedb; }
+:root[data-theme="poster"] .slider .track { background: rgba(var(--ink), .2); }
+:root[data-theme="poster"] .slider .fill, :root[data-theme="poster"] .slider:hover .fill { background: var(--teal); }
+:root[data-theme="poster"] .slider .knob { border-radius: 0; width: 6px; height: 16px; margin: -8px 0 0 -3px; background: var(--knob); box-shadow: none; }
+:root[data-theme="poster"] .seek .slider .knob, :root[data-theme="poster"] .np-seek .slider .knob { opacity: 1; transform: none; }
+:root[data-theme="poster"] .chip.on { background: var(--ps-red); border-color: var(--ps-red); color: #f6eedb; }
+:root[data-theme="poster"] .badge { background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--line-2); font-weight: 700; }
+:root[data-theme="poster"] .badge.hi { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
+:root[data-theme="poster"] .icon-btn.on { color: var(--teal); }
+:root[data-theme="poster"] .icon-btn.fav-on { color: var(--pink); }
+:root[data-theme="poster"] .msel-btn { background: var(--surface); border: 2px solid var(--text); box-shadow: none; font-weight: 600; }
+:root[data-theme="poster"] .msel-btn:hover, :root[data-theme="poster"] .msel-btn:focus-visible, :root[data-theme="poster"] .msel.open .msel-btn { border-color: var(--teal); box-shadow: none; }
+:root[data-theme="poster"] .msel-btn::before { border-radius: 0; background: var(--teal); box-shadow: none; }
+:root[data-theme="poster"] .msel-chev { background: var(--text); color: var(--bg); }
+:root[data-theme="poster"] .msel-menu { border: 2px solid var(--text); box-shadow: 6px 6px 0 var(--ps-red); backdrop-filter: none; }
+:root[data-theme="poster"] .msel-opt.on, :root[data-theme="poster"] .msel-opt.on.act { background: var(--ps-red); color: #f6eedb; }
+:root[data-theme="poster"] .msel-opt.on::before { display: none; }
+:root[data-theme="poster"] .msel-opt.on .msel-ck { background: #f6eedb; color: var(--ps-red); }
+
+/* 卡片：封面不加圓角；滑過時後面錯開一塊紅 */
+:root[data-theme="poster"] .card .art { box-shadow: 0 0 0 1px rgba(var(--ink), .16); }
+:root[data-theme="poster"] .card:hover .art { transform: translate(-3px, -3px); box-shadow: 0 0 0 1px rgba(var(--ink), .16), 8px 8px 0 var(--ps-red); }
+:root[data-theme="poster"] .card .t1 { font-weight: 700; }
+:root[data-theme="poster"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="poster"] .card .play { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
+
+/* 列表與面板 */
+:root[data-theme="poster"] .thead { background: var(--bg); border-bottom: 2px solid var(--text); font-family: var(--font-display); font-stretch: condensed; font-weight: 700; letter-spacing: .06em; }
+:root[data-theme="poster"] .row:hover { background: rgba(var(--ink), .06); }
+:root[data-theme="poster"] .row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .14), rgba(var(--teal-rgb), 0) 70%); box-shadow: inset 4px 0 0 var(--teal); }
+:root[data-theme="poster"] .row.playing .tt div:first-child, :root[data-theme="poster"] .qrow.cur .t { color: var(--teal-2); font-weight: 700; }
+:root[data-theme="poster"] .eq i { background: var(--teal); }
+:root[data-theme="poster"] .ft-head { background: var(--surface); box-shadow: inset 0 0 0 2px var(--text); }
+:root[data-theme="poster"] .ft-h.on { background: var(--ps-red); color: #f6eedb; }
+:root[data-theme="poster"] .ft-tab { background: var(--ps-red); color: #f6eedb; box-shadow: 0 0 0 2px var(--bg); }
+:root[data-theme="poster"] .sect, :root[data-theme="poster"] .dsp-card { background: var(--surface); border: 0; border-top: 5px solid var(--text); box-shadow: none; }
+:root[data-theme="poster"] .drawer, :root[data-theme="poster"] .pop, :root[data-theme="poster"] .modal { border: 2px solid var(--text); box-shadow: 8px 8px 0 var(--ps-red); }
+:root[data-theme="poster"] .toast { border-left: 6px solid var(--teal); }
+:root[data-theme="poster"] .toast.err { background: var(--ps-red); color: #f6eedb; }
+:root[data-theme="poster"] .hero .cover { box-shadow: 12px 12px 0 var(--ps-red); }
+:root[data-theme="poster"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .4), rgba(var(--bg-rgb), .8) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="poster"] .hero-bg { filter: grayscale(1) sepia(.3); -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+:root[data-theme="poster"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--ink), .3); border-radius: 0; }
+
+/* 播放列：墨黑的一條，上緣粗紅線；播放鍵是紅色方塊 */
+:root[data-theme="poster"] #bar { border-top: 5px solid var(--ps-red); backdrop-filter: none; }
+:root[data-theme="poster"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: none; }
+
+/* 正在播放：平塗的海報紙面（不放模糊的封面）。左上角一條朱紅大色帶加一條墨線，邊緣俐落，從上緣一路切到左緣；
+   歌詞關掉時，右下角再一組墨色帶加紅線呼應。外面一圈細細的海報框線。色帶只在角落，不碰到文字、進度條和按鈕。 */
+:root[data-theme="poster"] .np-bg .layer { display: none; }
+:root[data-theme="poster"] #np { --ps-a: 6vh; --ps-b: 25vh; --ps-c: 27.5vh; --ps-d: 30.5vh; }
+:root[data-theme="poster"] .np-bg::before { content: ""; position: absolute; z-index: 1; inset: 12px; pointer-events: none; border: 1.5px solid rgba(var(--np-ink), .5); background-origin: border-box; background-repeat: no-repeat; background-image: linear-gradient(122deg, transparent 0 var(--ps-a), var(--ps-red) var(--ps-a) var(--ps-b), transparent var(--ps-b) var(--ps-c), var(--ps-stripe, #1c1611) var(--ps-c) var(--ps-d), transparent var(--ps-d)); }
+:root[data-theme="poster"] #np::before { content: ""; position: absolute; z-index: 1; inset: 13.5px; pointer-events: none; background-repeat: no-repeat; background-image: linear-gradient(302deg, transparent 0 4vh, var(--ps-band2, #1c1611) 4vh 13vh, transparent 13vh 15vh, var(--ps-red) 15vh 17.5vh, transparent 17.5vh); opacity: 0; transition: opacity .6s var(--ease-out); }
+:root[data-theme="poster"] #np.nolyrics::before { opacity: 1; }
+:root[data-theme="poster"]:where([data-mode="night"]) #np { --ps-stripe: rgba(239,228,203,.82); --ps-band2: rgba(239,228,203,.72); }
+
+/* 角落的按鈕：實心的紙色方塊加墨色框，任何封面上都看得到 */
+:root[data-theme="poster"] .np-top :is(.icon-btn, .pill) { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 2px var(--text); font-weight: 700; }
+:root[data-theme="poster"] .np-top :is(.icon-btn, .pill):hover { background: var(--surface-2); }
+:root[data-theme="poster"] .np-top .pill.on { background: var(--ps-red); color: #f6eedb; box-shadow: inset 0 0 0 2px var(--ps-red); }
+:root[data-theme="poster"] .np-top .src:not(:empty) { background: var(--surface); color: var(--text-2); padding: 3px 8px; box-shadow: inset 0 0 0 1.5px var(--line-2); }
+:root[data-theme="poster"] .np-cover { box-shadow: 0 0 0 1px rgba(var(--np-ink), .2), 14px 14px 0 rgba(var(--np-ink), .9); }
+:root[data-theme="poster"]:where([data-mode="night"]) .np-cover { box-shadow: 0 0 0 1px rgba(239,228,203,.2), 14px 14px 0 #000; }
+:root[data-theme="poster"] .np-ctrl .icon-btn.on { color: var(--teal); }
+:root[data-theme="poster"] .pill.on { background: var(--ps-red); color: #f6eedb; }
+:root[data-theme="poster"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal) 0, var(--teal) var(--p, 0%), rgba(var(--np-ink), .4) var(--p, 0%)); }
+:root[data-theme="poster"] .scroll-bubble { background: var(--ps-red); color: #f6eedb; }
+
+/* 好讀優先：沒在唱的歌詞、翻譯、時間、播過的佇列都不要太淡 */
+:root[data-theme="poster"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="poster"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+:root[data-theme="poster"] .np-seek .times { color: rgba(var(--np-ink), .78); font-weight: 600; }
+:root[data-theme="poster"] .qrow.past { opacity: .8; }
+:root[data-theme="poster"] .nav-label .nav-edit { opacity: .85; }
+
+/* 夜：等化器的拖曳點用朱紅底，選中與關閉的點用深色字 */
+:root[data-theme="poster"]:where([data-mode="night"]) .eq-handle:not(.sel):not(.off) { background: var(--ps-red); }
+:root[data-theme="poster"]:where([data-mode="night"]) .eq-handle:is(.sel, .off) { color: #2b241c; }
+
+/* 正在播放：封面本身不裁切（直角，圖片剛好填滿），自己成一層；原本的 box-shadow 改成 ::after 的一塊硬陰影，
+   因為放射光（::before，z -2）要在陰影（z -1）和圖片底下 */
+:root[data-theme="poster"] .np-cover {
+  overflow: visible; isolation: isolate;
+  box-shadow: none; outline: 2px solid rgba(var(--np-ink), .88); outline-offset: 0;
+}
+:root[data-theme="poster"]:where([data-mode="night"]) .np-cover { box-shadow: none; outline-color: rgba(239, 228, 203, .5); }
+:root[data-theme="poster"] .np-cover::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: rgba(var(--np-ink), .9); translate: 14px 14px;
+}
+:root[data-theme="poster"]:where([data-mode="night"]) .np-cover::after { background: #0c0a08; }
+:root[data-theme="poster"] .np-cover::before {
+  content: ""; position: absolute; z-index: -2; pointer-events: none;
+  /* 半徑 = 82% 封面寬；圓心在封面 (42%, 18%) */
+  width: 164%; height: 164%; left: -40%; top: -64%;
+  border-radius: 50%;
+  background:
+    var(--ps-star) 50% 13% / 5% auto no-repeat,
+    var(--ps-star) 17% 33% / 3.6% auto no-repeat,
+    var(--ps-star) 84% 30% / 4.2% auto no-repeat,
+    var(--ps-star) 22% 76% / 4.6% auto no-repeat,
+    var(--ps-star) 80% 80% / 3.4% auto no-repeat,
+    repeating-conic-gradient(var(--ps-ray) 0deg 4.2deg, var(--ps-ray-2) 4.2deg 10deg);
+  -webkit-mask: radial-gradient(closest-side, #000 60%, transparent 100%);
+  mask: radial-gradient(closest-side, #000 60%, transparent 100%);
+  will-change: transform;
+  animation: ps-spin 140s linear infinite;
+}
+
+/* 專輯頁、演出者頁：放射光是 .hero::before（封面本身要裁切：翻面動畫、「查看封面」），用封面的大小和位置算圓心：
+   封面左緣 = 內距 36px（有 .hero-bg 時它是寬 0 的一格，再加 34px 間距），下緣 = 下內距 30px。
+   半徑 70% 封面寬，圓心在封面 (42%, 30%)：上面冒出約 0.4 個封面高，右邊碰不到標題文字。 */
+:root[data-theme="poster"] .hero { --ps-cv: 260px; --ps-cl: 36px; }
+:root[data-theme="poster"] .hero:has(> .hero-bg) { --ps-cl: 70px; }
+:root[data-theme="poster"] .hero.artist { --ps-cv: 220px; }
+:root[data-theme="poster"] .hero::before {
+  content: ""; position: absolute; z-index: 1; pointer-events: none;
+  width: calc(var(--ps-cv) * 1.4); height: calc(var(--ps-cv) * 1.4);
+  left: calc(var(--ps-cl) - var(--ps-cv) * .28); bottom: 30px;
+  border-radius: 50%;
+  background:
+    var(--ps-star) 50% 9% / 6.5% auto no-repeat,
+    var(--ps-star) 14% 30% / 5% auto no-repeat,
+    var(--ps-star) 86% 26% / 5.5% auto no-repeat,
+    repeating-conic-gradient(var(--ps-ray) 0deg 4.2deg, var(--ps-ray-2) 4.2deg 10deg);
+  -webkit-mask: radial-gradient(closest-side, #000 56%, transparent 100%);
+  mask: radial-gradient(closest-side, #000 56%, transparent 100%);
+  will-change: transform;
+  /* 不是無限次（IdleFx 只管無限循環的）：暫停播放、正在播放蓋住時，由下面的 CSS 讓它停住 */
+  animation: ps-spin 160s linear 0s 500;
+}
+:root[data-theme="poster"] body.paused .hero::before, :root[data-theme="poster"].np-settled .hero::before { animation-play-state: paused; }
+
+/* 專輯頁原本的灰階模糊背景是一格寬 0 的格子（看不到）；封面的紅色硬陰影保留 */
+/* ───────────── 2 · 正在播放：一張片頭卡 ─────────────
+   雙線框（外粗內細）；原本左上角的紅黑斜條拿掉，讓給放射光（沒有歌詞時右下角的斜條還在）。
+   紙面：顆粒那層比畫面大一圈，一秒換 6 個位置（膠片顆粒在跳），濃淡也跟著微微變（放映機的光在閃）；
+   四角一點點暗角；整個背景層偶爾移一個像素（放映機的片門晃動）。字在上面一層，不跟著動。 */
+:root[data-theme="poster"] .np-bg {
+  inset: -2px;
+  background: radial-gradient(ellipse 75% 70% at 50% 46%, transparent 62%, rgba(28, 22, 17, .11) 100%), #efe4cb;
+  animation: ps-weave 3.7s steps(1, end) infinite;
+}
+:root[data-theme="poster"]:where([data-mode="night"]) .np-bg {
+  background: radial-gradient(ellipse 75% 70% at 50% 46%, transparent 62%, rgba(0, 0, 0, .22) 100%), #2b241c;
+}
+
+/* 框：畫在 #np::after（z 2：在內容層 .np-wrap 上面、頂端按鈕 .np-top 下面），歌詞那一半的「安靜底色」才不會把框蓋淡；
+   框離邊 12～24px，內容最少離邊 48px（窄視窗 6vw），不會壓到字 */
+:root[data-theme="poster"] .np-bg::before { background-image: none; border: 0; }
+:root[data-theme="poster"] #np::after {
+  content: ""; position: absolute; inset: 12px; z-index: 2; pointer-events: none;
+  border: 3px solid rgba(var(--np-ink), .8);
+  outline: 1.5px solid rgba(var(--np-ink), .45); outline-offset: -10px;
+}
+:root[data-theme="poster"]:where([data-mode="night"]) #np::after { border-color: rgba(var(--np-ink), .5); outline-color: rgba(var(--np-ink), .28); }
+:root[data-theme="poster"] .np-bg::after {
+  inset: -120px; background: var(--ps-grain);
+  will-change: transform;
+  animation: ps-grain .84s steps(1, end) infinite;
+}
+
+/* 歌名：大一號的粗體窄字，右下 2px 的朱紅硬陰影（字的邊像印刷套色）；右邊留 4px，陰影不被兩行截斷的裁切切掉 */
+:root[data-theme="poster"] .np-title {
+  font-size: 28px; font-weight: 800; letter-spacing: .01em; padding-right: 4px;
+  text-shadow: 2px 2px 0 var(--ps-red);
+}
+
+/* 播放鍵：一塊有墨色硬陰影的紅色方塊，按下去壓進陰影裡 */
+:root[data-theme="poster"] .np-ctrl .playbtn { box-shadow: 4px 4px 0 rgb(var(--np-ink)); }
+:root[data-theme="poster"]:where([data-mode="night"]) .np-ctrl .playbtn { box-shadow: 4px 4px 0 #0c0a08; }
+:root[data-theme="poster"] .np-ctrl .playbtn:active { translate: 3px 3px; box-shadow: 1px 1px 0 rgb(var(--np-ink)); }
+:root[data-theme="poster"]:where([data-mode="night"]) .np-ctrl .playbtn:active { box-shadow: 1px 1px 0 #0c0a08; }
+
+/* ───────────── 3 · 標題：硬陰影的大字、紅緞帶 ───────────── */
+/* 頁首大標題：大一號（30 → 38px）的墨色窄字，右下一道朱紅硬陰影（老廣告的立體字），下面原本的紅槓保留；
+   和「12 張」對齊基線是頁首自己的規則（align-items: baseline），字變大也一樣 */
+:root[data-theme="poster"] .page-head h1 { font-size: 38px; text-shadow: 3px 3px 0 var(--ps-red); }
+
+/* 專輯／演出者名稱：同樣的字，陰影大一號 */
+:root[data-theme="poster"] .hero h1 { padding-right: 6px; padding-bottom: .14em; text-shadow: 4px 4px 0 var(--ps-red); }
+
+/* 首頁的區段標題（最近聽聽…）：一條紅緞帶，兩端剪成燕尾，後面一道墨色硬陰影；米色字 */
+:root[data-theme="poster"] .rail-head h2 {
+  position: relative; isolation: isolate; margin-left: -4px;
+  padding: 4px 25px 5px 24px; color: var(--ps-ribbon-ink); font-size: 21px; font-weight: 800; letter-spacing: .05em;
+}
+:root[data-theme="poster"] .rail-head h2::before, :root[data-theme="poster"] .rail-head h2::after {
+  content: ""; position: absolute; inset: 0; display: block; width: auto; height: auto; margin: 0; transform: none;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 11px) 50%, 100% 100%, 0 100%, 11px 50%);
+}
+:root[data-theme="poster"] .rail-head h2::before { z-index: -1; background: var(--ps-ribbon); }
+:root[data-theme="poster"] .rail-head h2::after { z-index: -2; background: var(--ps-sh); translate: 4px 4px; }
+
+/* 設定裡每一塊的標題前面一顆四角星 */
+:root[data-theme="poster"] .sect > h2::before, :root[data-theme="poster"] .sect .tx > h2::before {
+  content: ""; display: inline-block; width: 15px; height: 15px; margin-right: 8px; vertical-align: -1px;
+  background: var(--ps-star) center / contain no-repeat;
+}
+:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) .rail-head h2 {
+  transform-origin: 0 50%;
+  animation: ps-unfurl .6s backwards;
+  animation-timing-function: cubic-bezier(.3, 1.5, .5, 1);
+  animation-timing-function: linear(0, .174 6%, .521 11%, .849 17%, 1.065 22%, 1.155 28%, 1.153 33%, 1.104 39%, 1.046 44%, 1.002 50%, .979 56%, .973 61%, .979 67%, .988 72%, .997 78%, 1.002 83%, 1.004 89%, 1.004 94%, 1);
+}
+:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade, .enter-flip) :is(.page-head h1, .hero h1) {
+  transform-origin: 0 80%; animation: ps-tada .62s ease-out .08s backwards;
+}
+
+/* 主畫面右上角：一角很淡的墨色細放射線（印刷的網線，像片頭卡的角落），不動、不用紅；放在內容後面，
+   離角落 50% 以外就淡掉，碰不到頁首的字（右上的工具按鈕是實心的） */
+:root[data-theme="poster"] #main::before {
+  content: ""; position: absolute; top: 0; right: 0; width: 460px; height: 300px; z-index: -1; pointer-events: none;
+  background: repeating-conic-gradient(from 180deg at 100% 0, rgba(var(--ink), .075) 0deg 2.2deg, transparent 2.2deg 6.5deg);
+  -webkit-mask: radial-gradient(farthest-side at 100% 0, #000 25%, transparent 100%);
+  mask: radial-gradient(farthest-side at 100% 0, #000 25%, transparent 100%);
+}
+
+/* ───────────── 4 · 按鈕：壓扁再彈回、橡皮管扭一下、開關的圓鈕彈過去 ─────────────
+   按下：用 scale（和原本的 transform 分開，不會互相蓋掉）壓扁成寬 108%、高 86%；放開時用彈簧曲線彈回來，
+   會先拉長一點再停（伸展）。滑過工具列、播放列、正在播放的按鈕和頁首的大按鈕時扭一下（rotate / skewX，跑一次）。
+   清單列裡的小按鈕（愛心、更多）不扭，免得讀清單時東西在動。 */
+:root[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn) {
+  transition-property: background-color, color, border-color, box-shadow, transform, scale, translate, opacity;
+  transition-duration: .18s, .18s, .18s, .2s, .18s, .55s, .3s, .2s;
+  transition-timing-function: ease, ease, ease, ease, var(--ease), cubic-bezier(.3, 1.8, .5, 1), cubic-bezier(.3, 1.6, .5, 1), ease;
+  transition-timing-function: ease, ease, ease, ease, var(--ease),
+    linear(0, .166 4%, .538 8%, .931 13%, 1.216 17%, 1.340 21%, 1.317 25%, 1.203 29%, 1.063 33%, .950 38%, .890 42%, .884 46%, .916 50%, .964 54%, 1.007 58%, 1.034 63%, 1.041 67%, 1.033 71%, 1.018 75%, 1.002 79%, .990 83%, .986 88%, .987 92%, .992 96%, 1),
+    linear(0, .174 6%, .521 11%, .849 17%, 1.065 22%, 1.155 28%, 1.153 33%, 1.104 39%, 1.046 44%, 1.002 50%, .979 56%, .973 61%, .979 67%, .988 72%, .997 78%, 1.002 83%, 1.004 89%, 1.004 94%, 1),
+    ease;
+}
+:root[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn):active {
+  scale: 1.08 .86; transition-duration: .18s, .18s, .18s, .2s, .18s, .07s, .07s, .2s;
+}
+:root[data-theme="poster"] :is(.playbtn:hover, .playbtn:active, .btn:active) { transform: none; }
+:root[data-theme="poster"] :is(#topbar .round-btn, #bar .icon-btn, #bar .playbtn, .np-top .icon-btn, .np-ctrl .icon-btn, .np-ctrl .playbtn, .card .play, .hero .actions .icon-btn):hover {
+  animation: ps-wobble .6s ease-out;
+}
+:root[data-theme="poster"] :is(#bar, .np-ctrl) .playbtn.play-pulse:hover { animation: ps-wobble .6s ease-out, pulse .35s var(--spring); }
+:root[data-theme="poster"] :is(.hero .actions .btn, .page-head .tools .btn, .np-top .pill):hover { animation: ps-rubber .6s ease-out; }
+
+/* 開關：按住時圓鈕被壓扁，放開後彈著滑過去（稍微衝過頭再回來） */
+:root[data-theme="poster"] .switch::after {
+  transition-property: transform, scale, background-color;
+  transition-duration: .5s, .5s, .2s;
+  transition-timing-function: cubic-bezier(.3, 1.5, .5, 1), cubic-bezier(.3, 1.8, .5, 1), ease;
+  transition-timing-function:
+    linear(0, .174 6%, .521 11%, .849 17%, 1.065 22%, 1.155 28%, 1.153 33%, 1.104 39%, 1.046 44%, 1.002 50%, .979 56%, .973 61%, .979 67%, .988 72%, .997 78%, 1.002 83%, 1.004 89%, 1.004 94%, 1),
+    linear(0, .166 4%, .538 8%, .931 13%, 1.216 17%, 1.340 21%, 1.317 25%, 1.203 29%, 1.063 33%, .950 38%, .890 42%, .884 46%, .916 50%, .964 54%, 1.007 58%, 1.034 63%, 1.041 67%, 1.033 71%, 1.018 75%, 1.002 79%, .990 83%, .986 88%, .987 92%, .992 96%, 1),
+    ease;
+}
+:root[data-theme="poster"] .switch:active::after { scale: 1.4 .72; transition-duration: .5s, .08s, .2s; }
+
+/* 分段按鈕滑動的紅塊、側欄選中的米色塊：彈著停下 */
+:root[data-theme="poster"] .glide-pill { transition-timing-function: cubic-bezier(.3, 1.4, .5, 1); }
+:root[data-theme="poster"] .nav-pill { transition: transform .5s cubic-bezier(.3, 1.5, .45, 1), opacity .2s; }
+
+/* ───────────── 5 · 卡片：出場「噹啷」彈出來，滑過時彈著浮起 ─────────────
+   只動封面那一格（卡片本身在格線裡用 transform 定位，不能動它）；出場和卡片自己的淡入一樣長，一起結束。 */
+:root[data-theme="poster"] .card .art {
+  transition: transform .5s cubic-bezier(.3, 1.5, .5, 1), box-shadow .22s ease;
+  transition: transform .5s linear(0, .174 6%, .521 11%, .849 17%, 1.065 22%, 1.155 28%, 1.153 33%, 1.104 39%, 1.046 44%, 1.002 50%, .979 56%, .973 61%, .979 67%, .988 72%, .997 78%, 1.002 83%, 1.004 89%, 1.004 94%, 1), box-shadow .22s ease;
+}
+:root[data-theme="poster"] .card.pop-in { animation-duration: .6s; animation-delay: calc(var(--i, 0) * 35ms); }
+:root[data-theme="poster"] :is(.card.pop-in, .card.stagger) .art { animation: ps-tada .6s ease-out backwards; animation-delay: calc(var(--i, 0) * 35ms); }
+:root[data-theme="poster"] .card.stagger { animation-delay: calc(var(--i, 0) * 35ms); }
+
+/* ───────────── 6 · 播放時炸出一圈星星：播放列、正在播放的播放鍵 ─────────────
+   按鈕從暫停變播放時，core.js 會重新加上 .play-pulse；這時（body 沒有 .paused）在播放鍵正後方放一圈四角星和
+   速度線，放大淡出一次（0.75 秒）。在按鈕底下一層，不會蓋住按鈕。暫停時不炸。 */
+:root[data-theme="poster"] :is(#bar .transport .btns, .np-ctrl) { position: relative; }
+:root[data-theme="poster"] :is(#bar .transport .btns, .np-ctrl)::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; margin: -66px 0 0 -66px;
+  pointer-events: none; opacity: 0; background: var(--ps-burst) center / contain no-repeat;
+}
+:root[data-theme="poster"] #bar .transport .btns::before { background-image: var(--ps-burst-bar, var(--ps-burst)); width: 120px; height: 120px; margin: -60px 0 0 -60px; }
+:root[data-theme="poster"] .np-ctrl::before { width: 150px; height: 150px; margin: -75px 0 0 -75px; }
+:root[data-theme="poster"] body:not(.paused) :is(#bar .transport .btns:has(> #b-play.play-pulse), .np-ctrl:has(> #np-play.play-pulse))::before {
+  animation: ps-burst .75s cubic-bezier(.2, .8, .3, 1);
+}
+:root[data-theme="poster"] #content:has(> #view:is(.enter-fwd, .enter-back, .enter-fade)) { animation: ps-iris .5s cubic-bezier(.4, .1, .3, 1) backwards; }
+:root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: none; }
+:root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after {
+  content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at 50% 42%, transparent calc(var(--ps-iris-r) - 1px), var(--ps-sh) var(--ps-iris-r),
+    var(--ps-sh) calc(var(--ps-iris-r) + 5px), transparent calc(var(--ps-iris-r) + 6px));
+  animation: ps-iris-ring .5s cubic-bezier(.4, .1, .3, 1);
+}
+:root[data-theme="poster"] .pop:not(.menu-pop):not(.sigpop) {
+  animation: ps-pop .42s cubic-bezier(.3, 1.6, .5, 1);
+  animation-timing-function: linear(0, .174 6%, .521 11%, .849 17%, 1.065 22%, 1.155 28%, 1.153 33%, 1.104 39%, 1.046 44%, 1.002 50%, .979 56%, .973 61%, .979 67%, .988 72%, .997 78%, 1.002 83%, 1.004 89%, 1.004 94%, 1);
+}
+
+/* ───────────── 9 · 輕量化頁面、減少動態：全部停下（放射光留著，不轉） ───────────── */
+:root.lite-ambient[data-theme="poster"] .np-bg, :root.lite-ambient[data-theme="poster"] .np-bg::after, :root.lite-ambient[data-theme="poster"] .np-cover::before, :root.lite-ambient[data-theme="poster"] .hero::before { animation: none !important; will-change: auto; }
+:root.lite-page[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn), :root.lite-page[data-theme="poster"] .switch::after { transition-duration: 0s !important; }
+:root.lite-page[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn):active, :root.lite-page[data-theme="poster"] .switch:active::after { scale: none; translate: none; }
+:root.lite-page[data-theme="poster"] :is(#content, #view, .rail-head h2, .page-head h1, .hero h1, .card .art, .pop) { animation: none !important; }
+:root.lite-page[data-theme="poster"] #main::after { animation: none !important; display: none; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] .np-bg, :root[data-theme="poster"] .np-bg::after, :root[data-theme="poster"] .np-cover::before, :root[data-theme="poster"] .hero::before, :root[data-theme="poster"] :is(#content, #view, .rail-head h2, .page-head h1, .hero h1, .card .art, .pop), :root[data-theme="poster"] :is(#bar .transport .btns, .np-ctrl)::before, :root[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .pill):hover { animation: none !important; }
+:root[data-theme="poster"] #main::after { animation: none !important; display: none; }
+:root[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn):active, :root[data-theme="poster"] .switch:active::after { scale: none; translate: none; }
+}
+:root[data-theme="poster"]:where([data-mode="day"]) { --dp-ink: var(--teal); }
+:root[data-theme="poster"]:where([data-mode="night"]) { --dp-ink: var(--teal-2); }
+
+/* 復古海報：方角、平的；上緣一道粗墨線，其他三邊細墨線 */
+:root[data-theme="poster"] .dp-sect .dp-group { border-radius: 0; border: 1.5px solid var(--text); border-top-width: 4px; background: rgba(var(--ink), .03); box-shadow: none; }
+:root[data-theme="poster"] .dp-sect .dp-group.dp-off { border-color: var(--text-3); }

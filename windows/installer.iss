@@ -68,6 +68,10 @@ ja.WebView2Missing=このパソコンには、MIKU の画面表示に必要な M
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
+[InstallDelete]
+; replaced by wwwroot\themes\*.css (one sheet per theme)
+Type: files; Name: "{app}\wwwroot\themes.css"
+
 [Files]
 Source: "dist\MIKU\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 

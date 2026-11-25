@@ -1,0 +1,149 @@
+/* MIKU theme 'washi': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="washi"] ::-webkit-scrollbar-thumb { background-color: rgba(70,50,30,.2); }
+:root[data-theme="washi"]:where([data-mode="night"]) ::-webkit-scrollbar-thumb { background-color: rgba(232,226,211,.18); }
+:root[data-theme="washi"] #sidebar { border-right: 1px solid rgba(70,50,30,.14); box-shadow: inset -6px 0 12px -10px rgba(70,50,30,.4); }
+:root[data-theme="washi"]:where([data-mode="night"]) #sidebar { border-right: 1px solid rgba(232,226,211,.13); box-shadow: inset -6px 0 12px -10px rgba(232,226,211,.36); }
+:root[data-theme="washi"] .brand { position: relative; }
+:root[data-theme="washi"] .nav a { font-family: var(--font-display); font-size: 15px; color: #4c4238; }
+:root[data-theme="washi"]:where([data-mode="night"]) .nav a { color: #c9c2b3; }
+:root[data-theme="washi"] .nav-label { font-family: var(--font-display); color: #a08f7c; letter-spacing: .3em; }
+:root[data-theme="washi"]:where([data-mode="night"]) .nav-label { color: #7f7a70; }
+:root[data-theme="washi"] .nav-pill { background: rgba(255,252,245,.75); border-radius: 6px; box-shadow: 0 1px 2px rgba(80,55,30,.12); }
+:root[data-theme="washi"]:where([data-mode="night"]) .nav-pill { background: rgba(232,226,211,.09); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+:root[data-theme="washi"] .nav-pill::before { left: -3px; top: 50%; bottom: auto; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 1px; background: #c4432c; box-shadow: none; transform: rotate(45deg); }
+:root[data-theme="washi"]:where([data-mode="night"]) .nav-pill::before { background: #e8674c; }
+:root[data-theme="washi"] .nav a.on { color: #2f4b80; }
+:root[data-theme="washi"]:where([data-mode="night"]) .nav a.on { color: #86a8e6; }
+:root[data-theme="washi"] .nav a.on svg.i { color: #2f4b80; }
+:root[data-theme="washi"]:where([data-mode="night"]) .nav a.on svg.i { color: #86a8e6; }
+:root[data-theme="washi"] .page-head h1, :root[data-theme="washi"] .rail-head h2, :root[data-theme="washi"] .hero h1, :root[data-theme="washi"] .sect h2, :root[data-theme="washi"] .drawer-head h2, :root[data-theme="washi"] .np-title, :root[data-theme="washi"] .ly-line, :root[data-theme="washi"] .modal-head h2 { font-family: var(--font-display); font-weight: 600; }
+:root[data-theme="washi"] .page-head h1 { letter-spacing: .06em; }
+:root[data-theme="washi"] .rail-head h2 { letter-spacing: .08em; }
+:root[data-theme="washi"] .rail-head h2::before { content: ""; display: inline-block; width: 3px; height: 18px; background: #c4432c; margin-right: 10px; vertical-align: -2px; }
+:root[data-theme="washi"]:where([data-mode="night"]) .rail-head h2::before { background: #e8674c; }
+:root[data-theme="washi"] :is(#topbar.solid, .set-band) { background: rgba(242,235,223,.88); }
+:root[data-theme="washi"]:where([data-mode="night"]) :is(#topbar.solid, .set-band) { background: rgba(21,26,39,.88); }
+:root[data-theme="washi"] .search { background: rgba(255,252,245,.7); border: 1px solid rgba(70,50,30,.14); }
+:root[data-theme="washi"]:where([data-mode="night"]) .search { background: rgba(232,226,211,.07); border: 1px solid rgba(232,226,211,.13); }
+:root[data-theme="washi"] .round-btn { background: rgba(255,252,245,.6); border: 1px solid rgba(70,50,30,.12); }
+:root[data-theme="washi"]:where([data-mode="night"]) .round-btn { background: rgba(232,226,211,.06); border: 1px solid rgba(232,226,211,.11); }
+:root[data-theme="washi"] #bar { border-top: 1px solid rgba(70,50,30,.14); background: var(--paper), rgba(240,232,218,.96); }
+:root[data-theme="washi"]:where([data-mode="night"]) #bar { border-top: 1px solid rgba(232,226,211,.13); background: var(--paper), rgba(17,21,32,.96); }
+:root[data-theme="washi"] .playbtn { box-shadow: 0 0 0 3px #f2ebdf, 0 0 0 4px rgba(47,75,128,.35), 0 4px 10px rgba(47,75,128,.25); }
+:root[data-theme="washi"]:where([data-mode="night"]) .playbtn { box-shadow: 0 0 0 3px #151a27, 0 0 0 4px rgba(134,168,230,.35), 0 4px 10px rgba(134,168,230,.25); }
+:root[data-theme="washi"] .slider .track { background: rgba(70,50,30,.14); }
+:root[data-theme="washi"]:where([data-mode="night"]) .slider .track { background: rgba(232,226,211,.13); }
+:root[data-theme="washi"] .slider .fill { background: #2f4b80; }
+:root[data-theme="washi"]:where([data-mode="night"]) .slider .fill { background: #86a8e6; }
+:root[data-theme="washi"] .slider:hover .fill, :root[data-theme="washi"] .slider.drag .fill { background: #c4432c; }
+:root[data-theme="washi"]:where([data-mode="night"]) .slider:hover .fill, :root[data-theme="washi"]:where([data-mode="night"]) .slider.drag .fill { background: #e8674c; }
+:root[data-theme="washi"] .slider .knob { background: #c4432c; box-shadow: 0 0 0 3px rgba(196,67,44,.18); }
+:root[data-theme="washi"]:where([data-mode="night"]) .slider .knob { background: #e8674c; box-shadow: 0 0 0 3px rgba(232,103,76,.18); }
+:root[data-theme="washi"] .card .art { border-radius: 2px; border: 6px solid #fffbf3; box-shadow: 0 1px 2px rgba(80,55,30,.18), 0 10px 22px -6px rgba(80,55,30,.25); }
+:root[data-theme="washi"]:where([data-mode="night"]) .card .art { border: 6px solid #2a334c; box-shadow: 0 1px 2px rgba(0,0,0,.31), 0 10px 22px -6px rgba(0,0,0,.43); }
+:root[data-theme="washi"] .card:hover .art { box-shadow: 0 1px 2px rgba(80,55,30,.2), 0 18px 32px -8px rgba(80,55,30,.35); }
+:root[data-theme="washi"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 1px 2px rgba(0,0,0,.34), 0 18px 32px -8px rgba(0,0,0,.6); }
+:root[data-theme="washi"] .card.artist .art { border-radius: 50%; }
+:root[data-theme="washi"] .card .t1 { font-family: var(--font-display); color: #2a241f; font-weight: 600; }
+:root[data-theme="washi"]:where([data-mode="night"]) .card .t1 { color: #e9e3d5; }
+:root[data-theme="washi"] .card:hover .t1 { color: #c4432c; }
+:root[data-theme="washi"]:where([data-mode="night"]) .card:hover .t1 { color: #e8674c; }
+:root[data-theme="washi"] .card .play { background: #c4432c; color: #fbf3e6; }
+:root[data-theme="washi"]:where([data-mode="night"]) .card .play { background: #e8674c; color: #fff7ee; }
+:root[data-theme="washi"] .ph { color: rgba(60,40,20,.38); font-family: var(--font-display); }
+:root[data-theme="washi"]:where([data-mode="night"]) .ph { color: rgba(232,226,211,.38); }
+:root[data-theme="washi"] .hero .cover { border-radius: 2px; border: 8px solid #fffbf3; box-shadow: 0 2px 4px rgba(80,55,30,.2), 0 24px 50px -10px rgba(80,55,30,.35); }
+:root[data-theme="washi"]:where([data-mode="night"]) .hero .cover { border: 8px solid #2a334c; box-shadow: 0 2px 4px rgba(0,0,0,.34), 0 24px 50px -10px rgba(0,0,0,.6); }
+:root[data-theme="washi"] .hero::after { background: linear-gradient(180deg, rgba(242,235,223,.55), rgba(242,235,223,.75) 60%, rgba(242,235,223,0)); }
+:root[data-theme="washi"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(21,26,39,.55), rgba(21,26,39,.75) 60%, rgba(21,26,39,0)); }
+:root[data-theme="washi"] .row { border-radius: 4px; }
+:root[data-theme="washi"] .row:hover { background: rgba(255,252,245,.65); }
+:root[data-theme="washi"]:where([data-mode="night"]) .row:hover { background: rgba(232,226,211,.07); }
+:root[data-theme="washi"] .row .tt div:first-child { font-family: var(--font-display); color: #2a241f; }
+:root[data-theme="washi"]:where([data-mode="night"]) .row .tt div:first-child { color: #e9e3d5; }
+:root[data-theme="washi"] .row.playing .tt div:first-child { color: #c4432c; }
+:root[data-theme="washi"]:where([data-mode="night"]) .row.playing .tt div:first-child { color: #e8674c; }
+:root[data-theme="washi"] .eq i { background: #c4432c; }
+:root[data-theme="washi"]:where([data-mode="night"]) .eq i { background: #e8674c; }
+:root[data-theme="washi"] .thead { background: #f2ebdf; border-bottom: 1px solid rgba(70,50,30,.2); }
+:root[data-theme="washi"]:where([data-mode="night"]) .thead { background: #151a27; border-bottom: 1px solid rgba(232,226,211,.18); }
+:root[data-theme="washi"] .sect { background: rgba(255,252,245,.72); border: 1px solid rgba(70,50,30,.12); border-radius: 6px; box-shadow: 0 1px 2px rgba(80,55,30,.08); }
+:root[data-theme="washi"]:where([data-mode="night"]) .sect { background: rgba(232,226,211,.07); border: 1px solid rgba(232,226,211,.11); box-shadow: 0 1px 2px rgba(0,0,0,.14); }
+:root[data-theme="washi"] .btn { background: rgba(255,252,245,.8); border: 1px solid rgba(70,50,30,.16); }
+:root[data-theme="washi"]:where([data-mode="night"]) .btn { background: rgba(232,226,211,.08); border: 1px solid rgba(232,226,211,.14); }
+:root[data-theme="washi"] .btn.primary { background: #2f4b80; border-color: #2f4b80; color: #f8f2e7; box-shadow: 0 3px 10px rgba(47,75,128,.25); }
+:root[data-theme="washi"]:where([data-mode="night"]) .btn.primary { background: #86a8e6; border-color: #86a8e6; color: #101523; box-shadow: 0 3px 10px rgba(134,168,230,.25); }
+:root[data-theme="washi"] .btn.primary:hover { background: #223a66; }
+:root[data-theme="washi"]:where([data-mode="night"]) .btn.primary:hover { background: #a3bdf0; }
+:root[data-theme="washi"] .btn.ghost { background: transparent; border-color: transparent; }
+:root[data-theme="washi"] .seg { background: rgba(70,50,30,.07); }
+:root[data-theme="washi"]:where([data-mode="night"]) .seg { background: rgba(232,226,211,.06); }
+:root[data-theme="washi"] .seg button.on { background: #fffbf3; color: #2f4b80; box-shadow: 0 1px 2px rgba(80,55,30,.15); }
+:root[data-theme="washi"]:where([data-mode="night"]) .seg button.on { background: #323d59; color: #86a8e6; box-shadow: 0 1px 2px rgba(0,0,0,.26); }
+:root[data-theme="washi"] .switch { background: #d9cdb8; }
+:root[data-theme="washi"]:where([data-mode="night"]) .switch { background: #323d59; }
+:root[data-theme="washi"] .switch.on { background: #2f4b80; }
+:root[data-theme="washi"]:where([data-mode="night"]) .switch.on { background: #86a8e6; }
+:root[data-theme="washi"] .switch.on::after { background: #fffaf1; }
+:root[data-theme="washi"]:where([data-mode="night"]) .switch.on::after { background: #fbf6ea; }
+:root[data-theme="washi"] .toast { color: #f8f2e7; }
+:root[data-theme="washi"]:where([data-mode="night"]) .toast { color: #e9e3d5; }
+:root[data-theme="washi"] .badge.hi { background: rgba(47,75,128,.1); color: #2f4b80; }
+:root[data-theme="washi"]:where([data-mode="night"]) .badge.hi { background: rgba(134,168,230,.1); color: #86a8e6; }
+:root[data-theme="washi"] .badge.dsd { color: #a83521; }
+:root[data-theme="washi"]:where([data-mode="night"]) .badge.dsd { color: #f39a85; }
+:root[data-theme="washi"] .np-cover { border-radius: 2px; border: 10px solid #fffbf3; box-shadow: 0 2px 6px rgba(80,55,30,.2), 0 18px 30px -14px rgba(80,55,30,.34); }
+
+/* kept short: a long drop shadow lay over the title below and greyed it */
+:root[data-theme="washi"]:where([data-mode="night"]) .np-cover { border: 10px solid #2a334c; box-shadow: 0 2px 6px rgba(0,0,0,.34), 0 18px 30px -14px rgba(0,0,0,.58); }
+:root[data-theme="washi"] #np .np-title { -webkit-text-stroke: .35px currentColor; text-shadow: 0 1px 0 rgba(255, 251, 243, .55); }
+
+/* the Mincho's thin strokes read grey at this size */
+:root[data-theme="washi"]:where([data-mode="night"]) #np .np-title { text-shadow: 0 1px 0 rgba(42,51,76,.55); }
+:root[data-theme="washi"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="washi"] .np-bg .layer.b { animation: none; }
+
+/* (not shown: not turning either, see MIKU) */
+:root[data-theme="washi"] .np-badges .badge { background: rgba(70,50,30,.08); color: #5a4f45; }
+:root[data-theme="washi"]:where([data-mode="night"]) .np-badges .badge { background: rgba(232,226,211,.07); color: #bdb6a6; }
+:root[data-theme="washi"] .np-ctrl .icon-btn.on { color: #c4432c; }
+:root[data-theme="washi"]:where([data-mode="night"]) .np-ctrl .icon-btn.on { color: #e8674c; }
+:root[data-theme="washi"] .pill.on { background: #2f4b80; }
+:root[data-theme="washi"]:where([data-mode="night"]) .pill.on { background: #86a8e6; }
+:root[data-theme="washi"] .eq-graph { background: rgba(70,50,30,.05); }
+:root[data-theme="washi"]:where([data-mode="night"]) .eq-graph { background: rgba(232,226,211,.05); }
+:root[data-theme="washi"] .card.artist .art { border-width: 5px; }
+:root[data-theme="washi"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+
+/* 夜：右上角一彎淡淡的月牙 */
+:root[data-theme="washi"]:where([data-mode="night"]) #main { isolation: isolate; }
+:root[data-theme="washi"]:where([data-mode="night"]) #main::before { content: ""; position: absolute; top: 30px; right: 72px; width: 56px; height: 56px; border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle at 35% 42%, rgba(251,246,234,.42), rgba(233,227,213,.22)); -webkit-mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); }
+:root[data-theme="washi"]:where(:not([data-mode="night"])) .nav-label { color: #85766a; }
+
+/* 和紙：顏色像水彩一樣只暈在封面後面，四周留白，紙紋看得見 */
+:root[data-theme="washi"] .np-bg .layer {
+  -webkit-mask: radial-gradient(52% 58% at 50% 47%, #000 22%, transparent 74%) -26.6vw 0 / 100% 100% no-repeat;
+  mask: radial-gradient(52% 58% at 50% 47%, #000 22%, transparent 74%) -26.6vw 0 / 100% 100% no-repeat;
+  transition: opacity 1.2s var(--ease), -webkit-mask-position .6s var(--ease-out), mask-position .6s var(--ease-out);
+}
+:root[data-theme="washi"] #np.nolyrics .np-bg .layer { -webkit-mask-position: 0 0; mask-position: 0 0; }
+:root[data-theme="washi"] .np-bg .layer.b { animation: none; }
+
+/* 和紙：淡淡的米色底，選中的像一張白紙 */
+:root[data-theme="washi"] .set-tabs { background: linear-gradient(rgba(70,50,30,.07), rgba(70,50,30,.07)), rgba(var(--bg-rgb), .94); border-color: transparent; }
+:root[data-theme="washi"]:where([data-mode="night"]) .set-tabs { background: linear-gradient(rgba(232,226,211,.06), rgba(232,226,211,.06)), rgba(var(--bg-rgb), .94); }
+:root[data-theme="washi"] .set-tabs button.on { background: #fffbf3; color: #2f4b80; box-shadow: 0 1px 2px rgba(80,55,30,.15); }
+:root[data-theme="washi"]:where([data-mode="night"]) .set-tabs button.on { background: #323d59; color: #86a8e6; box-shadow: 0 1px 2px rgba(0,0,0,.26); }
+:root[data-theme="washi"] .page-head .tools > .btn.small:not(.primary) { background: rgba(70,50,30,.07); border-color: transparent; }
+:root[data-theme="washi"] .page-head .tools > .btn.small:not(.primary):hover { background: rgba(70,50,30,.12); }
+:root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary) { background: rgba(232,226,211,.06); }
+:root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary):hover { background: rgba(232,226,211,.11); }
+:root[data-theme="washi"] { --dp-ink: var(--teal-2); }
+
+/* 和紙：小圓角、淡墨的細框，底色帶一點紙的暖色 */
+:root[data-theme="washi"] .dp-sect .dp-group { border-radius: 5px; border: 1px solid rgba(70,50,30,.22); background: rgba(120,90,50,.035); }
+:root[data-theme="washi"]:where([data-mode="night"]) .dp-sect .dp-group { border-color: rgba(232,226,211,.2); background: rgba(232,226,211,.035); }
+:root[data-theme="washi"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(242,235,223,.95); }
+:root[data-theme="washi"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(21,26,39,.95); }

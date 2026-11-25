@@ -1,0 +1,718 @@
+/* MIKU theme 'gold': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="gold"] .tp-opt.on { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: var(--gd-plaque-sh); font-weight: 750; }
+
+/* ═════════════════════════════ 暴發戶黃金（gold）· 整個介面都是金子 ═════════════════════════════
+   第二版：上一版「太優雅了」，這一版故意俗到底——整個介面金光閃閃，越金越好。
+   · 頁面是鏡面拋光的黃金：斜斜的大片反光（像鍍金跑車的烤漆），上面貼著一張張金箔（接縫、皺褶），撒滿亮片。
+   · 側欄是鑲水鑽的金色菱格皮（像金襯衫、名牌包），右邊一條粗的鍍金線板；標誌上戴一頂鑲寶石的小皇冠。
+   · 頁首大標題是「金字招牌」：紅漆招牌、金框、立體的金字，每隔幾秒一道白光從字上掃過，旁邊的閃光一閃一閃。
+   · 每一排的標題前面一錠金元寶、後面拖一條粗金鍊；專輯封面裝在鍍金畫框裡，四角鑲鑽。
+   · 按鈕、輸入框、下拉選單、面板全是金牌、金板；選中的東西一律是「紅寶石」：紅漆底、金框、金字，一眼就看得到。
+   · 設定的每個面板是厚厚的鍍金框，四角鑲翡翠和紅寶石；播放列是一整條金磚（999.9 足金），上緣掛粗金鍊。
+   · 正在播放整頁鍍金：封面在寬的鍍金畫框裡，上面垂著金珠與水晶，歌詞唱到的字是紅寶石色。
+   · 夜：酒紅絲絨的房間，但金子一樣多——金側欄、金磚播放列、金框、金牌按鈕、亮金的字（頁面 OKLab L≈0.27，卡片 0.30）。
+   和「黑金」（luka：克制的黑漆＋細金線、很優雅）剛好相反，這一個是滿出來、閃到刺眼的。
+   字一律是「深棕色的字放在亮金上」或「亮金／米白的字放在紅漆、酒紅上」，對比都夠；亮片和金箔只是很淡的紋理。
+   閃光、掃光都只動很小的偽元素（transform / opacity / background-position）；「減少動態」或
+   設定 > 其他 > 輕量化頁面（lite-ambient）時全部停住。這一份檔案就是整個主題，要退回時整份拿掉即可。 */
+/* ───────────── 1 · 色彩（日，主題原本的版本）─────────────
+   頁面＝亮金（#e4b140～#fffbe6 之間的反光），面板＝香檳金 #fbe3a0。
+   主文字對面板 14.8:1、第二層 11.5:1、第三層 9:1；對頁面最暗的反光帶也有 9 / 7 / 5.4:1。
+   主色（選中、進度、開關開）是紅寶石 #a50f2a，上面放金色的字；當文字用的紅寶石是 #8c0a1f（對頁面 6:1）。 */
+:root[data-theme="gold"] {
+  --bg: #f0c75a; --bg-rgb: 240, 199, 90; --bg-2: #e6b649;
+  --surface: #fbe3a0; --surface-2: #f5d27c; --surface-3: #e9bd5c;
+  --ink: 61, 38, 3; --line: rgba(92,56,0,.24); --line-2: rgba(92,56,0,.42);
+  --text: #1f1200; --text-hi: #120a00; --text-sub: #33200a; --text-2: #3d2603; --text-3: #4f3206;
+  --teal: #a50f2a; --teal-rgb: 165, 15, 42; --teal-2: #8c0a1f; --teal-dim: rgba(165,15,42,.12);
+  --pink: #b3122e; --pink-dim: rgba(179,18,46,.12); --pink-line: rgba(179,18,46,.5); --pink-text: #8c0a1f;
+  --amber: #7a4a00; --on-accent: #ffe9a8;
+  --play-bg: var(--gd-medal); --play-ink: #2a1800; --knob: #fff8e0; --knob-off: #5a3a08;
+  --bar-bg: var(--gd-ingot); --pop-bg: #fbe3a0; --drawer-bg: #f8dc92; --toast-bg: #fbe3a0; --modal-bg: #fbe3a0;
+  --tip-bg: #2a1800; --tip-ink: #ffe08a;
+  --shadow-rgb: 90, 50, 0; --sh: .6;
+  --np-base: #e9b949; --np-ink: 31, 18, 0; --np-pill-ink: #2a1800; --np-dim: 1.05;
+  --np-filter: blur(70px) sepia(.85) saturate(1.7) brightness(var(--np-dim));
+  --np-veil: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-leaf) 0 0 / 144px 144px, var(--gd-polish-a);
+  --np-calm: rgba(255,238,180,.38);
+  --ph-s1: 52%; --ph-l1: 70%; --ph-s2: 56%; --ph-l2: 50%;
+  --brand-ink: #1f1200; --brand-track: #b8862a;
+  --hero-dim: 1.05; --hero-op: .45;
+  --gd-polish: linear-gradient(112deg, #f2c85a 0%, #fbe08e 8%, #fff6d2 12.5%, #f8da80 17%, #eaba4c 28%, #f0c65c 38%, #fff0b4 46%, #fffbe6 48.5%, #fbe39a 51%, #ecc056 60%, #e4b140 70%, #f1cb64 80%, #ffefb2 87%, #f5d16e 93%, #e8b74a 100%);
+  --gd-polish-a: linear-gradient(112deg, rgba(242,200,90,.84) 0%, rgba(251,224,142,.84) 8%, rgba(255,246,210,.86) 12.5%, rgba(248,218,128,.84) 17%, rgba(234,186,76,.84) 28%, rgba(240,198,92,.84) 38%, rgba(255,240,180,.86) 46%, rgba(255,251,230,.88) 48.5%, rgba(251,227,154,.86) 51%, rgba(236,192,86,.84) 60%, rgba(228,177,64,.84) 70%, rgba(241,203,100,.84) 80%, rgba(255,239,178,.86) 87%, rgba(245,209,110,.84) 93%, rgba(232,183,74,.84) 100%);
+  --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-leaf) 0 0 / 144px 144px, radial-gradient(760px 420px at 86% -10%, rgba(255,252,236,.8), transparent 62%), var(--gd-polish);
+  --sidebar-bg: var(--gd-quilt) 0 0 / 30px 30px, linear-gradient(90deg, #d6a238 0%, #eabc54 28%, #f7d878 52%, #edc35c 78%, #d9a63c 100%);
+  --font-display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Songti TC", "Microsoft JhengHei UI", "Hiragino Mincho ProN", "Yu Gothic UI", serif;
+  --hit: rgba(165,15,42,.3);
+  color-scheme: light;
+  /* 這個主題自己的值 */
+  --gd-ink: #1f1200;                       /* 金牌上的字 */
+  --gd-edge: #4a2f02;                      /* 金器的外緣（深古銅） */
+  --gd-line: #8a5a08;                      /* 金色的框線 */
+  --gd-gold-ink: #ffe08a;                  /* 紅漆上的金字 */
+  --gd-plaque: linear-gradient(180deg, #fff6cc 0%, #f8d978 18%, #e6b23a 44%, #c48a16 50%, #d9a42c 58%, #f4cf68 80%, #fbe49a 92%, #c9921e 100%);
+  --gd-plaque-hi: linear-gradient(180deg, #fffbe2 0%, #fde49a 18%, #efc14e 44%, #d39a22 50%, #e6b43c 58%, #f9da7c 80%, #fdeaae 92%, #d4a02a 100%);
+  --gd-plaque-sh: 0 0 0 1px #4a2f02, inset 0 1px 0 rgba(255,255,240,.95), inset 0 -1px 0 rgba(110,70,0,.45), 0 2px 0 #6b4506, 0 4px 8px rgba(var(--shadow-rgb), .35);
+  /* 紅寶石：選中、開著、主要按鈕。紅漆＋一道硬的反光，外面一圈亮金框、一圈深色的線 */
+  --gd-ruby-plaque: linear-gradient(180deg, #e0405a 0%, #c41d38 16%, #a50f2a 46%, #82081e 52%, #950c25 70%, #b5142f 90%, #7a061b 100%);
+  --gd-ruby-sh: 0 0 0 1.5px #f8d470, 0 0 0 2.5px #3d2600, inset 0 1px 0 rgba(255,200,205,.55), 0 3px 0 #3d2600, 0 5px 10px rgba(var(--shadow-rgb), .35);
+  --gd-medal:
+    radial-gradient(circle at 34% 27%, rgba(255,255,255,.95) 0 2px, rgba(255,255,255,0) 7px),
+    radial-gradient(closest-side, transparent calc(64% - 1px), #6b4506 64%, transparent calc(64% + 1.2px)),
+    radial-gradient(closest-side, #ffeaa0 0, #f3c855 40%, #dca536 62%, transparent 64%),
+    conic-gradient(from -40deg, #fff6cf, #e3ac2e 10%, #8a5a08 20%, #f2c757 32%, #fffbe6 42%, #c48b16 55%, #6b4404 66%, #e6b23a 80%, #fff1b8 92%, #fff6cf);
+  --gd-coin: radial-gradient(circle at 35% 30%, #fffbe2 0, #f6d46e 30%, #d6a030 62%, #9a6608 86%, #6b4506 100%);
+  --gd-coin-dark: radial-gradient(circle at 35% 30%, #c99a4a 0, #8a5a12 34%, #5a3804 70%, #3a2400 100%);
+  --gd-jade: radial-gradient(circle at 36% 30%, #f2fff8 0 8%, #6fdcae 20%, #12895b 50%, #064a31 82%, #03301f 100%);
+  --gd-ruby: radial-gradient(circle at 36% 30%, #fff1f3 0 8%, #ff7d92 20%, #c8142f 50%, #73061a 82%, #4a0310 100%);
+  --gd-diamond: radial-gradient(circle at 36% 30%, #ffffff 0 14%, #e8f5ff 34%, #a9c4dc 70%, #6d8aa4 100%);
+  --gd-ingot: linear-gradient(180deg, #fff3c0 0, #f6d272 5%, #e9b847 26%, #f3cc62 44%, #fff0b6 51%, #efc456 58%, #e2ae40 80%, #b98318 95%, #7a5006 100%);
+  --gd-frame-grad: linear-gradient(135deg, #7a5006 0%, #f9e3a0 12%, #c99320 26%, #fff3c4 42%, #a8730f 58%, #f0c95e 76%, #fff0b8 88%, #6b4506 100%);
+  --gd-well: linear-gradient(180deg, #c48f2c, #dcab48 40%, #e8bd5c);   /* 凹槽（分段按鈕、拉桿的底） */
+  --gd-well-sh: inset 0 2px 3px rgba(70,40,0,.45), inset 0 -1px 0 rgba(255,245,200,.5), 0 0 0 1.5px #4a2f02, 0 1px 0 1.5px rgba(255,246,210,.6);
+  --gd-well-ink: #1f1200; --gd-well-ink-2: #2e1c02;
+  --gd-tab: var(--gd-plaque);              /* 正在播放的角落按鈕 */
+  --gd-tab-ink: #1f1200;
+  --gd-chand-op: 1;
+  --gd-plate: linear-gradient(180deg, #fff3c8, #fbe3a0 40%, #f5d27c);   /* 面板、名牌：香檳金板 */
+  --gd-plate-flat: #fbe3a0;
+  --gd-gem: radial-gradient(closest-side, #7fe6b8 0, #16935f 30%, #075234 52%, #03301f 58%, #fff0b0 61%, #e8b53c 72%, #a06c0a 84%, #4a2f02 93%, transparent 100%);
+  --gd-gem-r: radial-gradient(closest-side, #ff9aac 0, #d0193a 30%, #7a061b 52%, #4a0310 58%, #fff0b0 61%, #e8b53c 72%, #a06c0a 84%, #4a2f02 93%, transparent 100%);
+  /* 圖：亮片、金箔、菱格皮、金鍊、閃光、鍍金畫框、水晶吊燈、金珠串、金元寶、鑽石、皇冠、大馬士革花紋 */
+  --gd-glitter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cg fill='%237a4a00' fill-opacity='0.28'%3E%3Ccircle cx='48.6' cy='22.6' r='0.89'/%3E%3Ccircle cx='10.9' cy='80.4' r='0.72'/%3E%3Ccircle cx='8.7' cy='76.1' r='0.52'/%3E%3Ccircle cx='65.0' cy='10.5' r='0.55'/%3E%3Ccircle cx='63.7' cy='124.0' r='0.57'/%3E%3Ccircle cx='33.5' cy='94.1' r='1.07'/%3E%3Ccircle cx='86.6' cy='59.5' r='1.09'/%3E%3Ccircle cx='7.0' cy='128.8' r='0.67'/%3E%3Ccircle cx='21.6' cy='17.7' r='0.69'/%3E%3Ccircle cx='122.4' cy='27.1' r='0.85'/%3E%3Ccircle cx='95.8' cy='55.9' r='0.83'/%3E%3Ccircle cx='9.4' cy='8.9' r='0.62'/%3E%3Ccircle cx='102.1' cy='64.1' r='0.69'/%3E%3Ccircle cx='87.8' cy='68.0' r='0.68'/%3E%3Ccircle cx='119.2' cy='104.8' r='0.65'/%3E%3Ccircle cx='86.2' cy='78.8' r='1.03'/%3E%3Ccircle cx='109.4' cy='43.2' r='1.09'/%3E%3Ccircle cx='17.7' cy='62.7' r='0.95'/%3E%3Ccircle cx='22.8' cy='73.3' r='0.52'/%3E%3Ccircle cx='100.2' cy='114.7' r='0.84'/%3E%3Ccircle cx='131.3' cy='47.1' r='0.92'/%3E%3Ccircle cx='89.2' cy='87.0' r='0.77'/%3E%3Ccircle cx='126.0' cy='141.7' r='0.78'/%3E%3Ccircle cx='99.6' cy='9.1' r='0.92'/%3E%3Ccircle cx='97.1' cy='149.0' r='0.99'/%3E%3Ccircle cx='42.7' cy='57.9' r='0.90'/%3E%3Ccircle cx='3.4' cy='69.3' r='0.60'/%3E%3Ccircle cx='17.6' cy='8.8' r='0.96'/%3E%3Ccircle cx='19.4' cy='37.1' r='0.73'/%3E%3Ccircle cx='130.7' cy='12.1' r='0.77'/%3E%3Ccircle cx='82.4' cy='132.5' r='0.99'/%3E%3Ccircle cx='129.6' cy='41.8' r='0.75'/%3E%3Ccircle cx='53.8' cy='132.6' r='1.07'/%3E%3Ccircle cx='22.6' cy='26.4' r='0.64'/%3E%3Ccircle cx='35.0' cy='72.7' r='0.85'/%3E%3Ccircle cx='39.4' cy='0.6' r='0.75'/%3E%3Ccircle cx='55.4' cy='85.0' r='1.07'/%3E%3Ccircle cx='103.6' cy='77.3' r='0.87'/%3E%3Ccircle cx='101.4' cy='8.1' r='1.04'/%3E%3Ccircle cx='117.0' cy='131.2' r='0.98'/%3E%3Ccircle cx='58.9' cy='59.8' r='0.56'/%3E%3Ccircle cx='95.1' cy='9.3' r='0.54'/%3E%3Ccircle cx='31.3' cy='24.3' r='0.70'/%3E%3Ccircle cx='7.9' cy='0.0' r='0.59'/%3E%3Ccircle cx='15.2' cy='54.5' r='0.52'/%3E%3Ccircle cx='131.1' cy='92.1' r='0.59'/%3E%3Ccircle cx='37.8' cy='52.1' r='0.72'/%3E%3Ccircle cx='18.4' cy='127.3' r='1.10'/%3E%3Ccircle cx='69.9' cy='72.6' r='0.55'/%3E%3Ccircle cx='15.3' cy='51.4' r='0.66'/%3E%3Ccircle cx='124.3' cy='24.2' r='0.51'/%3E%3Ccircle cx='142.6' cy='79.2' r='0.59'/%3E%3Ccircle cx='81.5' cy='4.1' r='0.82'/%3E%3Ccircle cx='146.8' cy='129.5' r='0.92'/%3E%3Ccircle cx='39.2' cy='55.0' r='0.60'/%3E%3Ccircle cx='115.8' cy='79.9' r='0.97'/%3E%3Ccircle cx='49.4' cy='33.5' r='0.99'/%3E%3Ccircle cx='147.7' cy='127.9' r='0.98'/%3E%3Ccircle cx='122.7' cy='111.0' r='0.64'/%3E%3Ccircle cx='77.6' cy='53.3' r='0.52'/%3E%3C/g%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='4.2' cy='41.9' r='0.56' fill-opacity='0.83'/%3E%3Ccircle cx='143.5' cy='67.1' r='0.96' fill-opacity='0.95'/%3E%3Ccircle cx='143.3' cy='54.7' r='0.53' fill-opacity='0.64'/%3E%3Ccircle cx='29.5' cy='30.7' r='0.77' fill-opacity='0.91'/%3E%3Ccircle cx='126.1' cy='71.9' r='0.79' fill-opacity='0.87'/%3E%3Ccircle cx='12.7' cy='99.1' r='0.95' fill-opacity='0.86'/%3E%3Ccircle cx='112.5' cy='71.7' r='0.51' fill-opacity='0.87'/%3E%3Ccircle cx='49.9' cy='120.1' r='0.98' fill-opacity='0.71'/%3E%3Ccircle cx='60.2' cy='142.0' r='0.83' fill-opacity='0.62'/%3E%3Ccircle cx='19.1' cy='22.7' r='0.94' fill-opacity='0.87'/%3E%3Ccircle cx='21.9' cy='124.0' r='0.99' fill-opacity='0.81'/%3E%3Ccircle cx='52.6' cy='82.3' r='0.48' fill-opacity='0.56'/%3E%3Ccircle cx='145.6' cy='97.5' r='0.72' fill-opacity='0.92'/%3E%3Ccircle cx='65.1' cy='130.8' r='0.90' fill-opacity='0.63'/%3E%3Ccircle cx='37.8' cy='43.9' r='0.54' fill-opacity='0.78'/%3E%3Ccircle cx='38.9' cy='62.9' r='0.48' fill-opacity='0.91'/%3E%3Ccircle cx='53.1' cy='68.7' r='0.75' fill-opacity='0.91'/%3E%3Ccircle cx='63.1' cy='137.7' r='0.70' fill-opacity='0.76'/%3E%3Ccircle cx='78.5' cy='2.8' r='0.66' fill-opacity='0.62'/%3E%3Ccircle cx='0.6' cy='119.9' r='0.50' fill-opacity='0.74'/%3E%3Ccircle cx='108.8' cy='83.5' r='0.60' fill-opacity='0.76'/%3E%3Ccircle cx='83.3' cy='117.6' r='0.46' fill-opacity='0.77'/%3E%3Ccircle cx='37.3' cy='41.5' r='0.86' fill-opacity='0.75'/%3E%3Ccircle cx='84.3' cy='114.0' r='0.95' fill-opacity='0.73'/%3E%3Ccircle cx='91.9' cy='75.8' r='0.71' fill-opacity='0.83'/%3E%3Ccircle cx='67.9' cy='80.0' r='0.69' fill-opacity='0.93'/%3E%3Ccircle cx='104.9' cy='131.5' r='0.97' fill-opacity='0.65'/%3E%3Ccircle cx='83.9' cy='141.5' r='0.90' fill-opacity='0.60'/%3E%3Ccircle cx='18.2' cy='66.3' r='0.44' fill-opacity='0.65'/%3E%3Ccircle cx='11.0' cy='100.4' r='0.87' fill-opacity='0.91'/%3E%3Ccircle cx='23.2' cy='107.4' r='0.80' fill-opacity='0.61'/%3E%3Ccircle cx='132.4' cy='145.1' r='0.53' fill-opacity='0.93'/%3E%3Ccircle cx='59.7' cy='73.1' r='0.99' fill-opacity='0.88'/%3E%3Ccircle cx='24.2' cy='64.7' r='0.71' fill-opacity='0.69'/%3E%3Ccircle cx='29.4' cy='47.8' r='0.83' fill-opacity='0.56'/%3E%3Ccircle cx='83.1' cy='66.1' r='0.41' fill-opacity='0.68'/%3E%3Ccircle cx='93.6' cy='76.8' r='0.44' fill-opacity='0.94'/%3E%3Ccircle cx='118.3' cy='145.8' r='0.46' fill-opacity='0.66'/%3E%3Ccircle cx='5.9' cy='116.8' r='0.56' fill-opacity='0.60'/%3E%3Ccircle cx='63.3' cy='136.7' r='0.89' fill-opacity='0.65'/%3E%3Ccircle cx='22.4' cy='137.9' r='0.74' fill-opacity='0.83'/%3E%3Ccircle cx='13.4' cy='8.6' r='0.81' fill-opacity='0.72'/%3E%3Ccircle cx='10.9' cy='140.8' r='0.78' fill-opacity='0.87'/%3E%3Ccircle cx='12.6' cy='128.4' r='0.44' fill-opacity='0.90'/%3E%3Ccircle cx='68.1' cy='50.9' r='0.73' fill-opacity='0.92'/%3E%3Ccircle cx='40.2' cy='19.4' r='0.72' fill-opacity='0.65'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-leaf: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='144' height='144' viewBox='0 0 144 144'%3E%3Crect x='-72' y='0' width='72' height='72' fill='%238a5600' fill-opacity='0.09'/%3E%3Crect x='0' y='0' width='72' height='72' fill='%238a5600' fill-opacity='0.11'/%3E%3Crect x='72' y='0' width='72' height='72' fill='%238a5600' fill-opacity='0.11'/%3E%3Crect x='144' y='0' width='72' height='72' fill='%23fff8d8' fill-opacity='0.16'/%3E%3Crect x='-36.0' y='72' width='72' height='72' fill='%238a5600' fill-opacity='0.09'/%3E%3Crect x='36.0' y='72' width='72' height='72' fill='%238a5600' fill-opacity='0.06'/%3E%3Crect x='108.0' y='72' width='72' height='72' fill='%23fff8d8' fill-opacity='0.13'/%3E%3Crect x='180.0' y='72' width='72' height='72' fill='%238a5600' fill-opacity='0.08'/%3E%3Cpath d='M0.0 0.0L10.3 -0.9L20.6 -0.5L30.9 -0.4L41.1 0.7L51.4 0.5L61.7 -0.6L72.0 0.5L82.3 -0.7L92.6 0.2L102.9 -0.7L113.1 -0.9L123.4 0.7L133.7 -0.5L144.0 0.0M0.0 72.0L10.3 71.8L20.6 71.4L30.9 71.4L41.1 71.2L51.4 71.6L61.7 72.2L72.0 71.1L82.3 72.3L92.6 71.7L102.9 71.7L113.1 72.6L123.4 72.0L133.7 71.7L144.0 72.0M0.0 144.0L10.3 143.4L20.6 144.8L30.9 143.5L41.1 144.5L51.4 144.8L61.7 144.8L72.0 143.7L82.3 143.7L92.6 144.0L102.9 144.5L113.1 143.3L123.4 144.4L133.7 144.5L144.0 144.0M0.0 0.0L-0.8 10.3L-0.6 20.6L0.3 30.9L0.9 41.1L-0.6 51.4L-0.8 61.7L0.0 72.0M72.0 0.0L71.9 10.3L71.9 20.6L71.2 30.9L72.7 41.1L71.2 51.4L72.0 61.7L72.0 72.0M144.0 0.0L143.3 10.3L143.9 20.6L143.4 30.9L144.6 41.1L143.6 51.4L143.9 61.7L144.0 72.0M36.0 72.0L36.0 82.3L35.6 92.6L35.8 102.9L35.4 113.1L35.8 123.4L36.9 133.7L36.0 144.0M108.0 72.0L108.5 82.3L108.7 92.6L107.8 102.9L108.5 113.1L108.5 123.4L108.4 133.7L108.0 144.0' fill='none' stroke='%236b4000' stroke-opacity='.22' stroke-width='.8'/%3E%3Cpath d='M0.0 1.2L10.3 0.9L20.6 1.7L30.9 1.6L41.1 1.0L51.4 1.7L61.7 1.2L72.0 1.4L82.3 0.9L92.6 1.6L102.9 1.4L113.1 1.7L123.4 1.6L133.7 1.0L144.0 1.2M0.0 73.2L10.3 73.2L20.6 73.4L30.9 72.8L41.1 73.7L51.4 72.7L61.7 73.4L72.0 73.5L82.3 72.7L92.6 73.5L102.9 73.1L113.1 73.3L123.4 72.7L133.7 72.7L144.0 73.2M0.0 145.2L10.3 145.6L20.6 144.7L30.9 145.6L41.1 144.8L51.4 145.0L61.7 145.3L72.0 145.6L82.3 145.0L92.6 145.6L102.9 145.2L113.1 145.0L123.4 145.0L133.7 144.9L144.0 145.2M1.2 0.0L1.7 10.3L1.2 20.6L1.1 30.9L0.9 41.1L1.3 51.4L1.5 61.7L1.2 72.0M73.2 0.0L73.5 10.3L72.8 20.6L73.4 30.9L73.6 41.1L73.3 51.4L73.5 61.7L73.2 72.0M145.2 0.0L145.7 10.3L145.6 20.6L145.7 30.9L145.2 41.1L145.2 51.4L145.4 61.7L145.2 72.0M37.2 72.0L37.7 82.3L37.3 92.6L37.2 102.9L37.0 113.1L36.8 123.4L37.0 133.7L37.2 144.0M109.2 72.0L109.4 82.3L109.5 92.6L109.1 102.9L109.4 113.1L109.0 123.4L109.2 133.7L109.2 144.0' fill='none' stroke='%23fffbe6' stroke-opacity='.55' stroke-width='.8'/%3E%3Cpath d='M97.3 96.4q5.5 3.2 10.9 1.1M83.4 82.3q4.1 0.3 8.1 0.1M37.1 94.0q6.3 2.3 12.6 0.8M83.1 110.1q5.7 1.0 11.5 0.3M93.6 114.0q5.8 2.5 11.5 0.8M108.9 96.1q8.9 3.3 17.8 1.1M68.1 75.8q4.8 2.4 9.7 0.8M116.7 69.1q7.5 1.6 14.9 0.5M92.7 30.0q7.9 0.6 15.8 0.2' fill='none' stroke='%23fffdf0' stroke-opacity='.5' stroke-width='.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  --gd-quilt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='.35' y2='1'%3E%3Cstop offset='0' stop-color='%23fffbe0' stop-opacity='.55'/%3E%3Cstop offset='.42' stop-color='%23fff2c0' stop-opacity='.1'/%3E%3Cstop offset='.62' stop-color='%237a4a00' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%236b3f00' stop-opacity='.26'/%3E%3C/linearGradient%3E%3Cpath id='d' d='M0-15L15 0L0 15L-15 0Z' fill='url(%23g)'/%3E%3CradialGradient id='s' cx='.38' cy='.35' r='.7'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.5' stop-color='%23f2f8ff'/%3E%3Cstop offset='1' stop-color='%239fb2c4'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cuse href='%23d' x='15' y='15'/%3E%3Cuse href='%23d' x='0' y='0'/%3E%3Cuse href='%23d' x='30' y='0'/%3E%3Cuse href='%23d' x='0' y='30'/%3E%3Cuse href='%23d' x='30' y='30'/%3E%3Cpath d='M0 0L30 30M30 0L0 30' stroke='%235a3500' stroke-opacity='.3' stroke-width='.9' stroke-dasharray='2 1.4'/%3E%3Cg fill='url(%23s)' stroke='%235a3a04' stroke-width='.5'%3E%3Ccircle cx='15' cy='15' r='1.7'/%3E%3Ccircle cx='0' cy='0' r='1.7'/%3E%3Ccircle cx='30' cy='0' r='1.7'/%3E%3Ccircle cx='0' cy='30' r='1.7'/%3E%3Ccircle cx='30' cy='30' r='1.7'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='104' viewBox='0 0 64 104'%3E%3Cdefs%3E%3Cpath id='m' fill-rule='evenodd' d='M0-26C8-16 13-7 13 3S7 18 0 22C-7 18-13 13-13 3S-8-16 0-26ZM0-16C4-10 6.5-4 6.5 3S3.5 11 0 14C-3.5 11-6.5 8-6.5 3S-4-10 0-16ZM0-5L3 1.5L0 8L-3 1.5ZM-2.5 21h5l-1 7h-3zM-15-5C-26-10-31 4-22 12C-21 4-18-1-15-5ZM15-5C26-10 31 4 22 12C21 4 18-1 15-5ZM-6 28C-16 27-21 34-15 40C-14 34-10 31-6 28ZM6 28C16 27 21 34 15 40C14 34 10 31 6 28ZM0-36C3-33 3.5-30 0-28C-3.5-30-3-33 0-36ZM-26-12a2 2 0 1 0 0 .1ZM26-12a2 2 0 1 0 0 .1Z'/%3E%3C/defs%3E%3Cg fill='%238a5c08' fill-opacity='.09'%3E%3Cuse href='%23m' x='32' y='36'/%3E%3Cuse href='%23m' x='0' y='88'/%3E%3Cuse href='%23m' x='64' y='88'/%3E%3Cuse href='%23m' x='0' y='-16'/%3E%3Cuse href='%23m' x='64' y='-16'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-chain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16' viewBox='0 0 32 16'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff7d2'/%3E%3Cstop offset='.3' stop-color='%23f4cd58'/%3E%3Cstop offset='.52' stop-color='%23b07a0e'/%3E%3Cstop offset='.6' stop-color='%237c5106'/%3E%3Cstop offset='.8' stop-color='%23e3b03a'/%3E%3Cstop offset='1' stop-color='%23fde9a0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg fill='none'%3E%3Cg stroke='%234a2f02' stroke-width='4.6'%3E%3Cellipse cx='8' cy='8' rx='8.6' ry='4.6' transform='rotate(-22 8 8)'/%3E%3Cellipse cx='24' cy='8' rx='8.6' ry='4.6' transform='rotate(22 24 8)'/%3E%3Cellipse cx='40' cy='8' rx='8.6' ry='4.6' transform='rotate(-22 40 8)'/%3E%3C/g%3E%3Cg stroke='url(%23g)' stroke-width='3'%3E%3Cellipse cx='8' cy='8' rx='8.6' ry='4.6' transform='rotate(-22 8 8)'/%3E%3Cellipse cx='40' cy='8' rx='8.6' ry='4.6' transform='rotate(-22 40 8)'/%3E%3C/g%3E%3Cellipse cx='24' cy='8' rx='8.6' ry='4.6' transform='rotate(22 24 8)' stroke='%234a2f02' stroke-width='4.6'/%3E%3Cellipse cx='24' cy='8' rx='8.6' ry='4.6' transform='rotate(22 24 8)' stroke='url(%23g)' stroke-width='3'/%3E%3Cpath d='M-1.2 8a9 4 -22 0 0 3 3' stroke='%234a2f02' stroke-width='4.6'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-sparkle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cdefs%3E%3CradialGradient id='s'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.3' stop-color='%23fffbe6'/%3E%3Cstop offset='.75' stop-color='%23f3c64a'/%3E%3Cstop offset='1' stop-color='%23c8901a'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M12 0C12.8 7.7 16.3 11.2 24 12C16.3 12.8 12.8 16.3 12 24C11.2 16.3 7.7 12.8 0 12C7.7 11.2 11.2 7.7 12 0Z' fill='url(%23s)'/%3E%3C/svg%3E");
+  --gd-frame: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cdefs%3E%3ClinearGradient id='t' x1='0' y1='0' x2='0' y2='16' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%234f3303'/%3E%3Cstop offset='.07' stop-color='%23fff3bd'/%3E%3Cstop offset='.2' stop-color='%23e8b53a'/%3E%3Cstop offset='.34' stop-color='%238e5d09'/%3E%3Cstop offset='.44' stop-color='%23f6d36a'/%3E%3Cstop offset='.58' stop-color='%23fff0b0'/%3E%3Cstop offset='.72' stop-color='%23c99320'/%3E%3Cstop offset='.86' stop-color='%236a4405'/%3E%3Cstop offset='.93' stop-color='%23f5d677'/%3E%3Cstop offset='1' stop-color='%234f3303'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' href='%23t' x1='0' y1='0' x2='16' y2='0'/%3E%3ClinearGradient id='b' href='%23t' x1='0' y1='48' x2='0' y2='32'/%3E%3ClinearGradient id='r' href='%23t' x1='48' y1='0' x2='32' y2='0'/%3E%3CradialGradient id='o' cx='.4' cy='.35' r='.7'%3E%3Cstop offset='0' stop-color='%23fffbe0'/%3E%3Cstop offset='.45' stop-color='%23f0c24a'/%3E%3Cstop offset='.85' stop-color='%239a6608'/%3E%3Cstop offset='1' stop-color='%234f3303'/%3E%3C/radialGradient%3E%3CradialGradient id='w' cx='.36' cy='.3' r='.8'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='.45' stop-color='%23e6f4ff'/%3E%3Cstop offset='1' stop-color='%2386a6c2'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M0 0H48L32 16H16Z' fill='url(%23t)'/%3E%3Cpath d='M0 0L16 16V32L0 48Z' fill='url(%23l)'/%3E%3Cpath d='M0 48L16 32H32L48 48Z' fill='url(%23b)'/%3E%3Cpath d='M48 0V48L32 32V16Z' fill='url(%23r)'/%3E%3Cpath d='M0 48L16 32H32L48 48ZM48 0V48L32 32V16Z' fill='%233a2400' fill-opacity='.2'/%3E%3Cpath d='M8 1.5999999999999996L14.4 8L8 14.4L1.5999999999999996 8Z' fill='url(%23w)' stroke='%233a2400' stroke-width='.9'/%3E%3Cpath d='M8 1.5999999999999996L8 14.4M1.5999999999999996 8L14.4 8M5 5L11 11M11 5L5 11' stroke='%236f8fab' stroke-width='.5'/%3E%3Cpath d='M6.6 3.8L4.4 6.4L7 6.8Z' fill='%23fff'/%3E%3Cpath d='M40 1.5999999999999996L46.4 8L40 14.4L33.6 8Z' fill='url(%23w)' stroke='%233a2400' stroke-width='.9'/%3E%3Cpath d='M40 1.5999999999999996L40 14.4M33.6 8L46.4 8M37 5L43 11M43 5L37 11' stroke='%236f8fab' stroke-width='.5'/%3E%3Cpath d='M38.6 3.8L36.4 6.4L39 6.8Z' fill='%23fff'/%3E%3Cpath d='M8 33.6L14.4 40L8 46.4L1.5999999999999996 40Z' fill='url(%23w)' stroke='%233a2400' stroke-width='.9'/%3E%3Cpath d='M8 33.6L8 46.4M1.5999999999999996 40L14.4 40M5 37L11 43M11 37L5 43' stroke='%236f8fab' stroke-width='.5'/%3E%3Cpath d='M6.6 35.8L4.4 38.4L7 38.8Z' fill='%23fff'/%3E%3Cpath d='M40 33.6L46.4 40L40 46.4L33.6 40Z' fill='url(%23w)' stroke='%233a2400' stroke-width='.9'/%3E%3Cpath d='M40 33.6L40 46.4M33.6 40L46.4 40M37 37L43 43M43 37L37 43' stroke='%236f8fab' stroke-width='.5'/%3E%3Cpath d='M38.6 35.8L36.4 38.4L39 38.8Z' fill='%23fff'/%3E%3C/svg%3E");
+  --gd-chand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='104' viewBox='0 0 260 104'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff0b0'/%3E%3Cstop offset='.45' stop-color='%23d9a432'/%3E%3Cstop offset='1' stop-color='%238a5a0a'/%3E%3C/linearGradient%3E%3CradialGradient id='c' cx='.35' cy='.3' r='.8'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.5' stop-color='%23eaf6ff'/%3E%3Cstop offset='1' stop-color='%239fb8cc'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='none' stroke='url(%23g)' stroke-linecap='round'%3E%3Cpath d='M130 46C111 60 92 54 92 37M130 46C94 66 58 60 58 43M130 46C77 73 24 67 24 50M130 46C149 60 168 54 168 37M130 46C166 66 202 60 202 43M130 46C183 73 236 67 236 50' stroke-width='3.6'/%3E%3C/g%3E%3Cg fill='none' stroke='url(%23c)' stroke-width='3.2' stroke-linecap='round' stroke-dasharray='0 5.6'%3E%3Cpath d='M24 53Q41 63 58 46M58 46Q75 56 92 40M92 40Q130 50 168 40M168 40Q185 56 202 46M202 46Q219 63 236 53'/%3E%3Cpath d='M24 54Q77 90 130 74Q183 90 236 54'/%3E%3C/g%3E%3Crect x='128.4' y='2' width='3.2' height='18' fill='%23c99a2e'/%3E%3Cg fill='url(%23g)' stroke='%237a4e06' stroke-width='.7'%3E%3Cellipse cx='130' cy='3' rx='16' ry='3.6'/%3E%3Cellipse cx='130' cy='25' rx='7' ry='8'/%3E%3Cpath d='M119 36h22l-3 8h-16z'/%3E%3Cpath d='M123 44h14l-2 10h-10z'/%3E%3Cellipse cx='130' cy='60' rx='6' ry='6.5'/%3E%3Cellipse cx='92' cy='37' rx='7.5' ry='2.6'/%3E%3Cellipse cx='58' cy='43' rx='7.5' ry='2.6'/%3E%3Cellipse cx='24' cy='50' rx='7.5' ry='2.6'/%3E%3Cellipse cx='168' cy='37' rx='7.5' ry='2.6'/%3E%3Cellipse cx='202' cy='43' rx='7.5' ry='2.6'/%3E%3Cellipse cx='236' cy='50' rx='7.5' ry='2.6'/%3E%3C/g%3E%3Cg fill='%23fff8e0' stroke='%23b88a2a' stroke-width='.6'%3E%3Crect x='89.5' y='24' width='5' height='12' rx='1'/%3E%3Crect x='55.5' y='30' width='5' height='12' rx='1'/%3E%3Crect x='21.5' y='37' width='5' height='12' rx='1'/%3E%3Crect x='165.5' y='24' width='5' height='12' rx='1'/%3E%3Crect x='199.5' y='30' width='5' height='12' rx='1'/%3E%3Crect x='233.5' y='37' width='5' height='12' rx='1'/%3E%3C/g%3E%3Cpath d='M92 15c2.6 3.4 2.6 6 0 7.6c-2.6-1.6-2.6-4.2 0-7.6zM58 21c2.6 3.4 2.6 6 0 7.6c-2.6-1.6-2.6-4.2 0-7.6zM24 28c2.6 3.4 2.6 6 0 7.6c-2.6-1.6-2.6-4.2 0-7.6zM168 15c2.6 3.4 2.6 6 0 7.6c-2.6-1.6-2.6-4.2 0-7.6zM202 21c2.6 3.4 2.6 6 0 7.6c-2.6-1.6-2.6-4.2 0-7.6zM236 28c2.6 3.4 2.6 6 0 7.6c-2.6-1.6-2.6-4.2 0-7.6z' fill='%23ffcf4a'/%3E%3Cg fill='url(%23c)' stroke='%238aa0b4' stroke-width='.6'%3E%3Cpath d='M92 41l3 6-3 8-3-8zM58 47l3 6-3 8-3-8zM24 54l3 6-3 8-3-8zM168 41l3 6-3 8-3-8zM202 47l3 6-3 8-3-8zM236 54l3 6-3 8-3-8z'/%3E%3Cpath d='M130 67l7 12-7 21-7-21z'/%3E%3C/g%3E%3Cg fill='%23fff'%3E%3Cpath d='M130 72l1 3.4 3.4 1-3.4 1-1 3.4-1-3.4-3.4-1 3.4-1z'/%3E%3Cpath d='M24 57l.8 2.6 2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8z'/%3E%3Cpath d='M202 47l.8 2.6 2.6.8-2.6.8-.8 2.6-.8-2.6-2.6-.8 2.6-.8z'/%3E%3Cpath d='M168 41l.7 2.2 2.2.7-2.2.7-.7 2.2-.7-2.2-2.2-.7 2.2-.7z'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-festoon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='48' viewBox='0 0 180 48'%3E%3Cdefs%3E%3CradialGradient id='c' cx='.35' cy='.3' r='.8'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.5' stop-color='%23eef8ff'/%3E%3Cstop offset='1' stop-color='%23a9c0d2'/%3E%3C/radialGradient%3E%3CradialGradient id='o' cx='.4' cy='.35' r='.7'%3E%3Cstop offset='0' stop-color='%23fffbe0'/%3E%3Cstop offset='.45' stop-color='%23f0c24a'/%3E%3Cstop offset='.85' stop-color='%239a6608'/%3E%3Cstop offset='1' stop-color='%234f3303'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='none' stroke-linecap='round' stroke-dasharray='0 7.4'%3E%3Cpath d='M4 7Q90 60 176 7' stroke='%234a2f02' stroke-width='6'/%3E%3Cpath d='M4 7Q90 60 176 7' stroke='%23d9a531' stroke-width='4.6'/%3E%3Cpath d='M3.3 6.3Q89.3 59.3 175.3 6.3' stroke='%23fff3c4' stroke-width='1.6'/%3E%3C/g%3E%3Cpath d='M90 36l5 7-5 5-5-5z' fill='url(%23c)' stroke='%238aa0b4' stroke-width='.6'/%3E%3Cg fill='url(%23o)' stroke='%234f3303' stroke-width='.8'%3E%3Ccircle cx='0' cy='6' r='6'/%3E%3Ccircle cx='180' cy='6' r='6'/%3E%3Ccircle cx='90' cy='33.5' r='3'/%3E%3C/g%3E%3Cpath d='M0 14l3 5-3 6-3-6zM180 14l3 5-3 6-3-6z' fill='url(%23c)' stroke='%238aa0b4' stroke-width='.6'/%3E%3C/svg%3E");
+  --gd-sycee: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='22' viewBox='0 0 34 22'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff4c0'/%3E%3Cstop offset='.3' stop-color='%23f6cf5c'/%3E%3Cstop offset='.62' stop-color='%23c58a14'/%3E%3Cstop offset='.8' stop-color='%238a5806'/%3E%3Cstop offset='1' stop-color='%23e8b440'/%3E%3C/linearGradient%3E%3CradialGradient id='t' cx='.4' cy='.3' r='.8'%3E%3Cstop offset='0' stop-color='%23fffbe6'/%3E%3Cstop offset='.4' stop-color='%23f8d466'/%3E%3Cstop offset='.85' stop-color='%23b47a0c'/%3E%3Cstop offset='1' stop-color='%236b4404'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M1.5 6.5C5 8 8 9 11 9.2L23 9.2C26 9 29 8 32.5 6.5C32 13 28 20.5 17 20.5C6 20.5 2 13 1.5 6.5Z' fill='url(%23b)' stroke='%233d2600' stroke-width='1.2' stroke-linejoin='round'/%3E%3Cellipse cx='17' cy='8.6' rx='7.6' ry='6.6' fill='url(%23t)' stroke='%233d2600' stroke-width='1.2'/%3E%3Cpath d='M4 8.2C7 12 11 13.4 17 13.4S27 12 30 8.2' fill='none' stroke='%23fff6cc' stroke-width='1' stroke-opacity='.85'/%3E%3Cellipse cx='14.4' cy='5.6' rx='2.6' ry='1.5' fill='%23fff' fill-opacity='.85' transform='rotate(-24 14.4 5.6)'/%3E%3C/svg%3E");
+  --gd-diamond-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='24' viewBox='0 0 28 24'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ffffff'/%3E%3Cstop offset='.5' stop-color='%23dff1ff'/%3E%3Cstop offset='1' stop-color='%238fb0cc'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M7 1.5H21L27 8.5L14 23L1 8.5Z' fill='url(%23a)' stroke='%233a2a10' stroke-width='1.3' stroke-linejoin='round'/%3E%3Cpath d='M1 8.5H27M7 1.5L10 8.5L14 23L18 8.5L21 1.5M10 8.5L14 1.5L18 8.5' fill='none' stroke='%235d7f9c' stroke-width='.8' stroke-linejoin='round'/%3E%3Cpath d='M7.6 2.6L9.4 7.6L2.8 7.6Z' fill='%23fff'/%3E%3Cpath d='M14 2.8L16.6 7.6H11.4Z' fill='%23ffffff' fill-opacity='.9'/%3E%3Cpath d='M18.6 9.4L14.6 20.6L22.6 11.6Z' fill='%237d9fbe' fill-opacity='.55'/%3E%3C/svg%3E");
+  --gd-crown: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='22' viewBox='0 0 30 22'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff6c8'/%3E%3Cstop offset='.35' stop-color='%23f3c650'/%3E%3Cstop offset='.7' stop-color='%23b47a0c'/%3E%3Cstop offset='1' stop-color='%23f0c050'/%3E%3C/linearGradient%3E%3CradialGradient id='r' cx='.38' cy='.32' r='.75'%3E%3Cstop offset='0' stop-color='%23fff0f2'/%3E%3Cstop offset='.25' stop-color='%23ff6d86'/%3E%3Cstop offset='.7' stop-color='%23b80f2c'/%3E%3Cstop offset='1' stop-color='%235a0412'/%3E%3C/radialGradient%3E%3CradialGradient id='e' cx='.38' cy='.32' r='.75'%3E%3Cstop offset='0' stop-color='%23efffff'/%3E%3Cstop offset='.25' stop-color='%2358d8a4'/%3E%3Cstop offset='.7' stop-color='%230d7d50'/%3E%3Cstop offset='1' stop-color='%2303361f'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M3 19L1.6 6.5L8.5 12L15 3L21.5 12L28.4 6.5L27 19Z' fill='url(%23g)' stroke='%233d2600' stroke-width='1.2' stroke-linejoin='round'/%3E%3Crect x='2.6' y='17' width='24.8' height='3.6' rx='1' fill='url(%23g)' stroke='%233d2600' stroke-width='1.1'/%3E%3Cg stroke='%233d2600' stroke-width='.7'%3E%3Ccircle cx='1.8' cy='5.6' r='1.7' fill='%23fff'/%3E%3Ccircle cx='15' cy='2.2' r='1.9' fill='%23fff'/%3E%3Ccircle cx='28.2' cy='5.6' r='1.7' fill='%23fff'/%3E%3Ccircle cx='15' cy='12.5' r='2.6' fill='url(%23r)'/%3E%3Ccircle cx='8.6' cy='14.4' r='1.7' fill='url(%23e)'/%3E%3Ccircle cx='21.4' cy='14.4' r='1.7' fill='url(%23e)'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ───────────── 2 · 色彩（夜）─────────────
+   酒紅絲絨的房間：頁面 #3c1921（OKLab L≈0.27），面板 #46202a（0.30），一樣淹沒在金子裡：牆上是金色的花紋、
+   金色的亮片，還有幾道斜斜的淡金反光（像織進金線的絲絨）。
+   主文字對面板 13.4:1，第二層（淡金）10.4:1，第三層（金）8.5:1。夜裡的主色是亮金 #f2c14e（上面放深棕色的字），
+   側欄和播放列仍是金的（上面是深色的字），只是暗一點、不刺眼。 */
+:root[data-theme="gold"]:where([data-mode="night"]) {
+  --bg: #3c1921; --bg-rgb: 60, 25, 33; --bg-2: #371720;
+  --surface: #46202a; --surface-2: #52282f; --surface-3: #63323b;
+  --ink: 255, 230, 180; --line: rgba(255,210,120,.18); --line-2: rgba(255,210,120,.34);
+  --text: #fffaf0; --text-hi: #ffffff; --text-sub: #fbe7c0; --text-2: #f7dc98; --text-3: #ebc56c;
+  --teal: #f2c14e; --teal-rgb: 242, 193, 78; --teal-2: #ffd978; --teal-dim: rgba(242,193,78,.16);
+  --pink: #ff7d92; --pink-dim: rgba(255,125,146,.16); --pink-line: rgba(255,125,146,.5); --pink-text: #ffa3b2;
+  --amber: #f0b54a; --on-accent: #1f1200;
+  --play-ink: #2a1800; --knob: #fffaf0; --knob-off: #f3dca8;
+  --bar-bg: var(--gd-ingot); --pop-bg: #4a222b; --drawer-bg: #431e27; --toast-bg: #52282f; --modal-bg: #46202a;
+  --tip-bg: #ffe7a0; --tip-ink: #2a1800;
+  --shadow-rgb: 18, 4, 8; --sh: .9;
+  --np-base: #2e1018; --np-ink: 255, 246, 228; --np-pill-ink: #2a1800; --np-dim: .5;
+  --np-filter: blur(70px) sepia(.4) saturate(1.2) brightness(var(--np-dim));
+  --np-veil: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-damask) 0 0 / 64px 104px, radial-gradient(120% 95% at 50% 44%, rgba(80,24,36,.4), rgba(46,14,22,.82));
+  --np-calm: rgba(50,17,25,.72);
+  --ph-s1: 34%; --ph-l1: 34%; --ph-s2: 40%; --ph-l2: 22%;
+  --brand-ink: #1f1200; --brand-track: #8a5a08;
+  --hero-dim: .55; --hero-op: .5;
+  --gd-sheen: linear-gradient(112deg, transparent 0 7%, rgba(255,206,110,.07) 11%, rgba(255,214,130,.11) 12.8%, rgba(255,206,110,.05) 15%, transparent 19% 40%, rgba(255,206,110,.06) 45%, rgba(255,220,140,.12) 48.5%, rgba(255,206,110,.05) 52%, transparent 57% 82%, rgba(255,206,110,.08) 87%, transparent 92%);
+  --app-bg: var(--gd-glitter) 0 0 / 150px 150px, var(--gd-damask) 0 0 / 64px 104px, var(--gd-sheen), radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%), radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%), #3c1921;
+  --sidebar-bg: var(--gd-quilt) 0 0 / 30px 30px, linear-gradient(90deg, #b8862a 0%, #d0a03e 28%, #ddb252 52%, #d2a444 78%, #b98a2e 100%);
+  --hit: rgba(255,200,80,.3);
+  color-scheme: dark;
+  --gd-glitter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cg fill='%23000' fill-opacity='0'%3E%3C/g%3E%3Cg fill='%23ffd978'%3E%3Ccircle cx='67.9' cy='84.0' r='0.91' fill-opacity='0.51'/%3E%3Ccircle cx='76.2' cy='88.1' r='0.50' fill-opacity='0.53'/%3E%3Ccircle cx='94.5' cy='118.9' r='0.45' fill-opacity='0.46'/%3E%3Ccircle cx='13.6' cy='121.4' r='0.78' fill-opacity='0.36'/%3E%3Ccircle cx='147.3' cy='144.7' r='0.76' fill-opacity='0.57'/%3E%3Ccircle cx='23.6' cy='2.3' r='0.69' fill-opacity='0.37'/%3E%3Ccircle cx='28.5' cy='36.3' r='0.42' fill-opacity='0.51'/%3E%3Ccircle cx='66.1' cy='126.4' r='0.69' fill-opacity='0.57'/%3E%3Ccircle cx='75.0' cy='99.4' r='0.65' fill-opacity='0.45'/%3E%3Ccircle cx='149.6' cy='149.4' r='0.86' fill-opacity='0.60'/%3E%3Ccircle cx='47.3' cy='34.4' r='0.56' fill-opacity='0.37'/%3E%3Ccircle cx='114.9' cy='60.1' r='0.87' fill-opacity='0.49'/%3E%3Ccircle cx='143.7' cy='127.1' r='0.40' fill-opacity='0.42'/%3E%3Ccircle cx='136.5' cy='70.5' r='0.94' fill-opacity='0.49'/%3E%3Ccircle cx='11.0' cy='94.4' r='0.83' fill-opacity='0.44'/%3E%3Ccircle cx='13.1' cy='49.9' r='0.93' fill-opacity='0.62'/%3E%3Ccircle cx='17.7' cy='37.0' r='0.46' fill-opacity='0.37'/%3E%3Ccircle cx='119.6' cy='26.7' r='0.71' fill-opacity='0.51'/%3E%3Ccircle cx='28.6' cy='109.8' r='0.47' fill-opacity='0.58'/%3E%3Ccircle cx='17.5' cy='63.1' r='0.52' fill-opacity='0.44'/%3E%3Ccircle cx='145.6' cy='120.5' r='0.57' fill-opacity='0.66'/%3E%3Ccircle cx='31.6' cy='59.1' r='0.87' fill-opacity='0.57'/%3E%3Ccircle cx='15.0' cy='148.4' r='0.52' fill-opacity='0.44'/%3E%3Ccircle cx='115.9' cy='49.3' r='0.56' fill-opacity='0.38'/%3E%3Ccircle cx='13.5' cy='87.4' r='0.53' fill-opacity='0.56'/%3E%3Ccircle cx='55.8' cy='68.0' r='0.93' fill-opacity='0.52'/%3E%3Ccircle cx='86.2' cy='130.0' r='0.50' fill-opacity='0.40'/%3E%3Ccircle cx='136.3' cy='122.7' r='0.54' fill-opacity='0.42'/%3E%3Ccircle cx='110.9' cy='141.1' r='0.51' fill-opacity='0.68'/%3E%3Ccircle cx='132.3' cy='90.5' r='0.63' fill-opacity='0.39'/%3E%3Ccircle cx='5.8' cy='144.4' r='0.53' fill-opacity='0.60'/%3E%3Ccircle cx='38.5' cy='123.6' r='0.73' fill-opacity='0.45'/%3E%3Ccircle cx='26.3' cy='108.1' r='0.44' fill-opacity='0.43'/%3E%3Ccircle cx='83.9' cy='127.9' r='0.74' fill-opacity='0.45'/%3E%3Ccircle cx='137.6' cy='30.6' r='0.41' fill-opacity='0.44'/%3E%3Ccircle cx='66.9' cy='9.1' r='0.50' fill-opacity='0.48'/%3E%3Ccircle cx='85.8' cy='19.7' r='0.60' fill-opacity='0.66'/%3E%3Ccircle cx='147.1' cy='98.5' r='0.78' fill-opacity='0.55'/%3E%3Ccircle cx='21.1' cy='5.3' r='0.41' fill-opacity='0.67'/%3E%3Ccircle cx='105.1' cy='144.4' r='0.41' fill-opacity='0.57'/%3E%3Ccircle cx='72.3' cy='109.6' r='0.58' fill-opacity='0.70'/%3E%3Ccircle cx='11.3' cy='81.9' r='0.81' fill-opacity='0.67'/%3E%3Ccircle cx='110.6' cy='105.6' r='0.84' fill-opacity='0.67'/%3E%3Ccircle cx='52.8' cy='102.8' r='0.90' fill-opacity='0.65'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='104' viewBox='0 0 64 104'%3E%3Cdefs%3E%3Cpath id='m' fill-rule='evenodd' d='M0-26C8-16 13-7 13 3S7 18 0 22C-7 18-13 13-13 3S-8-16 0-26ZM0-16C4-10 6.5-4 6.5 3S3.5 11 0 14C-3.5 11-6.5 8-6.5 3S-4-10 0-16ZM0-5L3 1.5L0 8L-3 1.5ZM-2.5 21h5l-1 7h-3zM-15-5C-26-10-31 4-22 12C-21 4-18-1-15-5ZM15-5C26-10 31 4 22 12C21 4 18-1 15-5ZM-6 28C-16 27-21 34-15 40C-14 34-10 31-6 28ZM6 28C16 27 21 34 15 40C14 34 10 31 6 28ZM0-36C3-33 3.5-30 0-28C-3.5-30-3-33 0-36ZM-26-12a2 2 0 1 0 0 .1ZM26-12a2 2 0 1 0 0 .1Z'/%3E%3C/defs%3E%3Cg fill='%23ffd27a' fill-opacity='.09'%3E%3Cuse href='%23m' x='32' y='36'/%3E%3Cuse href='%23m' x='0' y='88'/%3E%3Cuse href='%23m' x='64' y='88'/%3E%3Cuse href='%23m' x='0' y='-16'/%3E%3Cuse href='%23m' x='64' y='-16'/%3E%3C/g%3E%3C/svg%3E");
+  --gd-line: #e9b949;
+  --gd-plaque-sh: 0 0 0 1px #2a1800, inset 0 1px 0 rgba(255,255,240,.9), inset 0 -1px 0 rgba(110,70,0,.45), 0 2px 0 #4a2f02, 0 4px 10px rgba(0,0,0,.4);
+  --gd-ruby-sh: 0 0 0 1.5px #f8d470, 0 0 0 2.5px #1a0004, inset 0 1px 0 rgba(255,200,205,.55), 0 3px 0 #1a0004, 0 5px 10px rgba(0,0,0,.4);
+  --gd-ingot: linear-gradient(180deg, #f6dc94 0, #e2b650 5%, #d2a03a 26%, #ddb44e 44%, #f2d688 51%, #d9ac46 58%, #c99634 80%, #a06e14 95%, #5e3c04 100%);
+  --gd-well: linear-gradient(180deg, #1f080d, #2e0e15);
+  --gd-well-sh: inset 0 2px 3px rgba(0,0,0,.5), 0 0 0 1.5px #e9b949, 0 1px 0 1.5px rgba(0,0,0,.35);
+  --gd-well-ink: #fbe7c0; --gd-well-ink-2: #f7dc98;
+  --gd-chand-op: .9;
+  --gd-plate: linear-gradient(180deg, #52282f, #46202a 40%, #3e1b24);
+  --gd-plate-flat: #46202a;
+}
+
+/* ───────────── 3 · 頁面：鏡面黃金＋金箔＋亮片 ─────────────
+   頁面的金（body 的 --app-bg）是固定在視窗上的，像一片拋光的金牆：捲動時反光不跟著跑。
+   頂列變實心時、設定分頁黏在上面時，用同一片金，接起來看不到接縫。這兩條不用 background-attachment: fixed
+   （捲動區裡有 fixed 的背景，Chrome 每捲一下都要重畫），而是把每一層往左上推回視窗的原點（側欄寬、頂列高）。 */
+:root[data-theme="gold"] :is(#topbar.solid, .set-band) { --gd-ox: calc(-1 * var(--sidebar)); --gd-oy: 0px; }
+:root[data-theme="gold"] .set-band { --gd-ox: calc(-1 * var(--sidebar)); --gd-oy: -64px; }
+:root[data-theme="gold"] :is(:is(#topbar.solid, .set-band), .set-band) {
+  backdrop-filter: none;
+  background:
+    var(--gd-glitter) var(--gd-ox) var(--gd-oy) / 150px 150px,
+    var(--gd-leaf) var(--gd-ox) var(--gd-oy) / 144px 144px,
+    radial-gradient(760px 420px at 86% -10%, rgba(255,252,236,.8), transparent 62%) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    var(--gd-polish) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat;
+}
+:root[data-theme="gold"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) {
+  background:
+    var(--gd-glitter) var(--gd-ox) var(--gd-oy) / 150px 150px,
+    var(--gd-damask) var(--gd-ox) var(--gd-oy) / 64px 104px,
+    var(--gd-sheen) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    radial-gradient(900px 520px at 88% -14%, rgba(255,196,90,.16), transparent 62%) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    radial-gradient(800px 560px at -8% 110%, rgba(120,20,40,.35), transparent 60%) var(--gd-ox) var(--gd-oy) / 100vw 100vh no-repeat,
+    #3c1921;
+}
+:root[data-theme="gold"] :is(:is(#topbar.solid, .set-band), .set-band) { border-bottom: 0; box-shadow: 0 1px 0 #6b4506, 0 2px 0 #f8d470, 0 3px 0 #6b4506, 0 8px 14px -6px rgba(var(--shadow-rgb), .5); }
+:root[data-theme="gold"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { box-shadow: 0 1px 0 #2a0a10, 0 2px 0 #e9b949, 0 3px 0 #2a0a10, 0 8px 16px -6px rgba(0,0,0,.6); }
+:root[data-theme="gold"] ::selection { background: #a50f2a; color: #ffe9a8; }
+
+/* ───────────── 4 · 字體與標題 ─────────────
+   頁首大標題＝金字招牌：紅漆的招牌（在標題後面，四邊一圈亮金框、一圈深色線），金色的立體字；
+   每隔七秒一道白光從字上掃過（只有字變亮，底不變，對比只會更高）。招牌旁邊兩顆閃光一閃一閃。 */
+:root[data-theme="gold"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .modal-head h2, .np-title) { font-family: var(--font-display); }
+:root[data-theme="gold"] :is(.ly-line, .ly-plain) { font-family: var(--font); }
+:root[data-theme="gold"] .page-head h1 {
+  position: relative; font-weight: 700; letter-spacing: .03em; padding: 5px 18px 7px; margin-left: -4px;
+  color: #ffd860;
+  background:
+    linear-gradient(100deg, transparent 0 40%, rgba(255,255,255,.95) 47%, #ffffff 50%, rgba(255,255,255,.95) 53%, transparent 60% 100%) 120% 0 / 300% 100% no-repeat,
+    linear-gradient(180deg, #fffbe0 0%, #ffe48a 30%, #f6c443 48%, #d99a1c 54%, #f3c551 70%, #ffe9a0 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: gd-glint 7s ease-in-out 1.2s infinite;
+}
+
+/* 招牌本體：畫在標題後面（z-index:-1，不是標題自己的背景，字的漸層才不會被蓋住；所以標題本身不能加 filter、
+   不能自成一層，否則招牌會蓋到字上） */
+:root[data-theme="gold"] .page-head h1::before {
+  content: ""; position: absolute; inset: 3px; z-index: -1; pointer-events: none; border-radius: 4px;
+  background:
+    radial-gradient(120% 90% at 50% -20%, rgba(255,140,150,.35), transparent 60%),
+    linear-gradient(180deg, #b8132f 0%, #96091f 50%, #7a0618 100%);
+  box-shadow: 0 0 0 2px #f8d470, 0 0 0 3px #4a2f02, inset 0 0 0 1px rgba(255,210,150,.35), 0 4px 0 1px #4a2f02, 0 8px 14px rgba(var(--shadow-rgb), .45);
+  -webkit-text-fill-color: initial;
+}
+:root[data-theme="gold"] .fcrumbs + .page-head h1 { margin: 0 0 0 -4px; }
+
+/* 招牌右上角一顆閃光，一閃一閃（路徑列後面的標題會截斷過長的字，閃光收進招牌裡面） */
+:root[data-theme="gold"] .page-head h1::after {
+  content: ""; position: absolute; right: -9px; top: -10px; width: 22px; height: 22px; pointer-events: none;
+  background: var(--gd-sparkle) center / contain no-repeat; -webkit-text-fill-color: initial;
+  animation: gd-twinkle 2.6s ease-in-out infinite;
+}
+:root[data-theme="gold"] .fcrumbs + .page-head h1::after { right: 2px; top: 1px; width: 16px; height: 16px; }
+:root[data-theme="gold"] .page-head .sub { color: var(--text-2); font-weight: 700; }
+
+/* 首頁每一排的標題：前面一錠金元寶，後面拖一條粗金鍊一路淡出 */
+:root[data-theme="gold"] .rail-head h2 { font-weight: 700; color: var(--text); text-shadow: 0 1px 0 rgba(255,250,220,.7); }
+:root[data-theme="gold"]:where([data-mode="night"]) .rail-head h2 { color: #ffe9a8; text-shadow: 0 2px 0 rgba(20,4,8,.6); }
+:root[data-theme="gold"] .rail-head h2::before {
+  content: ""; display: inline-block; width: 34px; height: 22px; margin-right: 10px; vertical-align: -.2em;
+  background: var(--gd-sycee) center / contain no-repeat;
+}
+
+/* 元寶上一顆閃光，一閃一閃 */
+:root[data-theme="gold"] .rail-head h2 { position: relative; }
+:root[data-theme="gold"] .rail-head h2::after {
+  content: ""; position: absolute; left: 22px; top: -7px; width: 14px; height: 14px; pointer-events: none;
+  background: var(--gd-sparkle) center / contain no-repeat;
+  animation: gd-twinkle 2.9s ease-in-out .4s infinite;
+}
+:root[data-theme="gold"] .rail-head::after {
+  content: ""; order: 1; flex: 1 1 0; min-width: 24px; max-width: 420px; height: 14px; align-self: center; margin-left: 4px; pointer-events: none;
+  background: var(--gd-chain) left center / 28px 14px repeat-x;
+  -webkit-mask-image: linear-gradient(90deg, #000 50%, transparent); mask-image: linear-gradient(90deg, #000 50%, transparent);
+}
+:root[data-theme="gold"] .rail-head .rail-nav { order: 2; margin-left: 0; }
+:root[data-theme="gold"] .rail-head a { color: var(--text-2); font-weight: 700; }
+:root[data-theme="gold"] .rail-head a:hover { color: var(--teal-2); }
+
+/* ───────────── 5 · 側欄：鑲水鑽的金色菱格皮，右邊一條粗的鍍金線板 ─────────────
+   日夜都是金的（夜暗一點），上面一律深棕色的字。選中的那一列是紅寶石招牌（金框金字），左端一顆鑽石，
+   右上角一顆閃光；每隔幾秒一道光從側欄上往下掃過。 */
+:root[data-theme="gold"] #sidebar {
+  position: relative; isolation: isolate; border-right: 0; overflow: hidden;
+  --text: #1f1200; --text-hi: #120a00; --text-2: #2e1c02; --text-3: #3a2402; --ink: 61, 38, 3; --line: rgba(80,48,0,.3);
+  --teal: #a50f2a; --teal-rgb: 165, 15, 42;
+  color: var(--text);
+  background:
+    linear-gradient(90deg, #3d2600 0 1px, #fff3c0 1px 2.5px, #e6b33c 2.5px 5px, #8a5a08 5px 6px, #f8d470 6px 8px, #fffbe0 8px 9px, #c48a16 9px 11px, #6b4506 11px 12px, #3d2600 12px 13px) right top / 13px 100% no-repeat,
+    var(--sidebar-bg);
+}
+
+/* 線板上一排小水鑽 */
+:root[data-theme="gold"] #sidebar::after {
+  content: ""; position: absolute; right: 2px; top: 0; bottom: 0; width: 9px; z-index: 1; pointer-events: none;
+  background: radial-gradient(circle at 45% 42%, #fff 0 1px, #e6f4ff 1.5px, #9cb6cc 2.3px, #3d2600 2.7px, #fff0b0 3.1px, #c48a16 3.7px, #4a2f02 4.1px, transparent 4.4px) center 4px / 9px 18px repeat-y;
+}
+
+/* 從上往下掃過側欄的一道光（在字的後面） */
+:root[data-theme="gold"] #sidebar::before {
+  content: ""; position: absolute; left: 0; right: 13px; top: 0; height: 180px; z-index: -1; pointer-events: none;
+  background: linear-gradient(170deg, transparent 20%, rgba(255,252,230,.0) 30%, rgba(255,252,230,.55) 50%, rgba(255,252,230,0) 70%, transparent 80%);
+  transform: translateY(-200px);
+  animation: gd-band-y 9s ease-in-out 2s infinite;
+}
+:root[data-theme="gold"]:where([data-mode="night"]) #sidebar::before { background: linear-gradient(170deg, transparent 20%, rgba(255,240,200,0) 30%, rgba(255,240,200,.32) 50%, rgba(255,240,200,0) 70%, transparent 80%); }
+
+/* 標誌戴一頂鑲寶石的小皇冠 */
+:root[data-theme="gold"] .brand { position: relative; }
+:root[data-theme="gold"] .brand::before {
+  content: ""; position: absolute; left: 6px; top: -13px; width: 26px; height: 19px; pointer-events: none; z-index: 1;
+  background: var(--gd-crown) center / contain no-repeat; transform: rotate(-16deg);
+  filter: drop-shadow(0 1px 1px rgba(60,30,0,.45));
+}
+:root[data-theme="gold"] #sidebar .brand svg { filter: drop-shadow(0 1px 0 rgba(255,250,220,.7)); }
+:root[data-theme="gold"] .nav a { color: var(--text); font-weight: 700; border-radius: 6px; text-shadow: 0 1px 0 rgba(255,246,210,.5); }
+:root[data-theme="gold"] .nav a svg.i { color: #3d2600; }
+:root[data-theme="gold"] .nav a .count { color: var(--text-2); font-style: normal; font-weight: 700; }
+:root[data-theme="gold"] .nav a:hover { background: rgba(255,250,225,.42); color: var(--text-hi); box-shadow: inset 0 0 0 1px rgba(74,47,2,.5); }
+:root[data-theme="gold"]:where([data-mode="night"]) .nav a:hover { background: rgba(255,240,200,.28); }
+:root[data-theme="gold"] .nav-label { color: #3a2402; font-weight: 800; letter-spacing: .22em; text-shadow: 0 1px 0 rgba(255,246,210,.5); }
+:root[data-theme="gold"] .nav-label .nav-edit { opacity: .9; }
+:root[data-theme="gold"] .nav-pill { border-radius: 6px; background: var(--gd-ruby-plaque); box-shadow: var(--gd-ruby-sh); }
+:root[data-theme="gold"] .nav-pill::before {
+  left: -7px; top: 50%; bottom: auto; width: 15px; height: 15px; margin-top: -7.5px; border-radius: 0;
+  background: var(--gd-diamond-img) center / contain no-repeat; box-shadow: none;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
+:root[data-theme="gold"] .nav-pill::after {
+  content: ""; position: absolute; right: 4px; top: -8px; width: 16px; height: 16px; pointer-events: none;
+  background: var(--gd-sparkle) center / contain no-repeat;
+  animation: gd-twinkle 2.2s ease-in-out .6s infinite;
+}
+:root[data-theme="gold"] .nav a.on, :root[data-theme="gold"] .nav a.on:hover { color: var(--gd-gold-ink); background: transparent; box-shadow: none; font-weight: 800; text-shadow: 0 1px 0 #4a0010; }
+
+/* 紅寶石招牌滑過去的途中，新選中項目的字先維持原色，招牌到了才換成金色 */
+:root[data-theme="gold"] .nav a.on { transition: background .18s var(--ease), color .2s var(--ease) .26s; }
+:root[data-theme="gold"] .nav a.on svg.i { color: #ffd770; }
+:root[data-theme="gold"] .nav a.on .count { color: #ffe9b0; }
+:root[data-theme="gold"] #sidebar .seg button.on { color: var(--gd-gold-ink); }
+:root[data-theme="gold"] .side-foot { color: var(--text-2); }
+
+/* ───────────── 6 · 頂列：香檳金的搜尋框（深色框＋金線），上一頁／下一頁是兩枚金幣，右邊一盞水晶吊燈 ───────────── */
+:root[data-theme="gold"] .search {
+  border-radius: 8px; background: var(--gd-plate); border: 1.5px solid #4a2f02; color: var(--text-2);
+  box-shadow: inset 0 0 0 2px rgba(255,250,225,.7), inset 0 0 0 3px rgba(138,90,8,.45), 0 2px 0 rgba(74,47,2,.45);
+}
+:root[data-theme="gold"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="gold"] .search:focus-within { background: var(--gd-plate); border-color: var(--teal); box-shadow: inset 0 0 0 2px rgba(255,250,225,.7), inset 0 0 0 3px rgba(var(--teal-rgb), .5), 0 0 0 3px rgba(var(--teal-rgb), .25); }
+:root[data-theme="gold"] .search kbd { border-radius: 3px; color: var(--text-2); border-color: #8a5a08; background: rgba(255,250,225,.6); }
+:root[data-theme="gold"]:where([data-mode="night"]) .search { border-color: #e9b949; color: var(--text-2); box-shadow: inset 0 0 0 2px rgba(0,0,0,.25), inset 0 0 0 3px rgba(233,185,73,.4), 0 2px 0 rgba(0,0,0,.4); }
+:root[data-theme="gold"]:where([data-mode="night"]) .search kbd { border-color: rgba(233,185,73,.6); background: rgba(0,0,0,.2); }
+:root[data-theme="gold"] .round-btn { background: var(--gd-coin); color: var(--gd-ink); box-shadow: 0 0 0 1.5px #3d2600, inset 0 1px 0 rgba(255,255,235,.85), 0 2px 0 #4a2f02, 0 3px 6px rgba(var(--shadow-rgb), .35); }
+:root[data-theme="gold"] .round-btn:hover { background: radial-gradient(circle at 35% 30%, #ffffff 0, #fbe08a 30%, #e2ae3c 62%, #a87210 86%, #6b4506 100%); color: var(--gd-ink); }
+:root[data-theme="gold"] .round-btn:disabled { opacity: .5; }
+:root[data-theme="gold"] #topbar::before {
+  content: ""; position: absolute; top: 0; right: 40px; width: 190px; height: 76px; z-index: -1; pointer-events: none;
+  background: var(--gd-chand) center top / 190px 76px no-repeat; opacity: var(--gd-chand-op);
+  filter: drop-shadow(0 0 1px #4a2f02) drop-shadow(0 2px 2px rgba(74,47,2,.35));
+}
+:root[data-theme="gold"]:where([data-mode="night"]) #topbar::before { filter: drop-shadow(0 0 7px rgba(255,200,90,.4)); }
+
+/* 吊燈上的水晶一閃一閃 */
+:root[data-theme="gold"] #topbar::after {
+  content: ""; position: absolute; top: 46px; right: 126px; width: 18px; height: 18px; z-index: -1; pointer-events: none;
+  background: var(--gd-sparkle) center / contain no-repeat;
+  animation: gd-twinkle 3.1s ease-in-out .9s infinite;
+}
+@media (max-width: 1080px) {:root[data-theme="gold"] #topbar::before, :root[data-theme="gold"] #topbar::after { display: none; }
+}
+
+/* ───────────── 7 · 專輯卡：四角鑲鑽的鍍金畫框 ─────────────
+   框用 border-image 畫（斜接的四角、一道道的金色線腳、四顆方鑽），外面再一圈深色線，金底上才分得出來；
+   滑過時一道金光從左上掃到右下（只跑一次）。演出者是圓的：一圈鏡面金的環。封面上的播放鍵是小金幣勳章。 */
+:root[data-theme="gold"] .card .art {
+  border-radius: 0; border: 8px solid transparent; border-image: var(--gd-frame) 16 / 8px stretch;
+  box-shadow: 0 0 0 1px #3d2600, 0 12px 20px -10px rgba(var(--shadow-rgb), .9), 0 3px 4px rgba(var(--shadow-rgb), .35);
+}
+:root[data-theme="gold"] .card:hover .art { box-shadow: 0 0 0 1px #3d2600, 0 18px 26px -12px rgba(var(--shadow-rgb), .9), 0 0 22px rgba(255,236,160,.85); }
+:root[data-theme="gold"] .card .art::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(120deg, transparent 32%, rgba(255,248,215,0) 38%, rgba(255,250,228,.7) 50%, rgba(255,248,215,0) 62%, transparent 68%);
+  transform: translateX(-130%);
+}
+:root[data-theme="gold"] .card:hover .art::after { animation: gd-sweep .9s ease-out 1 forwards; }
+:root[data-theme="gold"] .card.artist .art {
+  border-radius: 50%; border: 7px solid transparent; border-image: none;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, conic-gradient(from -40deg, #fff6cf, #e3ac2e 12%, #8a5a08 24%, #f2c757 38%, #fffbe6 50%, #c48b16 62%, #6b4404 76%, #e6b23a 88%, #fff6cf) border-box;
+}
+:root[data-theme="gold"] .card .t1 { color: var(--text); font-weight: 800; }
+:root[data-theme="gold"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="gold"] .card .t2 { color: var(--text-2); font-weight: 600; }
+:root[data-theme="gold"] .card .play { background: var(--gd-medal); color: var(--gd-ink); box-shadow: 0 0 0 1.5px #3d2600, 0 0 0 4px #f2c14e, 0 0 0 5px #3d2600, 0 6px 14px rgba(0,0,0,.4); }
+:root[data-theme="gold"] .card .play:hover { background: var(--gd-medal); filter: brightness(1.08); }
+:root[data-theme="gold"] .ph { color: rgba(var(--ink), .55); }
+:root[data-theme="gold"] .scroll-bubble { background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); border-radius: 6px; box-shadow: var(--gd-ruby-sh); }
+:root[data-theme="gold"] :is(.pl-art, .ft-thumb) { border-radius: 2px; box-shadow: 0 0 0 2px #f2c14e, 0 0 0 3.5px #3d2600, 0 8px 18px rgba(var(--shadow-rgb), .35); }
+
+/* ───────────── 8 · 曲目表 ─────────────
+   表頭是一條香檳金的牌子（夜：酒紅），下緣一條「深線＋亮金線＋深線」；滑過的列亮一點、有一圈細框；
+   播放中的那一列是一整條紅寶石（金字），一眼找得到。 */
+:root[data-theme="gold"] .thead {
+  color: var(--text-2); font-weight: 800; letter-spacing: .08em; border-bottom: 0; border-radius: 4px 4px 0 0; backdrop-filter: none;
+  background: linear-gradient(180deg, #fff4c8, #f8dc90 55%, #efc768);
+  box-shadow: inset 0 0 0 1px rgba(138,90,8,.45), 0 1px 0 #6b4506, 0 2px 0 #f8d470, 0 3px 0 #6b4506;
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .thead { background: linear-gradient(180deg, #5a2c35, #4a222b 55%, #421d26); box-shadow: inset 0 0 0 1px rgba(233,185,73,.3), 0 1px 0 #2a0a10, 0 2px 0 #e9b949, 0 3px 0 #2a0a10; }
+:root[data-theme="gold"] .row { border-radius: 6px; }
+:root[data-theme="gold"] .row:hover { background: rgba(255,250,225,.42); box-shadow: inset 0 0 0 1px rgba(74,47,2,.4); }
+:root[data-theme="gold"]:where([data-mode="night"]) .row:hover { background: rgba(255,214,120,.1); box-shadow: inset 0 0 0 1px rgba(233,185,73,.4); }
+:root[data-theme="gold"] .row.sel { background: rgba(255,250,225,.6); box-shadow: inset 0 0 0 1.5px #8a5a08; }
+:root[data-theme="gold"]:where([data-mode="night"]) .row.sel { background: rgba(242,193,78,.2); box-shadow: inset 0 0 0 1.5px rgba(233,185,73,.7); }
+:root[data-theme="gold"] .row .tt div:first-child { color: var(--text); font-weight: 600; }
+:root[data-theme="gold"] .row .n .pi { color: var(--teal-2); }
+:root[data-theme="gold"] .row.playing {
+  --text: #fff6dc; --text-hi: #ffffff; --text-sub: #ffe6b8; --text-2: #ffe2a8; --text-3: #fdd68c; --ink: 255, 236, 200;
+  --teal: #ffd770; --teal-2: #ffe08a; --pink: #ffc0cc;
+  color: var(--text); background: var(--gd-ruby-plaque); box-shadow: 0 0 0 1.5px #f8d470, 0 0 0 2.5px #3d2600, 0 3px 6px rgba(var(--shadow-rgb), .35);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .row.playing { box-shadow: 0 0 0 1.5px #f8d470, 0 0 0 2.5px #1a0004, 0 3px 8px rgba(0,0,0,.4); }
+:root[data-theme="gold"] .row.playing .tt div:first-child { color: var(--gd-gold-ink); font-weight: 800; }
+:root[data-theme="gold"] .row .thumb { border-radius: 2px; box-shadow: 0 0 0 1.5px #f2c14e, 0 0 0 2.5px #3d2600; }
+:root[data-theme="gold"] .eq i { background: linear-gradient(180deg, #fff3c0, #f2c14e); }
+:root[data-theme="gold"] .qrow { border-radius: 6px; }
+:root[data-theme="gold"] .ft-head { border-radius: 4px; background: var(--gd-plate); box-shadow: inset 0 0 0 1px #8a5a08, 0 6px 14px -8px rgba(var(--shadow-rgb), .5); }
+:root[data-theme="gold"] .ft-h { border-radius: 4px; }
+:root[data-theme="gold"] .ft-h.on { background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); font-weight: 800; box-shadow: 0 0 0 1px #3d2600; }
+:root[data-theme="gold"] .ft-tab { border-radius: 4px; background: var(--gd-plaque); color: var(--gd-ink); box-shadow: 0 0 0 1px #3d2600, 0 0 0 2.5px var(--bg); }
+:root[data-theme="gold"] .ft-q:not(.plain) { border-radius: 3px; background: var(--teal-dim); color: var(--teal-2); }
+:root[data-theme="gold"] .qrow.cur { background: var(--gd-ruby-plaque); box-shadow: 0 0 0 1px #f8d470; --text: #fff6dc; --text-2: #ffe2a8; --text-3: #fdd68c; color: var(--text); }
+:root[data-theme="gold"] .qrow.cur .t { color: var(--gd-gold-ink); font-weight: 800; }
+:root[data-theme="gold"] .qrow.past { opacity: .8; }
+
+/* ───────────── 9 · 按鈕：全部是凸起的金牌 ─────────────
+   一般按鈕：鏡面金（中間一道硬的反光帶）、深棕色的字、厚厚的下緣；主要按鈕：紅寶石招牌、金字。 */
+:root[data-theme="gold"] .btn { border-radius: 6px; background: var(--gd-plaque); color: var(--gd-ink); border: 0; font-weight: 700; box-shadow: var(--gd-plaque-sh); text-shadow: 0 1px 0 rgba(255,246,210,.6); }
+:root[data-theme="gold"] .btn svg.i { color: #3d2600; }
+:root[data-theme="gold"] .btn:hover { background: var(--gd-plaque-hi); color: var(--gd-ink); box-shadow: var(--gd-plaque-sh), 0 0 14px rgba(255,220,120,.6); }
+:root[data-theme="gold"] .btn:active { transform: translateY(1px); }
+:root[data-theme="gold"] .btn.primary { background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); font-weight: 800; box-shadow: var(--gd-ruby-sh); text-shadow: 0 1px 0 #4a0010; }
+:root[data-theme="gold"] .btn.primary svg.i { color: #ffd770; }
+:root[data-theme="gold"] .btn.primary:hover { background: var(--gd-ruby-plaque); filter: brightness(1.1); box-shadow: var(--gd-ruby-sh), 0 0 16px rgba(255,200,80,.55); }
+:root[data-theme="gold"] .btn.ghost { background: transparent; box-shadow: none; color: var(--text-2); text-shadow: none; }
+:root[data-theme="gold"] .btn.ghost:hover { background: rgba(var(--ink), .08); color: var(--text); box-shadow: none; }
+:root[data-theme="gold"] .btn.bp-apply { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: var(--gd-plaque-sh); }
+:root[data-theme="gold"] .btn.bp-apply svg.i { color: #8c0a1f; }
+:root[data-theme="gold"] .page-head .tools > .btn.small { border-radius: 6px; }
+:root[data-theme="gold"] .page-head .tools > .btn.small:not(.primary) { background: var(--gd-plaque); border: 0; }
+:root[data-theme="gold"] .page-head .tools > .btn.small:not(.primary):hover { background: var(--gd-plaque-hi); }
+:root[data-theme="gold"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="gold"] .icon-btn.fav-on { color: var(--pink); }
+:root[data-theme="gold"] .chip { border-radius: 6px; background: var(--gd-plaque); border: 0; color: var(--gd-ink); font-weight: 700; box-shadow: var(--gd-plaque-sh); }
+:root[data-theme="gold"] .chip:hover { color: var(--gd-ink); background: var(--gd-plaque-hi); }
+:root[data-theme="gold"] .chip.on { background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); font-weight: 800; box-shadow: var(--gd-ruby-sh); }
+:root[data-theme="gold"] .badge { border-radius: 3px; background: rgba(255,250,225,.75); color: var(--text-sub); box-shadow: inset 0 0 0 1px #8a5a08; }
+:root[data-theme="gold"]:where([data-mode="night"]) .badge { background: rgba(0,0,0,.22); color: var(--text-sub); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
+:root[data-theme="gold"] .badge.hi { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: inset 0 0 0 1px #4a2f02; }
+:root[data-theme="gold"] .badge.dsd { background: linear-gradient(180deg, #c8203c, #8e0f24); color: #fff4e0; box-shadow: inset 0 0 0 1px #f0c95e; }
+
+/* ───────────── 10 · 分段按鈕與設定分頁：凹下去的金槽＋選中的紅寶石 ─────────────
+   日：深一點的金槽（深色框），字深棕色；選中＝紅寶石招牌、金字。夜：酒紅的深槽（金框），字米白；選中＝亮金牌、深字。 */
+:root[data-theme="gold"] :is(.seg, .set-tabs) { border-radius: 8px; background: var(--gd-well); border: 0; box-shadow: var(--gd-well-sh); backdrop-filter: none; }
+:root[data-theme="gold"] .set-tabs { padding: 4px; }
+:root[data-theme="gold"] :is(.seg, .set-tabs) button { border-radius: 5px; color: var(--gd-well-ink); font-weight: 700; }
+:root[data-theme="gold"] :is(.seg, .set-tabs) button:hover { color: var(--gd-well-ink); background: rgba(255,250,225,.35); }
+:root[data-theme="gold"]:where([data-mode="night"]) :is(.seg, .set-tabs) button:hover { background: rgba(255,220,150,.12); }
+:root[data-theme="gold"] :is(.seg, .set-tabs) button.on {
+  background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); font-weight: 800; text-shadow: 0 1px 0 #4a0010;
+  box-shadow: 0 0 0 1.5px #f8d470, 0 0 0 2.5px #3d2600, inset 0 1px 0 rgba(255,200,205,.5);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) :is(.seg, .set-tabs) button.on {
+  background: var(--gd-plaque); color: var(--gd-ink); text-shadow: 0 1px 0 rgba(255,246,210,.6);
+  box-shadow: 0 0 0 1px #2a1800, inset 0 1px 0 rgba(255,255,240,.9), 0 1px 0 1px rgba(0,0,0,.35);
+}
+:root[data-theme="gold"] :is(.seg, .set-tabs, .chips) > .glide-pill { border-radius: 5px !important; }
+:root[data-theme="gold"] .glide-run > :is(button, a).on { color: var(--gd-well-ink); text-shadow: none; }
+
+/* ───────────── 11 · 開關 ─────────────
+   日：關＝象牙白的凹槽（深色框）、左邊一枚深古銅幣；開＝紅寶石的槽、右邊一枚亮金幣。
+   夜：關＝酒紅深槽（金框）、左邊一枚香檳色的幣；開＝亮金的槽、右邊一顆紅寶石。關和開一眼分得出來。 */
+:root[data-theme="gold"] .switch { background: linear-gradient(180deg, #f3e2b8, #fff8e2); box-shadow: inset 0 1px 3px rgba(80,50,0,.4), 0 0 0 1.5px #4a2f02; }
+:root[data-theme="gold"] .switch::after { background: var(--gd-coin-dark); box-shadow: 0 0 0 1px #2a1800, inset 0 1px 0 rgba(255,230,170,.5), 0 1px 3px rgba(0,0,0,.35); }
+:root[data-theme="gold"] .switch.on { background: var(--gd-ruby-plaque); box-shadow: 0 0 0 1.5px #3d2600, inset 0 1px 0 rgba(255,200,205,.5); }
+:root[data-theme="gold"] .switch.on::after { background: var(--gd-coin); box-shadow: 0 0 0 1px #3d2600, 0 0 0 2px #f8d470, 0 1px 3px rgba(0,0,0,.4); }
+:root[data-theme="gold"]:where([data-mode="night"]) .switch { background: linear-gradient(180deg, #1f080d, #2e0e15); box-shadow: inset 0 1px 3px rgba(0,0,0,.5), 0 0 0 1.5px #e9b949; }
+:root[data-theme="gold"]:where([data-mode="night"]) .switch::after { background: radial-gradient(circle at 35% 30%, #fffaf0 0, #f3dca8 50%, #c9a868 100%); box-shadow: 0 0 0 1px #2a1800, 0 1px 3px rgba(0,0,0,.5); }
+:root[data-theme="gold"]:where([data-mode="night"]) .switch.on { background: var(--gd-plaque); box-shadow: 0 0 0 1.5px #f8d470, inset 0 1px 0 rgba(255,255,240,.8); }
+:root[data-theme="gold"]:where([data-mode="night"]) .switch.on::after { background: var(--gd-ruby); box-shadow: 0 0 0 1.5px #fff0b8, 0 0 0 2.2px #2a1800, 0 1px 3px rgba(0,0,0,.45); }
+
+/* ───────────── 12 · 設定頁：每個面板是厚厚的鍍金框，四角鑲翡翠和紅寶石 ─────────────
+   框是 6px 的鏡面金（外面一圈深線），內側再一道細的深金線；面板裡是平順的香檳金（夜：酒紅絲絨），
+   字不壓在任何花紋上。每個面板的右上角一顆閃光。 */
+:root[data-theme="gold"] .sect {
+  position: relative; border: 6px solid transparent; border-radius: 4px;
+  background:
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) left -2px top -2px / 22px 22px no-repeat border-box,
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) right -2px top -2px / 22px 22px no-repeat border-box,
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) left -2px bottom -2px / 22px 22px no-repeat border-box,
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) right -2px bottom -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem) left -2px top -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem-r) right -2px top -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem-r) left -2px bottom -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem) right -2px bottom -2px / 22px 22px no-repeat border-box,
+    linear-gradient(var(--gd-plate-flat), var(--gd-plate-flat)) 4px 4px / calc(100% - 8px) calc(100% - 8px) no-repeat padding-box,
+    linear-gradient(#8a5a08, #8a5a08) 3px 3px / calc(100% - 6px) calc(100% - 6px) no-repeat padding-box,
+    var(--gd-plate) padding-box,
+    var(--gd-frame-grad) border-box;
+  box-shadow: 0 0 0 1px #3d2600, 0 3px 0 1px #4a2f02, 0 16px 28px -16px rgba(var(--shadow-rgb), .9);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .sect { box-shadow: 0 0 0 1px #1a0004, 0 3px 0 1px #1a0004, 0 16px 28px -16px rgba(0,0,0,.9); }
+:root[data-theme="gold"]:where([data-mode="night"]) .sect { background:
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) left -2px top -2px / 22px 22px no-repeat border-box,
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) right -2px top -2px / 22px 22px no-repeat border-box,
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) left -2px bottom -2px / 22px 22px no-repeat border-box,
+    radial-gradient(circle at 40% 36%, #ffffff 0 1.6px, transparent 2.6px) right -2px bottom -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem) left -2px top -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem-r) right -2px top -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem-r) left -2px bottom -2px / 22px 22px no-repeat border-box,
+    var(--gd-gem) right -2px bottom -2px / 22px 22px no-repeat border-box,
+    linear-gradient(var(--surface), var(--surface)) 4px 4px / calc(100% - 8px) calc(100% - 8px) no-repeat padding-box,
+    linear-gradient(rgba(233,185,73,.6), rgba(233,185,73,.6)) 3px 3px / calc(100% - 6px) calc(100% - 6px) no-repeat padding-box,
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--gd-frame-grad) border-box; }
+:root[data-theme="gold"] .sect h2 { font-weight: 700; color: var(--text); }
+:root[data-theme="gold"] .sect > h2::before {
+  content: ""; display: inline-block; width: 16px; height: 14px; margin-right: 8px; vertical-align: -.05em;
+  background: var(--gd-diamond-img) center / contain no-repeat;
+}
+:root[data-theme="gold"] :is(.sect .hint, .field .lbl small) { color: var(--text-3); }
+:root[data-theme="gold"] .field { border-top-color: var(--line); }
+:root[data-theme="gold"] .dsp-card { border-radius: 4px; border: 2px solid transparent; background: linear-gradient(var(--gd-plate-flat), var(--gd-plate-flat)) padding-box, var(--gd-frame-grad) border-box; box-shadow: 0 0 0 1px #3d2600, inset 0 0 0 2px var(--gd-plate-flat), inset 0 0 0 3px rgba(138,90,8,.6); }
+:root[data-theme="gold"]:where([data-mode="night"]) .dsp-card { box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 2px var(--surface), inset 0 0 0 3px rgba(233,185,73,.5); }
+:root[data-theme="gold"] :is(select.sel, input.inp) { border-radius: 6px; background-color: #fff6d8; border: 1.5px solid #4a2f02; color: var(--text); }
+:root[data-theme="gold"]:where([data-mode="night"]) :is(select.sel, input.inp) { background-color: #2e0e15; border-color: #e9b949; }
+
+/* 下拉選單按鈕：金牌＋前面一顆翡翠；箭頭在小紅寶石上 */
+:root[data-theme="gold"] .msel-btn { border-radius: 6px; background: var(--gd-plaque); border: 0; color: var(--gd-ink); font-weight: 700; box-shadow: var(--gd-plaque-sh); }
+:root[data-theme="gold"] :is(.msel-btn:hover, .msel-btn:focus-visible, .msel.open .msel-btn) { border: 0; background: var(--gd-plaque-hi); box-shadow: var(--gd-plaque-sh), 0 0 0 4px rgba(var(--teal-rgb), .25); }
+:root[data-theme="gold"] .msel-btn::before { width: 10px; height: 10px; background: var(--gd-jade); box-shadow: 0 0 0 1px #fff0b8, 0 0 0 1.8px #3d2600; }
+:root[data-theme="gold"] .msel-chev { border-radius: 4px; color: var(--gd-gold-ink); background: var(--gd-ruby-plaque); box-shadow: 0 0 0 1px #3d2600; }
+:root[data-theme="gold"] .msel.open .msel-chev { filter: brightness(1.12); }
+:root[data-theme="gold"] .msel-menu { border-radius: 6px; border: 3px solid transparent; background: linear-gradient(var(--pop-bg), var(--pop-bg)) padding-box, var(--gd-frame-grad) border-box; backdrop-filter: none; box-shadow: 0 0 0 1px #3d2600, inset 0 0 0 1px rgba(138,90,8,.55), 0 18px 40px rgba(var(--shadow-rgb), .5); }
+:root[data-theme="gold"] .msel-opt { border-radius: 4px; }
+:root[data-theme="gold"] .msel-opt.on { background: rgba(var(--teal-rgb), .14); }
+:root[data-theme="gold"] .msel-opt.on::before { border-radius: 0; box-shadow: none; background: var(--teal); }
+:root[data-theme="gold"] .msel-opt.on .msel-ck { background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); box-shadow: 0 0 0 1px #3d2600; }
+:root[data-theme="gold"]:where([data-mode="night"]) .msel-opt.on .msel-ck { background: var(--gd-plaque); color: var(--gd-ink); }
+:root[data-theme="gold"] .range { height: 7px; border-radius: 4px; background: var(--gd-well); box-shadow: var(--gd-well-sh); }
+:root[data-theme="gold"] .range::-webkit-slider-thumb { width: 20px; height: 20px; background: var(--gd-coin); box-shadow: 0 0 0 1.5px #3d2600, 0 2px 4px rgba(0,0,0,.4); }
+:root[data-theme="gold"] .eq-graph { border-radius: 4px; background: var(--gd-well); box-shadow: var(--gd-well-sh); }
+:root[data-theme="gold"] .eq-handle { background: var(--gd-coin); color: var(--gd-ink); box-shadow: 0 0 0 1px #3d2600, 0 2px 5px rgba(0,0,0,.35); }
+:root[data-theme="gold"] .eq-handle.sel { background: var(--gd-ruby); color: #ffffff; }
+:root[data-theme="gold"] .eq-handle.off { background: var(--surface-3); color: var(--text); }
+
+/* ───────────── 13 · 選單、抽屜、對話框、提示：香檳金板（夜：酒紅）＋厚的鍍金框 ───────────── */
+:root[data-theme="gold"] :is(.pop, .modal) {
+  border-radius: 8px; border: 3px solid transparent; backdrop-filter: none;
+  background: linear-gradient(var(--pop-bg), var(--pop-bg)) padding-box, var(--gd-frame-grad) border-box;
+}
+:root[data-theme="gold"] .modal { background: linear-gradient(var(--modal-bg), var(--modal-bg)) padding-box, var(--gd-frame-grad) border-box; }
+:root[data-theme="gold"] .pop { box-shadow: 0 0 0 1px #3d2600, inset 0 0 0 1px rgba(138,90,8,.55), 0 22px 50px rgba(var(--shadow-rgb), calc(.7 * var(--sh))); }
+:root[data-theme="gold"]:where([data-mode="night"]) .pop { box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 1px rgba(233,185,73,.4), 0 22px 50px rgba(0,0,0,.6); }
+:root[data-theme="gold"] .drawer {
+  backdrop-filter: none; border-radius: 8px; border: 4px solid transparent;
+  background: linear-gradient(var(--drawer-bg), var(--drawer-bg)) padding-box, var(--gd-frame-grad) border-box;
+  box-shadow: 0 0 0 1px #3d2600, inset 0 0 0 1px rgba(138,90,8,.55), -18px 0 40px rgba(var(--shadow-rgb), .45);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .drawer { box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 1px rgba(233,185,73,.4), -18px 0 40px rgba(0,0,0,.55); }
+:root[data-theme="gold"] .drawer-head { border-bottom: 0; box-shadow: 0 1px 0 #6b4506, 0 2px 0 #f8d470, 0 3px 0 #6b4506; margin: 0 12px 10px; padding-left: 10px; padding-right: 6px; }
+:root[data-theme="gold"]:where([data-mode="night"]) .drawer-head { box-shadow: 0 1px 0 #1a0004, 0 2px 0 #e9b949, 0 3px 0 #1a0004; }
+:root[data-theme="gold"] .drawer-head h2 { font-weight: 700; }
+:root[data-theme="gold"] .menu button { border-radius: 4px; }
+:root[data-theme="gold"] .menu button:hover { background: rgba(var(--ink), .1); }
+:root[data-theme="gold"] .menu button.is-selected { background: rgba(var(--teal-rgb), .16); box-shadow: inset 3px 0 0 var(--teal); }
+:root[data-theme="gold"] .menu button.is-selected svg.i { color: var(--teal-2); }
+:root[data-theme="gold"] .toast { border-radius: 6px; border: 2px solid #8a5a08; box-shadow: inset 4px 0 0 var(--teal), 0 16px 40px rgba(var(--shadow-rgb), .45); }
+:root[data-theme="gold"]:where([data-mode="night"]) .toast { border-color: #e9b949; }
+:root[data-theme="gold"] .toast.err { box-shadow: inset 4px 0 0 var(--pink), 0 16px 40px rgba(var(--shadow-rgb), .45); }
+:root[data-theme="gold"] .slider .hover-tip { border-radius: 3px; font-weight: 700; }
+:root[data-theme="gold"] ::-webkit-scrollbar-thumb { background-color: rgba(74,47,2,.55); border-radius: 3px; }
+:root[data-theme="gold"] ::-webkit-scrollbar-thumb:hover { background-color: rgba(74,47,2,.8); }
+:root[data-theme="gold"]:where([data-mode="night"]) ::-webkit-scrollbar-thumb { background-color: rgba(233,185,73,.55); }
+:root[data-theme="gold"]:where([data-mode="night"]) ::-webkit-scrollbar-thumb:hover { background-color: rgba(233,185,73,.8); }
+
+/* ───────────── 14 · 專輯頁的大封面：寬的鍍金畫框 ───────────── */
+:root[data-theme="gold"] .hero:not(.artist) .cover { border-radius: 0; border: 15px solid transparent; border-image: var(--gd-frame) 16 / 15px stretch; box-shadow: 0 0 0 1.5px #3d2600, 0 20px 32px -16px rgba(var(--shadow-rgb), .9), 0 0 26px rgba(255,236,160,.6); }
+:root[data-theme="gold"] .hero.artist .cover { border: 9px solid transparent; background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, conic-gradient(from -40deg, #fff6cf, #e3ac2e 12%, #8a5a08 24%, #f2c757 38%, #fffbe6 50%, #c48b16 62%, #6b4404 76%, #e6b23a 88%, #fff6cf) border-box; box-shadow: 0 0 0 1.5px #3d2600, 0 26px 48px -18px rgba(var(--shadow-rgb), .85); }
+:root[data-theme="gold"] .hero-bg { filter: blur(60px) sepia(.8) saturate(1.6) brightness(var(--hero-dim)); }
+:root[data-theme="gold"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .45), rgba(var(--bg-rgb), .78) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="gold"] .hero h1 { font-weight: 700; color: var(--text-hi); text-shadow: 0 1px 0 rgba(255,250,220,.75), 0 2px 0 rgba(138,90,8,.35); }
+:root[data-theme="gold"]:where([data-mode="night"]) .hero h1 { color: #ffe9a8; text-shadow: 0 2px 0 rgba(20,4,8,.7); }
+:root[data-theme="gold"] .hero .kind { color: var(--teal-2); letter-spacing: .2em; font-weight: 800; }
+:root[data-theme="gold"] .hero .facts { color: var(--text-2); font-weight: 600; }
+:root[data-theme="gold"] .hero .aka-name { background: var(--surface); border-color: #8a5a08; }
+
+/* ───────────── 15 · 播放列：一整條 999.9 足金的金磚，上緣掛粗金鍊 ─────────────
+   日夜都是金磚（夜暗一點），字一律深棕色；選中、開著、進度是紅寶石。播放鍵是大金幣勳章，外面一圈金環。
+   金鍊一半在播放列上緣外面，碰不到任何字或按鈕；每隔十秒一道光從金磚上掃過（在字和按鈕的後面）。 */
+:root[data-theme="gold"] #bar {
+  color: #1f1200; --text: #1f1200; --text-hi: #120a00; --text-sub: #2e1c02; --text-2: #33200a; --text-3: #3d2603;
+  --ink: 61, 38, 3; --line: rgba(80,48,0,.3); --line-2: rgba(80,48,0,.45);
+  --teal: #a50f2a; --teal-rgb: 165, 15, 42; --teal-2: #8c0a1f; --pink: #b3122e;
+  --surface-2: #f5d27c; --surface-3: #e9bd5c; --bg-rgb: 240, 199, 90; --knob: #fff8e0;
+  --tip-bg: #2a1800; --tip-ink: #ffe08a;
+  color-scheme: light;
+  background: var(--gd-ingot); border-top: 0; backdrop-filter: none;
+  box-shadow: 0 -1px 0 #4a2f02, 0 -8px 22px rgba(var(--shadow-rgb), .3);
+}
+:root[data-theme="gold"] #bar::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 16px; z-index: 1; pointer-events: none;
+  background: var(--gd-chain) left center / 32px 16px repeat-x;
+  filter: drop-shadow(0 2px 1px rgba(40,10,0,.45));
+}
+:root[data-theme="gold"] #bar::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 240px; z-index: -1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,245,0) 30%, rgba(255,255,245,.7) 50%, rgba(255,255,245,0) 70%, transparent 80%);
+  transform: translateX(-260px);
+  animation: gd-band-x 10s ease-in-out 3s infinite;
+}
+:root[data-theme="gold"] .playbtn { background: var(--gd-medal); color: var(--gd-ink); }
+:root[data-theme="gold"] .playbtn:hover { background: var(--gd-medal); filter: brightness(1.08) saturate(1.1); }
+:root[data-theme="gold"] :is(#bar, .np-ctrl) .playbtn { position: relative; box-shadow: 0 0 0 1.5px #3d2600, 0 0 0 4.5px #a50f2a, 0 0 0 6px #3d2600, 0 4px 12px rgba(0,0,0,.45), 0 0 18px rgba(255,220,120,.5); }
+
+/* 播放鍵右上角一顆閃光，一閃一閃 */
+:root[data-theme="gold"] :is(#bar, .np-ctrl) .playbtn::after {
+  content: ""; position: absolute; right: -9px; top: -10px; width: 18px; height: 18px; pointer-events: none;
+  background: var(--gd-sparkle) center / contain no-repeat;
+  animation: gd-twinkle 2.4s ease-in-out .3s infinite;
+}
+:root[data-theme="gold"] .np-mini .art { border-radius: 0; border: 4px solid transparent; border-image: var(--gd-frame) 16 / 4px stretch; box-shadow: 0 0 0 1px #3d2600, 0 3px 8px rgba(0,0,0,.4); }
+:root[data-theme="gold"] .np-mini .t { font-weight: 800; }
+:root[data-theme="gold"] #bar .icon-btn { color: #2e1c02; }
+:root[data-theme="gold"] #bar .icon-btn:hover { color: #120a00; background: rgba(255,250,225,.45); }
+:root[data-theme="gold"] #bar .icon-btn.on { color: #8c0a1f; }
+:root[data-theme="gold"] #bar .icon-btn.fav-on { color: #b3122e; }
+:root[data-theme="gold"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 4px; background: rgba(255,250,225,.5); color: var(--text-sub); font-weight: 700; box-shadow: inset 0 0 0 1.5px #4a2f02; }
+:root[data-theme="gold"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn):hover { color: #120a00; background: rgba(255,250,225,.75); }
+:root[data-theme="gold"] #bar .tool-sep { background: rgba(74,47,2,.5); }
+:root[data-theme="gold"] .seek { color: var(--text-2); font-weight: 700; }
+:root[data-theme="gold"] .slider .track { background: rgba(var(--ink), .2); border-radius: 3px; }
+:root[data-theme="gold"] #bar .slider .track { background: rgba(61,38,3,.32); box-shadow: inset 0 1px 1px rgba(40,20,0,.4), 0 1px 0 rgba(255,250,225,.6); }
+:root[data-theme="gold"] .slider .fill, :root[data-theme="gold"] .slider:hover .fill { background: linear-gradient(180deg, #e0405a, #a50f2a 50%, #7a061b); border-radius: 3px; }
+:root[data-theme="gold"]:where([data-mode="night"]) .slider .fill, :root[data-theme="gold"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(180deg, #fff0b0, #e6b23a 45%, #a8730c); }
+:root[data-theme="gold"]:where([data-mode="night"]) #bar .slider .fill, :root[data-theme="gold"]:where([data-mode="night"]) #bar .slider:hover .fill { background: linear-gradient(180deg, #e0405a, #a50f2a 50%, #7a061b); }
+:root[data-theme="gold"] .slider .knob { background: var(--gd-coin); box-shadow: 0 0 0 1.5px #3d2600, 0 1px 3px rgba(0,0,0,.45); }
+:root[data-theme="gold"] :is(.seek, .np-seek) .slider .knob { opacity: 1; transform: none; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
+
+/* ───────────── 16 · 正在播放：整頁鍍金 ─────────────
+   背景：封面的顏色染成金色，上面蓋一層拋光的金、金箔和亮片（夜：酒紅絲絨＋金色花紋）；上緣垂著一串串金珠與水晶
+   （在角落按鈕後面）。封面在寬的鍍金畫框裡，四角鑲鑽；下面一塊香檳金的名牌（夜：酒紅），字都在平順的實心底上。
+   角落按鈕是實心的金牌，任何封面上都看得清楚；開著的是紅寶石。 */
+:root[data-theme="gold"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="gold"] .np-bg .layer.b { animation: none; }
+:root[data-theme="gold"] #np::before {
+  content: ""; position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 48px; pointer-events: none;
+  background: var(--gd-festoon) center top / 180px 48px repeat-x;
+  filter: drop-shadow(0 1px 0 rgba(60,30,0,.5));
+}
+:root[data-theme="gold"] #np .np-cover {
+  border-radius: 0; border: 16px solid transparent; border-image: var(--gd-frame) 16 / 16px stretch;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1.5px #3d2600, 0 34px 64px -22px rgba(0,0,0,.6), 0 0 44px rgba(255,236,160,.55);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) #np .np-cover { box-shadow: 0 0 0 1.5px #1a0004, 0 34px 64px -22px rgba(0,0,0,.7), 0 0 40px rgba(255,200,80,.25); }
+@media (orientation: landscape) and (max-height: 620px) {:root[data-theme="gold"] #np .np-cover { border-width: 9px; border-image-width: 9px; }
+}
+@media (orientation: portrait) and (max-height: 820px), (max-width: 760px) and (max-height: 820px) {:root[data-theme="gold"] #np:not(.nolyrics) .np-cover { border-width: 5px; border-image-width: 5px; }
+}
+:root[data-theme="gold"] .np-title { font-weight: 700; letter-spacing: .01em; }
+
+/* 畫框下面一塊名牌（像美術館畫作下的銘牌）：名牌多佔的高度從封面扣掉（窄或矮的視窗由 responsive.css 決定大小，這裡不蓋過它）。 */
+:root[data-theme="gold"] .np-cover { width: clamp(180px, min(calc(100vh - var(--bar) - 362px), 100%), 540px); }
+:root[data-theme="gold"] .np-info { width: clamp(260px, min(calc(100vh - var(--bar) - 362px), 100%), 540px); }
+:root[data-theme="gold"] #np .np-info {
+  margin-top: 20px; padding: 14px 18px 8px; border-radius: 4px; border: 4px solid transparent;
+  background: var(--gd-plate) padding-box, var(--gd-frame-grad) border-box;
+  box-shadow: 0 0 0 1px #3d2600, inset 0 0 0 1px rgba(138,90,8,.6), 0 12px 26px -12px rgba(0,0,0,.5);
+}
+
+/* 夜：名牌也是金的（深色的字），整頁還是金光閃閃 */
+:root[data-theme="gold"]:where([data-mode="night"]) #np .np-info {
+  --np-ink: 31, 18, 0; --teal-2: #8c0a1f;
+  background: linear-gradient(180deg, #f6dc94, #e6bf62 40%, #d9ac4a) padding-box, var(--gd-frame-grad) border-box;
+  box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 1px rgba(110,70,0,.6), 0 12px 26px -12px rgba(0,0,0,.6);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) #np .np-info .np-badges .badge:not(.hi):not(.dsd) { background: rgba(255,250,225,.5); box-shadow: inset 0 0 0 1px #6b4506; }
+:root[data-theme="gold"]:where([data-mode="night"]) #np .np-info .slider .fill { background: linear-gradient(180deg, #e0405a, #a50f2a 50%, #7a061b); }
+:root[data-theme="gold"] #np .np-seek { margin-top: 16px; }
+:root[data-theme="gold"] #np .np-ctrl { margin-top: 4px; }
+:root[data-theme="gold"] .np-title { color: rgb(var(--np-ink)); }
+:root[data-theme="gold"] .np-artist { color: rgba(var(--np-ink), .88); font-weight: 600; }
+:root[data-theme="gold"] .np-badges .badge { background: rgba(255,250,225,.6); color: rgb(var(--np-ink)); box-shadow: inset 0 0 0 1px #8a5a08; }
+:root[data-theme="gold"]:where([data-mode="night"]) .np-badges .badge { background: rgba(0,0,0,.2); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
+:root[data-theme="gold"] .np-badges .badge.hi { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: inset 0 0 0 1px #4a2f02; }
+:root[data-theme="gold"] .np-badges .badge.dsd { background: linear-gradient(180deg, #c8203c, #8e0f24); color: #fff4e0; }
+:root[data-theme="gold"] .np-seek .slider .track { background: rgba(var(--np-ink), .24); }
+:root[data-theme="gold"] .np-seek .times { color: rgba(var(--np-ink), .88); font-weight: 700; }
+:root[data-theme="gold"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .92); }
+:root[data-theme="gold"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="gold"] .np-top :is(.icon-btn, .pill) {
+  background: var(--gd-plaque); color: var(--gd-ink); font-weight: 800; text-shadow: 0 1px 0 rgba(255,246,210,.6);
+  box-shadow: var(--gd-plaque-sh);
+}
+:root[data-theme="gold"] #np-close { background: var(--gd-coin); }
+:root[data-theme="gold"] .np-top .pill { border-radius: 6px; }
+:root[data-theme="gold"] .np-top :is(.icon-btn, .pill):hover { background: var(--gd-plaque-hi); color: var(--gd-ink); box-shadow: var(--gd-plaque-sh), 0 0 14px rgba(255,220,120,.6); }
+:root[data-theme="gold"] .np-top .pill.on, :root[data-theme="gold"] .np-top .pill.on:hover {
+  background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); text-shadow: 0 1px 0 #4a0010;
+  box-shadow: var(--gd-ruby-sh);
+}
+:root[data-theme="gold"] .np-top .src:not(:empty) { padding: 3px 8px; border-radius: 3px; color: var(--gd-ink); background: rgba(255,246,214,.92); font-weight: 600; box-shadow: inset 0 0 0 1px #8a5a08; }
+:root[data-theme="gold"]:where([data-mode="night"]) .np-top .src:not(:empty) { color: #fbe7c0; background: rgba(46,14,22,.92); box-shadow: inset 0 0 0 1px rgba(233,185,73,.7); }
+:root[data-theme="gold"] .ly-offset { color: rgb(var(--np-ink)); }
+:root[data-theme="gold"] .ly-offset button { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: 0 0 0 1px #3d2600; }
+
+/* 歌詞：還沒唱到、已經唱過的行也要看得清楚；唱到的字是紅寶石色（夜：亮金） */
+:root[data-theme="gold"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .72; }
+:root[data-theme="gold"]:where(:not([data-mode="night"])) #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root[data-theme="gold"] .ly-line { color: rgb(var(--np-ink)); border-radius: 6px; }
+:root[data-theme="gold"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+:root[data-theme="gold"] .ly-line .w { background-image: linear-gradient(90deg, #8c0a1f 0, #8c0a1f var(--p, 0%), rgba(var(--np-ink), .5) var(--p, 0%)); }
+:root[data-theme="gold"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #ffd978 0, #ffd978 var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); }
+:root[data-theme="gold"]:where(:not([data-mode="night"])) .ly-line.on { text-shadow: 0 1px 0 rgba(255,250,220,.8); }
+:root[data-theme="gold"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 22px rgba(255,200,80,.3); }
+:root[data-theme="gold"] .ly-line:hover { background: rgba(var(--np-ink), .07); }
+:root[data-theme="gold"] .theme-pick { --tp-ring: rgba(61,38,3,.5); }
+:root[data-theme="gold"]:where([data-mode="night"]) .theme-pick { --tp-ring: rgba(233,185,73,.55); }
+:root[data-theme="gold"] .tp-opt.on { background: var(--gd-ruby-plaque); color: var(--gd-gold-ink); box-shadow: var(--gd-ruby-sh); font-weight: 800; }
+:root[data-theme="gold"]:where([data-mode="night"]) .tp-opt.on { background: var(--gd-plaque); color: var(--gd-ink); box-shadow: var(--gd-plaque-sh); }
+:root[data-theme="gold"] .tp-stage .tp-screen { box-shadow: 0 0 0 2px #f2c14e, 0 0 0 3px #3d2600, 0 10px 26px -10px rgba(0,0,0,.45); }
+
+/* ───────────── 18 · Daphne（音訊設定裡的擴充區塊）：跟著金框 ───────────── */
+:root[data-theme="gold"] .sect.dp-sect .dp-greek {
+  background: linear-gradient(180deg, #3d2600 0%, #6b4506 38%, #3a2400 52%, #5a3a04 78%, #2e1c00 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .sect.dp-sect .dp-greek {
+  background: linear-gradient(180deg, #fff6cf 0%, #ffe08a 34%, #e9b949 50%, #f7d36f 66%, #fff0b8 100%);
+  -webkit-background-clip: text; background-clip: text;
+}
+:root[data-theme="gold"] .sect.dp-sect .dp-group {
+  border-radius: 4px; border: 3px solid transparent;
+  background: linear-gradient(var(--gd-plate-flat), var(--gd-plate-flat)) padding-box, var(--gd-frame-grad) border-box;
+  box-shadow: 0 0 0 1px #3d2600, inset 0 0 0 2px var(--gd-plate-flat), inset 0 0 0 3px rgba(138,90,8,.55);
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .sect.dp-sect .dp-group { background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--gd-frame-grad) border-box; box-shadow: 0 0 0 1px #1a0004, inset 0 0 0 2px var(--surface), inset 0 0 0 3px rgba(233,185,73,.45); }
+:root[data-theme="gold"] .sect.dp-sect .dp-group.dp-off { box-shadow: 0 0 0 1px #3d2600; opacity: .92; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="gold"] .page-head h1, :root[data-theme="gold"] .page-head h1::after, :root[data-theme="gold"] #sidebar::before, :root[data-theme="gold"] .nav-pill::after, :root[data-theme="gold"] .rail-head h2::after, :root[data-theme="gold"] #topbar::after, :root[data-theme="gold"] #bar::after, :root[data-theme="gold"] .playbtn::after, :root[data-theme="gold"] .card:hover .art::after { animation: none !important; }
+:root[data-theme="gold"] #sidebar::before, :root[data-theme="gold"] #bar::after { display: none; }
+}
+:root[data-theme="gold"].lite-ambient .page-head h1, :root[data-theme="gold"].lite-ambient .page-head h1::after, :root[data-theme="gold"].lite-ambient #sidebar::before, :root[data-theme="gold"].lite-ambient .nav-pill::after, :root[data-theme="gold"].lite-ambient .rail-head h2::after, :root[data-theme="gold"].lite-ambient #topbar::after, :root[data-theme="gold"].lite-ambient #bar::after, :root[data-theme="gold"].lite-ambient .playbtn::after, :root[data-theme="gold"].lite-ambient .card:hover .art::after { animation: none !important; }
+:root[data-theme="gold"].lite-ambient #sidebar::before, :root[data-theme="gold"].lite-ambient #bar::after { display: none; }
+:root[data-theme="gold"] { --dp-ink: #6b4604; }
+:root[data-theme="gold"]:where([data-mode="night"]) { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
+:root[data-theme="gold"] .dp-sect .dp-greek {
+  background: linear-gradient(180deg, #5c3b02 0%, #7d5506 38%, #5a3901 52%, #6e4a05 78%, #4f3301 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+:root[data-theme="gold"]:where([data-mode="night"]) .dp-sect .dp-greek {
+  background: linear-gradient(180deg, #fff6cf 0%, #ffe08a 34%, #e9b949 50%, #f7d36f 66%, #fff0b8 100%);
+  -webkit-background-clip: text; background-clip: text;
+}
+
+/* 暴發戶黃金：鏡面金的框（2px），內側一道細金線 */
+:root[data-theme="gold"] .dp-sect .dp-group {
+  border-radius: 4px; border: 2px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--gd-frame-grad) border-box;
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px rgba(var(--teal-rgb), .4), 0 1px 0 rgba(90,58,4,.25);
+}
+:root[data-theme="gold"] .dp-sect .dp-group.dp-off { box-shadow: none; }

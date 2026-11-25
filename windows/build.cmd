@@ -21,6 +21,8 @@ if errorlevel 1 (
   del /q "%~dp0..\MIKU\*.xml" 2>nul
   del /q "%~dp0..\MIKU\*.pdb" 2>nul
   del /q "%~dp0..\MIKU\wwwroot\mock.js" 2>nul
+  rem themes.css became wwwroot\themes\*.css (one sheet per theme)
+  del /q "%~dp0..\MIKU\wwwroot\themes.css" 2>nul
   del /q "%~dp0..\MIKU\Microsoft.Web.WebView2.Wpf.dll" 2>nul
   echo 完成！程式在 ..\MIKU\MIKU.exe
 )

@@ -1,0 +1,394 @@
+/* MIKU theme 'sakura': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="sakura"] .theme-pick { --tp-or: 999px; --tp-sw-r: 999px; }
+
+/* 側欄：底部一枝櫻花 */
+:root[data-theme="sakura"] #sidebar { position: relative; isolation: isolate; border-right: 1px solid var(--line); }
+:root[data-theme="sakura"] #sidebar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 300px; z-index: -1; pointer-events: none; background: var(--sk-branch) left bottom / 240px 300px no-repeat; }
+
+/* 視窗矮的時候側欄項目會碰到樹枝：樹枝縮小、變淡，字才不會被花擋到 */
+@media (max-height: 900px) {:root[data-theme="sakura"] #sidebar::after { height: 220px; background-size: 176px 220px; opacity: .55; -webkit-mask-image: linear-gradient(180deg, transparent, #000 45%); mask-image: linear-gradient(180deg, transparent, #000 45%); }
+}
+@media (max-height: 760px) {:root[data-theme="sakura"] #sidebar::after { opacity: .3; }
+}
+:root[data-theme="sakura"] .nav a { color: var(--text-2); }
+:root[data-theme="sakura"] .nav a:hover { background: rgba(var(--teal-rgb), .07); color: var(--text); }
+:root[data-theme="sakura"] .nav-label { color: var(--text-3); font-weight: 600; letter-spacing: .14em; }
+:root[data-theme="sakura"] .nav-pill { background: color-mix(in srgb, rgb(var(--teal-rgb)) 13%, var(--bg)); border-radius: 19px; box-shadow: inset 0 0 0 1px rgba(var(--teal-rgb), .2); }
+:root[data-theme="sakura"] .nav-pill::before { left: -3px; top: 50%; bottom: auto; width: 8px; height: 8px; margin-top: -4px; border-radius: 70% 0; background: var(--teal); box-shadow: none; transform: rotate(-45deg); }
+:root[data-theme="sakura"] .nav a.on { color: var(--text-hi); }
+:root[data-theme="sakura"] .nav a.on svg.i { color: var(--teal); }
+
+/* 內容區：右上角飄落的花瓣 */
+:root[data-theme="sakura"] #main { isolation: isolate; }
+:root[data-theme="sakura"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: min(660px, 70%); height: 240px; z-index: -1; pointer-events: none; background: var(--sk-fall) right top / 660px 240px no-repeat; -webkit-mask-image: linear-gradient(90deg, transparent, #000 40%); mask-image: linear-gradient(90deg, transparent, #000 40%); }
+:root[data-theme="sakura"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .86); }
+:root[data-theme="sakura"] .search { background: var(--surface); border: 1px solid var(--line-2); }
+:root[data-theme="sakura"] .search:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .15); }
+:root[data-theme="sakura"] .round-btn { background: var(--surface); border: 1px solid var(--line-2); }
+:root[data-theme="sakura"] .rail-head h2::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 11px; vertical-align: 1px; border-radius: 70% 0; transform: rotate(-45deg); background: var(--teal); }
+
+/* 卡片 */
+:root[data-theme="sakura"] .card .art { border-radius: 14px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb), calc(.25 * var(--sh))), 0 10px 22px -8px rgba(var(--shadow-rgb), calc(.75 * var(--sh))); }
+:root[data-theme="sakura"] .card:hover .art { box-shadow: 0 0 0 2px var(--teal), 0 16px 32px -8px rgba(var(--teal-rgb), .4); }
+:root[data-theme="sakura"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="sakura"] .card .play { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 8px 20px rgba(var(--teal-rgb), .45); }
+
+/* 按鈕與控制項 */
+:root[data-theme="sakura"] .btn { border-radius: 19px; }
+:root[data-theme="sakura"] .btn.primary { background: var(--play-bg); color: var(--play-ink); border-color: transparent; box-shadow: 0 6px 16px -4px rgba(var(--teal-rgb), .55); }
+:root[data-theme="sakura"] .switch.on { background: var(--teal); }
+:root[data-theme="sakura"] .slider .fill, :root[data-theme="sakura"] .slider:hover .fill { background: linear-gradient(90deg, rgba(var(--teal-rgb), .55), var(--teal)); }
+:root[data-theme="sakura"] .seek .slider .knob, :root[data-theme="sakura"] .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px var(--pink-dim), 0 2px 8px var(--pink-line); }
+:root[data-theme="sakura"] .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+:root[data-theme="sakura"]:where([data-mode="day"]) .eq-handle.sel { color: var(--teal-2); }
+:root[data-theme="sakura"] .chip.on { border-color: var(--teal); color: var(--teal-2); }
+:root[data-theme="sakura"] .badge.hi { background: rgba(var(--teal-rgb), .13); color: var(--teal-2); }
+:root[data-theme="sakura"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="sakura"] .icon-btn.fav-on { color: var(--pink); }
+
+/* 列表與面板 */
+:root[data-theme="sakura"] .thead { background: rgba(var(--bg-rgb), .94); }
+:root[data-theme="sakura"] .row:hover { background: rgba(var(--teal-rgb), .06); }
+:root[data-theme="sakura"] .row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .13), rgba(var(--teal-rgb), 0) 70%); }
+:root[data-theme="sakura"] .row.playing .tt div:first-child, :root[data-theme="sakura"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="sakura"] .eq i { background: var(--teal); }
+:root[data-theme="sakura"] .sect { border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(var(--shadow-rgb), calc(.12 * var(--sh))), 0 10px 26px -16px rgba(var(--shadow-rgb), calc(.7 * var(--sh))); }
+:root[data-theme="sakura"] .hero .cover { border-radius: 16px; box-shadow: 0 0 0 4px var(--sk-ring), 0 24px 50px -10px rgba(var(--shadow-rgb), calc(1.1 * var(--sh))); }
+:root[data-theme="sakura"] .hero.artist .cover { border-radius: 50%; }
+:root[data-theme="sakura"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .35), rgba(var(--bg-rgb), .7) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="sakura"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+:root[data-theme="sakura"] #bar { border-top: 1px solid rgba(var(--teal-rgb), .25); backdrop-filter: none; }
+:root[data-theme="sakura"] .toast { border-left: 3px solid var(--teal); }
+:root[data-theme="sakura"] .toast.err { border-left-color: var(--pink); }
+:root[data-theme="sakura"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--teal-rgb), .22); }
+
+/* 正在播放 */
+:root[data-theme="sakura"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="sakura"] .np-bg .layer.b { animation: none; }
+
+/* (not shown: not turning either, see MIKU) */
+:root[data-theme="sakura"] .np-cover { border-radius: 20px; box-shadow: 0 0 0 5px var(--sk-ring), 0 40px 80px -20px rgba(var(--shadow-rgb), calc(1.2 * var(--sh))); }
+:root[data-theme="sakura"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="sakura"] .pill.on { background: var(--play-bg); color: var(--play-ink); }
+:root[data-theme="sakura"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .38) var(--p, 0%)); }
+
+/* 夜櫻：燈籠的光暈 */
+:root[data-theme="sakura"]:where([data-mode="night"]) .page-head h1 { text-shadow: 0 0 26px rgba(255,143,180,.3); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill::before { box-shadow: 0 0 8px rgba(255,143,180,.8); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 1px rgba(255,143,180,.6), 0 0 26px rgba(255,143,180,.25), 0 18px 34px -10px rgba(0,0,0,.75); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .hero .cover, :root[data-theme="sakura"]:where([data-mode="night"]) .np-cover { box-shadow: 0 0 0 1px var(--sk-ring), 0 0 70px rgba(255,143,180,.16), 0 34px 80px -18px rgba(0,0,0,.8); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .icon-btn.fav-on { filter: drop-shadow(0 0 6px rgba(255,158,192,.5)); }
+:root[data-theme="sakura"]:where([data-mode="night"]) #bar { box-shadow: 0 -6px 24px rgba(255,143,180,.07); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .ly-line.on { text-shadow: 0 0 22px rgba(255,143,180,.35); }
+
+/* 黑膠、櫻花：用通用的樣子（主題色的淡底＋細框），櫻花的按鈕是圓的，分段按鈕也跟著圓 */
+:root[data-theme="sakura"] .seg, :root[data-theme="sakura"] .set-tabs { border-radius: 19px; }
+:root[data-theme="sakura"] .seg button, :root[data-theme="sakura"] .set-tabs button { border-radius: 16px; }
+:root[data-theme="sakura"] .page-head .tools > .btn.small { border-radius: 19px; }
+
+/* 櫻花：右上角的花瓣在工具列後面，按鈕列墊一層實心的底，花瓣不會透到字後面 */
+:root[data-theme="sakura"] .page-head .tools > :is(.seg, .btn.small:not(.primary)) { background: linear-gradient(rgba(var(--ink), .05), rgba(var(--ink), .05)), var(--bg); }
+:root[data-theme="sakura"] .page-head .tools > .btn.small:not(.primary):hover { background: linear-gradient(rgba(var(--ink), .1), rgba(var(--ink), .1)), var(--bg); }
+
+/* ───────────── 3 · 字體：標題用圓體，內文維持原本好讀的字 ─────────────
+   ui-rounded 只有 Mac（SF Pro Rounded）有，Windows 會往下用 Segoe UI Variable Display；中日文字都交給正黑體／蘋方。 */
+:root[data-theme="sakura"] :is(.page-head h1, .rail-head h2, .sect h2, .hero h1, .np-title) { font-family: var(--font-display); }
+:root[data-theme="sakura"] :is(.page-head h1, .hero h1) { font-weight: 700; letter-spacing: 0; }
+:root[data-theme="sakura"] :is(.ly-line, .ly-plain) { font-family: ui-rounded, "Segoe UI Variable Display", "Segoe UI", "Microsoft JhengHei UI", "PingFang TC", "Yu Gothic UI", "Hiragino Sans", system-ui, sans-serif; }
+
+/* ───────────── 4 · 側欄：選中項目是一片白色花瓣，左邊別著一朵小櫻花；最底下一小枝櫻花 ───────────── */
+:root[data-theme="sakura"] #sidebar { border-right: 0; box-shadow: inset -1px 0 0 var(--line); }
+:root[data-theme="sakura"] .nav a { color: var(--text-2); border-radius: 19px 6px 19px 6px; }
+:root[data-theme="sakura"] .nav a:hover { background: rgba(var(--teal-rgb), .08); color: var(--text); }
+:root[data-theme="sakura"] .nav a .count { color: var(--text-3); font-style: normal; }
+:root[data-theme="sakura"] .nav-label { color: var(--text-3); font-weight: 650; letter-spacing: .16em; }
+:root[data-theme="sakura"] .nav-pill {
+  border-radius: 19px 6px 19px 6px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--sk-edge), 0 4px 12px -6px rgba(var(--shadow-rgb), .45);
+}
+
+/* 別在左邊的小櫻花：淡粉花瓣＋深粉描邊（夜裡是淡粉花瓣、白邊、暖黃花心） */
+:root[data-theme="sakura"] .nav-pill::before {
+  left: -7px; top: 50%; bottom: auto; width: 17px; height: 17px; margin-top: -8.5px;
+  border-radius: 0; transform: rotate(-12deg); box-shadow: none;
+  background: var(--sk-pin) center / 100% 100% no-repeat;
+}
+:root[data-theme="sakura"] .nav a.on { color: var(--text-hi); }
+:root[data-theme="sakura"] .nav a.on svg.i { color: var(--teal-2); }
+
+/* 側欄最底下的一小枝櫻花：只在下面空得出來的時候出現（視窗夠高、側欄沒有收成一排圖示） */
+:root[data-theme="sakura"] #sidebar::after {
+  inset: auto 0 0 auto; width: 200px; height: 112px; opacity: 1;
+  background: var(--sk-sprig) right bottom / 200px 112px no-repeat;
+  -webkit-mask-image: none; mask-image: none;
+}
+@media (max-height: 799px), (max-width: 1180px) {:root[data-theme="sakura"] #sidebar::after { display: none; }
+}
+
+/* 掃描曲庫時側欄底部會出現進度文字，花枝先收起來 */
+:root[data-theme="sakura"] #sidebar:has(.side-foot:not(:empty))::after { display: none; }
+
+/* ───────────── 5 · 內容區：最上面那一條飄著花瓣（搜尋框右邊，沒有字的地方），很慢地晃 ─────────────
+   只畫 76px 高：下面就是頁首的按鈕和表頭，花瓣不會跑到字後面。 */
+:root[data-theme="sakura"] #main::before {
+  top: 0; right: 0; width: min(620px, 52%); height: 76px;
+  background: var(--sk-drift) right top / 620px 76px no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%); mask-image: linear-gradient(90deg, transparent, #000 30%);
+  animation: sk-sway 16s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {:root[data-theme="sakura"] #main::before { animation: none; }
+}
+:root:root.lite-page[data-theme="sakura"] #main::before { animation: none; }
+:root[data-theme="sakura"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .94); }
+:root[data-theme="sakura"] .search { background: var(--surface); border: 1px solid var(--sk-edge); border-radius: 20px 7px 20px 7px; }
+:root[data-theme="sakura"] .search:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .16); }
+:root[data-theme="sakura"] .search kbd { border-color: var(--sk-edge); color: var(--text-3); border-radius: 8px; }
+:root[data-theme="sakura"] .round-btn { background: var(--surface); border: 1px solid var(--sk-edge); color: var(--text-2); }
+:root[data-theme="sakura"] .round-btn:hover { background: var(--surface); border-color: var(--teal); color: var(--teal-2); }
+
+/* ───────────── 6 · 標題 ─────────────
+   頁面標題：底下一道淡粉色的螢光筆底線（畫在字的下半截後面，不佔位置，標題和旁邊的「12 張」照樣對齊同一條基線）。
+   區塊標題（首頁每一排、設定頁每一塊）：前面一朵櫻花配一片嫩葉。 */
+:root[data-theme="sakura"] .page-head h1 {
+  color: var(--text-hi); text-shadow: none;
+  background: linear-gradient(transparent 56%, var(--sk-hl) 56%, var(--sk-hl) 92%, transparent 92%) left bottom / 100% 100% no-repeat;
+  border-radius: 2px 10px 2px 10px;
+}
+
+/* 夜：螢光筆改成字下緣一道亮一點的粉色細帶，不壓在白字的筆畫上 */
+:root[data-theme="sakura"]:where([data-mode="night"]) .page-head h1 {
+  background: linear-gradient(transparent 84%, var(--sk-hl) 84%, var(--sk-hl) 97%, transparent 97%) left bottom / 100% 100% no-repeat;
+}
+:root[data-theme="sakura"] .page-head .sub { color: var(--text-2); }
+:root[data-theme="sakura"] :is(.rail-head h2, .sect h2) { color: var(--text-hi); }
+:root[data-theme="sakura"] :is(.rail-head h2, .sect h2)::before {
+  content: ""; display: inline-block; width: 21px; height: 19px; margin-right: 8px; vertical-align: -3px;
+  border-radius: 0; transform: none; background: var(--sk-mark) center / contain no-repeat;
+}
+:root[data-theme="sakura"] .sect h2::before { width: 18px; height: 16px; margin-right: 7px; vertical-align: -2px; }
+
+/* 設定頁「外觀」那塊的標題列有自己的排版（右邊是日／夜開關），花一樣放在字前面 */
+:root[data-theme="sakura"] .sect .theme-head h2::before { vertical-align: -2px; }
+:root[data-theme="sakura"] .rail-head a { color: var(--text-2); }
+:root[data-theme="sakura"] .rail-head a:hover { color: var(--teal-2); }
+
+/* ───────────── 7 · 專輯卡：封面是花瓣角；滑過時一圈櫻花粉 ───────────── */
+:root[data-theme="sakura"] .card .art {
+  border-radius: var(--sk-r-m);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), .18), 0 10px 22px -10px rgba(var(--shadow-rgb), .55);
+}
+:root[data-theme="sakura"] .card.artist .art { border-radius: 50%; }
+:root[data-theme="sakura"] .card:hover .art { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--teal), 0 16px 30px -10px rgba(var(--teal-rgb), .5); }
+:root[data-theme="sakura"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="sakura"] .card .t2 { color: var(--text-sub); }
+:root[data-theme="sakura"] .card .play { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 3px rgba(255,255,255,.85), 0 8px 18px rgba(var(--shadow-rgb), .45); }
+
+/* ───────────── 8 · 曲目表 ───────────── */
+/* 表頭是一條花瓣角的白色長條（夜是卡片色），黏在上面時下面的列從它後面滑過 */
+:root[data-theme="sakura"] .thead { background: var(--surface); color: var(--text-2); border-bottom: 0; border-radius: 16px 5px 16px 5px; box-shadow: inset 0 0 0 1px var(--sk-edge), 0 6px 14px -12px rgba(var(--shadow-rgb), .6); }
+:root[data-theme="sakura"] .row { border-radius: 16px 5px 16px 5px; }
+:root[data-theme="sakura"] .row:hover { background: rgba(var(--teal-rgb), .08); }
+:root[data-theme="sakura"] .row.sel { background: rgba(var(--teal-rgb), .12); }
+:root[data-theme="sakura"] .row.playing { background: linear-gradient(90deg, rgba(var(--teal-rgb), .16), rgba(var(--teal-rgb), .03) 75%); }
+:root[data-theme="sakura"] .row.playing .tt div:first-child, :root[data-theme="sakura"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="sakura"] .row .thumb { border-radius: 10px 3px 10px 3px; }
+:root[data-theme="sakura"] .eq i { background: var(--teal); }
+
+/* ───────────── 9 · 按鈕、分段按鈕、分頁列、晶片 ─────────────
+   都是膠囊形。選中的那一個是實心的花瓣粉底＋深梅色字，左上角別一朵小櫻花（花是絕對定位，字不會移動）。 */
+:root[data-theme="sakura"] .btn { border-radius: 999px; background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--sk-edge); }
+:root[data-theme="sakura"] .btn:hover { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--teal); }
+:root[data-theme="sakura"] .btn.primary { background: var(--play-bg); color: var(--play-ink); font-weight: 650; border-color: transparent; box-shadow: 0 6px 14px -6px rgba(var(--teal-rgb), .7); }
+:root[data-theme="sakura"] .btn.primary:hover { background: var(--play-bg); filter: brightness(1.05); box-shadow: 0 8px 18px -6px rgba(var(--teal-rgb), .8); }
+:root[data-theme="sakura"] .btn.ghost { background: transparent; box-shadow: none; color: var(--text-2); }
+:root[data-theme="sakura"] .btn.ghost:hover { background: rgba(var(--teal-rgb), .1); color: var(--text); }
+:root[data-theme="sakura"] .btn.bp-apply { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1.5px var(--teal); }
+:root[data-theme="sakura"] .btn.bp-apply:hover { background: var(--sk-sel); }
+:root[data-theme="sakura"] .btn.bp-apply svg.i { color: var(--teal-2); }
+:root[data-theme="sakura"] .hero .aka-btn:hover { background: var(--sk-deep); color: #ffffff; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .hero .aka-btn:hover { color: #3a1426; }
+
+/* 分段按鈕與設定頁分頁列：白色膠囊外殼＋淡粉框 */
+:root[data-theme="sakura"] :is(.seg, .set-tabs) { border-radius: 999px; padding: 3px; background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--sk-edge); }
+:root[data-theme="sakura"] .set-tabs { padding: 4px; background: rgba(var(--bg-rgb), .9); box-shadow: inset 0 0 0 1px var(--sk-edge), 0 6px 16px -12px rgba(var(--shadow-rgb), .6); }
+:root[data-theme="sakura"] :is(.seg, .set-tabs) button { border-radius: 999px; color: var(--text-2); }
+:root[data-theme="sakura"] :is(.seg, .set-tabs) button:hover { color: var(--text); background: rgba(var(--teal-rgb), .08); }
+:root[data-theme="sakura"] :is(.seg, .set-tabs) button.on {
+  position: relative; color: var(--sk-sel-ink); font-weight: 650;
+  background: var(--sk-sel); box-shadow: inset 0 0 0 1px var(--sk-sel-edge);
+}
+:root[data-theme="sakura"] :is(.seg, .set-tabs) button.on::before {
+  content: ""; position: absolute; left: -4px; top: -6px; width: 15px; height: 15px; pointer-events: none;
+  background: var(--sk-pin) center / 100% 100% no-repeat; transform: rotate(-18deg);
+  transition: opacity .2s;
+}
+
+/* 分段按鈕本身會把超出的東西裁掉（點擊的水波紋用），選中的那個放開，小花才露得出來；它的水波紋就不畫了 */
+:root[data-theme="sakura"] .seg button.on { overflow: visible; }
+:root[data-theme="sakura"] .seg button.on > .ripple { display: none; }
+
+/* 選中的記號滑過去時（core.js Glide），小花先藏起來，到了再出現 */
+:root[data-theme="sakura"] .glide-run > button.on::before { opacity: 0; }
+:root[data-theme="sakura"] :is(.seg, .set-tabs, .chips) > .glide-pill { border-radius: 999px !important; }
+:root[data-theme="sakura"] .page-head .tools > .btn.small { border-radius: 999px; }
+:root[data-theme="sakura"] .page-head .tools > :is(.seg, .btn.small:not(.primary)) { background: var(--surface); box-shadow: inset 0 0 0 1px var(--sk-edge); }
+:root[data-theme="sakura"] .page-head .tools > .btn.small:not(.primary):hover { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--teal); }
+:root[data-theme="sakura"] .chip { border-radius: 999px; background: var(--surface); border-color: var(--sk-edge); color: var(--text-2); }
+:root[data-theme="sakura"] .chip:hover { background: var(--surface-2); color: var(--text); }
+:root[data-theme="sakura"] .chip.on { background: var(--sk-sel); border-color: var(--sk-sel-edge); color: var(--sk-sel-ink); font-weight: 600; }
+:root[data-theme="sakura"] .badge { border-radius: 9px 3px 9px 3px; background: var(--surface-2); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme="sakura"] .badge.hi { background: #eaf5e3; color: var(--sk-leaf-ink); box-shadow: inset 0 0 0 1px rgba(110,170,90,.3); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .badge.hi { background: rgba(158,212,134,.16); box-shadow: inset 0 0 0 1px rgba(158,212,134,.3); }
+:root[data-theme="sakura"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="sakura"] .icon-btn.fav-on { color: var(--pink); filter: none; }
+
+/* ───────────── 10 · 開關：花苞與花 ─────────────
+   關：白底（夜是深底）＋1.5px 看得見的粉色外框，滑鈕是一顆深一點的花苞（對軌道 3.6:1 以上）。
+   開：整條變成櫻花粉，花苞開成一朵白色的五瓣花（夜裡是深梅色的花）。 */
+:root[data-theme="sakura"] .switch { background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--sk-edge-2); }
+:root[data-theme="sakura"] .switch::after {
+  left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 0; box-shadow: none;
+  background: var(--sk-knob-off);
+  -webkit-mask: var(--sk-bud) center / 100% 100% no-repeat; mask: var(--sk-bud) center / 100% 100% no-repeat;
+}
+:root[data-theme="sakura"] .switch.on { background: var(--teal); box-shadow: inset 0 0 0 1.5px var(--sk-deep); }
+:root[data-theme="sakura"] .switch.on::after {
+  left: 2px; top: 2px; width: 20px; height: 20px; background: #ffffff;
+  -webkit-mask-image: var(--sk-flower); mask-image: var(--sk-flower);
+}
+:root[data-theme="sakura"]:where([data-mode="night"]) .switch { background: var(--bg-2); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .switch.on { background: var(--teal); box-shadow: inset 0 0 0 1.5px #ffc0d6; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .switch.on::after { background: #3a1426; }
+
+/* ───────────── 11 · 設定頁的面板、下拉選單、輸入框 ─────────────
+   面板是花瓣角（左上、右下 24px，另兩角 7px），淡粉細框加一點粉色的影子。 */
+:root[data-theme="sakura"] .sect {
+  border-radius: var(--sk-r); border: 1px solid var(--sk-edge); background: var(--surface);
+  box-shadow: 0 1px 2px rgba(var(--shadow-rgb), .08), 0 12px 26px -18px rgba(var(--shadow-rgb), .6);
+}
+:root[data-theme="sakura"] .sect .hint, :root[data-theme="sakura"] .field .lbl small { color: var(--text-3); }
+:root[data-theme="sakura"] .field { border-top-color: var(--line); }
+:root[data-theme="sakura"] .dsp-card { border-radius: var(--sk-r-m); border-color: var(--sk-edge); }
+:root[data-theme="sakura"] :is(select.sel, input.inp) { border-radius: 12px 4px 12px 4px; border-color: var(--sk-edge-2); background-color: var(--surface); }
+
+/* 下拉選單按鈕：前面的小圓點換成一朵小櫻花 */
+:root[data-theme="sakura"] .msel-btn {
+  border-radius: 999px; border: 1px solid var(--sk-edge-2); color: var(--text);
+  background: var(--surface); box-shadow: 0 2px 6px -4px rgba(var(--shadow-rgb), .5);
+}
+:root[data-theme="sakura"] .msel-btn:hover, :root[data-theme="sakura"] .msel-btn:focus-visible, :root[data-theme="sakura"] .msel.open .msel-btn { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .16); }
+:root[data-theme="sakura"] .msel-btn::before { width: 13px; height: 13px; border-radius: 0; box-shadow: none; background: var(--sk-pin) center / 100% 100% no-repeat; }
+:root[data-theme="sakura"] .msel-chev { border-radius: 50%; color: var(--teal-2); background: rgba(var(--teal-rgb), .12); }
+:root[data-theme="sakura"] .msel-menu { border-radius: var(--sk-r-m); border-color: var(--sk-edge); background: var(--pop-bg); }
+:root[data-theme="sakura"] .msel-opt { border-radius: 13px 4px 13px 4px; color: var(--text-sub); padding-left: 26px; }
+
+/* 每一項左邊都留出小花的位置，選中時字不會移動 */
+:root[data-theme="sakura"] .msel-opt.on { background: var(--sk-sel); color: var(--sk-sel-ink); }
+:root[data-theme="sakura"] .msel-opt.on::before { left: 7px; top: 50%; bottom: auto; width: 13px; height: 13px; margin-top: -6.5px; border-radius: 0; box-shadow: none; background: var(--sk-pin) center / 100% 100% no-repeat; }
+:root[data-theme="sakura"] .msel-opt.on .msel-ck { background: var(--sk-deep); color: #ffffff; }
+
+/* 夜：選中的那一項是淡櫻粉底，小花改成深梅色才看得到 */
+:root[data-theme="sakura"]:where([data-mode="night"]) .msel-opt.on::before {
+  background: #3a1426; -webkit-mask: var(--sk-flower) center / 100% 100% no-repeat; mask: var(--sk-flower) center / 100% 100% no-repeat;
+}
+:root[data-theme="sakura"]:where([data-mode="night"]) .msel-opt.on .msel-ck { background: #3a1426; color: #ffc0d6; }
+:root[data-theme="sakura"] .eq-graph { border-radius: var(--sk-r-m); }
+:root[data-theme="sakura"]:where([data-mode="day"]) .eq-handle:not(.off):not(.sel) { background: var(--sk-deep); color: #ffffff; }
+:root[data-theme="sakura"]:where([data-mode="day"]) .eq-handle.sel { color: var(--teal-2); }
+
+/* ───────────── 12 · 選單、抽屜、對話框、提示 ───────────── */
+:root[data-theme="sakura"] :is(.pop, .modal) { border-radius: var(--sk-r-m); border-color: var(--sk-edge); }
+:root[data-theme="sakura"] .drawer { border-color: var(--sk-edge); }
+:root[data-theme="sakura"] .menu button { border-radius: 13px 4px 13px 4px; }
+:root[data-theme="sakura"] .menu button:hover { background: rgba(var(--teal-rgb), .1); }
+:root[data-theme="sakura"] .menu button.is-selected { background: var(--sk-sel); color: var(--sk-sel-ink); box-shadow: inset 0 0 0 1px var(--sk-sel-edge); }
+:root[data-theme="sakura"] .menu button.is-selected svg.i { color: var(--sk-sel-ink); }
+:root[data-theme="sakura"] .toast { border-radius: var(--sk-r-s); border-left: 3px solid var(--teal); }
+:root[data-theme="sakura"] .toast.err { border-left-color: var(--pink); }
+:root[data-theme="sakura"] .slider .hover-tip { border-radius: 9px 3px 9px 3px; }
+:root[data-theme="sakura"] .qrow.past { opacity: .8; }
+:root[data-theme="sakura"] .nav-label .nav-edit { opacity: .85; }
+:root[data-theme="sakura"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--teal-rgb), .28); border-radius: 8px; }
+:root[data-theme="sakura"] .hero .cover { border-radius: var(--sk-r); box-shadow: 0 0 0 5px var(--sk-ring), 0 22px 44px -14px rgba(var(--shadow-rgb), .7); }
+:root[data-theme="sakura"] .hero.artist .cover { border-radius: 50%; }
+:root[data-theme="sakura"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .35), rgba(var(--bg-rgb), .72) 60%, var(--bg)); }
+
+/* ───────────── 13 · 播放列：白色（夜是深紫）的長條，上緣一道粉線；播放頭是一朵小櫻花 ───────────── */
+:root[data-theme="sakura"] #bar { border-top: 1px solid var(--sk-edge); backdrop-filter: none; box-shadow: 0 -10px 24px -16px rgba(var(--shadow-rgb), .45); }
+:root[data-theme="sakura"] .np-mini .art { border-radius: var(--sk-r-s); }
+:root[data-theme="sakura"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 3px var(--surface), 0 6px 14px -4px rgba(var(--teal-rgb), .7); }
+:root[data-theme="sakura"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--sk-edge); }
+:root[data-theme="sakura"] .slider .track { background: rgba(var(--ink), .13); }
+:root[data-theme="sakura"] .slider .knob { background: #ffffff; box-shadow: 0 0 0 2px var(--teal), 0 2px 6px rgba(var(--shadow-rgb), .4); }
+:root[data-theme="sakura"] .slider .fill, :root[data-theme="sakura"] .slider:hover .fill { background: linear-gradient(90deg, #f3a6c1, var(--teal)); }
+:root[data-theme="sakura"] .seek .slider .knob, :root[data-theme="sakura"] .np-seek .slider .knob {
+  width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 0; opacity: 1; transform: none; box-shadow: none;
+  background: var(--sk-pin) center / 100% 100% no-repeat;
+}
+:root[data-theme="sakura"] .np-seek .slider .knob { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+:root[data-theme="sakura"] .seek { color: var(--text-2); }
+
+/* ───────────── 14 · 正在播放 ─────────────
+   封面是花瓣角、外面一圈白框（夜是淡粉細框）；最上緣飄一排花瓣（在收起鈕和右上按鈕之間，不碰到字）。
+   左上收起鈕和右上「歌詞不對？」「翻譯」「歌詞」都是實心底＋粉色框，淡色封面上也看得清楚。 */
+:root[data-theme="sakura"] {
+  --np-veil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='620' height='76'%3E%3Cdefs%3E%3Cpath id='p' d='M0,0C-3.2,-2 -5.4,-5.6 -4.4,-8.6C-3.8,-10.2 -2.1,-10.9 -1,-10.4L0,-8.9L1,-10.4C2.1,-10.9 3.8,-10.2 4.4,-8.6C5.4,-5.6 3.2,-2 0,0Z'/%3E%3C/defs%3E%3Cuse href='%23p' transform='translate(75.5 17.1) rotate(193) scale(0.75)' fill='%23f7a6c2' opacity='0.30'/%3E%3Cuse href='%23p' transform='translate(128.3 62.6) rotate(151) scale(0.53)' fill='%23ee7aa4' opacity='0.33'/%3E%3Cuse href='%23p' transform='translate(145.2 33.5) rotate(80) scale(0.83)' fill='%23f48fb3' opacity='0.35'/%3E%3Cuse href='%23p' transform='translate(188.8 31.8) rotate(309) scale(0.91)' fill='%23f7a6c2' opacity='0.37'/%3E%3Cuse href='%23p' transform='translate(211.0 40.4) rotate(246) scale(0.71)' fill='%23f48fb3' opacity='0.49'/%3E%3Cuse href='%23p' transform='translate(239.7 46.3) rotate(23) scale(0.61)' fill='%23f48fb3' opacity='0.52'/%3E%3Cuse href='%23p' transform='translate(263.7 37.8) rotate(168) scale(0.69)' fill='%23f29bb9' opacity='0.59'/%3E%3Cuse href='%23p' transform='translate(280.3 22.9) rotate(29) scale(0.51)' fill='%23f7a6c2' opacity='0.62'/%3E%3Cuse href='%23p' transform='translate(305.3 60.5) rotate(353) scale(0.78)' fill='%23f48fb3' opacity='0.53'/%3E%3Cuse href='%23p' transform='translate(325.6 17.9) rotate(152) scale(0.59)' fill='%23f48fb3' opacity='0.72'/%3E%3Cuse href='%23p' transform='translate(350.6 42.4) rotate(250) scale(0.86)' fill='%23f29bb9' opacity='0.59'/%3E%3Cuse href='%23p' transform='translate(366.4 35.4) rotate(171) scale(0.84)' fill='%23f48fb3' opacity='0.78'/%3E%3Cuse href='%23p' transform='translate(375.5 50.1) rotate(296) scale(0.74)' fill='%23f7a6c2' opacity='0.81'/%3E%3Cuse href='%23p' transform='translate(406.2 61.2) rotate(128) scale(0.59)' fill='%23f48fb3' opacity='0.85'/%3E%3Cuse href='%23p' transform='translate(420.3 21.1) rotate(143) scale(0.56)' fill='%23f29bb9' opacity='0.81'/%3E%3Cuse href='%23p' transform='translate(430.7 35.0) rotate(295) scale(0.69)' fill='%23f7a6c2' opacity='0.87'/%3E%3Cuse href='%23p' transform='translate(459.0 67.2) rotate(83) scale(0.76)' fill='%23f48fb3' opacity='0.75'/%3E%3Cuse href='%23p' transform='translate(467.0 21.9) rotate(212) scale(0.54)' fill='%23f7a6c2' opacity='0.80'/%3E%3Cuse href='%23p' transform='translate(485.7 16.7) rotate(115) scale(0.69)' fill='%23ee7aa4' opacity='0.87'/%3E%3Cuse href='%23p' transform='translate(508.9 38.9) rotate(19) scale(0.73)' fill='%23f29bb9' opacity='0.93'/%3E%3Cuse href='%23p' transform='translate(520.4 31.6) rotate(69) scale(0.66)' fill='%23ee7aa4' opacity='0.85'/%3E%3Cuse href='%23p' transform='translate(537.1 14.6) rotate(204) scale(0.72)' fill='%23f48fb3' opacity='0.76'/%3E%3Cuse href='%23p' transform='translate(560.9 44.8) rotate(135) scale(0.46)' fill='%23f7a6c2' opacity='0.83'/%3E%3Cuse href='%23p' transform='translate(576.5 44.1) rotate(176) scale(0.66)' fill='%23f29bb9' opacity='0.82'/%3E%3Cuse href='%23p' transform='translate(584.6 26.7) rotate(267) scale(0.49)' fill='%23f29bb9' opacity='1.10'/%3E%3Cuse href='%23p' transform='translate(605.0 17.7) rotate(190) scale(0.43)' fill='%23ee7aa4' opacity='1.22'/%3E%3Cg transform='translate(580.0 26.0) rotate(12) scale(1.05)' opacity='1'%3E%3Cg fill='%23f6a9c2'%3E%3Cuse href='%23p' transform='rotate(0)'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='1.9' fill='%23c8346a'/%3E%3C/g%3E%3Cg transform='translate(520.0 50.0) rotate(40) scale(0.72)' opacity='0.95'%3E%3Cg fill='%23f9bccf'%3E%3Cuse href='%23p' transform='rotate(0)'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='1.9' fill='%23d24f82'/%3E%3C/g%3E%3Cg transform='translate(410.0 22.0) rotate(-20) scale(0.55)' opacity='0.85'%3E%3Cg fill='%23fbcfdc'%3E%3Cuse href='%23p' transform='rotate(0)'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='1.9' fill='%23d24f82'/%3E%3C/g%3E%3C/svg%3E") left 5% top 0 / min(806px, 56vw) auto no-repeat, linear-gradient(180deg, rgba(252,244,247,.5), rgba(252,244,247,.78));
+}
+:root[data-theme="sakura"]:where([data-mode="night"]) {
+  --np-veil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='620' height='76'%3E%3Cdefs%3E%3Cpath id='p' d='M0,0C-3.2,-2 -5.4,-5.6 -4.4,-8.6C-3.8,-10.2 -2.1,-10.9 -1,-10.4L0,-8.9L1,-10.4C2.1,-10.9 3.8,-10.2 4.4,-8.6C5.4,-5.6 3.2,-2 0,0Z'/%3E%3C/defs%3E%3Cuse href='%23p' transform='translate(75.5 17.1) rotate(193) scale(0.75)' fill='%23ffd0e0' opacity='0.29'/%3E%3Cuse href='%23p' transform='translate(128.3 62.6) rotate(151) scale(0.53)' fill='%23f59ac0' opacity='0.32'/%3E%3Cuse href='%23p' transform='translate(145.2 33.5) rotate(80) scale(0.83)' fill='%23ffb3cd' opacity='0.33'/%3E%3Cuse href='%23p' transform='translate(188.8 31.8) rotate(309) scale(0.91)' fill='%23ffd0e0' opacity='0.35'/%3E%3Cuse href='%23p' transform='translate(211.0 40.4) rotate(246) scale(0.71)' fill='%23ffb3cd' opacity='0.47'/%3E%3Cuse href='%23p' transform='translate(239.7 46.3) rotate(23) scale(0.61)' fill='%23ffb3cd' opacity='0.49'/%3E%3Cuse href='%23p' transform='translate(263.7 37.8) rotate(168) scale(0.69)' fill='%23ffc2d6' opacity='0.57'/%3E%3Cuse href='%23p' transform='translate(280.3 22.9) rotate(29) scale(0.51)' fill='%23ffd0e0' opacity='0.59'/%3E%3Cuse href='%23p' transform='translate(305.3 60.5) rotate(353) scale(0.78)' fill='%23ffb3cd' opacity='0.51'/%3E%3Cuse href='%23p' transform='translate(325.6 17.9) rotate(152) scale(0.59)' fill='%23ffb3cd' opacity='0.69'/%3E%3Cuse href='%23p' transform='translate(350.6 42.4) rotate(250) scale(0.86)' fill='%23ffc2d6' opacity='0.56'/%3E%3Cuse href='%23p' transform='translate(366.4 35.4) rotate(171) scale(0.84)' fill='%23ffb3cd' opacity='0.75'/%3E%3Cuse href='%23p' transform='translate(375.5 50.1) rotate(296) scale(0.74)' fill='%23ffd0e0' opacity='0.78'/%3E%3Cuse href='%23p' transform='translate(406.2 61.2) rotate(128) scale(0.59)' fill='%23ffb3cd' opacity='0.81'/%3E%3Cuse href='%23p' transform='translate(420.3 21.1) rotate(143) scale(0.56)' fill='%23ffc2d6' opacity='0.78'/%3E%3Cuse href='%23p' transform='translate(430.7 35.0) rotate(295) scale(0.69)' fill='%23ffd0e0' opacity='0.84'/%3E%3Cuse href='%23p' transform='translate(459.0 67.2) rotate(83) scale(0.76)' fill='%23ffb3cd' opacity='0.72'/%3E%3Cuse href='%23p' transform='translate(467.0 21.9) rotate(212) scale(0.54)' fill='%23ffd0e0' opacity='0.77'/%3E%3Cuse href='%23p' transform='translate(485.7 16.7) rotate(115) scale(0.69)' fill='%23f59ac0' opacity='0.84'/%3E%3Cuse href='%23p' transform='translate(508.9 38.9) rotate(19) scale(0.73)' fill='%23ffc2d6' opacity='0.90'/%3E%3Cuse href='%23p' transform='translate(520.4 31.6) rotate(69) scale(0.66)' fill='%23f59ac0' opacity='0.82'/%3E%3Cuse href='%23p' transform='translate(537.1 14.6) rotate(204) scale(0.72)' fill='%23ffb3cd' opacity='0.73'/%3E%3Cuse href='%23p' transform='translate(560.9 44.8) rotate(135) scale(0.46)' fill='%23ffd0e0' opacity='0.80'/%3E%3Cuse href='%23p' transform='translate(576.5 44.1) rotate(176) scale(0.66)' fill='%23ffc2d6' opacity='0.79'/%3E%3Cuse href='%23p' transform='translate(584.6 26.7) rotate(267) scale(0.49)' fill='%23ffc2d6' opacity='1.05'/%3E%3Cuse href='%23p' transform='translate(605.0 17.7) rotate(190) scale(0.43)' fill='%23f59ac0' opacity='1.17'/%3E%3Cg transform='translate(580.0 26.0) rotate(12) scale(1.05)' opacity='1'%3E%3Cg fill='%23ffb8d0'%3E%3Cuse href='%23p' transform='rotate(0)'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='1.9' fill='%23ffd27f'/%3E%3C/g%3E%3Cg transform='translate(520.0 50.0) rotate(40) scale(0.72)' opacity='0.9'%3E%3Cg fill='%23ffc8da'%3E%3Cuse href='%23p' transform='rotate(0)'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='1.9' fill='%23ffd27f'/%3E%3C/g%3E%3Cg transform='translate(410.0 22.0) rotate(-20) scale(0.55)' opacity='0.8'%3E%3Cg fill='%23ffd0e0'%3E%3Cuse href='%23p' transform='rotate(0)'/%3E%3Cuse href='%23p' transform='rotate(72)'/%3E%3Cuse href='%23p' transform='rotate(144)'/%3E%3Cuse href='%23p' transform='rotate(216)'/%3E%3Cuse href='%23p' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='1.9' fill='%23ffd27f'/%3E%3C/g%3E%3C/svg%3E") left 5% top 0 / min(806px, 56vw) auto no-repeat, linear-gradient(180deg, rgba(48,32,57,.42), rgba(42,27,49,.7));
+}
+:root[data-theme="sakura"] #np .np-cover { border-radius: 30px 9px 30px 9px; box-shadow: 0 0 0 6px var(--sk-ring), 0 34px 70px -24px rgba(var(--shadow-rgb), .75); }
+:root[data-theme="sakura"]:where([data-mode="night"]) #np .np-cover { box-shadow: 0 0 0 2px var(--sk-ring), 0 34px 70px -22px rgba(0,0,0,.6); }
+:root[data-theme="sakura"] .np-title { font-weight: 700; }
+:root[data-theme="sakura"] .np-artist { color: rgba(var(--np-ink), .82); }
+:root[data-theme="sakura"] .np-badges .badge { border-radius: 9px 3px 9px 3px; }
+:root[data-theme="sakura"]:where([data-mode="day"]) .np-badges .badge { background: #ffffff; color: #573849; box-shadow: inset 0 0 0 1px #efc9d7; }
+:root[data-theme="sakura"]:where([data-mode="day"]) .np-badges .badge.hi { color: #3f7a34; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .np-badges .badge { background: rgba(42,27,49,.78); color: #f3e3ec; box-shadow: inset 0 0 0 1px rgba(255,214,232,.28); }
+:root[data-theme="sakura"] .np-seek .times { color: rgba(var(--np-ink), .8); }
+:root[data-theme="sakura"] .np-ctrl .icon-btn { color: rgba(var(--np-ink), .86); }
+:root[data-theme="sakura"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="sakura"] .np-seek .slider .track { background: rgba(var(--np-ink), .18); }
+
+/* 四個角落按鈕：實心底、粉色框 */
+:root[data-theme="sakura"] :is(.np-top .icon-btn, .np-top .pill) { border: 1.5px solid var(--sk-edge-2); box-shadow: 0 4px 12px -6px rgba(var(--shadow-rgb), .5); }
+:root[data-theme="sakura"] .np-top .pill { border-radius: 999px; }
+:root[data-theme="sakura"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill) { background: #ffffff; color: #3b2230; }
+:root[data-theme="sakura"]:where([data-mode="day"]) :is(.np-top .icon-btn, .np-top .pill):hover { background: #fde4ed; }
+:root[data-theme="sakura"]:where([data-mode="night"]) :is(.np-top .icon-btn, .np-top .pill) { background: #382540; color: #fff8fb; border-color: #c79bb3; }
+:root[data-theme="sakura"]:where([data-mode="night"]) :is(.np-top .icon-btn, .np-top .pill):hover { background: #4a3352; }
+:root[data-theme="sakura"] .np-top .pill.on { background: var(--sk-deep); color: #ffffff; border-color: var(--sk-deep); font-weight: 650; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .np-top .pill.on { background: #ff9ec0; color: #3a1426; border-color: #ffc0d6; }
+:root[data-theme="sakura"] .np-top .src { padding: 3px 10px; border-radius: 999px; }
+:root[data-theme="sakura"] .np-top .src:empty { padding: 0; background: none !important; }
+:root[data-theme="sakura"]:where([data-mode="day"]) .np-top .src { color: #573849; background: rgba(255,255,255,.85); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .np-top .src { color: #ead6e2; background: rgba(42,27,49,.78); }
+
+/* 歌詞：還沒唱到、已經唱過的行不要淡到看不清楚 */
+:root[data-theme="sakura"] .ly-line { border-radius: 16px 5px 16px 5px; }
+:root[data-theme="sakura"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .8; }
+:root[data-theme="sakura"] .ly-line .tr { color: rgba(var(--np-ink), .95); }
+:root[data-theme="sakura"]:where([data-mode="day"]) .ly-line .w { background-image: linear-gradient(90deg, #b8325f 0, #b8325f var(--p, 0%), rgba(59,34,48,.5) var(--p, 0%)); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .ly-line .w { background-image: linear-gradient(90deg, #ffc0d6 0, #ffc0d6 var(--p, 0%), rgba(255,246,250,.55) var(--p, 0%)); }
+
+/* ───────────── 15 · 夜：拿掉舊版的發光，只留很淡的影子 ───────────── */
+:root[data-theme="sakura"]:where([data-mode="night"]) :is(.page-head h1, .ly-line.on) { text-shadow: none; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill { background: var(--surface-2); box-shadow: inset 0 0 0 1px #6e5277, 0 4px 12px -6px rgba(0,0,0,.5); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .nav-pill::before { box-shadow: none; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .card:hover .art { box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--teal), 0 16px 30px -10px rgba(0,0,0,.6); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .card .play { box-shadow: 0 0 0 3px rgba(58,20,38,.55), 0 8px 18px rgba(0,0,0,.45); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .hero .cover { box-shadow: 0 0 0 2px var(--sk-ring), 0 24px 50px -16px rgba(0,0,0,.65); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .icon-btn.fav-on { filter: none; }
+:root[data-theme="sakura"]:where([data-mode="night"]) #bar { box-shadow: 0 -10px 24px -16px rgba(0,0,0,.5); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .playbtn { box-shadow: 0 0 0 3px rgba(255,214,232,.14), 0 6px 14px -4px rgba(0,0,0,.5); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .btn.primary { box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .slider .fill, :root[data-theme="sakura"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(90deg, #c77a9c, #ff9ec0); }
+:root[data-theme="sakura"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .3), rgba(var(--bg-rgb), .68) 60%, var(--bg)); }
+:root[data-theme="sakura"] { --dp-ink: var(--teal-2); }
+
+/* 櫻花：花瓣角（左上、右下大，另兩角小），粉色細框 */
+:root[data-theme="sakura"] .dp-sect .dp-group { border-radius: var(--sk-r-m); border: 1px solid var(--sk-edge); background: rgba(var(--ink), .025); }
+:root[data-theme="sakura"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }

@@ -48,9 +48,41 @@ const Theme = {
     return [t.id, mode === 'day' || mode === 'night' ? mode : t.native];
   },
 
-  /** Applies a theme and mode instantly (no saving to the app settings). */
+  /**
+   * The current theme's own stylesheet (themes/<id>.css; the shared rules are in themes/common.css). Only one theme's
+   * rules are loaded: with all fourteen in one sheet every element was matched against every theme's rules at each
+   * style pass, about 3.6 times the style work while a list scrolled. Resolves once the theme's sheet is in use.
+   */
+  sheet(id) {
+    const cur = document.getElementById('theme-css');
+    if (cur && cur.dataset.theme === id) return cur.sheet || cur._ready ? Promise.resolve() : (cur._wait = cur._wait || new Promise(r => { cur.addEventListener('load', r, { once: true }); cur.addEventListener('error', r, { once: true }); }));
+    if (this.loading && this.loading.id === id) return this.loading.p;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.dataset.theme = id;
+    link.href = `themes/${id}.css?v=${window.MIKU_THEME_V || '1'}`;
+    const p = new Promise(r => { link.onload = link.onerror = () => { link._ready = true; r(); }; });
+    (cur || document.head.lastChild).after(link);
+    this.loading = { id, p, link };
+    return p.then(() => {
+      if (this.loading && this.loading.link === link) this.loading = null;
+      // the newest request wins: an older one that loads later leaves the sheet alone
+      if (document.documentElement.dataset.theme !== id && this.want !== id) { link.remove(); return; }
+      const old = document.getElementById('theme-css');
+      link.id = 'theme-css';
+      if (old && old !== link) old.remove();
+    });
+  },
+
+  /** Applies a theme and mode (no saving to the app settings): at once when its sheet is loaded, else once it is. */
   set(id, mode) {
     [id, mode] = this.resolve(id, mode);
+    this.want = id;
+    const link = document.getElementById('theme-css');
+    if (link && link.dataset.theme === id) return Promise.resolve(this.show(id, mode));
+    return this.sheet(id).then(() => { if (this.want === id) this.show(id, mode); });
+  },
+  show(id, mode) {
     this.cur = id; this.mode = mode;
     const root = document.documentElement;
     root.dataset.theme = id;
@@ -66,7 +98,7 @@ const Theme = {
     [id, mode] = this.resolve(id || this.cur, mode || this.mode);
     if (id === this.cur && mode === this.mode) return;
     // the cards and the 日 / 夜 switch change together with the page: a view transition runs this a frame later
-    const run = () => { this.set(id, mode); this.paint(); };
+    const run = () => this.set(id, mode).then(() => this.paint());
     if (document.startViewTransition && !PageEffects.reduced('page') && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run);
     else run();
     try { if (typeof App !== 'undefined' && App.settings) { setUiPref('theme', id); setUiPref('themeMode', mode); } } catch (e) { }

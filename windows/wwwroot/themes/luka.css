@@ -1,0 +1,193 @@
+/* MIKU theme 'luka': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme="luka"] .tp-opt.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .85); }
+
+/* 日：側欄和播放列是黑漆的，字是象牙白，強調是金色 */
+:root[data-theme="luka"]:where([data-mode="day"]) :is(#sidebar, #bar) {
+  color: #fbf7ef; --text: #fbf7ef; --text-hi: #fffdf8; --text-sub: #e9e2d6; --text-2: #ddd6c9; --text-3: #c3bbad;
+  --ink: 247, 242, 232; --line: rgba(226,194,126,.14); --line-2: rgba(226,194,126,.28);
+  --surface: #2a2723; --surface-2: #33302b; --surface-3: #403c37; --bg-rgb: 27, 25, 22;
+  --teal: #e2c27e; --teal-rgb: 226, 194, 126; --teal-2: #f0d59c; --on-accent: #1b1813;
+  --lk-gold: #e2c27e; --lk-gold-rgb: 226, 194, 126; --lk-gold-lo: #a98540; --lk-sheen: rgba(255,244,220,.045);
+  --knob: #f3dfae; --knob-off: #ddd6c9;
+  --play-bg: linear-gradient(160deg, #f6e4b2, #dcbb76 48%, #b48c44); --play-ink: #1b1813; --brand-ink: #fbf7ef; --brand-track: #403c37;
+}
+:root[data-theme="luka"]:where([data-mode="day"]) #sidebar { --sidebar-bg: linear-gradient(180deg, #1f1d1a, #191714); }
+
+/* 側欄：黑漆，斜斜一抹漆面光澤；右邊是一粗一細的雙金線；小標是金色、字距拉開；
+   選中的是黑底金字加一道金色細框，左邊一顆金色菱形 */
+:root[data-theme="luka"] #sidebar {
+  background:
+    linear-gradient(rgba(var(--lk-gold-rgb), .62), rgba(var(--lk-gold-rgb), .62)) right 0 top 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(var(--lk-gold-rgb), .26), rgba(var(--lk-gold-rgb), .26)) right 4px top 0 / 1px 100% no-repeat,
+    linear-gradient(118deg, rgba(255,240,205,.05), rgba(255,240,205,0) 42%),
+    var(--sidebar-bg);
+  box-shadow: none; border-right: 0;
+}
+:root[data-theme="luka"] #brand { --pink: var(--lk-gold-hi); --teal: var(--lk-gold); }
+:root[data-theme="luka"] .nav a { color: var(--text-2); }
+:root[data-theme="luka"] .nav a:hover { background: rgba(var(--lk-gold-rgb), .08); color: var(--text); }
+:root[data-theme="luka"] .nav-label { color: var(--lk-label); font-weight: 600; letter-spacing: .26em; }
+:root[data-theme="luka"] .nav-pill { background: rgba(var(--lk-lacquer-rgb), .55); border-radius: 1px; box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .7), inset 0 0 0 3px rgba(var(--lk-lacquer-rgb), .0), inset 0 0 0 4px rgba(var(--lk-gold-rgb), .14); }
+:root[data-theme="luka"] .nav-pill::before { left: -4px; top: 50%; bottom: auto; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 0; background: var(--lk-gold); box-shadow: 0 0 0 2px var(--lk-lacquer); transform: rotate(45deg); }
+:root[data-theme="luka"] .nav a.on { color: var(--teal-2); }
+:root[data-theme="luka"] .nav a.on svg.i { color: var(--lk-gold); }
+:root[data-theme="luka"] .seg-side button.on, :root[data-theme="luka"] #sidebar .seg button.on { color: var(--teal-2); }
+
+/* 內容區右上角：金色的裝飾藝術放射扇形（細放射線、雙弧線、一圈階梯、一圈菱形） */
+:root[data-theme="luka"] #main { isolation: isolate; }
+:root[data-theme="luka"] #main::before { content: ""; position: absolute; top: 0; right: 0; width: 560px; max-width: 72%; height: 380px; z-index: -1; pointer-events: none; background: var(--lk-fan) right top / 560px 380px no-repeat; -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%); mask-image: linear-gradient(90deg, transparent, #000 45%); }
+:root[data-theme="luka"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .94); box-shadow: 0 1px 0 rgba(var(--lk-gold-rgb), .22); }
+:root[data-theme="luka"] .search { background: var(--surface); border: 1px solid rgba(var(--lk-gold-rgb), .34); border-radius: 2px; }
+:root[data-theme="luka"] .search:focus-within { border-color: rgba(var(--lk-gold-rgb), .85); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .16); }
+:root[data-theme="luka"] .round-btn { background: var(--surface); border: 1px solid rgba(var(--lk-gold-rgb), .34); }
+:root[data-theme="luka"] .round-btn:hover { border-color: rgba(var(--lk-gold-rgb), .7); color: var(--teal-2); }
+
+/* 標題：襯線字；頁首大標題下面一粗一細的雙金線，收在三顆由大到小的菱形 */
+:root[data-theme="luka"] :is(.page-head h1, .hero h1, .rail-head h2, .sect h2, .drawer-head h2, .np-title) { font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; }
+:root[data-theme="luka"] .page-head h1 { padding-bottom: 17px; background: var(--lk-rule) left bottom / 140px 12px no-repeat; }
+:root[data-theme="luka"] .fcrumbs + .page-head h1 { padding: 0 0 17px; margin: 0; }
+:root[data-theme="luka"] .rail-head h2::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 14px; vertical-align: .2em; background: var(--lk-gold); transform: rotate(45deg); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px rgba(var(--lk-gold-rgb), .5); }
+
+/* 方角為主，只有很小的圓角 */
+:root[data-theme="luka"] :is(.btn, .seg, .seg button, .set-tabs, .set-tabs button, .chip, .badge, .sig, .out-btn, select.sel, input.inp, .msel-btn, .msel-menu, .row, .qrow, .ft-head, .ft-h, .ft-tab, .pop, .modal, .toast) { border-radius: 2px; }
+:root[data-theme="luka"] .page-head .tools > .btn.small { border-radius: 2px; }
+
+/* 面板：黑漆面（上緣一抹光澤），外框是金色細線＋往內 4px 一條更淡的金線，四角是階梯狀的金色角飾和小菱形 */
+:root[data-theme="luka"] :is(.sect, .dsp-card) {
+  border-radius: 0; border: 1px solid transparent;
+  border-image: var(--lk-frame) 40 / 20px / 0 stretch;
+  background: linear-gradient(180deg, var(--lk-sheen), rgba(255,255,255,0) 140px), var(--surface);
+  box-shadow: 0 16px 32px -20px rgba(var(--shadow-rgb), calc(.9 * var(--sh)));
+}
+:root[data-theme="luka"] .sect h2 { padding-top: 20px; }
+
+/* 卡片：封面方角，滑過時出現金色的雙線細框 */
+:root[data-theme="luka"] .card .art { border-radius: 1px; box-shadow: 0 1px 2px rgba(var(--shadow-rgb), calc(.25 * var(--sh))), 0 10px 24px -10px rgba(var(--shadow-rgb), calc(.8 * var(--sh))); }
+:root[data-theme="luka"] .card:hover .art { box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .95), 0 0 0 4px rgb(var(--bg-rgb)), 0 0 0 5px rgba(var(--lk-gold-rgb), .5), 0 16px 34px -12px rgba(var(--shadow-rgb), calc(1 * var(--sh))); }
+:root[data-theme="luka"] .card:hover .t1 { color: var(--teal-2); }
+:root[data-theme="luka"] .card .play { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .7), 0 8px 20px rgba(var(--shadow-rgb), .4); }
+
+/* 按鈕：一般的是漆面加一道金邊（像貼了金箔的邊）；主要的夜是金底黑字、日是黑底金字 */
+:root[data-theme="luka"] .btn:not(.primary):not(.ghost) { background: linear-gradient(180deg, var(--lk-sheen), rgba(255,255,255,0)), var(--surface); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .42); }
+:root[data-theme="luka"] .btn:not(.primary):not(.ghost):hover { background: var(--surface-2); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .75); }
+:root[data-theme="luka"] .btn.primary { background: var(--play-bg); color: var(--play-ink); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .9), inset 0 0 0 2px rgba(var(--lk-lacquer-rgb), .35); }
+:root[data-theme="luka"] .btn.primary:hover { background: var(--play-bg); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), 1), 0 6px 18px -6px rgba(var(--lk-gold-rgb), .45); }
+:root[data-theme="luka"] .btn.bp-apply { background: var(--surface); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .6); }
+:root[data-theme="luka"] .btn.bp-apply svg.i { color: var(--teal-2); }
+
+/* 分段按鈕與設定分頁：選中的是黑漆底、金字、一道金邊 */
+:root[data-theme="luka"] :is(.seg, .set-tabs) { background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--line-2); padding: 3px; }
+:root[data-theme="luka"] :is(.seg, .set-tabs) button.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .85), inset 0 -2px 0 rgba(var(--lk-gold-rgb), .55); }
+
+/* 開關：關＝空的槽、灰色方鈕在左；開＝夜是金色的槽配黑鈕，日是黑漆的槽配金鈕 */
+:root[data-theme="luka"] .switch { border-radius: 2px; background: var(--surface-3); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .35); }
+:root[data-theme="luka"] .switch::after { border-radius: 1px; background: var(--knob-off); }
+:root[data-theme="luka"] .switch.on { background: var(--lk-gold); box-shadow: none; }
+:root[data-theme="luka"] .switch.on::after { background: var(--lk-lacquer); }
+:root[data-theme="luka"]:where([data-mode="day"]) .switch.on::after { background: #ebcd8c; }
+:root[data-theme="luka"]:where([data-mode="day"]) .switch { background: #ece5d7; box-shadow: inset 0 0 0 1px rgba(26,25,23,.38); }
+:root[data-theme="luka"]:where([data-mode="day"]) .switch.on { background: var(--lk-lacquer); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .9); }
+:root[data-theme="luka"] .eq-handle { box-shadow: 0 0 0 3px rgba(var(--bg-rgb), .6); }
+:root[data-theme="luka"] .eq-handle.sel { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: 0 0 0 1.5px var(--lk-gold), 0 0 0 4px rgba(var(--bg-rgb), .6); }
+
+/* 滑桿：金色（深金到淺金），拖曳鈕是金色菱形 */
+:root[data-theme="luka"] .slider .fill, :root[data-theme="luka"] .slider:hover .fill { background: linear-gradient(90deg, var(--lk-gold-lo), var(--lk-gold)); }
+:root[data-theme="luka"] .slider .knob { border-radius: 1px; background: var(--lk-gold); }
+:root[data-theme="luka"] .slider:hover .knob, :root[data-theme="luka"] .slider.drag .knob { transform: rotate(45deg); }
+:root[data-theme="luka"] .seek .slider .knob, :root[data-theme="luka"] .np-seek .slider .knob { opacity: 1; transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .22); }
+:root[data-theme="luka"] .seek .slider .knob { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+:root[data-theme="luka"] .range::-webkit-slider-thumb { width: 13px; height: 13px; border-radius: 1px; background: var(--lk-gold); transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(var(--lk-gold-rgb), .2); }
+:root[data-theme="luka"] .chip.on { background: var(--lk-lacquer); border-color: rgba(var(--lk-gold-rgb), .85); color: var(--lk-gold-hi); }
+:root[data-theme="luka"] .badge.hi { background: rgba(var(--lk-gold-rgb), .16); color: var(--teal-2); }
+:root[data-theme="luka"] .icon-btn.on { color: var(--teal-2); }
+:root[data-theme="luka"] .icon-btn.fav-on { color: var(--lk-gold); }
+:root[data-theme="luka"] .msel-btn { background: var(--surface); border-color: rgba(var(--lk-gold-rgb), .5); }
+:root[data-theme="luka"] .msel-btn::before { background: var(--lk-gold); box-shadow: none; border-radius: 0; transform: rotate(45deg); width: 6px; height: 6px; }
+:root[data-theme="luka"] .msel-chev { color: var(--teal-2); background: rgba(var(--lk-gold-rgb), .14); border-radius: 1px; }
+:root[data-theme="luka"] .msel-opt.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .6); }
+:root[data-theme="luka"]:where([data-mode="day"]) .msel-opt.on { --lk-gold-rgb: 226, 194, 126; }
+:root[data-theme="luka"] .msel-opt.on::before { left: 4px; top: 50%; bottom: auto; width: 5px; height: 5px; margin-top: -2.5px; background: var(--lk-gold); box-shadow: none; border-radius: 0; transform: rotate(45deg); }
+:root[data-theme="luka"] .msel-opt.on .msel-ck { background: var(--lk-gold); color: var(--lk-lacquer); }
+:root[data-theme="luka"]:where([data-mode="day"]) .msel-opt.on :is(.msel-ck) { background: #e2c27e; }
+
+/* 列表：表頭下面是雙金線；正在播放的那一列左邊一道金邊、標題金色 */
+:root[data-theme="luka"] .thead { background: linear-gradient(rgba(var(--lk-gold-rgb), .2), rgba(var(--lk-gold-rgb), .2)) left bottom 3px / 100% 1px no-repeat, rgba(var(--bg-rgb), .96); border-bottom: 1px solid rgba(var(--lk-gold-rgb), .45); }
+:root[data-theme="luka"] .row:hover { background: rgba(var(--lk-gold-rgb), .07); }
+:root[data-theme="luka"] .row.playing { background: linear-gradient(90deg, rgba(var(--lk-gold-rgb), .15), rgba(var(--lk-gold-rgb), 0) 70%); box-shadow: inset 2px 0 0 var(--lk-gold); }
+:root[data-theme="luka"] .row.playing .tt div:first-child, :root[data-theme="luka"] .qrow.cur .t { color: var(--teal-2); }
+:root[data-theme="luka"] .eq i { background: var(--lk-gold); }
+:root[data-theme="luka"] .ft-h.on { color: var(--teal-2); background: rgba(var(--lk-gold-rgb), .14); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .55); }
+:root[data-theme="luka"] .ft-tab { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .7); }
+
+/* 抽屜、選單、對話框：金色細框，往內 4px 再一條更淡的金線（抽屜和面板一樣有階梯角飾） */
+:root[data-theme="luka"] :is(.pop, .modal) { border: 1px solid rgba(var(--lk-gold-rgb), .45); }
+:root[data-theme="luka"] .drawer { border-radius: 2px; border: 1px solid transparent; border-image: var(--lk-frame) 40 / 20px / 0 stretch; }
+:root[data-theme="luka"] :is(.pop, .modal) { outline: 1px solid rgba(var(--lk-gold-rgb), .16); outline-offset: -5px; }
+:root[data-theme="luka"] .toast { border-left: 3px solid var(--lk-gold); }
+:root[data-theme="luka"] .hero .cover { border-radius: 1px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .95), 0 0 0 6px rgb(var(--bg-rgb)), 0 0 0 7px rgba(var(--lk-gold-rgb), .5), 0 26px 54px -12px rgba(var(--shadow-rgb), calc(1.1 * var(--sh))); }
+:root[data-theme="luka"] .hero.artist .cover { border-radius: 50%; }
+:root[data-theme="luka"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .35), rgba(var(--bg-rgb), .8) 60%, rgba(var(--bg-rgb), 0)); }
+:root[data-theme="luka"] .hero-bg { filter: saturate(.55); -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
+
+/* 播放列：黑漆，上緣是雙金線（一條實、一條淡）；播放鈕是金色，外面一圈金色細環 */
+:root[data-theme="luka"] #bar {
+  background: linear-gradient(rgba(var(--lk-gold-rgb), .26), rgba(var(--lk-gold-rgb), .26)) left top 3px / 100% 1px no-repeat, linear-gradient(180deg, var(--lk-sheen), rgba(255,255,255,0) 60%), var(--bar-bg);
+  border-top: 1px solid rgba(var(--lk-gold-rgb), .65); box-shadow: none; backdrop-filter: none;
+}
+:root[data-theme="luka"] .playbtn { background: var(--play-bg); color: var(--play-ink); box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .85), 0 0 0 4px rgba(var(--lk-lacquer-rgb), .9), 0 0 0 5px rgba(var(--lk-gold-rgb), .4); }
+:root[data-theme="luka"] ::-webkit-scrollbar-thumb { background-color: rgba(var(--lk-gold-rgb), .3); border-radius: 0; }
+
+/* 正在播放：兩側是金色的裝飾藝術邊柱（一粗兩細的直線、一串小菱形），歌詞關掉時兩側再各展開半個放射扇形；
+   只在畫面邊緣，寬度跟著版面收放，不碰到封面、進度條、按鈕和歌詞。封面裝在黑漆框裡，內外各一道金線 */
+:root[data-theme="luka"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme="luka"] .np-bg .layer.b { animation: none; }
+:root[data-theme="luka"] #np { --lk-side: min(16vw, 230px); }
+:root[data-theme="luka"] #np:not(.nolyrics) { --lk-side: calc(6vw - 8px); }
+:root[data-theme="luka"] #np::before, :root[data-theme="luka"] .np-bg::before {
+  content: ""; position: absolute; z-index: 1; top: 0; bottom: 0; width: var(--lk-side); pointer-events: none;
+  background: var(--lk-gem) left top 20px / 40px 44px repeat-y, var(--lk-col) left top / 240px 100% no-repeat, var(--lk-sun) left center / 240px 560px no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, #000 30%, transparent), linear-gradient(180deg, transparent 0 64px, #000 150px, #000 88%, transparent); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, #000 30%, transparent), linear-gradient(180deg, transparent 0 64px, #000 150px, #000 88%, transparent); mask-composite: intersect;
+  transition: width .6s var(--ease-out), background-position .6s var(--ease-out);
+}
+
+/* 歌詞開著時兩側很窄：放射扇形滑出畫面，只留邊柱 */
+:root[data-theme="luka"] #np:not(.nolyrics)::before, :root[data-theme="luka"] #np:not(.nolyrics) .np-bg::before { background-position: left top 20px, left top, -240px center; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="luka"] #np::before, :root[data-theme="luka"] .np-bg::before { transition: none; }
+}
+
+/* 直立或很窄的視窗：封面和進度條會靠近兩側，邊柱一律收窄、不展開放射扇形 */
+@media (orientation: portrait), (max-width: 760px) {:root[data-theme="luka"] #np, :root[data-theme="luka"] #np:not(.nolyrics) { --lk-side: calc(6vw - 8px); }
+:root[data-theme="luka"] #np::before, :root[data-theme="luka"] .np-bg::before { background-position: left top 20px, left top, -240px center; }
+}
+:root[data-theme="luka"] .np-bg::before { left: 0; }
+:root[data-theme="luka"] #np::before { right: 0; transform: scaleX(-1); }
+:root[data-theme="luka"] .np-cover { border-radius: 1px; box-shadow: 0 0 0 1px rgba(var(--lk-gold-rgb), .95), 0 0 0 7px var(--lk-lacquer), 0 0 0 8px rgba(var(--lk-gold-rgb), .8), 0 40px 80px -24px rgba(0,0,0,.7); }
+:root[data-theme="luka"]:where([data-mode="day"]) .np-cover { box-shadow: 0 0 0 1px #e2c27e, 0 0 0 7px var(--lk-lacquer), 0 0 0 8px rgba(var(--lk-gold-rgb), .9), 0 30px 60px -20px rgba(60,45,18,.4); }
+:root[data-theme="luka"] .np-ctrl .icon-btn.on { color: var(--teal-2); }
+
+/* 右上角的「翻譯」「歌詞」開著時：黑漆底、金字、金邊（淺色封面上也看得清楚） */
+:root[data-theme="luka"] .pill.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .9); }
+:root[data-theme="luka"]:where([data-mode="day"]) .pill.on { --lk-gold-rgb: 226, 194, 126; }
+:root[data-theme="luka"] .ly-line .w { background-image: linear-gradient(90deg, var(--teal-2) 0, var(--teal-2) var(--p, 0%), rgba(var(--np-ink), .45) var(--p, 0%)); }
+:root[data-theme="luka"]:where(:not([data-mode="day"])) .ly-line.on { text-shadow: 0 0 22px rgba(220,187,118,.25); }
+
+/* 好讀優先：沒在唱的歌詞、翻譯、時間、歌詞來源、播過的佇列都不要太淡 */
+:root[data-theme="luka"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .74; }
+:root[data-theme="luka"] .ly-line .tr { color: rgba(var(--np-ink), .88); }
+:root[data-theme="luka"] .np-seek .times { color: rgba(var(--np-ink), .82); font-weight: 600; }
+:root[data-theme="luka"] .np-top .src { color: rgba(var(--np-ink), .8); }
+:root[data-theme="luka"] .qrow.past { opacity: .8; }
+:root[data-theme="luka"] .nav-label .nav-edit { opacity: .85; }
+:root[data-theme="luka"] { --dp-ink: var(--teal); --dp-tile: var(--teal); --dp-tile-ink: var(--bg); }
+:root[data-theme="luka"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); --dp-tile: var(--text-hi); --dp-tile-ink: var(--lk-gold-hi); }
+
+/* 黑金：金色細線框，往內 4px 再一道更淡的金線（和卡片滑過時的雙線一樣） */
+:root[data-theme="luka"] .dp-sect .dp-group {
+  border-radius: 0; border: 1px solid rgba(var(--lk-gold-rgb), .75); background: rgba(var(--lk-gold-rgb), .035);
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 4px rgba(var(--lk-gold-rgb), .3);
+}
+:root[data-theme="luka"] .dp-sect .dp-group.dp-off { border-color: rgba(var(--lk-gold-rgb), .4); box-shadow: none; }
+:root[data-theme="luka"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }

@@ -1,0 +1,416 @@
+/* MIKU theme 'flat2': its :root[data-theme] rules (shared rules: themes/common.css). Only the current theme's file is
+   loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
+
+:root[data-theme^="flat"] ::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,.18); border-radius: 0; }
+:root[data-theme^="flat"]:where([data-mode="night"]) ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,.22); }
+:root[data-theme^="flat"] #sidebar { border-right: 1px solid #e4e4df; }
+:root[data-theme^="flat"]:where([data-mode="night"]) #sidebar { border-right: 1px solid #262626; }
+:root[data-theme^="flat"] .nav a { border-radius: 0; font-weight: 500; }
+:root[data-theme^="flat"] .nav a.on { color: #000; font-weight: 700; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .nav a.on { color: #ffffff; }
+:root[data-theme^="flat"] .nav-pill { background: #f1f1ec; border-radius: 0; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .nav-pill { background: #222222; }
+:root[data-theme^="flat"] .nav-pill::before { background: var(--teal); box-shadow: none; top: 0; bottom: 0; width: 4px; border-radius: 0; }
+:root[data-theme^="flat"] .nav a.on svg.i { color: var(--teal); }
+:root[data-theme^="flat"] .nav-label { font-weight: 700; color: #b0b0aa; text-transform: uppercase; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .nav-label { color: #6a6a65; }
+:root[data-theme^="flat"] :is(#topbar.solid, .set-band) { background: rgba(246,246,243,.92); backdrop-filter: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) :is(#topbar.solid, .set-band) { background: rgba(17,17,17,.92); }
+:root[data-theme^="flat"] .search { border-radius: 0; background: #fff; border: 1px solid #dcdcd6; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .search { background: #1a1a1a; border: 1px solid #333333; }
+:root[data-theme^="flat"] .search:focus-within { border-color: var(--teal); background: #fff; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .search:focus-within { background: #1a1a1a; }
+:root[data-theme^="flat"] .round-btn { border-radius: 0; background: #fff; border: 1px solid #dcdcd6; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .round-btn { background: #1a1a1a; border: 1px solid #333333; }
+:root[data-theme^="flat"] .btn, :root[data-theme^="flat"] .seg, :root[data-theme^="flat"] .seg button, :root[data-theme^="flat"] .chip, :root[data-theme^="flat"] .sig, :root[data-theme^="flat"] .out-btn, :root[data-theme^="flat"] select.sel, :root[data-theme^="flat"] input.inp, :root[data-theme^="flat"] .badge { border-radius: 2px; }
+:root[data-theme^="flat"] .btn { background: #fff; border: 1px solid #d6d6d0; box-shadow: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .btn { background: #1a1a1a; border: 1px solid #3a3a3a; }
+:root[data-theme^="flat"] .btn:hover { transform: none; background: #f0f0eb; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .btn:hover { background: #262626; }
+:root[data-theme^="flat"] .btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; box-shadow: none; }
+:root[data-theme^="flat"] .btn.primary:hover { background: var(--teal-2); box-shadow: none; }
+:root[data-theme^="flat"] .btn.ghost { border-color: transparent; background: transparent; }
+:root[data-theme^="flat"] .seg { background: #ecece8; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .seg { background: #222222; }
+:root[data-theme^="flat"] .seg button.on { background: #141414; color: #fff; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .seg button.on { background: #f2f2ee; color: #111111; }
+:root[data-theme^="flat"] .playbtn { border-radius: 4px; }
+:root[data-theme^="flat"] #bar { border-top: 1px solid #e4e4df; backdrop-filter: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) #bar { border-top: 1px solid #262626; }
+:root[data-theme^="flat"] #bar .playbtn { width: 44px; height: 44px; }
+:root[data-theme^="flat"] .np-mini .art, :root[data-theme^="flat"] .row .thumb, :root[data-theme^="flat"] .qrow .thumb { border-radius: 0; box-shadow: none; }
+:root[data-theme^="flat"] .slider .track { border-radius: 0; height: 3px; background: #e0e0da; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .slider .track { background: #333333; }
+:root[data-theme^="flat"] .slider .fill { border-radius: 0; background: #141414; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .slider .fill { background: #f2f2ee; }
+:root[data-theme^="flat"] .slider:hover .fill, :root[data-theme^="flat"] .slider.drag .fill { background: var(--teal); }
+:root[data-theme^="flat"] .slider .knob { border-radius: 0; width: 4px; height: 14px; margin: -7px 0 0 -2px; box-shadow: none; }
+:root[data-theme^="flat"] .card .art { border-radius: 0; box-shadow: none; }
+:root[data-theme^="flat"] .card:hover .art { transform: none; box-shadow: none; outline: 3px solid var(--teal); outline-offset: -3px; }
+:root[data-theme^="flat"] .card .art img { transition: opacity .45s; }
+:root[data-theme^="flat"] .card:hover .art img { transform: none; }
+:root[data-theme^="flat"] .card .play { border-radius: 0; background: #141414; color: #fff; box-shadow: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .card .play { background: #f2f2ee; color: #111111; }
+:root[data-theme^="flat"] .card .t1 { color: #111; font-weight: 700; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .card .t1 { color: #f2f2ee; }
+:root[data-theme^="flat"] .card:hover .t1 { color: var(--teal); }
+:root[data-theme^="flat"] .card .t2 { color: #6b6b66; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .card .t2 { color: #9a9a95; }
+:root[data-theme^="flat"] .ph { color: rgba(0,0,0,.35); }
+:root[data-theme^="flat"]:where([data-mode="night"]) .ph { color: rgba(255,255,255,.35); }
+:root[data-theme^="flat"] .page-head h1 { font-weight: 800; font-size: 34px; letter-spacing: -.03em; }
+:root[data-theme^="flat"] .rail-head h2 { letter-spacing: -.02em; }
+:root[data-theme^="flat"] .rail-head { border-top: 1px solid #e2e2dd; margin: 22px 36px 0; padding: 14px 0 12px; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .rail-head { border-top: 1px solid #2a2a2a; }
+:root[data-theme^="flat"] .hero { margin-top: -64px; }
+:root[data-theme^="flat"] .hero .cover { border-radius: 0; box-shadow: none; }
+:root[data-theme^="flat"] .hero::after { background: linear-gradient(180deg, rgba(246,246,243,.6), rgba(246,246,243,.85) 60%, #f6f6f3); }
+:root[data-theme^="flat"]:where([data-mode="night"]) .hero::after { background: linear-gradient(180deg, rgba(17,17,17,.6), rgba(17,17,17,.85) 60%, #111111); }
+:root[data-theme^="flat"] .hero h1 { font-weight: 800; letter-spacing: -.03em; }
+:root[data-theme^="flat"] .row { border-radius: 0; }
+:root[data-theme^="flat"] .row:hover { background: #ecece7; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .row:hover { background: #222222; }
+:root[data-theme^="flat"] .row .tt div:first-child { color: #111; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .row .tt div:first-child { color: #f2f2ee; }
+:root[data-theme^="flat"] .thead { background: #f6f6f3; border-bottom: 1px solid #e2e2dd; color: #6b6b66; font-weight: 600; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .thead { background: #111111; border-bottom: 1px solid #2a2a2a; color: #9a9a95; }
+:root[data-theme^="flat"] .sect { border-radius: 0; border: 1px solid #ebebe6; background: #fff; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .sect { border: 1px solid #262626; background: #1a1a1a; }
+:root[data-theme^="flat"] .sect h2 { font-weight: 800; }
+:root[data-theme^="flat"] .switch { border-radius: 0; background: #d6d6d0; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .switch { background: #3a3a3a; }
+:root[data-theme^="flat"] .switch::after { border-radius: 0; background: #fff; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .switch::after { background: #f2f2ee; }
+:root[data-theme^="flat"] .switch.on { background: var(--teal); }
+:root[data-theme^="flat"] .drawer, :root[data-theme^="flat"] .pop, :root[data-theme^="flat"] .modal { border-radius: 0; border: 1px solid #dcdcd6; backdrop-filter: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .drawer, :root[data-theme^="flat"]:where([data-mode="night"]) .pop, :root[data-theme^="flat"]:where([data-mode="night"]) .modal { border: 1px solid #333333; }
+:root[data-theme^="flat"] .drawer { top: 0; right: 0; bottom: var(--bar); border-width: 0 0 0 1px; }
+:root[data-theme^="flat"] .toast { color: #fff; border-radius: 0; border: 0; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .toast { color: #111111; }
+:root[data-theme^="flat"] .badge { background: #ecece7; color: #444; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .badge { background: #222222; color: #c9c9c4; }
+:root[data-theme^="flat"] .badge.hi { background: var(--teal); color: #fff; }
+:root[data-theme^="flat"] .badge.dsd { background: var(--pink); color: #fff; }
+:root[data-theme^="flat"] .sig .dot { box-shadow: none; }
+:root[data-theme^="flat"] .eq-handle { border-radius: 2px; box-shadow: none; color: #fff; }
+:root[data-theme^="flat"] .eq-graph { background: #f3f3ef; border-radius: 0; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .eq-graph { background: #151515; }
+:root[data-theme^="flat"] .dsp-card { background: #fff; border-radius: 0; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .dsp-card { background: #1a1a1a; }
+:root[data-theme^="flat"] .np-cover { border-radius: 0; box-shadow: 0 30px 60px rgba(0,0,0,.18); }
+:root[data-theme^="flat"]:where([data-mode="night"]) .np-cover { box-shadow: 0 30px 60px rgba(0,0,0,.54); }
+:root[data-theme^="flat"] .np-badges .badge { background: rgba(0,0,0,.08); color: #333; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .np-badges .badge { background: rgba(255,255,255,.1); color: #d6d6d1; }
+:root[data-theme^="flat"] .np-bg .layer.b.on { opacity: 0; }
+:root[data-theme^="flat"] .np-bg .layer.b { animation: none; }
+
+/* (not shown: not turning either, see MIKU) */
+:root[data-theme^="flat"] .ly-line { font-weight: 800; letter-spacing: -.02em; }
+:root[data-theme^="flat"] .pill { border-radius: 2px; }
+:root[data-theme^="flat"] .np-top .icon-btn { border-radius: 2px; }
+:root[data-theme^="flat"] .scroll-bubble { border-radius: 0; color: #fff; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .scroll-bubble { color: #111111; }
+
+/* 極簡平面 1：塗滿鈷藍（這條在建置時會變成 ^="flat"，所以放在 2 的前面，讓 2 蓋過去） */
+:root[data-theme^="flat"] .tp-opt.on { background: var(--fl-fill, var(--teal)); color: var(--fl-on-fill, #fff); box-shadow: none; }
+
+/* 極簡平面 2：選中是名稱下面一條粗線（跟它的分頁、日 / 夜開關一樣），不加底色 */
+:root[data-theme="flat2"] .tp-opt.on { background: none; color: var(--text-hi); box-shadow: inset 0 -3px 0 var(--fl-fill); font-weight: 800; }
+:root[data-theme^="flat"] .rail-head h2 { font-weight: 700; }
+
+/* 夜：選中的分段按鈕和提示不要用整塊白色（在黑底上像閃光）：深灰底、白字、鈷藍底線 */
+:root[data-theme^="flat"]:where([data-mode="night"]) .seg button.on { background: #2e2e2e; color: #ffffff; box-shadow: inset 0 -2px 0 var(--teal); }
+:root[data-theme^="flat"]:where([data-mode="night"]) .toast { color: #ffffff; box-shadow: inset 3px 0 0 var(--teal); }
+
+/* 白天：側欄小標太淡 */
+:root[data-theme^="flat"]:where(:not([data-mode="night"])) .nav-label { color: #8a8a85; }
+
+/* 夜：等化器選中的圓點是白色，上面的數字改用黑色 */
+:root[data-theme^="flat"]:where([data-mode="night"]) .eq-handle.sel { color: #111111; }
+
+/* 極簡平面：不用模糊的封面，只有純色的底 */
+:root[data-theme^="flat"] .np-bg .layer { display: none; }
+
+/* ═════════════════════════════ 極簡平面：雜誌排版 ═════════════════════════════
+   大而粗的標題；鈷藍只用在一個大色塊：選中的選單整列。線條都是淡灰、細的。 */
+:root[data-theme^="flat"] .page-head h1 { font-size: 44px; font-weight: 800; letter-spacing: -.035em; line-height: 1.05; }
+:root[data-theme^="flat"] .hero h1 { font-weight: 800; letter-spacing: -.035em; }
+:root[data-theme^="flat"] .rail-head h2 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+:root[data-theme^="flat"] .nav-pill, :root[data-theme^="flat"]:where([data-mode="night"]) .nav-pill { background: var(--teal); }
+:root[data-theme^="flat"] .nav-pill::before { display: none; }
+:root[data-theme^="flat"] .nav a.on, :root[data-theme^="flat"] .nav a.on svg.i, :root[data-theme^="flat"] .nav a.on .count, :root[data-theme^="flat"]:where([data-mode="night"]) .nav a.on { color: #ffffff; }
+
+/* 按鈕的框線、分段按鈕選中的那格：不要黑框黑塊，淡灰的細線＋白底，選中的下面一條鈷藍（和夜版一樣） */
+:root[data-theme^="flat"] .btn { border-color: #e4e4df; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .btn { border-color: #2c2c2c; }
+:root[data-theme^="flat"]:where(:not([data-mode="night"])) .seg button.on { background: #ffffff; color: #111111; box-shadow: inset 0 -2px 0 var(--teal); }
+
+/* 極簡平面：直角、灰底，選中的下面一條鈷藍 */
+:root[data-theme^="flat"] .set-tabs, :root[data-theme^="flat"] .set-tabs button { border-radius: 2px; }
+:root[data-theme^="flat"] .set-tabs { background: #ecece8; border-color: transparent; backdrop-filter: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .set-tabs { background: #222222; }
+:root[data-theme^="flat"] .set-tabs button.on { background: #ffffff; color: #111111; box-shadow: inset 0 -2px 0 var(--teal); }
+:root[data-theme^="flat"]:where([data-mode="night"]) .set-tabs button.on { background: #2e2e2e; color: #ffffff; }
+:root[data-theme^="flat"] .page-head .tools > .btn.small { border-radius: 2px; }
+:root[data-theme^="flat"] .page-head .tools > .btn.small:not(.primary) { background: #ecece8; border-color: transparent; }
+:root[data-theme^="flat"] .page-head .tools > .btn.small:not(.primary):hover { background: #e2e2dd; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary) { background: #222222; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary):hover { background: #2a2a2a; }
+:root[data-theme^="flat"] .msel-btn { border-color: #dcdcd6; background: #ffffff; box-shadow: none; }
+:root[data-theme^="flat"]:where([data-mode="night"]) .msel-btn { border-color: #333333; background: #1a1a1a; }
+:root[data-theme^="flat"] .msel-btn::before { box-shadow: none; border-radius: 0; }
+:root[data-theme^="flat"] .msel-chev { border-radius: 0; }
+
+/* 搜尋結果裡比對到的字：橘色的螢光筆（黃色疊在藍上會變成橄欖綠）；app.css 那條是 [^="flat"][data-mode]，這裡要更具體才蓋得過 */
+:root[data-theme="flat2"][data-mode="night"] { --hit: rgba(255,122,61,.5); }
+
+/* ───────────── 3 · 字：大標題、等寬數字 ─────────────
+   頁面標題：最粗的字重（Windows 是 Segoe UI Black，Mac 是 Helvetica Neue Bold），字距收緊，行高壓低。 */
+:root[data-theme="flat2"] .page-head h1 {
+  font: 900 clamp(40px, 4.4vw, 60px)/1.06 var(--font-display); letter-spacing: -.035em; color: var(--text-hi);
+}
+:root[data-theme="flat2"] .page-head .sub { color: var(--teal); font-weight: 700; font-size: 14px; letter-spacing: .02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* 視窗窄、右邊的工具列放不下時，工具列整排換到標題下面一行（以前是把大標題擠成一個字一行） */
+:root[data-theme="flat2"] .page-head { flex-wrap: wrap; row-gap: 12px; }
+:root[data-theme="flat2"] .hero h1 { font-weight: 900; letter-spacing: -.035em; }
+:root[data-theme="flat2"] .hero .kind { color: var(--teal); font-weight: 800; letter-spacing: .16em; }
+:root[data-theme="flat2"] :is(.num, .nav a .count, .row .d, .row .n, .time, .db, .np-seek .times, .badge, .qrow .d) { font-variant-numeric: tabular-nums; }
+
+/* ───────────── 4 · 區塊標題：上面一小段粗的鈷藍旗標 ─────────────
+   原本區塊之間是一條橫跨整頁的線（太顯眼），現在拿掉，只留標題上方 28×5 的色條和多一點留白。 */
+:root[data-theme="flat2"] .rail-head { border-top: 0; margin: 0; padding: 40px 36px 14px; }
+:root[data-theme="flat2"] .rail-head h2 { position: relative; font: 800 24px/1.15 var(--font-display); letter-spacing: -.02em; color: var(--text-hi); }
+:root[data-theme="flat2"] .rail-head h2::before, :root[data-theme="flat2"] .sect > h2::before, :root[data-theme="flat2"] .sect .theme-head h2::before {
+  content: ""; position: absolute; left: 0; top: -14px; width: 28px; height: 5px; background: var(--fl-fill); pointer-events: none;
+}
+:root[data-theme="flat2"] .rail-head a { color: var(--text-2); font-weight: 600; }
+:root[data-theme="flat2"] .rail-head a:hover { color: var(--teal); }
+
+/* ───────────── 5 · 側欄：淡灰的紙框，選中的是一整條鈷藍色塊 ───────────── */
+:root[data-theme="flat2"] #sidebar { border-right: 0; }
+:root[data-theme="flat2"] .nav a { border-radius: 0; font-weight: 500; color: var(--text); }
+:root[data-theme="flat2"] .nav a svg.i { color: var(--text-2); }
+:root[data-theme="flat2"] .nav a:hover { background: rgba(var(--ink), .06); box-shadow: -12px 0 0 rgba(var(--ink), .06), 12px 0 0 rgba(var(--ink), .06); }
+
+/* 色塊左右各伸出 12px，貼齊側欄的兩邊（core.js 把 .nav-pill 本身設成和選項一樣寬，所以色塊畫在 ::before） */
+:root[data-theme="flat2"] .nav-pill { border-radius: 0; background: transparent; }
+:root[data-theme="flat2"] .nav-pill::before { display: block; left: -12px; right: -12px; top: 0; bottom: 0; width: auto; border-radius: 0; background: var(--fl-fill); box-shadow: none; }
+:root[data-theme="flat2"] .nav-edit { border-radius: 0; color: var(--text-2); opacity: .85; }
+:root[data-theme="flat2"] .nav a.on, :root[data-theme="flat2"] .nav a.on svg.i, :root[data-theme="flat2"] .nav a.on .count { color: var(--fl-on-fill); }
+:root[data-theme="flat2"] .nav a.on { font-weight: 700; }
+:root[data-theme="flat2"] .nav-label { color: var(--text-3); font-weight: 800; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; }
+:root[data-theme="flat2"] .nav a .count { font-style: normal; font-weight: 600; color: var(--text-3); }
+
+/* ───────────── 6 · 上方：返回鍵、搜尋框都是灰色方塊，不加框線 ───────────── */
+:root[data-theme="flat2"] :is(#topbar.solid, .set-band) { background: var(--bg); backdrop-filter: none; border-bottom-color: var(--line); }
+:root[data-theme="flat2"] .round-btn { border-radius: 0; border: 0; background: var(--surface-2); color: var(--text); }
+:root[data-theme="flat2"] .round-btn:hover { background: var(--surface-3); }
+:root[data-theme="flat2"] .round-btn:disabled { opacity: .5; }
+:root[data-theme="flat2"] .search { border-radius: 0; border: 0; background: var(--surface-2); color: var(--text-2); }
+:root[data-theme="flat2"] .search:focus-within { background: var(--surface-2); box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat2"] .search input::placeholder { color: var(--text-3); }
+:root[data-theme="flat2"] .search kbd { border-radius: 0; border-color: var(--line-2); color: var(--text-2); }
+
+/* ───────────── 7 · 按鈕：直角、實心的淡灰；主要按鈕是鈷藍 ───────────── */
+:root[data-theme="flat2"] .btn { border: 0; border-radius: 0; background: var(--surface-2); color: var(--text); box-shadow: none; }
+:root[data-theme="flat2"] .btn:hover { background: var(--surface-3); transform: none; }
+:root[data-theme="flat2"] .btn.primary { background: var(--fl-fill); color: var(--fl-on-fill); box-shadow: none; }
+:root[data-theme="flat2"] .btn.primary:hover { background: var(--fl-fill-2); box-shadow: none; }
+:root[data-theme="flat2"] .btn.ghost { background: transparent; color: var(--text-2); }
+:root[data-theme="flat2"] .btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+:root[data-theme="flat2"] .btn.bp-apply { background: var(--surface-2); color: var(--text-hi); box-shadow: none; }
+:root[data-theme="flat2"] .btn.bp-apply:hover { background: var(--surface-3); box-shadow: none; }
+:root[data-theme="flat2"] .page-head .tools > .btn.small { border-radius: 0; }
+:root[data-theme="flat2"] .page-head .tools > .btn.small:not(.primary) { border-radius: 0; background: var(--surface-2); }
+:root[data-theme="flat2"] .page-head .tools > .btn.small:not(.primary):hover { background: var(--surface-3); }
+:root[data-theme="flat2"] .icon-btn { border-radius: 0; }
+:root[data-theme="flat2"] .icon-btn:hover { background: rgba(var(--ink), .07); }
+:root[data-theme="flat2"] .chip { border-radius: 0; border-color: transparent; background: var(--surface-2); color: var(--text-2); }
+:root[data-theme="flat2"] .chip:hover { background: var(--surface-3); color: var(--text); }
+:root[data-theme="flat2"] .chip.on { background: var(--fl-fill); border-color: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat2"] .badge { border-radius: 0; background: var(--surface-2); color: var(--text-sub); }
+:root[data-theme="flat2"] .badge.hi { background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat2"] .badge.dsd { background: var(--pink); color: #ffffff; }
+:root[data-theme="flat2"]:where([data-mode="night"]) .badge.dsd { background: #ff7a9c; color: #0b1a33; }
+
+/* ───────────── 8 · 分段按鈕、設定分頁：純文字，選中的下面一條粗鈷藍線 ─────────────
+   整組下面一條很淡的灰底線，看得出這幾個是同一組；選中的那個字變黑、加粗，壓上 3px（分頁 4px）的鈷藍。
+   字粗細選中前後一樣寬（app.css 的 data-label 預留了粗體的寬度），切換時字不會跳。 */
+:root[data-theme="flat2"] .seg { background: transparent; border-radius: 0; padding: 0; gap: 0; box-shadow: inset 0 -2px 0 var(--fl-track); }
+:root[data-theme="flat2"] .seg button { border-radius: 0; height: 36px; padding: 0 12px; color: var(--text-2); font-weight: 600; background: transparent; }
+:root[data-theme="flat2"] .seg button[data-label]::after { font-weight: 800; }
+:root[data-theme="flat2"] .seg button:hover { color: var(--text); background: rgba(var(--ink), .05); }
+:root[data-theme="flat2"] .seg button.on { background: transparent; color: var(--text-hi); font-weight: 800; box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat2"] .page-head .tools { gap: 12px; }
+:root[data-theme="flat2"] .set-tabs { background: var(--bg); border: 0; border-radius: 0; padding: 0; gap: 26px; backdrop-filter: none; box-shadow: inset 0 -2px 0 var(--fl-track); }
+:root[data-theme="flat2"] .set-tabs button { border-radius: 0; height: 42px; padding: 0 2px; font-size: 16px; font-weight: 700; color: var(--text-2); background: transparent; }
+:root[data-theme="flat2"] .set-tabs button:hover { color: var(--text-hi); }
+:root[data-theme="flat2"] .set-tabs button.on { background: transparent; color: var(--text-hi); box-shadow: inset 0 -4px 0 var(--fl-fill); }
+
+/* ───────────── 9 · 開關：方形；關＝白底灰框、灰方鈕在左；開＝整塊鈷藍、白方鈕在右 ───────────── */
+:root[data-theme="flat2"] .switch { border-radius: 0; background: var(--fl-field); box-shadow: inset 0 0 0 2px var(--fl-sw-off); }
+:root[data-theme="flat2"] .switch::after { border-radius: 0; left: 5px; top: 5px; width: 14px; height: 14px; background: var(--fl-sw-off); }
+:root[data-theme="flat2"] .switch.on { background: var(--fl-fill); box-shadow: none; }
+:root[data-theme="flat2"] .switch.on::after { background: var(--fl-knob-on); }
+
+/* ───────────── 10 · 滑桿：細細的灰軌、黑色的進度、直立的方鈕 ───────────── */
+:root[data-theme="flat2"] .slider .track { border-radius: 0; height: 3px; background: var(--fl-track); }
+:root[data-theme="flat2"] .slider:hover .track, :root[data-theme="flat2"] .slider.drag .track { height: 5px; }
+:root[data-theme="flat2"] .slider .fill { border-radius: 0; background: var(--text-hi); }
+:root[data-theme="flat2"] .slider:hover .fill, :root[data-theme="flat2"] .slider.drag .fill { background: var(--fl-fill); }
+:root[data-theme="flat2"] .slider .knob { border-radius: 0; width: 4px; height: 16px; margin: -8px 0 0 -2px; box-shadow: none; background: var(--text-hi); }
+:root[data-theme="flat2"] .slider .hover-tip { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat2"] .range { border-radius: 0; height: 3px; background: var(--fl-track); }
+:root[data-theme="flat2"] .range::-webkit-slider-thumb { border-radius: 0; width: 6px; height: 20px; background: var(--text-hi); box-shadow: none; }
+
+/* ───────────── 11 · 下拉選單：白色的格子，小方塊記號 ───────────── */
+:root[data-theme="flat2"] .msel-btn { border-radius: 0; border: 1px solid var(--line-2); background: var(--fl-field); box-shadow: none; color: var(--text); }
+:root[data-theme="flat2"] .msel-btn:hover { border-color: rgba(var(--ink), .3); }
+:root[data-theme="flat2"] .msel-btn:focus-visible, :root[data-theme="flat2"] .msel.open .msel-btn { border-color: var(--fl-fill); box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat2"] .msel-btn::before { border-radius: 0; box-shadow: none; background: var(--fl-fill); }
+:root[data-theme="flat2"] .msel-chev { border-radius: 0; background: transparent; color: var(--text); }
+:root[data-theme="flat2"] .msel.open .msel-chev { background: transparent; }
+:root[data-theme="flat2"] .msel-menu { border-radius: 0; border: 1px solid var(--line-2); box-shadow: none; backdrop-filter: none; }
+:root[data-theme="flat2"] .msel-opt { border-radius: 0; }
+:root[data-theme="flat2"] .msel-opt.on, :root[data-theme="flat2"] .msel-opt.on.act { background: var(--teal-dim); }
+:root[data-theme="flat2"] .msel-opt.on::before { left: 0; top: 0; bottom: 0; width: 4px; border-radius: 0; box-shadow: none; background: var(--fl-fill); }
+:root[data-theme="flat2"] .msel-opt.on .msel-ck { border-radius: 0; background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat2"] input.inp, :root[data-theme="flat2"] select.sel { border-radius: 0; background-color: var(--fl-field); border-color: var(--line-2); }
+:root[data-theme="flat2"] input.inp:focus, :root[data-theme="flat2"] select.sel:focus { border-color: var(--fl-fill); }
+:root[data-theme="flat2"] .band-table td:first-child, :root[data-theme="flat2"] .band-table td:last-child { border-radius: 0; }
+
+/* ───────────── 12 · 專輯卡：方形封面，沒有陰影；滑過時封面下緣一條鈷藍 ───────────── */
+:root[data-theme="flat2"] .card .art { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat2"] .card:hover .art { transform: none; box-shadow: none; outline: 0; }
+:root[data-theme="flat2"] .card .art::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; z-index: 2; background: var(--fl-fill); transform: scaleY(0); transform-origin: bottom; transition: transform .18s var(--ease); pointer-events: none; }
+:root[data-theme="flat2"] .card:hover .art::after { transform: none; }
+@media (prefers-reduced-motion: reduce) {:root[data-theme="flat2"] .card .art::after { transition: none; }
+}
+:root[data-theme="flat2"] .card .play { border-radius: 0; background: var(--fl-fill); color: var(--fl-on-fill); box-shadow: none; }
+:root[data-theme="flat2"] .card .play:hover { background: var(--fl-fill-2); }
+:root[data-theme="flat2"] .card .t1 { color: var(--text-hi); font-weight: 700; }
+:root[data-theme="flat2"] .card:hover .t1 { color: var(--teal); }
+:root[data-theme="flat2"] .card .t2 { color: var(--text-2); }
+:root[data-theme="flat2"] .ph { color: rgba(var(--ink), .4); }
+:root[data-theme="flat2"] .hero .cover { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat2"] .hero::after { background: linear-gradient(180deg, rgba(var(--bg-rgb), .55), rgba(var(--bg-rgb), .86) 60%, var(--bg)); }
+
+/* ───────────── 13 · 曲目表：表頭是小號大寫字，沒有底線；播放中那列左邊一條鈷藍 ───────────── */
+:root[data-theme="flat2"] .thead { background: var(--bg); border-bottom: 0; color: var(--text-3); font-weight: 800; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; }
+:root[data-theme="flat2"] .row { border-radius: 0; }
+:root[data-theme="flat2"] .row:hover { background: var(--surface); }
+:root[data-theme="flat2"] .row.sel { background: var(--teal-dim); }
+:root[data-theme="flat2"] .row .n, :root[data-theme="flat2"] .row .n:has(.thumb) { border-radius: 0; }
+:root[data-theme="flat2"] .row .n { color: var(--text-2); font-weight: 700; }
+:root[data-theme="flat2"] .row .tt div:first-child { color: var(--text-hi); font-weight: 700; }
+:root[data-theme="flat2"] .row .tt .a { color: var(--text-2); }
+:root[data-theme="flat2"] .row.playing { background: var(--surface); box-shadow: inset 5px 0 0 var(--fl-fill); }
+:root[data-theme="flat2"] .row.playing .tt div:first-child { color: var(--teal); }
+:root[data-theme="flat2"] .np-mini .art, :root[data-theme="flat2"] .row .thumb, :root[data-theme="flat2"] .qrow .thumb { border-radius: 0; box-shadow: none; }
+
+/* 資料夾頁的表頭：和曲目表一樣，不是圓角的浮條、沒有陰影；排序中的那欄字變黑、下面一條鈷藍 */
+:root[data-theme="flat2"] .ft-head { border-radius: 0; background: var(--bg); box-shadow: none; color: var(--text-3); font-weight: 800; letter-spacing: .1em; }
+:root[data-theme="flat2"] .ft-h { border-radius: 0; }
+:root[data-theme="flat2"] .ft-h:hover { color: var(--text-hi); background: rgba(var(--ink), .05); }
+:root[data-theme="flat2"] .ft-h.on { color: var(--text-hi); font-weight: 800; background: transparent; box-shadow: inset 0 -3px 0 var(--fl-fill); }
+:root[data-theme="flat2"] .ft-q, :root[data-theme="flat2"] .fcrumbs a, :root[data-theme="flat2"] .fcrumbs .cur { border-radius: 0; }
+:root[data-theme="flat2"] .ft-none { border-style: solid; border-color: var(--line); }
+:root[data-theme="flat2"] .qrow { border-radius: 0; }
+:root[data-theme="flat2"] .qrow.cur { box-shadow: inset 4px 0 0 var(--fl-fill); }
+
+/* 已經播過的：不再整列變淡（淡到看不清楚），改成字的顏色退一階 */
+:root[data-theme="flat2"] .qrow.past { opacity: 1; }
+:root[data-theme="flat2"] .qrow.past .t { color: var(--text-2); font-weight: 500; }
+:root[data-theme="flat2"] .qrow.past .a { color: var(--text-3); }
+
+/* ───────────── 14 · 設定頁：淡灰的色塊，項目之間是白色的空隙（不是線） ───────────── */
+:root[data-theme="flat2"] .sect { border: 0; border-radius: 0; background: var(--fl-plate); margin-top: 28px; }
+:root[data-theme="flat2"] .sect > h2, :root[data-theme="flat2"] .sect .theme-head h2 { position: relative; font: 800 20px/1.25 var(--font-display); letter-spacing: -.015em; color: var(--text-hi); }
+:root[data-theme="flat2"] .sect > h2 { padding-top: 24px; }
+:root[data-theme="flat2"] .sect .theme-head { padding-top: 24px; }
+:root[data-theme="flat2"] .sect > h2::before { left: 22px; top: 0; }
+:root[data-theme="flat2"] .sect .theme-head h2::before { top: -24px; }
+:root[data-theme="flat2"] .sect .hint { color: var(--text-2); }
+:root[data-theme="flat2"] .field { border-top: 2px solid var(--bg); }
+:root[data-theme="flat2"] .field:first-of-type { border-top: 0; }
+:root[data-theme="flat2"] .field .lbl b { font-weight: 700; color: var(--text-hi); }
+:root[data-theme="flat2"] .field .lbl small { color: var(--text-2); }
+:root[data-theme="flat2"] .tp, :root[data-theme="flat2"] .tp .tp-screen { border-radius: 0; }
+:root[data-theme="flat2"] .tp .tp-screen { box-shadow: 0 0 0 1px rgba(127,127,127,.28); }
+:root[data-theme="flat2"] .tp.on { background: var(--bg); border-color: transparent; box-shadow: inset 0 -4px 0 var(--fl-fill); }
+:root[data-theme="flat2"] .tp:hover { transform: none; background: var(--bg); }
+:root[data-theme="flat2"] .tp .chk { border-radius: 0; box-shadow: none; background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat2"] .theme-desc { color: var(--text-2); }
+:root[data-theme="flat2"] .theme-desc b { color: var(--text-hi); }
+
+/* ───────────── 15 · 選單、抽屜、對話框、提示：直角、細的淡框，沒有陰影 ───────────── */
+:root[data-theme="flat2"] .drawer, :root[data-theme="flat2"] .pop, :root[data-theme="flat2"] .modal { border-radius: 0; border: 1px solid var(--line-2); box-shadow: none; backdrop-filter: none; }
+:root[data-theme="flat2"] .drawer { border-width: 0 0 0 1px; }
+:root[data-theme="flat2"] .drawer-head h2 { font: 800 22px var(--font-display); letter-spacing: -.02em; }
+:root[data-theme="flat2"] .menu button { border-radius: 0; }
+:root[data-theme="flat2"] .menu button.is-selected { background: var(--teal-dim); box-shadow: inset 4px 0 0 var(--fl-fill); }
+:root[data-theme="flat2"] .menu hr { border-top-color: var(--line); }
+:root[data-theme="flat2"] .toast { border-radius: 0; border: 0; color: var(--tip-ink); background: var(--toast-bg); box-shadow: inset 5px 0 0 var(--fl-fill); }
+:root[data-theme="flat2"]:where([data-mode="night"]) .toast { color: var(--text-hi); }
+:root[data-theme="flat2"] .scroll-bubble { border-radius: 0; background: var(--fl-fill); color: var(--fl-on-fill); box-shadow: none; }
+:root[data-theme="flat2"] .dsp-card { border-radius: 0; border: 0; background: var(--fl-plate); }
+:root[data-theme="flat2"] .eq-graph { border-radius: 0; background: var(--bg); }
+:root[data-theme="flat2"] .eq-handle { border-radius: 0; box-shadow: none; color: var(--fl-on-fill); background: var(--fl-fill); }
+:root[data-theme="flat2"] .eq-handle.sel { background: var(--text-hi); color: var(--bg); }
+:root[data-theme="flat2"] .eq-handle.off { background: var(--text-3); color: var(--bg); }
+
+/* ───────────── 16 · 播放列：淡灰紙框，不加上緣線；播放鍵是鈷藍方塊 ───────────── */
+:root[data-theme="flat2"] #bar { border-top: 0; backdrop-filter: none; }
+:root[data-theme="flat2"] .playbtn { border-radius: 0; }
+:root[data-theme="flat2"] .playbtn:hover { transform: none; background: var(--fl-fill-2); }
+:root[data-theme="flat2"] .np-mini .t { font-weight: 800; color: var(--text-hi); }
+:root[data-theme="flat2"] .np-mini .a { color: var(--text-2); }
+:root[data-theme="flat2"] .sig, :root[data-theme="flat2"] .out-btn { border-radius: 0; background: var(--surface-2); color: var(--text-sub); }
+:root[data-theme="flat2"] .sig:hover, :root[data-theme="flat2"] .out-btn:hover { background: var(--surface-3); color: var(--text-hi); }
+:root[data-theme="flat2"] .sig .dot { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat2"] .tool-sep { background: transparent; }
+:root[data-theme="flat2"] #bar .time, :root[data-theme="flat2"] #bar .db { color: var(--text-2); font-weight: 600; }
+
+/* ───────────── 17 · 正在播放：兩塊色面＋大字 ─────────────
+   背景不用模糊的封面：封面那半是淡灰色面、歌詞那半是白紙（夜裡是深淺兩塊灰），分界在兩欄之間的空隙
+   （寬度 47%），關掉歌詞時色面淡掉、整片同一色。歌名用大而粗的字；時間是等寬數字。 */
+:root[data-theme="flat2"] #np .np-wrap::before { background: linear-gradient(90deg, var(--fl-np-plate) 47%, transparent 47%); }
+@media (orientation: portrait), (max-width: 760px) {:root[data-theme="flat2"] #np .np-wrap::before { opacity: 0; }
+}
+:root[data-theme="flat2"] .np-cover { border-radius: 0; box-shadow: none; }
+:root[data-theme="flat2"] .np-title { font-weight: 900; letter-spacing: -.03em; color: rgb(var(--np-ink)); }
+@media (min-height: 761px) and (min-width: 761px) and (orientation: landscape) {:root[data-theme="flat2"] .np-title { font-size: 40px; line-height: 1.12; }
+:root[data-theme="flat2"] .np-artist { font-size: 17px; margin-top: 6px; }
+
+/* 歌名上方也有一段鈷藍旗標（和頁面的區塊標題一樣），畫在封面和歌名之間的空白裡 */
+:root[data-theme="flat2"] .np-info { position: relative; }
+:root[data-theme="flat2"] .np-info::before { content: ""; position: absolute; left: 0; top: -12px; width: 28px; height: 5px; background: var(--fl-fill); pointer-events: none; }
+}
+:root[data-theme="flat2"] .np-artist { color: var(--text-2); font-weight: 500; }
+:root[data-theme="flat2"] .np-badges .badge { border-radius: 0; background: var(--surface-2); color: var(--text-sub); }
+:root[data-theme="flat2"] .np-seek .slider .track { background: var(--fl-track); }
+:root[data-theme="flat2"] .np-seek .times { color: var(--text-2); font-size: 13px; font-weight: 700; }
+:root[data-theme="flat2"] .np-ctrl .icon-btn { color: var(--text); }
+:root[data-theme="flat2"] .np-ctrl .icon-btn:hover { background: rgba(var(--np-ink), .08); }
+:root[data-theme="flat2"] .np-ctrl .icon-btn.on { color: var(--teal); }
+
+/* 四個角落按鈕：實心底、深色字；選中的「歌詞」「翻譯」是鈷藍色塊 */
+:root[data-theme="flat2"] .np-top .icon-btn { border-radius: 0; background: var(--fl-np-btn); color: var(--text-hi); box-shadow: inset 0 0 0 1px var(--line-2); }
+:root[data-theme="flat2"] .np-top .icon-btn:hover { background: var(--surface-2); }
+:root[data-theme="flat2"] .pill { border-radius: 0; background: var(--surface-2); color: var(--text-hi); font-weight: 600; }
+:root[data-theme="flat2"] .pill:hover { background: var(--surface-3); }
+:root[data-theme="flat2"] .pill.on { background: var(--fl-fill); color: var(--fl-on-fill); }
+:root[data-theme="flat2"] .pill.on:hover { background: var(--fl-fill-2); }
+:root[data-theme="flat2"] .np-top .src { color: var(--text-2); }
+
+/* 歌詞：唱到的那行最黑最粗，其他行灰但看得清楚；翻譯行深一點 */
+:root[data-theme="flat2"] .ly-line { font-weight: 800; letter-spacing: -.02em; border-radius: 0; }
+:root[data-theme="flat2"] #lyrics .ly-line:not(.on):not(:hover) { opacity: .68; }
+:root[data-theme="flat2"] .ly-line .tr { color: rgb(var(--np-ink)); font-weight: 600; }
+:root[data-theme="flat2"] .ly-offset button { border-radius: 0; }
+
+/* 極簡平面 2：方角色塊，沒有線；卡片是白色（夜：深一階）的塊，四周 2px 的淺灰邊，項目之間是灰色空隙 */
+:root[data-theme="flat2"] .dp-sect .dp-group { border-radius: 0; border: 2px solid var(--fl-track); background: var(--fl-field); box-shadow: none; }
+:root[data-theme="flat2"] .dp-sect .dp-group .field { border-top: 2px solid var(--fl-plate); }
+:root[data-theme="flat2"] .np-title { line-height: 1.18; }
