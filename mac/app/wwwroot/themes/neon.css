@@ -1056,12 +1056,12 @@
    輕量化「動態背景」：雨、資料流、故障、歌詞的光、光軌全部停（雨絲和光棒還在，只是不動）。
    輕量化「頁面動畫」：換頁的光柱、標題的分色與角括號、分頁的拖尾不做（core.js 本來就不換頁動畫、不滑動選中記號）。
    系統「減少動態」：兩者都停。 */
-:root[data-theme="neon"].lite-ambient #main::before, :root[data-theme="neon"].lite-ambient #np::after, :root[data-theme="neon"].lite-ambient #sidebar::before, :root[data-theme="neon"].lite-ambient .ly-line, :root[data-theme="neon"].lite-ambient .ly-line::before, :root[data-theme="neon"].lite-ambient .card .art::before, :root[data-theme="neon"].lite-ambient .card .t1, :root[data-theme="neon"].lite-ambient :is(.btn, .set-tabs button, .seg button, .chip, .nav a), :root[data-theme="neon"].lite-ambient :is(#np, #bar) :is(.np-cover > img, .np-cover > .ph, .np-mini .art, .np-title, #b-title), :root[data-theme="neon"].lite-ambient #np .np-cover::before {
+:root[data-theme="neon"].lite-neon-rain #main::before, :root[data-theme="neon"].lite-neon-rain #np::after, :root[data-theme="neon"].lite-neon-rain #sidebar::before, :root[data-theme="neon"].lite-neon-rain .ly-line, :root[data-theme="neon"].lite-neon-rain .ly-line::before, :root[data-theme="neon"].lite-neon-rain .card .art::before, :root[data-theme="neon"].lite-neon-rain .card .t1, :root[data-theme="neon"].lite-neon-rain :is(.btn, .set-tabs button, .seg button, .chip, .nav a), :root[data-theme="neon"].lite-neon-rain :is(#np, #bar) :is(.np-cover > img, .np-cover > .ph, .np-mini .art, .np-title, #b-title), :root[data-theme="neon"].lite-neon-rain #np .np-cover::before {
   animation: none !important;
 }
-:root[data-theme="neon"].lite-ambient #sidebar::before { display: none; }
-:root[data-theme="neon"].lite-ambient .ly-line::after { transition: none; }
-:root[data-theme="neon"].lite-ambient .nx-ptr { display: none; }
+:root[data-theme="neon"].lite-neon-rain #sidebar::before { display: none; }
+:root[data-theme="neon"].lite-neon-rain .ly-line::after { transition: none; }
+:root[data-theme="neon"].lite-neon-rain .nx-ptr { display: none; }
 :root[data-theme="neon"].lite-page #view .page-head h1, :root[data-theme="neon"].lite-page #view .page-head h1::before, :root[data-theme="neon"].lite-page #view .page-head h1::after, :root[data-theme="neon"].lite-page #view .rail-head h2::before, :root[data-theme="neon"].lite-page #np .np-cover::before, :root[data-theme="neon"].lite-page .hero .cover::before {
   animation: none !important;
 }

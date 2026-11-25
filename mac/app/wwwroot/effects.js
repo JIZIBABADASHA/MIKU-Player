@@ -1,7 +1,14 @@
 'use strict';
 /* Shared Windows / Mac appearance preferences. Audio settings are independent. */
 const PageEffects = {
-  kinds: ['signal', 'card', 'album', 'page', 'ambient', 'vinyl', 'blur', 'scroll'],
+  kinds: ['signal', 'card', 'album', 'page', 'ambient', 'vinyl', 'blur', 'scroll',
+    'gold-coins', 'gold-shine', 'neon-rain', 'poster-film', 'poster-rays', 'terminal-crt', 'sakura-sway', 'glass-orbs'],
+  /* Options that belong to one theme: shown in the settings only while that theme is on (effects.css), remembered like
+     the rest, and on by default the first time 輕量化 is turned on. Each one names what it stops in that theme. */
+  themeKinds: {
+    vinyl: 'vinyl', 'gold-coins': 'gold', 'gold-shine': 'gold', 'neon-rain': 'neon', 'poster-film': 'poster',
+    'poster-rays': 'poster', 'terminal-crt': 'terminal', 'sakura-sway': 'sakura', 'glass-orbs': 'glass',
+  },
   prefs: {}, active: new Map(), cacheKey: 'miku.pageEffects',
   get enabled() { return this.prefs.lightweight === '1'; },
   /** Mac app: scrolling is left to macOS (trackpad momentum, its own wheel behaviour), so nothing is ever eased on top. */
@@ -72,16 +79,36 @@ const PageEffects = {
       ['card', '關閉資訊卡翻轉', '在訊號路徑資訊卡的空白處按兩下時，不再翻到卡片背面。'],
       ['album', '關閉專輯飛行效果', '專輯封面直接切換位置，黑膠取出與放回不再飛行。'],
       ['page', '關閉頁面與操作動畫', '直接切換頁面、分頁、主題、面板與歌詞位置；關閉選項的滑動、每排數量變更時的重新排列、歌詞翻譯與清單的展開收合，以及按鈕的漣漪、按下回饋與進場動畫。'],
-      ['ambient', '關閉動態背景', '停止玻璃主題光球與播放頁背景的持續移動。'],
+      ['ambient', '關閉動態背景', '停止播放頁背景的持續移動。'],
       ['vinyl', '關閉黑膠持續旋轉', '停止播放列、播放頁封面與專輯唱盤的持續旋轉。'],
+      ['gold-coins', '關閉金幣雨與點擊閃光', '不再灑落金幣，按按鈕、換歌時也不冒出閃光（整個動畫畫布都不建立）。'],
+      ['gold-shine', '關閉閃爍與流光', '停止標題、按鈕旁一閃一閃的星光，以及側欄、播放列和招牌上掃過的光。'],
+      ['neon-rain', '關閉霓虹雨與光軌', '停止播放頁的雨、側欄流動的光、滑鼠拖出的光軌，以及切換時的殘影。'],
+      ['poster-film', '關閉底片顆粒與晃動', '拿掉整頁跳動的底片顆粒，停止播放頁背景的晃動。'],
+      ['poster-rays', '關閉放射光與指示動畫', '停止播放頁封面後面放射光的旋轉與脈動，以及側欄那隻手的擺動。'],
+      ['terminal-crt', '關閉映像管閃爍與掃描線', '停止播放頁螢幕的閃爍、往下捲的掃描線，以及游標閃爍與逐字打字。'],
+      ['sakura-sway', '關閉櫻花枝搖曳', '頁面角落的櫻花枝不再持續擺動。'],
+      ['glass-orbs', '關閉流動光球', '背景三顆模糊光球停在原位，不再漂移。'],
       ['blur', '關閉背景模糊與玻璃效果', '移除大片封面模糊與面板毛玻璃，改用較簡單的背景。'],
       ['scroll', '關閉平滑捲動', '跳到頂端與列表捲動直接定位；Windows 滾輪不再使用慣性動畫。'],
     ];
+    const themeNames = { vinyl: '黑膠', gold: '暴發戶黃金', neon: '霓虹賽博', poster: '復古海報', terminal: '終端機', sakura: '櫻花', glass: '玻璃質感' };
     for (const [kind, label, hint] of rows) {
       if (kind === 'scroll' && this.nativeScroll) continue;   // Mac: always the system's own scrolling
-      const title = T(label), row = field(title, T(hint), toggle('lite_' + kind, title));
-      if (kind === 'vinyl') row.classList.add('lite-theme-vinyl');   // only shown while the 黑膠 theme is on (effects.css)
-      details.append(row);
+      if (this.themeKinds[kind]) continue;
+      const title = T(label);
+      details.append(field(title, T(hint), toggle('lite_' + kind, title)));
+    }
+    // then the current theme's own options, under its name (each group only shows while its theme is on, effects.css)
+    for (const theme of Object.keys(themeNames)) {
+      const own = rows.filter(r => this.themeKinds[r[0]] === theme);
+      if (!own.length) continue;
+      details.append(h('div', { class: 'lite-theme-row lite-theme-head', 'data-lite-theme': theme }, T`「${T(themeNames[theme])}」主題專屬`));
+      for (const [kind, label, hint] of own) {
+        const title = T(label), row = field(title, T(hint), toggle('lite_' + kind, title));
+        row.classList.add('lite-theme-row'); row.dataset.liteTheme = theme;
+        details.append(row);
+      }
     }
     box.append(details);
   },

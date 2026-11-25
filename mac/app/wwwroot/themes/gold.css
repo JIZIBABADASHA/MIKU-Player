@@ -16,7 +16,7 @@
    和「黑金」（luka：克制的黑漆＋細金線、很優雅）剛好相反，這一個是滿出來、閃到刺眼的。
    字一律是「深棕色的字放在亮金上」或「亮金／米白的字放在紅漆、酒紅上」，對比都夠；亮片和金箔只是很淡的紋理。
    閃光、掃光都只動很小的偽元素（transform / opacity / background-position）；「減少動態」或
-   設定 > 其他 > 輕量化頁面（lite-ambient）時全部停住。這一份檔案就是整個主題，要退回時整份拿掉即可。 */
+   設定 > 其他 > 輕量化頁面 › 關閉閃爍與流光（lite-gold-shine）、關閉金幣雨（lite-gold-coins）時全部停住。這一份檔案就是整個主題，要退回時整份拿掉即可。 */
 /* ───────────── 1 · 色彩（日，主題原本的版本）─────────────
    頁面＝亮金（#e4b140～#fffbe6 之間的反光），面板＝香檳金 #fbe3a0。
    主文字對面板 14.8:1、第二層 11.5:1、第三層 9:1；對頁面最暗的反光帶也有 9 / 7 / 5.4:1。
@@ -699,8 +699,8 @@
 @media (prefers-reduced-motion: reduce) {:root[data-theme="gold"] .page-head h1, :root[data-theme="gold"] .page-head h1::after, :root[data-theme="gold"] #sidebar::before, :root[data-theme="gold"] .nav-pill::after, :root[data-theme="gold"] .rail-head h2::after, :root[data-theme="gold"] #topbar::after, :root[data-theme="gold"] #bar::after, :root[data-theme="gold"] .playbtn::after, :root[data-theme="gold"] .card:hover .art::after { animation: none !important; }
 :root[data-theme="gold"] #sidebar::before, :root[data-theme="gold"] #bar::after { display: none; }
 }
-:root[data-theme="gold"].lite-ambient .page-head h1, :root[data-theme="gold"].lite-ambient .page-head h1::after, :root[data-theme="gold"].lite-ambient #sidebar::before, :root[data-theme="gold"].lite-ambient .nav-pill::after, :root[data-theme="gold"].lite-ambient .rail-head h2::after, :root[data-theme="gold"].lite-ambient #topbar::after, :root[data-theme="gold"].lite-ambient #bar::after, :root[data-theme="gold"].lite-ambient .playbtn::after, :root[data-theme="gold"].lite-ambient .card:hover .art::after { animation: none !important; }
-:root[data-theme="gold"].lite-ambient #sidebar::before, :root[data-theme="gold"].lite-ambient #bar::after { display: none; }
+:root[data-theme="gold"].lite-gold-shine .page-head h1, :root[data-theme="gold"].lite-gold-shine .page-head h1::after, :root[data-theme="gold"].lite-gold-shine #sidebar::before, :root[data-theme="gold"].lite-gold-shine .nav-pill::after, :root[data-theme="gold"].lite-gold-shine .rail-head h2::after, :root[data-theme="gold"].lite-gold-shine #topbar::after, :root[data-theme="gold"].lite-gold-shine #bar::after, :root[data-theme="gold"].lite-gold-shine .playbtn::after, :root[data-theme="gold"].lite-gold-shine .card:hover .art::after { animation: none !important; }
+:root[data-theme="gold"].lite-gold-shine #sidebar::before, :root[data-theme="gold"].lite-gold-shine #bar::after { display: none; }
 :root[data-theme="gold"] { --dp-ink: #6b4604; }
 :root[data-theme="gold"]:where([data-mode="night"]) { --dp-ink: #f5cf68; --dp-tile: #f5cf68; --dp-tile-ink: #3c1921; }
 :root[data-theme="gold"] .dp-sect .dp-greek {

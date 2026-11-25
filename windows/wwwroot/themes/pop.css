@@ -300,8 +300,8 @@
 }
 
 /* 大標題：黃字、黑色的邊（第一道陰影）、紅色錯位陰影 */
-:root[data-theme="pop"]:where([data-mode="night"]) :is(.page-head h1, .hero h1) { color: #ffd23f; text-shadow: 2px 2px 0 #05071a, 4px 4px 0 #ff4f6d, 5px 5px 0 #05071a; }
-:root[data-theme="pop"]:where([data-mode="night"]) .np-title { color: #ffd23f; text-shadow: 2px 2px 0 #05071a, 3px 3px 0 #ff4f6d; }
+:root[data-theme="pop"]:where([data-mode="night"]) :is(.page-head h1, .hero h1) { color: #ffd23f; text-shadow: 3px 3px 0 #05071a;   /* 原本黃字後面一層亮紅的錯位陰影，黃紅互相「震」看了會暈；只留深色的硬陰影 */ }
+:root[data-theme="pop"]:where([data-mode="night"]) .np-title { color: #ffd23f; text-shadow: 3px 3px 0 #05071a; }
 
 /* 區段標題前的圓點：黃 */
 :root[data-theme="pop"]:where([data-mode="night"]) .rail-head h2::before { background: #ffd23f; border-color: #05071a; }

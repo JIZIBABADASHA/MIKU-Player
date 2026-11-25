@@ -141,7 +141,7 @@
 }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="sakura"] #main::before { animation: none; }
 }
-:root:root.lite-page[data-theme="sakura"] #main::before { animation: none; }
+:root:root.lite-sakura-sway[data-theme="sakura"] #main::before { animation: none; }
 :root[data-theme="sakura"] :is(#topbar.solid, .set-band) { background: rgba(var(--bg-rgb), .94); }
 :root[data-theme="sakura"] .search { background: var(--surface); border: 1px solid var(--sk-edge); border-radius: 20px 7px 20px 7px; }
 :root[data-theme="sakura"] .search:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(var(--teal-rgb), .16); }

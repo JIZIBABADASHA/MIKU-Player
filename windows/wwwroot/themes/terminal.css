@@ -475,8 +475,8 @@
 :root[data-theme="terminal"] #np .np-right::after { animation: none; display: none; }
 }
 :root[data-theme="terminal"].lite-page .page-head h1::after { animation: none; }
-:root[data-theme="terminal"].lite-ambient #lyrics :is(.tm-c, .tm-cur, .tr > span, .ly-dots i), :root[data-theme="terminal"].lite-ambient #lyrics .tm-c::after { animation: none !important; }
-:root[data-theme="terminal"].lite-ambient #np .np-right::after { animation: none; display: none; }
+:root[data-theme="terminal"].lite-terminal-crt #lyrics :is(.tm-c, .tm-cur, .tr > span, .ly-dots i), :root[data-theme="terminal"].lite-terminal-crt #lyrics .tm-c::after { animation: none !important; }
+:root[data-theme="terminal"].lite-terminal-crt #np .np-right::after { animation: none; display: none; }
 
 /* ───────────── 15 · 1980 年代的映像管（夜） ─────────────
    整個視窗像一台老終端機的螢幕：
@@ -529,7 +529,7 @@
 :root[data-theme="terminal"]:where(:not([data-mode="day"])) #np.on:not(.nolyrics) .np-right::before { animation: tm-flicker 5.3s steps(1) infinite; }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="terminal"] #np .np-right, :root[data-theme="terminal"] #np .np-right::before { animation: none !important; }
 }
-:root[data-theme="terminal"].lite-ambient #np .np-right, :root[data-theme="terminal"].lite-ambient #np .np-right::before { animation: none !important; }
+:root[data-theme="terminal"].lite-terminal-crt #np .np-right, :root[data-theme="terminal"].lite-terminal-crt #np .np-right::before { animation: none !important; }
 :root[data-theme="terminal"] { --dp-ink: var(--teal); }
 :root[data-theme="terminal"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); }
 :root[data-theme="terminal"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 6px rgba(92,240,147,.35); }
@@ -550,3 +550,44 @@
     linear-gradient(var(--tm-corner), var(--tm-corner)) right bottom / 2px var(--tm-k) no-repeat;
 }
 :root[data-theme="terminal"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
+
+/* 終端機：特殊格式標籤也套上左右兩個方括號 [ … ]（跟裝置名稱、按鈕一樣），括號用標籤本身的金屬色 */
+:root:root:root[data-theme="terminal"] #bar .sig.hires { border-radius: 0; background:
+    linear-gradient(#e9c46a, #e9c46a) left top / 2px 100% no-repeat,
+    linear-gradient(#e9c46a, #e9c46a) left top / 7px 2px no-repeat,
+    linear-gradient(#e9c46a, #e9c46a) left bottom / 7px 2px no-repeat,
+    linear-gradient(#e9c46a, #e9c46a) right top / 2px 100% no-repeat,
+    linear-gradient(#e9c46a, #e9c46a) right top / 7px 2px no-repeat,
+    linear-gradient(#e9c46a, #e9c46a) right bottom / 7px 2px no-repeat,
+    radial-gradient(120% 160% at 18% 0%, #4a3410 0%, #1a1207 52%, #0b0803 100%); }
+:root:root:root[data-theme="terminal"] #bar .sig.dsd { border-radius: 0; background:
+    linear-gradient(#c9c6ff, #c9c6ff) left top / 2px 100% no-repeat,
+    linear-gradient(#c9c6ff, #c9c6ff) left top / 7px 2px no-repeat,
+    linear-gradient(#c9c6ff, #c9c6ff) left bottom / 7px 2px no-repeat,
+    linear-gradient(#c9c6ff, #c9c6ff) right top / 2px 100% no-repeat,
+    linear-gradient(#c9c6ff, #c9c6ff) right top / 7px 2px no-repeat,
+    linear-gradient(#c9c6ff, #c9c6ff) right bottom / 7px 2px no-repeat,
+    radial-gradient(120% 160% at 18% 0%, #2b2a6e 0%, #121238 52%, #06061a 100%); }
+:root:root:root[data-theme="terminal"] #bar .sig.upsample { border-radius: 0; background:
+    linear-gradient(#7d5714, #7d5714) left top / 2px 100% no-repeat,
+    linear-gradient(#7d5714, #7d5714) left top / 7px 2px no-repeat,
+    linear-gradient(#7d5714, #7d5714) left bottom / 7px 2px no-repeat,
+    linear-gradient(#7d5714, #7d5714) right top / 2px 100% no-repeat,
+    linear-gradient(#7d5714, #7d5714) right top / 7px 2px no-repeat,
+    linear-gradient(#7d5714, #7d5714) right bottom / 7px 2px no-repeat,
+    linear-gradient(180deg, #fff9e6 0%, #f3e2b4 52%, #dcc283 100%); }
+:root:root:root[data-theme="terminal"] #bar .sig.dsp { border-radius: 0; box-shadow: none; background:
+    linear-gradient(#a3b33a, #a3b33a) left top / 2px 100% no-repeat,
+    linear-gradient(#a3b33a, #a3b33a) left top / 7px 2px no-repeat,
+    linear-gradient(#a3b33a, #a3b33a) left bottom / 7px 2px no-repeat,
+    linear-gradient(#a3b33a, #a3b33a) right top / 2px 100% no-repeat,
+    linear-gradient(#a3b33a, #a3b33a) right top / 7px 2px no-repeat,
+    linear-gradient(#a3b33a, #a3b33a) right bottom / 7px 2px no-repeat,
+    radial-gradient(ellipse 62% 44% at 58% 40%, rgba(50, 42, 14, .85), rgba(170, 176, 128, .45) 26%, rgba(120, 140, 60, .28) 48%, rgba(100, 120, 40, 0) 70%) 100% 0% / 16px 16px no-repeat,
+    radial-gradient(ellipse 48% 66% at 40% 62%, rgba(70, 45, 22, .8), rgba(160, 166, 120, .42) 28%, rgba(110, 130, 55, .26) 50%, rgba(90, 110, 40, 0) 72%) 100% 100% / 13px 13px no-repeat,
+    radial-gradient(ellipse 40% 70% at 50% 50%, rgba(110, 120, 20, .55), transparent 70%) 0 40% / 160% 200%,
+    radial-gradient(ellipse 30% 60% at 50% 50%, rgba(80, 40, 60, .55), transparent 70%) 100% 60% / 140% 200%,
+    radial-gradient(ellipse 25% 50% at 50% 50%, rgba(140, 120, 40, .35), transparent 70%) 30% 0 / 180% 220%,
+    linear-gradient(180deg, #4a4f14, #33370c 60%, #2a2a0b);
+  animation-name: tm-dsp-sludge, dsp-squish; }
+:root:root[data-theme="terminal"] #bar .sig:is(.hires, .dsd, .upsample)::after { content: none; }

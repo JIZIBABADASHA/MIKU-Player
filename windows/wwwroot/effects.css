@@ -14,7 +14,15 @@
 .lite-settings .lite-master .lbl b { font-size: 15px; font-weight: 700; }
 .lite-settings .lite-options[hidden] { display: none; }
 /* options for one theme only appear while that theme is active */
-:root:not([data-theme="vinyl"]) .lite-settings .lite-theme-vinyl { display: none; }
+/* 主題專屬的輕量化選項：只在那個主題開著時出現 */
+:root:not([data-theme="vinyl"]) .lite-settings .lite-theme-row[data-lite-theme="vinyl"],
+:root:not([data-theme="gold"]) .lite-settings .lite-theme-row[data-lite-theme="gold"],
+:root:not([data-theme="neon"]) .lite-settings .lite-theme-row[data-lite-theme="neon"],
+:root:not([data-theme="poster"]) .lite-settings .lite-theme-row[data-lite-theme="poster"],
+:root:not([data-theme="terminal"]) .lite-settings .lite-theme-row[data-lite-theme="terminal"],
+:root:not([data-theme="sakura"]) .lite-settings .lite-theme-row[data-lite-theme="sakura"],
+:root:not([data-theme="glass"]) .lite-settings .lite-theme-row[data-lite-theme="glass"] { display: none; }
+.lite-settings .lite-theme-head { padding: 16px 22px 4px; color: var(--text-3); font-size: 11.5px; font-weight: 700; letter-spacing: .08em; }
 .lite-settings .switch:focus-visible { outline: 2px solid color-mix(in srgb, var(--teal) 55%, transparent); outline-offset: 3px; }
 
 /* Keep signal text, quality colors and the real chain; remove animated decorations. */
@@ -87,7 +95,7 @@
 }
 :root:root.lite-page .ripple, :root:root.lite-page .glide-pill { display: none !important; }
 
-:root.lite-ambient #theme-bg .orb, :root.lite-ambient .np-bg .layer.b {
+:root.lite-glass-orbs #theme-bg .orb, :root.lite-ambient .np-bg .layer.b {
   animation: none !important; transform: none !important;
 }
 :root.lite-vinyl[data-theme="vinyl"] .np-mini .art img,

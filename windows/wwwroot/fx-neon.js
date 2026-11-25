@@ -8,8 +8,8 @@
  *   - a change of track: .nx-glitch on #np and #bar for 0.6 s (a short split / jolt), seen on the bar's title.
  *   - the pointer over the now-playing page: a thin light trail of short segments that fade in 0.45 s.
  * Nothing here runs per frame on its own: everything answers an event, and the pointer trail draws at most one segment
- * a frame while the pointer moves. All of it is off unless the theme is neon, and off with 輕量化 (ambient; the control
- * trails also with page motion off) or the system's reduced motion. Switching theme or turning those on stops it and
+ * a frame while the pointer moves. All of it is off unless the theme is neon, and off with 輕量化 › 關閉霓虹雨與光軌 (neon-rain; the
+ * control trails also with page motion off) or the system's reduced motion. Switching theme or turning those on stops it and
  * removes what it added. */
 (function () {
   const root = document.documentElement;
@@ -164,7 +164,7 @@
   }
   function sync() {
     const neon = root.dataset.theme === 'neon';
-    const calm = mqReduce.matches || reduced('ambient');
+    const calm = mqReduce.matches || reduced('neon-rain');
     const was = on;
     on = neon && !calm;
     ctlOn = on && !reduced('page');

@@ -349,7 +349,7 @@
 }
 
 /* ───────────── 9 · 輕量化頁面、減少動態：全部停下（放射光留著，不轉） ───────────── */
-:root.lite-ambient[data-theme="poster"] .np-bg, :root.lite-ambient[data-theme="poster"] .np-bg::after, :root.lite-ambient[data-theme="poster"] .np-cover::before, :root.lite-ambient[data-theme="poster"] .hero::before { animation: none !important; will-change: auto; }
+:root.lite-poster-film[data-theme="poster"] .np-bg, :root.lite-poster-film[data-theme="poster"] .np-bg::after, :root.lite-poster-rays[data-theme="poster"] .np-cover::before, :root.lite-poster-rays[data-theme="poster"] .hero::before { animation: none !important; will-change: auto; }
 :root.lite-page[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn), :root.lite-page[data-theme="poster"] .switch::after { transition-duration: 0s !important; }
 :root.lite-page[data-theme="poster"] :is(.btn, .round-btn, .icon-btn, .playbtn, .chip, .seg button, .set-tabs button, .out-btn, .pill, .msel-btn):active, :root.lite-page[data-theme="poster"] .switch:active::after { scale: none; translate: none; }
 :root.lite-page[data-theme="poster"] :is(#content, #view, .rail-head h2, .page-head h1, .hero h1, .card .art, .pop) { animation: none !important; }
@@ -373,7 +373,7 @@
 }
 :root[data-theme="poster"]:where([data-mode="night"]) body::after { background: radial-gradient(ellipse 80% 75% at 50% 48%, transparent 55%, rgba(0,0,0,.32) 100%); }
 :root[data-theme="poster"] body.paused::before { animation-play-state: paused; }
-:root.lite-ambient[data-theme="poster"] body::before { animation: none; }
+:root.lite-poster-film[data-theme="poster"] body::before { animation: none; }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] body::before { animation: none; }
 }
 
@@ -393,7 +393,7 @@
   animation: ps-point 1.2s ease-in-out infinite;
 }
 :root[data-theme="poster"] body.paused .nav a.on::after { animation-play-state: paused; }
-:root.lite-ambient[data-theme="poster"] .nav a.on::after { animation: none; }
+:root.lite-poster-rays[data-theme="poster"] .nav a.on::after { animation: none; }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] .nav a.on::after { animation: none; }
 }
 
@@ -444,7 +444,7 @@
   animation: ps-burst-in .7s cubic-bezier(.3, 1.6, .5, 1) .25s backwards, ps-throb 1.6s ease-in-out 1s infinite;
 }
 :root[data-theme="poster"] #np.paused .np-left::before { animation: none; content: "PAUSED"; }
-:root.lite-ambient[data-theme="poster"] #np .np-left::before { animation: none; }
+:root.lite-poster-rays[data-theme="poster"] #np .np-left::before { animation: none; }
 @media (prefers-reduced-motion: reduce) {:root[data-theme="poster"] #np .np-left::before { animation: none; }
 }
 @media (orientation: portrait), (max-width: 760px) {:root[data-theme="poster"] #np .np-left::before { display: none; }

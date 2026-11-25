@@ -1233,7 +1233,7 @@
 
 /* ───────────── 19 · 動態：閃光一閃一閃、掃光每隔幾秒一次 ─────────────
    全部只動偽元素的 transform / opacity，或招牌字的 background-position（面積很小）。
-   「減少動態」或「輕量化頁面」（lite-ambient）時全部停住，閃光停在看得到的樣子。 */
+   「減少動態」或「輕量化頁面 › 關閉閃爍與流光」（lite-gold-shine）時全部停住，閃光停在看得到的樣子。 */
 @keyframes gd-twinkle { 0%, 100% { transform: scale(.5) rotate(0deg); opacity: .45; } 45% { transform: scale(1.15) rotate(45deg); opacity: 1; } 60% { transform: scale(.9) rotate(60deg); opacity: .9; } }
 @keyframes gd-sweep { from { transform: translateX(-130%); } to { transform: translateX(130%); } }
 @keyframes gd-glint { 0%, 70% { background-position: 120% 0, 0 0; } 90%, 100% { background-position: -20% 0, 0 0; } }
@@ -1243,7 +1243,7 @@
 /* ── 噴金幣特效（fx-gold.js）：大量金幣從播放鍵、卡片、按鈕與歌詞噴出，播放時每隔幾秒從上面灑一陣。只用一張固定畫布，不擋點擊；
       不是暴發戶黃金、輕量化頁面（關閉動態背景）或系統要求減少動態時，一律不顯示（JS 也會整個關掉） ── */
 #gold-fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; contain: strict; }
-:root:not([data-theme="gold"]) #gold-fx, :root.lite-ambient #gold-fx { display: none !important; }
+:root:not([data-theme="gold"]) #gold-fx, :root.lite-gold-coins #gold-fx { display: none !important; }
 @media (prefers-reduced-motion: reduce) {#gold-fx { display: none !important; }
 }
 
@@ -1264,7 +1264,7 @@
     linear-gradient(90deg, rgba(255,240,180,0), rgba(255,250,225,.8) 50%, rgba(255,240,180,0)) center / 100% 1.4px no-repeat,
     linear-gradient(0deg, rgba(255,240,180,0), rgba(255,250,225,.8) 50%, rgba(255,240,180,0)) center / 1.4px 100% no-repeat;
 }
-:root:not([data-theme="gold"]) #gold-glints, :root.lite-ambient #gold-glints { display: none !important; }
+:root:not([data-theme="gold"]) #gold-glints, :root.lite-gold-coins #gold-glints { display: none !important; }
 @media (prefers-reduced-motion: reduce) {#gold-glints { display: none !important; }
 }
 
@@ -1511,7 +1511,7 @@
    - 播放時從播放鍵炸出一圈星星和速度線；換頁是卡通的「圓形光圈」打開；卡片出場「噹啷」一下彈出來；
    - 正在播放的畫面是一張片頭卡：雙線框、膠片顆粒在跳、邊角一點暗角、整張畫面偶爾輕輕晃一像素（放映機）。
    動態只放在封面、標題、按鈕、正在播放和換頁上；清單裡的列不動，讀字的地方不晃。
-   所有一直循環的動畫在「輕量化頁面 › 背景動態」(lite-ambient) 與系統「減少動態」下停止；換頁、出場、按鈕回饋在
+   所有一直循環的動畫在「輕量化頁面 › 底片顆粒／放射光」(lite-poster-film / lite-poster-rays) 與系統「減少動態」下停止；換頁、出場、按鈕回饋在
    「頁面動畫」(lite-page) 下停止。只動 transform / opacity / scale / rotate / translate（合成器就能畫），不動模糊或濾鏡。
    正在播放裡的循環動畫在 IdleFx 管得到的地方（.np-cover、.np-bg）：暫停播放、視窗縮小、正在播放收起時都停；
    專輯頁的放射光由這裡的 CSS 在暫停播放、正在播放蓋住時停住。 */
@@ -2192,3 +2192,4 @@
 
 /* 多了兩層切角邊線，流動的位置也要多兩個 */
 @keyframes nx-dsp-sludge { 0%, 100% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: 0 0, 0 0, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }
+@keyframes tm-dsp-sludge { 0%, 100% { background-position: left top, left top, left bottom, right top, right top, right bottom, 100% 0%, 100% 100%, 0% 40%, 100% 60%, 30% 0%, 0 0; } 50% { background-position: left top, left top, left bottom, right top, right top, right bottom, 100% 0%, 100% 100%, 60% 70%, 40% 20%, 90% 100%, 0 0; } }

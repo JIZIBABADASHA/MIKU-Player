@@ -17,16 +17,16 @@
  * dialogs and toasts. At most 520 coins alive; the sprites (two coin faces, the rim, the glint) are drawn once and
  * stamped with drawImage. requestAnimationFrame runs only while something is in the air (≤ ~60 draws a second on fast
  * screens, only the area last drawn is cleared); when the last one is gone the canvas is hidden, and its pixels are
- * freed 4 s later. Nothing at all while the window is hidden. Outside 暴發戶黃金, under 輕量化頁面 › 關閉動態背景
- * (lite-ambient) and with reduced motion this file only watches for the theme / setting to change: no canvas, no glints,
+ * freed 4 s later. Nothing at all while the window is hidden. Outside 暴發戶黃金, under 輕量化頁面 › 關閉金幣雨與點擊閃光
+ * (lite-gold-coins) and with reduced motion this file only watches for the theme / setting to change: no canvas, no glints,
  * no listeners, no timers.
  * The art is generic and made up (no real currency): "$" coins and square-holed cash coins 「招財進寶」.
  */
 (() => {
   const THEME = 'gold', MAX = 520, root = document.documentElement;
   const reduceMq = matchMedia('(prefers-reduced-motion: reduce)');
-  const allowed = () => root.dataset.theme === THEME && !reduceMq.matches && !root.classList.contains('lite-ambient')
-    && !(typeof PageEffects !== 'undefined' && PageEffects.reduced('ambient'));
+  const allowed = () => root.dataset.theme === THEME && !reduceMq.matches && !root.classList.contains('lite-gold-coins')
+    && !(typeof PageEffects !== 'undefined' && PageEffects.reduced('gold-coins'));
   const hidden = () => document.hidden || (typeof IdleFx !== 'undefined' && IdleFx.hidden);
   const rnd = (a, b) => a + Math.random() * (b - a);
   const sign = () => (Math.random() < .5 ? -1 : 1);
