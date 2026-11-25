@@ -1020,5 +1020,16 @@
 :root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn):hover { background: rgba(60,38,4,.6); color: #fff3c8; }
 :root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .tool-sep { background: rgba(243,214,138,.35); }
 :root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .track { background: rgba(255,255,255,.22); box-shadow: none; }
-@media (max-width: 1180px) {:root:root[data-theme="gold"] .nav-pill::before { left: -12px; width: 11px; height: 11px; margin-top: -5.5px; }
+@media (max-width: 1180px) {:root:root[data-theme="gold"] .nav-pill::before { left: -10px; width: 9px; height: 9px; margin-top: -4.5px; }
+
+/* 收合的側欄裡 MIKU 字樣小一點：金色主題右邊有金框、海報兩邊有膠卷孔，52px 的字會貼上去 */
+:root:root[data-theme="gold"] #sidebar .brand svg { width: 44px; }
+}
+
+/* 黃金的播放頁歌名：金箔字在紅底上，中段那條暗金和紅底分不太開（日文細筆畫尤其難讀）；改用沒有暗帶的亮金箔，
+   上下左右各一圈深酒紅的細邊把字從紅底上托出來，外面的金光保留 */
+:root:root:root[data-theme="gold"] #np .np-title {
+  background: linear-gradient(180deg, #fffbe6 0%, #ffeb9c 30%, #ffd760 55%, #fff1b5 80%, #f3c652 100%);
+  -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 1px 0 #3d0008) drop-shadow(0 -1px 0 #3d0008) drop-shadow(1px 0 0 #3d0008) drop-shadow(-1px 0 0 #3d0008) drop-shadow(0 0 10px rgba(255,200,80,.4));
 }
