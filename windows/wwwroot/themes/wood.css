@@ -18,7 +18,7 @@
 :root[data-theme="wood"] :is(#topbar.solid, .set-band) { background: rgba(29,25,21,.9); }
 :root[data-theme="wood"]:where([data-mode="day"]) :is(#topbar.solid, .set-band) { background: rgba(244,238,227,.9); }
 :root[data-theme="wood"] #bar { background: #171410; border-top: 1px solid rgba(196,160,106,.22); backdrop-filter: none; }
-:root[data-theme="wood"]:where([data-mode="day"]) #bar { background: #ece3d3; border-top: 1px solid rgba(167,123,60,.22); }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar { background: #ece3d3; border-top: 1px solid rgba(167,123,60,.22); }
 :root[data-theme="wood"] .playbtn { box-shadow: inset 0 1px 0 rgba(255,240,210,.45), 0 2px 8px rgba(0,0,0,.4); }
 :root[data-theme="wood"]:where([data-mode="day"]) .playbtn { box-shadow: inset 0 1px 0 rgba(255,250,235,.45), 0 2px 8px rgba(70,48,24,.16); }
 :root[data-theme="wood"] .playbtn:hover { background: #cfac78; }
@@ -377,7 +377,7 @@
   backdrop-filter: none; border-top: 1px solid #c9a063;
   background: linear-gradient(180deg, rgba(0,0,0,.28), transparent 3px), linear-gradient(180deg, #2c2119, #231a12);
 }
-:root[data-theme="wood"]:where([data-mode="day"]) #bar {
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar {
   border-top: 1px solid #a87b3a;
   background: linear-gradient(180deg, rgba(255,255,255,.65), transparent 2px), linear-gradient(180deg, #ece2d0, #e4d7c1);
 }
@@ -411,7 +411,7 @@
 :root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { border-radius: 4px; background: var(--wd-well); box-shadow: var(--wd-well-sh); color: var(--text-2); }
 :root[data-theme="wood"] #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn):hover { color: var(--text); }
 :root[data-theme="wood"] .seek { color: var(--text-2); }
-:root[data-theme="wood"]:where([data-mode="day"]) #bar { --text-3: #5e4a34; }
+:root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar { --text-3: #5e4a34; }
 
 /* ───────────── 16 · 正在播放：同一座音響櫃 ─────────────
    封面裝在較寬的木框裡（框只在封面上，不會碰到文字、進度條或按鈕）；標題用襯線字。
@@ -467,6 +467,7 @@
 }
 :root[data-theme="wood"] { --dp-ink: var(--teal-2); }
 :root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
+:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal-2); }
 
 /* 木質調：像音響面板上嵌進去的一塊：小圓角、木鍵邊框、內凹一點 */
 :root[data-theme="wood"] .dp-sect .dp-group {
@@ -476,3 +477,6 @@
 :root[data-theme="wood"]:where([data-mode="day"]) .dp-sect .dp-group { background: #f6efe2; box-shadow: inset 0 1px 2px rgba(90,60,24,.12), 0 1px 0 #fff; }
 :root[data-theme="wood"] .dp-sect .dp-group.dp-off { box-shadow: none; background: transparent; }
 :root[data-theme="wood"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #lyrics { --ly-dim: .48; }
+
+/* 木紋主題白天的籌碼是米色凹槽，深底上改用夜間的深色凹槽 */
+:root:root[data-theme="wood"][data-ext-source="moodchannels"]:not(.mc-radio) #bar :is(.sig:not(.hires):not(.dsd):not(.upsample), .out-btn) { background: rgba(20,12,4,.55); box-shadow: inset 0 1px 2px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.08); color: rgba(255,244,225,.85); }

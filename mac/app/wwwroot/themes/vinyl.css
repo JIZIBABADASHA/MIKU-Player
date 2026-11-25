@@ -13,6 +13,7 @@
 :root[data-theme="vinyl"] #sidebar { border-right: 0; }
 :root[data-theme="vinyl"] #bar { border-top: 1px solid rgba(28,44,36,.10); }
 :root[data-theme="vinyl"]:where([data-mode="night"]) #bar { border-top: 1px solid rgba(228,234,223,.1); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { border-top: 1px solid rgba(228,234,223,.1); }
 :root[data-theme="vinyl"] .btn.primary { background: var(--teal); color: var(--on-accent); }
 :root[data-theme="vinyl"] .slider .fill { background: var(--teal); }
 :root[data-theme="vinyl"] .row.playing .tt div:first-child { color: var(--teal); }
@@ -493,6 +494,7 @@
 :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::before, :root:root[data-theme="vinyl"] #lyrics .ly-line.gap::after { content: none; }
 :root[data-theme="vinyl"] { --dp-ink: var(--teal-2); }
 :root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
+:root[data-theme="vinyl"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal-2); }
 
 /* 黑膠：紙封套裡的內頁：小圓角、封套的細框，底色是紙色 */
 :root[data-theme="vinyl"] .dp-sect .dp-group { border-radius: 6px; border: 1px solid var(--vy-edge); background: var(--vy-paper); box-shadow: none; }

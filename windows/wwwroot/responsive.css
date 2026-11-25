@@ -65,7 +65,7 @@
 @media (max-height: 760px) and (orientation: landscape) {
   #np .np-wrap { padding-top: 56px; }
   .np-info { margin-top: 14px; }
-  .np-title { font-size: 22px; -webkit-line-clamp: 1; }
+  .np-title { font-size: 22px; }   /* 歌名照樣最多兩行（以前一行，長歌名只剩幾個字）；放不下由 fit.js 縮封面 */
   .np-artist { font-size: 14px; }
   .np-badges { margin-top: 8px; }
   .np-seek { margin-top: 12px; }
@@ -256,3 +256,68 @@
     width: clamp(140px, min(calc(100vh - var(--bar) - 326px), 100%), 540px);
   }
 }
+
+/* ───── 播放列左邊：收藏鍵永遠是完整的圓（以前被擠扁成直立的灰色橢圓、跟歌名沒對齊），歌名最少留 120px；
+   左欄最窄就是「擴充功能（MoodWave 的頻道）＋封面＋120px 歌名＋收藏鍵」，中間的進度條先讓位 ───── */
+#bar .np-mini > :not(.txt) { flex: none; }
+#bar .np-mini .txt { flex: 1 1 auto; min-width: 120px; contain: inline-size; }   /* 歌名多長都不撐寬左欄 */
+#bar #b-fav { align-self: center; }
+@media (min-width: 1081px) {
+  #bar { grid-template-columns: minmax(min-content, 1fr) minmax(260px, 620px) minmax(max-content, 1fr); }
+}
+/* MoodWave 等擴充功能在左邊放了頻道時，一列放不下（約 1440px 以下）就改用兩列：進度條在上，按鈕在下，跟窄視窗一樣 */
+@media (max-width: 1440px) and (min-width: 1081px) {
+  :root:has(#b-ext:not([hidden])) { --bar: 104px; }
+  :root:has(#b-ext:not([hidden])) #bar {
+    grid-template-columns: minmax(min-content, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: 26px 1fr;
+    column-gap: 12px; row-gap: 0; padding: 6px 14px 8px;
+  }
+  :root:has(#b-ext:not([hidden])) #bar .transport { display: contents; }
+  :root:has(#b-ext:not([hidden])) #bar .seek { grid-column: 1 / -1; grid-row: 1; }
+  :root:has(#b-ext:not([hidden])) #bar .np-mini { grid-column: 1; grid-row: 2; gap: 10px; }
+  :root:has(#b-ext:not([hidden])) #bar .transport .btns { grid-column: 2; grid-row: 2; gap: 8px; }
+  :root:has(#b-ext:not([hidden])) #bar .right-tools { grid-column: 3; grid-row: 2; min-width: 0; gap: 4px; justify-self: end; }
+  :root:has(#b-ext:not([hidden])) #bar .np-mini .art { --art: 46px; }
+  :root:has(#b-ext:not([hidden])) #bar .np-mini .t { font-size: 14.5px; }
+  :root:has(#b-ext:not([hidden])) #bar .np-mini .a { font-size: 12.5px; }
+  :root:has(#b-ext:not([hidden])) #bar .tool-sep { display: none; }
+  :root:has(#b-ext:not([hidden])) #bar .vol { width: 116px; margin-left: 2px; }
+  :root:has(#b-ext:not([hidden])) #bar .vol .db { display: none; }
+}
+/* 一列但左邊有頻道時（約 1441–1700px）：音量條短一點、dB 數字收起，空間讓給歌名 */
+@media (max-width: 1700px) and (min-width: 1441px) {
+  :root:has(#b-ext:not([hidden])) #bar .vol { width: 120px; }
+  :root:has(#b-ext:not([hidden])) #bar .vol .db { display: none; }
+  :root:has(#b-ext:not([hidden])) #bar { gap: 18px; }
+}
+
+/* ───── 正在播放：左欄永遠放得下（fit.js） ─────
+   fit.js 依實際內容（歌名幾行、演出者幾行、Mac 的日文字型比較高）把封面縮到剛好放得下（--np-cover-max），
+   資訊欄跟著封面同寬；最小的封面還放不下時，先拿掉格式標籤，再讓歌名和演出者各留一行。 */
+:root:root #np .np-cover { max-width: var(--np-cover-max, none); }
+:root:root #np .np-info { max-width: min(100%, max(var(--np-cover-max, 100%), 320px)); }
+:root:root #np[data-fit~="tight"] .np-badges { display: none; }
+:root:root #np[data-fit~="tighter"] :is(.np-title, .np-artist) { -webkit-line-clamp: 1; }
+
+/* ───── 播放列：撞到就一步一步收（fit.js 依實際寬度加 data-sq），任何東西都不會被切掉或疊在一起 ───── */
+/* 兩列的窄播放列：左欄（頻道＋封面＋歌名）至少放得下自己，中間的按鈕往右讓，不再壓到歌名 */
+@media (max-width: 1080px) {
+  #bar { grid-template-columns: minmax(min-content, 1fr) auto minmax(0, 1fr); }
+  #bar .right-tools { justify-self: end; }
+}
+#bar[data-sq~="1"] .vol .db, #bar[data-sq~="1"] .sig span { display: none; }
+#bar[data-sq~="1"] .sig { padding: 0 10px; }
+#bar[data-sq~="2"] .out-btn span { display: none; }
+#bar[data-sq~="2"] .out-btn { padding: 0 9px; }
+#bar[data-sq~="3"] .vol { width: 92px; }
+#bar[data-sq~="4"] .np-mini .txt { min-width: 64px; }
+#bar[data-sq~="5"] .vol { width: auto; }
+#bar[data-sq~="5"] .vol .slider { display: none; }
+#bar[data-sq~="6"] #b-fav { display: none; }
+#bar[data-sq~="7"] .transport .btns { gap: 2px; }
+#bar[data-sq~="7"] .right-tools { gap: 0; }
+#bar[data-sq~="7"] .np-mini { gap: 8px; }
+#bar[data-sq~="8"] .np-mini .txt { display: none; }
+#bar[data-sq~="9"] #b-dsp { display: none; }
+

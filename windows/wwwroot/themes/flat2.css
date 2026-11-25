@@ -37,6 +37,7 @@
 :root[data-theme^="flat"] .playbtn { border-radius: 4px; }
 :root[data-theme^="flat"] #bar { border-top: 1px solid #e4e4df; backdrop-filter: none; }
 :root[data-theme^="flat"]:where([data-mode="night"]) #bar { border-top: 1px solid #262626; }
+:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { border-top: 1px solid #262626; }
 :root[data-theme^="flat"] #bar .playbtn { width: 44px; height: 44px; }
 :root[data-theme^="flat"] .np-mini .art, :root[data-theme^="flat"] .row .thumb, :root[data-theme^="flat"] .qrow .thumb { border-radius: 0; box-shadow: none; }
 :root[data-theme^="flat"] .slider .track { border-radius: 0; height: 3px; background: #e0e0da; }
@@ -147,6 +148,7 @@
 /* 搜尋結果裡比對到的字：橘色的螢光筆（黃色疊在藍上會變成橄欖綠）；app.css 那條是 [^="flat"][data-mode]，這裡要更具體才蓋得過 */
 :root[data-theme="flat2"][data-mode="night"] { --hit: rgba(255,122,61,.5); }
 :root[data-theme="flat2"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --hit: rgba(255,122,61,.5); }
+:root[data-theme="flat2"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --hit: rgba(255,122,61,.5); }
 
 /* ───────────── 3 · 字：大標題、等寬數字 ─────────────
    頁面標題：最粗的字重（Windows 是 Segoe UI Black，Mac 是 Helvetica Neue Bold），字距收緊，行高壓低。 */
@@ -397,8 +399,9 @@
 /* 極簡平面 2：方角色塊，沒有線；卡片是白色（夜：深一階）的塊，四周 2px 的淺灰邊，項目之間是灰色空隙 */
 :root[data-theme="flat2"] .dp-sect .dp-group { border-radius: 0; border: 2px solid var(--fl-track); background: var(--fl-field); box-shadow: none; }
 :root[data-theme="flat2"] .dp-sect .dp-group .field { border-top: 2px solid var(--fl-plate); }
-:root[data-theme="flat2"] .np-title { line-height: 1.18; }
 :root[data-theme^="flat"] #lyrics { --ly-dim: .4; }
 
 /* 極簡平面 2：滑桿的軌道在任何面板上都看得到（e92a151） */
 :root[data-theme="flat2"] .slider .track, :root[data-theme="flat2"] .range { background: rgba(var(--ink), .3); }
+:root:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill { background: #f2f2ee; }
+:root:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:is(:hover, .drag) .fill { background: var(--teal); }

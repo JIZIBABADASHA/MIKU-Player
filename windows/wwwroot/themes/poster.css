@@ -4,7 +4,7 @@
 :root[data-theme="poster"] .tp-opt.on { background: var(--ps-red); color: #f6eedb; box-shadow: none; }
 
 /* 日：側欄和播放列是墨黑的，裡面的字用米色 */
-:root[data-theme="poster"]:where(:not([data-mode="night"])) :is(#sidebar, #bar) {
+:root[data-theme="poster"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(#sidebar, #bar) {
   color: #efe4cb; --text: #efe4cb; --text-hi: #fff8e8; --text-sub: #d4c7aa; --text-2: #cdbf9f; --text-3: #a3967a;
   --ink: 239, 228, 203; --line: rgba(239,228,203,.12); --line-2: rgba(239,228,203,.26);
   --surface: #2b241c; --surface-2: #2b241c; --surface-3: #3b3127; --teal: #e0473c; --teal-rgb: 224, 71, 60; --teal-2: #f0695e;
@@ -345,6 +345,7 @@
    這個主題仍不做封面飛到專輯頁的動畫（--album-flip: off，core.js Flip）。 */
 :root[data-theme="poster"] { --album-flip: off; }
 :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --album-flip: off; }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --album-flip: off; }
 :root[data-theme="poster"] #view:is(.enter-fwd, .enter-back, .enter-fade) { animation: ps-cut .3s ease-out backwards; }
 :root[data-theme="poster"] #main:has(> #content > #view:is(.enter-fwd, .enter-back, .enter-fade))::after {
   content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
@@ -521,10 +522,18 @@
 :root[data-theme="poster"]:where([data-mode="day"]) { --dp-ink: var(--teal); }
 :root[data-theme="poster"]:where([data-mode="night"]) { --dp-ink: var(--teal-2); }
 :root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
+:root[data-theme="poster"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal-2); }
 
 /* 復古海報：方角、平的；上緣一道粗墨線，其他三邊細墨線 */
 :root[data-theme="poster"] .dp-sect .dp-group { border-radius: 0; border: 1.5px solid var(--text); border-top-width: 4px; background: rgba(var(--ink), .03); box-shadow: none; }
 :root[data-theme="poster"] .dp-sect .dp-group.dp-off { border-color: var(--text-3); }
+
+/* 海報的字卡：奶油色的內距改成同色的框（框不會被裁切畫進去），墨色粗框改用 outline 畫在外面，紅色硬陰影跟著外移 */
+:root:root[data-theme="poster"] #np .np-title {
+  padding: 0; line-height: 1.32; border-style: solid; border-color: #f6ecd6; border-width: .06em .42em .06em;
+  outline: 2.5px solid #1a120c; outline-offset: 0;
+  box-shadow: 5px 5px 0 2.5px var(--ps-red), 5px 5px 0 5px #1a120c;
+}
 
 /* 標題前的小記號一律對齊中文字的中線：中文字的墨跡大約在基線上 -0.07em 到 0.83em，中線 ≈ 基線上 0.38em。
    記號是行內方塊、用 vertical-align 從基線算位置（不靠行高或框的高度，換字型也一樣）：vertical-align = 0.38em − 記號高度的一半 */
@@ -543,4 +552,17 @@
   animation: ps-stamp2 .34s steps(3, end) both;
 }
 @media (prefers-reduced-motion: reduce) {:root:root[data-theme="poster"] #lyrics .ly-line.on::before, :root:root[data-theme="poster"] #lyrics .ly-line.on::after { animation: none; }
+}
+
+/* 海報「NOW PLAYING!」爆炸星：貼在封面的角上（fit.js 量封面位置：--np-cv-l/t/w），大小跟著封面；
+   fit.js 挑一個不蓋到歌名、演出者、按鈕、也不出畫面的角（--np-st-x/y），四個角都不行就不畫 */
+:root:root[data-theme="poster"] #np .np-left::before {
+  --st: clamp(60px, calc(var(--np-cv-w, 430px) * .26), 112px);
+  width: var(--st); height: var(--st); font-size: calc(var(--st) * .116); padding: calc(var(--st) * .027) 0 0 1px;
+  left: var(--np-st-x, calc(var(--np-cv-l, 0px) + var(--np-cv-w, 430px) - var(--st) * .64));
+  top: var(--np-st-y, calc(var(--np-cv-t, 0px) - var(--st) * .3));
+}
+:root:root[data-theme="poster"] #np .np-left[data-st="off"]::before { display: none; }
+@media (max-width: 1180px) {:root:root[data-theme="poster"] .nav a.on::after { display: none; }
+:root:root[data-theme="poster"] .nav a.on svg.i { margin-left: 0; }
 }

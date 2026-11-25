@@ -37,6 +37,7 @@
 :root[data-theme^="flat"] .playbtn { border-radius: 4px; }
 :root[data-theme^="flat"] #bar { border-top: 1px solid #e4e4df; backdrop-filter: none; }
 :root[data-theme^="flat"]:where([data-mode="night"]) #bar { border-top: 1px solid #262626; }
+:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { border-top: 1px solid #262626; }
 :root[data-theme^="flat"] #bar .playbtn { width: 44px; height: 44px; }
 :root[data-theme^="flat"] .np-mini .art, :root[data-theme^="flat"] .row .thumb, :root[data-theme^="flat"] .qrow .thumb { border-radius: 0; box-shadow: none; }
 :root[data-theme^="flat"] .slider .track { border-radius: 0; height: 3px; background: #e0e0da; }
@@ -164,3 +165,7 @@
 :root[data-theme="flat"] .dp-sect .dp-group { border-radius: 0; border: 1px solid #dcdcd6; background: #fafaf8; box-shadow: none; }
 :root[data-theme="flat"]:where([data-mode="night"]) .dp-sect .dp-group { border-color: #3a3a3a; background: #202020; }
 :root[data-theme^="flat"] #lyrics { --ly-dim: .4; }
+
+/* 平面主題的音量條在深底上用夜間的淺色 */
+:root:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill { background: #f2f2ee; }
+:root:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:is(:hover, .drag) .fill { background: var(--teal); }

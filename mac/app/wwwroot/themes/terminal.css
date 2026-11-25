@@ -489,23 +489,30 @@
    這一層畫一次就不再重畫（自己一層），捲動頁面時不花力氣；會動的只有歌詞螢幕裡的閃爍和亮帶。 */
 :root[data-theme="terminal"] { --tm-sl-p: 3px; --tm-sl-d: 1px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 3px; --tm-sl-d: 1px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 3px; --tm-sl-d: 1px; }
 @media (min-resolution: 1.2dppx) and (max-resolution: 1.3dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2.4px; --tm-sl-d: .8px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2.4px; --tm-sl-d: .8px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 2.4px; --tm-sl-d: .8px; }
 }
 @media (min-resolution: 1.45dppx) and (max-resolution: 1.55dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2px; --tm-sl-d: .6667px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2px; --tm-sl-d: .6667px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 2px; --tm-sl-d: .6667px; }
 }
 @media (min-resolution: 1.7dppx) and (max-resolution: 1.8dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2.2857px; --tm-sl-d: 1.1429px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2.2857px; --tm-sl-d: 1.1429px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 2.2857px; --tm-sl-d: 1.1429px; }
 }
 @media (min-resolution: 1.95dppx) and (max-resolution: 2.05dppx) {:root[data-theme="terminal"] { --tm-sl-p: 2px; --tm-sl-d: 1px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 2px; --tm-sl-d: 1px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 2px; --tm-sl-d: 1px; }
 }
 @media (min-resolution: 2.45dppx) and (max-resolution: 2.55dppx) {:root[data-theme="terminal"] { --tm-sl-p: 1.6px; --tm-sl-d: .8px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 1.6px; --tm-sl-d: .8px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 1.6px; --tm-sl-d: .8px; }
 }
 @media (min-resolution: 2.95dppx) {:root[data-theme="terminal"] { --tm-sl-p: 1.3333px; --tm-sl-d: .6667px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --tm-sl-p: 1.3333px; --tm-sl-d: .6667px; }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --tm-sl-p: 1.3333px; --tm-sl-d: .6667px; }
 }
 :root[data-theme="terminal"]:where(:not([data-mode="day"])) body::after {
   content: ""; position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
@@ -541,6 +548,7 @@
 :root[data-theme="terminal"].lite-terminal-crt #np .np-right, :root[data-theme="terminal"].lite-terminal-crt #np .np-right::before { animation: none !important; }
 :root[data-theme="terminal"] { --dp-ink: var(--teal); }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal); }
+:root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal); }
 :root[data-theme="terminal"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); }
 :root[data-theme="terminal"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 6px rgba(92,240,147,.35); }
 
@@ -602,3 +610,5 @@
   animation-name: tm-dsp-sludge, dsp-squish; }
 :root:root[data-theme="terminal"] #bar .sig:is(.hires, .dsd, .upsample)::after { content: none; }
 :root:root[data-theme="terminal"]:where([data-mode="day"]) .cd-task { background: #fbfbf6; }
+@media (max-width: 1180px) {:root:root[data-theme="terminal"] .nav-pill::before { left: -11px; color: var(--teal); }
+}

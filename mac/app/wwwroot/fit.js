@@ -1,22 +1,109 @@
 'use strict';
-/* Now Playing：上方按鈕（歌詞來源／歌詞不對？／翻譯／歌詞）跟歌曲資訊疊到時，先把這些按鈕藏起來（收起鍵保留）。 */
+/* Now Playing: make the left column always fit, in every theme and at every window size.
+   1. fitInfo: the cover shrinks until cover + title + artist + badges + seek + controls fit between the top buttons and
+      the bottom of the page with room to spare (the CSS sizes the cover from the window height alone, which cannot know
+      a title that wraps to two lines, a long artist line, or the Mac's taller Japanese fonts). If even the smallest cover
+      does not fit, the badges go, then the title and artist keep one line each.
+   2. placeSticker: a theme's sticker on the cover (the poster's NOW PLAYING burst) sits on a corner of the cover where it
+      covers no text and stays in the window.
+   3. top-crowded: the top buttons (lyrics source, wrong lyrics?, translate, lyrics) hide while they would sit on the info
+      (the collapse button stays). */
 (() => {
   const init = () => {
     const np = document.getElementById('np'); if (!np) return;
     const top = np.querySelector('.np-top'); if (!top) return;
+    const wrap = np.querySelector('.np-wrap'), left = np.querySelector('.np-left'), cover = document.getElementById('np-cover');
     const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom && a.width && b.width;
-    let raf = 0;
+    const shown = e => e && e.offsetParent && getComputedStyle(e).visibility !== 'hidden';
+    const PARTS = '.np-left .np-cover, .np-left .np-title, .np-left .np-artist, .np-left .np-badges, .np-left .np-seek, .np-left .np-ctrl';
+    const union = els => {
+      const rs = els.map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
+      if (!rs.length) return null;
+      return { left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), top: Math.min(...rs.map(r => r.top)), bottom: Math.max(...rs.map(r => r.bottom)) };
+    };
+    const setFit = v => { if ((np.dataset.fit || '') !== v) { if (v) np.dataset.fit = v; else delete np.dataset.fit; } };
+    const fitInfo = () => {
+      if (!wrap || !left || !cover) return;
+      np.style.removeProperty('--np-cover-max'); setFit('');
+      const room = () => {
+        const wr = wrap.getBoundingClientRect(), cs = getComputedStyle(wrap);
+        let t = wr.top + parseFloat(cs.paddingTop), b = wr.bottom - parseFloat(cs.paddingBottom);
+        b = Math.min(b, innerHeight - 12);
+        const bar = document.getElementById('bar'), br = bar && bar.getBoundingClientRect();
+        if (br && br.top < innerHeight - 2 && br.height && getComputedStyle(bar).visibility !== 'hidden') b = Math.min(b, br.top - 10);
+        // the collapse button and the other top buttons, where they are above the column
+        const col = left.getBoundingClientRect();
+        for (const e of top.querySelectorAll('#np-close, .pill, .src')) {
+          if (!shown(e)) continue; const r = e.getBoundingClientRect();
+          if (r.width && r.left < col.right && col.left < r.right) t = Math.max(t, r.bottom + 10);
+        }
+        t = Math.max(t, 8);
+        return { t, b };
+      };
+      const over = () => {
+        const parts = [...np.querySelectorAll(PARTS)].filter(shown);
+        const u = union(parts); if (!u) return 0;
+        const r = room();
+        const oT = Math.max(0, r.t - u.top), oB = Math.max(0, u.bottom - r.b);
+        // the column is centred: shrinking by d moves each end by d/2, so a one-sided overflow needs twice as much
+        return oT && oB ? oT + oB : 2 * (oT + oB);
+      };
+      let ex = over(); if (ex <= 0.5) return;
+      const side = () => { const t = np.querySelector('.np-left .np-title'); return t && t.getBoundingClientRect().left >= cover.getBoundingClientRect().right - 1; };
+      const min = side() ? 72 : 120;
+      let w = cover.offsetWidth;
+      for (let i = 0; i < 8 && ex > 0.5 && w > min; i++) {
+        w = Math.max(min, Math.floor(w - ex - 2));
+        np.style.setProperty('--np-cover-max', w + 'px');
+        ex = over();
+      }
+      if (ex > 0.5) { setFit('tight'); ex = over(); }
+      if (ex > 0.5) { setFit('tight tighter'); }
+    };
+    const placeSticker = () => {
+      if (!left || !cover) return;
+      const lr = left.getBoundingClientRect(), cr = cover.getBoundingClientRect();
+      if (!cr.width) return;
+      left.style.setProperty('--np-cv-l', (cr.left - lr.left).toFixed(1) + 'px');
+      left.style.setProperty('--np-cv-t', (cr.top - lr.top).toFixed(1) + 'px');
+      left.style.setProperty('--np-cv-w', cr.width.toFixed(1) + 'px');
+      // back to the default spot first (an earlier 'off' hides it, and it must be measured where the theme puts it)
+      left.style.removeProperty('--np-st-x'); left.style.removeProperty('--np-st-y'); delete left.dataset.st;
+      const ps = getComputedStyle(left, '::before');
+      if (!ps.content || ps.content === 'none' || ps.content === 'normal' || ps.content === '""' || ps.position !== 'absolute' || ps.display === 'none') return;
+      const st = parseFloat(getComputedStyle(left, '::before').width) || 0; if (!st) return;
+      const avoid = [...np.querySelectorAll('.np-left .np-title, .np-left .np-artist, .np-left .np-badges, .np-left .np-seek, .np-left .np-ctrl, .np-top #np-close, .np-top .pill, .np-top .src, #np-ext > *')]
+        .filter(shown).map(e => e.getBoundingClientRect()).filter(r => r.width);
+      const lyr = np.querySelector('.np-right'); if (lyr && shown(lyr) && !np.classList.contains('nolyrics')) avoid.push(lyr.getBoundingClientRect());
+      // sticker spots: its centre near a cover corner, sticking out a little (the burst is round: test its middle 80 %)
+      const spots = [[cr.right - .14 * st, cr.top + .2 * st], [cr.left + .14 * st, cr.top + .2 * st], [cr.right - .14 * st, cr.bottom - .2 * st], [cr.left + .14 * st, cr.bottom - .2 * st]];
+      for (const [cx, cy] of spots) {
+        const k = .4 * st, d = { left: cx - k, right: cx + k, top: cy - k, bottom: cy + k, width: 2 * k };
+        if (d.left < 4 || d.top < 4 || d.right > innerWidth - 4 || d.bottom > innerHeight - 4) continue;
+        if (avoid.some(r => hit(d, r))) continue;
+        left.style.setProperty('--np-st-x', (cx - st / 2 - lr.left).toFixed(1) + 'px');
+        left.style.setProperty('--np-st-y', (cy - st / 2 - lr.top).toFixed(1) + 'px');
+        return;
+      }
+      left.dataset.st = 'off';   // nowhere free: leave it out rather than cover the title
+    };
+    let raf = 0, waits = 0;
     const check = () => {
       raf = 0;
+      // still sliding in: measure once it is in place (at most ~2 s of waiting, whatever a theme does to #np)
+      if (np.classList.contains('on') && getComputedStyle(np).transform !== 'none' && waits < 10) { waits++; later(200); return; }
+      waits = 0;
       // (removed only when it is there: writing a class, even an unchanged one, wakes every observer of #np's class)
       if (!np.classList.contains('on')) { if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
+      fitInfo();
       // hidden buttons (visibility: hidden) keep their layout box, so they can be measured without un-hiding them
       const pills = [...top.querySelectorAll('.src, .ly-pick-wrap > .pill, #np-trans, #np-lyr')]
         .filter(e => e.offsetParent).map(e => e.getBoundingClientRect());
-      const info = [...np.querySelectorAll('.np-left .np-cover, .np-left .np-title, .np-left .np-artist, .np-left .np-badges, .np-left .np-seek, .np-left .np-ctrl')]
+      const info = [...np.querySelectorAll(PARTS)]
         .filter(e => e.offsetParent).map(e => e.getBoundingClientRect());
       const crowded = pills.some(p => info.some(i => hit(p, { left: i.left - 6, right: i.right + 6, top: i.top - 6, bottom: i.bottom + 6, width: i.width })));
       if (np.classList.contains('top-crowded') !== crowded) np.classList.toggle('top-crowded', crowded);
+      placeSticker();
     };
     const later = (ms) => { setTimeout(() => { if (!raf) raf = requestAnimationFrame(check); }, ms); };
     const now = () => { if (!raf) raf = requestAnimationFrame(check); };
@@ -28,12 +115,65 @@
     let lastRoot = rootKey();
     new MutationObserver(() => { const k = rootKey(); if (k === lastRoot) return; lastRoot = k; if (!np.classList.contains('on')) return; now(); later(350); later(750); })
       .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    // theme or mode changed: sizes, fonts and the sticker all change
+    new MutationObserver(() => { if (np.classList.contains('on')) { now(); later(400); } })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-mode', 'data-ext-source'] });
     // Now Playing's own classes (on, nolyrics, paused…) — ignoring our own top-crowded toggle, so this never feeds itself
     const key = () => np.className.replace(/\btop-crowded\b|\btop-idle\b/g, '').replace(/\bpaused\b/, '').trim();
     let last = key();
     new MutationObserver(() => { const k = key(); if (k === last) return; last = k; now(); later(750); })
       .observe(np, { attributes: true, attributeFilter: ['class'] });
+    // another song: a longer title or artist line, other badges
+    for (const id of ['np-title', 'np-artist', 'np-badges']) {
+      const e = document.getElementById(id);
+      if (e) new MutationObserver(() => { if (np.classList.contains('on')) { now(); later(300); } }).observe(e, { childList: true, characterData: true, subtree: true });
+    }
+    // fonts arriving change the text's height
+    if (document.fonts) document.fonts.addEventListener('loadingdone', () => { if (np.classList.contains('on')) now(); });
     np.addEventListener('transitionend', e => { if (e.target.classList?.contains('np-wrap')) now(); });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* The player bar: nothing in it may overlap or be cut off, whatever the window width, the extension's band on the left
+   (MoodWave's channel, whose width follows the channel's name), the song title or the output device's name.
+   When something collides, it gets more compact one step at a time (data-sq on #bar, cumulative):
+   1 the dB number and the format chip's text go   2 the output chip shows only its icon   3 a shorter volume slider
+   4 the title may get narrower   5 the volume slider goes (the mute button stays; the wheel still sets the volume)
+   6 the favourite button goes (as in a narrow window)   7 tighter gaps between the buttons
+   8 the title and artist go (the cover stays; as in a very narrow window)   9 the DSP button goes (D still opens it) */
+(() => {
+  const init = () => {
+    const bar = document.getElementById('bar'); if (!bar) return;
+    const MAX = 9;
+    const leaves = () => [...bar.querySelectorAll('.np-mini > *, .transport .btns > *, .right-tools > *:not(.tool-sep), .right-tools .vol > :not(.db):not(.hover-tip), .seek')]
+      .filter(e => e.offsetParent && getComputedStyle(e).visibility !== 'hidden' && !e.classList.contains('vol'));
+    const collide = () => {
+      const br = bar.getBoundingClientRect(), cs = getComputedStyle(bar);
+      const L = br.left + parseFloat(cs.paddingLeft) - 1, R = br.right - parseFloat(cs.paddingRight) + 1;
+      const rs = leaves().map(e => [e, e.getBoundingClientRect()]).filter(([, r]) => r.width > 1);
+      for (const [, r] of rs) if (r.left < L || r.right > R) return true;
+      for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+        const [a, ra] = rs[i], [b, rb] = rs[j];
+        if (a.contains(b) || b.contains(a)) continue;
+        if (ra.left < rb.right - 1 && rb.left < ra.right - 1 && ra.top < rb.bottom - 1 && rb.top < ra.bottom - 1) return true;
+      }
+      return false;
+    };
+    const set = n => { const v = n ? Array.from({ length: n }, (_, i) => i + 1).join(' ') : ''; if ((bar.dataset.sq || '') !== v) { if (v) bar.dataset.sq = v; else delete bar.dataset.sq; } };
+    let raf = 0, busy = false;
+    const fit = () => {
+      raf = 0; busy = true;
+      let n = 0; set(0);
+      while (n < MAX && collide()) set(++n);
+      busy = false;
+    };
+    const now = () => { if (!busy && !raf) raf = requestAnimationFrame(fit); };
+    addEventListener('resize', now);
+    const ro = new ResizeObserver(now);
+    for (const id of ['bar', 'b-ext', 'b-out', 'b-sig', 'b-title', 'b-artist']) { const e = document.getElementById(id); if (e) ro.observe(e); }
+    if (document.fonts) document.fonts.addEventListener('loadingdone', now);
+    now();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

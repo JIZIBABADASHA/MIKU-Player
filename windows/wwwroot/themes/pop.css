@@ -120,6 +120,7 @@
 :root[data-theme="pop"] { --app-bg: #fffdf6; --sidebar-bg: #ffcc1f; }
 :root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
 :root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --app-bg: #16151b; --sidebar-bg: #1d1c23; }
 :root[data-theme="pop"] #sidebar { position: relative; isolation: isolate; }
 :root[data-theme="pop"] #sidebar::after { content: ""; position: absolute; right: 0; bottom: 0; width: 300px; max-width: 100%; height: 300px; z-index: -1; pointer-events: none; background: var(--pop-tone-side); -webkit-mask: var(--pop-tone) right bottom / 300px 300px no-repeat; mask: var(--pop-tone) right bottom / 300px 300px no-repeat; }
 :root[data-theme="pop"] #main { isolation: isolate; }
@@ -139,6 +140,7 @@
 :root[data-theme="pop"] .btn.primary:hover { background: var(--pop-yellow); }
 :root[data-theme="pop"]:where([data-mode="night"]) { --app-bg: #25242d; --sidebar-bg: #201f27; }
 :root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --app-bg: #25242d; --sidebar-bg: #201f27; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --app-bg: #25242d; --sidebar-bg: #201f27; }
 
 /* 開關：關＝灰底、白色圓鈕加黑框；開＝黃底、黑色圓鈕。夜：關是深灰底、米色圓鈕 */
 :root[data-theme="pop"] .switch { background: #d6d2c4; box-shadow: inset 0 0 0 2px var(--pop-line); }
@@ -297,6 +299,7 @@
   --sidebar-bg: #ffcc1f;
 }
 :root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --app-bg: radial-gradient(130% 90% at 70% 0%, #222a6a, #1b2157 55%, #171c4c); --sidebar-bg: #ffcc1f; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --app-bg: radial-gradient(130% 90% at 70% 0%, #222a6a, #1b2157 55%, #171c4c); --sidebar-bg: #ffcc1f; }
 
 /* 側欄：和白天一樣的黃色網點紙，黑字；選中的是白底黑框的貼紙 */
 :root[data-theme="pop"]:where([data-mode="night"]) #sidebar {
@@ -323,6 +326,7 @@
 
 /* 播放列：深墨藍，上緣一條黃線 */
 :root[data-theme="pop"]:where([data-mode="night"]) #bar { border-top-color: #ffd23f; }
+:root[data-theme="pop"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { border-top-color: #ffd23f; }
 
 /* 標誌的特別處理：普普＝大標題那種硬陰影；黃金＝鏡面金的字；霓虹夜、終端機夜＝淡淡的光 */
 :root[data-theme="pop"] .dp-sect .dp-greek { text-shadow: 2px 2px 0 #ffcc1f; }

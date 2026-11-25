@@ -4,7 +4,7 @@
 :root[data-theme="luka"] .tp-opt.on { background: var(--lk-lacquer); color: var(--lk-gold-hi); box-shadow: inset 0 0 0 1px rgba(var(--lk-gold-rgb), .85); }
 
 /* 日：側欄和播放列是黑漆的，字是象牙白，強調是金色 */
-:root[data-theme="luka"]:where([data-mode="day"]) :is(#sidebar, #bar) {
+:root[data-theme="luka"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) :is(#sidebar, #bar) {
   color: #fbf7ef; --text: #fbf7ef; --text-hi: #fffdf8; --text-sub: #e9e2d6; --text-2: #ddd6c9; --text-3: #c3bbad;
   --ink: 247, 242, 232; --line: rgba(226,194,126,.14); --line-2: rgba(226,194,126,.28);
   --surface: #2a2723; --surface-2: #33302b; --surface-3: #403c37; --bg-rgb: 27, 25, 22;
@@ -183,6 +183,7 @@
 :root[data-theme="luka"] .nav-label .nav-edit { opacity: .85; }
 :root[data-theme="luka"] { --dp-ink: var(--teal); --dp-tile: var(--teal); --dp-tile-ink: var(--bg); }
 :root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal); --dp-tile: var(--teal); --dp-tile-ink: var(--bg); }
+:root[data-theme="luka"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal); --dp-tile: var(--teal); --dp-tile-ink: var(--bg); }
 :root[data-theme="luka"]:where([data-mode="day"]) { --dp-ink: var(--teal-2); --dp-tile: var(--text-hi); --dp-tile-ink: var(--lk-gold-hi); }
 
 /* 黑金：金色細線框，往內 4px 再一道更淡的金線（和卡片滑過時的雙線一樣） */
@@ -192,3 +193,5 @@
 }
 :root[data-theme="luka"] .dp-sect .dp-group.dp-off { border-color: rgba(var(--lk-gold-rgb), .4); box-shadow: none; }
 :root[data-theme="luka"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
+@media (max-width: 1180px) {:root:root[data-theme="luka"] .nav-pill::before { left: -10px; }
+}

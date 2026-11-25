@@ -31,6 +31,7 @@
 :root[data-theme="washi"]:where([data-mode="night"]) .round-btn { background: rgba(232,226,211,.06); border: 1px solid rgba(232,226,211,.11); }
 :root[data-theme="washi"] #bar { border-top: 1px solid rgba(70,50,30,.14); background: var(--paper), rgba(240,232,218,.96); }
 :root[data-theme="washi"]:where([data-mode="night"]) #bar { border-top: 1px solid rgba(232,226,211,.13); background: var(--paper), rgba(17,21,32,.96); }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { border-top: 1px solid rgba(232,226,211,.13); background: var(--paper), rgba(17,21,32,.96); }
 :root[data-theme="washi"] .playbtn { box-shadow: 0 0 0 3px #f2ebdf, 0 0 0 4px rgba(47,75,128,.35), 0 4px 10px rgba(47,75,128,.25); }
 :root[data-theme="washi"]:where([data-mode="night"]) .playbtn { box-shadow: 0 0 0 3px #151a27, 0 0 0 4px rgba(134,168,230,.35), 0 4px 10px rgba(134,168,230,.25); }
 :root[data-theme="washi"] .slider .track { background: rgba(70,50,30,.14); }
@@ -146,6 +147,7 @@
 :root[data-theme="washi"]:where([data-mode="night"]) .page-head .tools > .btn.small:not(.primary):hover { background: rgba(232,226,211,.11); }
 :root[data-theme="washi"] { --dp-ink: var(--teal-2); }
 :root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
+:root[data-theme="washi"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal-2); }
 
 /* 和紙：小圓角、淡墨的細框，底色帶一點紙的暖色 */
 :root[data-theme="washi"] .dp-sect .dp-group { border-radius: 5px; border: 1px solid rgba(70,50,30,.22); background: rgba(120,90,50,.035); }
@@ -153,3 +155,5 @@
 :root[data-theme="washi"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(242,235,223,.95); }
 :root[data-theme="washi"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(21,26,39,.95); }
 :root[data-theme="washi"] #lyrics { --ly-dim: .4; }
+@media (max-width: 1180px) {:root:root[data-theme="washi"] .nav-pill::before { left: -10px; }
+}

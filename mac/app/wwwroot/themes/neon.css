@@ -22,7 +22,7 @@
 :root[data-theme="neon"] .rail-head h2::before { content: "▍"; color: #ff2bd6; text-shadow: 0 0 8px #ff2bd6; margin-right: 6px; }
 :root[data-theme="neon"]:where([data-mode="day"]) .rail-head h2::before { color: #f01fc4; text-shadow: 0 0 8px rgba(240,31,196,.22); }
 :root[data-theme="neon"] #bar { border-top: 1px solid rgba(255,43,214,.45); box-shadow: 0 -1px 18px rgba(255,43,214,.18); }
-:root[data-theme="neon"]:where([data-mode="day"]) #bar { border-top: 1px solid rgba(240,31,196,.45); box-shadow: 0 -1px 18px rgba(240,31,196,.22); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar { border-top: 1px solid rgba(240,31,196,.45); box-shadow: 0 -1px 18px rgba(240,31,196,.22); }
 :root[data-theme="neon"] .playbtn { border: 2px solid #00f0ff; box-shadow: 0 0 14px rgba(0,240,255,.55), inset 0 0 10px rgba(0,240,255,.35); }
 :root[data-theme="neon"]:where([data-mode="day"]) .playbtn { border: 2px solid #00b4cc; box-shadow: 0 0 14px rgba(0,190,215,.22), inset 0 0 10px rgba(0,190,215,.22); }
 :root[data-theme="neon"] .playbtn svg { filter: drop-shadow(0 0 4px #00f0ff); }
@@ -118,7 +118,7 @@
 :root[data-theme="neon"]:where([data-mode="day"]) .nav a.on { text-shadow: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) .nav a.on svg.i { filter: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) .page-head h1, :root[data-theme="neon"]:where([data-mode="day"]) .hero h1 { text-shadow: 1px 0 0 rgba(240,31,196,.35), -1px 0 0 rgba(0,180,204,.35); }
-:root[data-theme="neon"]:where([data-mode="day"]) #bar { box-shadow: 0 -1px 0 rgba(240,31,196,.22); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar { box-shadow: 0 -1px 0 rgba(240,31,196,.22); }
 :root[data-theme="neon"]:where([data-mode="day"]) .btn.primary { box-shadow: inset 0 0 0 1px #00b4cc; text-shadow: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) :is(.card:hover .t1, .row.playing .tt div:first-child, .rail-head h2::before) { text-shadow: none; }
 
@@ -614,7 +614,7 @@
 :root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav a.on { color: #ffffff; text-shadow: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav a.on svg.i { color: #00f0ff; filter: none; }
 :root[data-theme="neon"]:where([data-mode="day"]) #sidebar .nav-label { color: #ff9cec; }
-:root[data-theme="neon"]:where([data-mode="day"]) #bar { border-top: 1px solid rgba(224,23,159,.6); box-shadow: 0 -1px 10px rgba(224,23,159,.12); }
+:root[data-theme="neon"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar { border-top: 1px solid rgba(224,23,159,.6); box-shadow: 0 -1px 10px rgba(224,23,159,.12); }
 :root[data-theme="neon"]:where([data-mode="day"]) .playbtn { filter: drop-shadow(0 0 0 #0e6f80) drop-shadow(0 0 1px #0e6f80) drop-shadow(0 0 4px rgba(0,190,215,.45)); }
 :root[data-theme="neon"]:where([data-mode="day"]) .playbtn:hover::before { background: #67e8f9; }
 :root[data-theme="neon"]:where([data-mode="day"]) .slider .knob { background: #1a1238; box-shadow: 0 0 0 1px #ffffff, 0 0 6px rgba(0,180,204,.6); }
@@ -859,6 +859,7 @@
 
 /* 正在播放頁的背景：淡淡的掃描線（只在背景，字在上面） */
 :root[data-theme="neon"] { --np-veil: repeating-linear-gradient(180deg, rgba(12,4,32,.16) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 30% 40%, rgba(31,21,57,.42), rgba(31,21,57,.76)); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --np-veil: repeating-linear-gradient(180deg, rgba(12,4,32,.16) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 30% 40%, rgba(31,21,57,.42), rgba(31,21,57,.76)); }
 :root[data-theme="neon"]:where([data-mode="day"]) { --np-veil: repeating-linear-gradient(180deg, rgba(40,20,90,.05) 0 1px, transparent 1px 3px), linear-gradient(180deg, rgba(244,241,252,.66), rgba(244,241,252,.86)); }
 
 /* 暫停時雨停住 */
@@ -1082,6 +1083,7 @@
 :root[data-theme="neon"]:where([data-mode="day"]) { --dp-ink: var(--nx-head); }
 :root[data-theme="neon"]:where([data-mode="night"]) { --dp-ink: var(--teal-2); }
 :root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
+:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal-2); }
 :root[data-theme="neon"]:where([data-mode="night"]) .dp-sect .dp-greek { text-shadow: 0 0 10px rgba(0,240,255,.45); }
 
 /* 霓虹賽博：斜切角的小面板（右上、左下切角，細框），左上一個青色、右下一個洋紅的 HUD 角括號；不發光，光留給外面的大面板 */
@@ -1145,3 +1147,5 @@
 }
 :root:root:root.lite-signal[data-theme="neon"] #bar .sig:is(.hires, .dsd, .upsample)::after { content: "" !important; animation: none !important; }
 :root:root[data-theme="neon"] #sidebar:has(.cd-task:not([hidden]))::after { display: none; }
+@media (max-width: 1180px) {:root:root[data-theme="neon"] .nav-pill::before { left: -8px; }
+}

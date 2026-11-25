@@ -2,7 +2,7 @@
    loaded (themes.js Theme.sheet). A selector must start with :root[data-theme...] to belong here. */
 
 /* 深色播放列：在 #bar 內部換回淺色文字 */
-:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar {
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar {
   --ink: 255, 255, 255; --line: rgba(255,255,255,.08); --line-2: rgba(255,255,255,.15);
   --text: #f1f6f6; --text-hi: #fff; --text-sub: #b3c2c4; --text-2: #9fb0b3; --text-3: #7d8b8f;
   --surface-2: #343b40; --surface-3: #414a50; --teal-2: #6fe0d8;
@@ -10,15 +10,15 @@
   background: repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 46px, rgba(0,0,0,.035) 46px 92px), linear-gradient(180deg, #2a3035, #1e2225);
   border-top: 3px solid #39c5bb; box-shadow: 0 -10px 30px rgba(16,72,78,.12); backdrop-filter: none;
 }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .playbtn { box-shadow: 0 0 0 3px rgba(57,197,187,.18), 0 6px 18px rgba(16,154,148,.35); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 8px 24px rgba(16,154,148,.45); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .slider .track { background: rgba(255,255,255,.14); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar .playbtn { box-shadow: 0 0 0 3px rgba(57,197,187,.18), 0 6px 18px rgba(16,154,148,.35); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 8px 24px rgba(16,154,148,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar .slider .track { background: rgba(255,255,255,.14); }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .slider .fill, :root[data-theme="miku"]:where(:not([data-mode="night"])) .slider:hover .fill { background: linear-gradient(90deg, #2cbcb4, #5fdcd3); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob, :root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(226,53,133,.22), 0 2px 8px rgba(226,53,133,.45); }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .seek .slider .knob, :root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .np-seek .slider .knob { background: var(--pink); opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(226,53,133,.22), 0 2px 8px rgba(226,53,133,.45); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 
 /* (not the Hi-Res / DSD / upsampling plates: their own grounds; with #bar this rule outweighed them and the gold plate went dark under its dark text) */
-:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .sig:not(.hires):not(.dsd):not(.upsample), :root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .out-btn { background: rgba(255,255,255,.06); }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar .sig:not(.hires):not(.dsd):not(.upsample), :root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar .out-btn { background: rgba(255,255,255,.06); }
 
 /* 側欄：白→淡灰（襯衫色），底部淡淡的六角格紋 */
 :root[data-theme="miku"]:where(:not([data-mode="night"])) #sidebar { position: relative; isolation: isolate; border-right: 1px solid #dbe8ea; }
@@ -65,7 +65,7 @@
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .badge.hi { background: rgba(44,188,180,.15); color: #0b847e; }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .badge.dsd { background: rgba(226,53,133,.11); color: #c4166a; }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .icon-btn.on { color: #0b847e; }
-:root[data-theme="miku"]:where(:not([data-mode="night"])) #bar .icon-btn.on { color: #5fdcd3; }
+:root[data-theme="miku"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #bar .icon-btn.on { color: #5fdcd3; }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .icon-btn.fav-on { color: #e23585; }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) .slider .track { background: #d5e6e6; }
 :root[data-theme="miku"]:where(:not([data-mode="night"])) select.sel, :root[data-theme="miku"]:where(:not([data-mode="night"])) input.inp { background-color: #fff; border-color: #d3e6e6; }
@@ -163,8 +163,9 @@
 :root[data-theme="miku"]:where([data-mode="night"]) .slider .track { background: rgba(160,230,230,.13); }
 :root[data-theme="miku"]:where([data-mode="night"]) .slider .fill, :root[data-theme="miku"]:where([data-mode="night"]) .slider:hover .fill { background: linear-gradient(90deg, #22aaa2, #6fe3da); box-shadow: 0 0 8px rgba(57,197,187,.6); }
 :root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob, :root[data-theme="miku"]:where([data-mode="night"]) .np-seek .slider .knob { background: #ff5aa5; opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(232,64,143,.25), 0 0 12px rgba(232,64,143,.75); }
-:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-seek .slider .knob { background: #ff5aa5; opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(232,64,143,.25), 0 0 12px rgba(232,64,143,.75); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .seek .slider .knob, :root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .np-seek .slider .knob { background: #ff5aa5; opacity: 1; transform: none; box-shadow: 0 0 0 3px rgba(232,64,143,.25), 0 0 12px rgba(232,64,143,.75); }
 :root[data-theme="miku"]:where([data-mode="night"]) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) .seek .slider .knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
 
 /* 列表 */
 :root[data-theme="miku"]:where([data-mode="night"]) .thead { background: rgba(11,22,25,.92); backdrop-filter: blur(12px); }
@@ -193,8 +194,11 @@
 
 /* 播放列：黑色裙襬＋發光的蔥綠滾邊 */
 :root[data-theme="miku"]:where([data-mode="night"]) #bar { background: repeating-linear-gradient(90deg, rgba(255,255,255,.01) 0 46px, rgba(0,0,0,.1) 46px 92px), linear-gradient(180deg, #11181b, #080c0e); border-top: 3px solid #39c5bb; box-shadow: 0 -1px 0 rgba(166,243,236,.35), 0 -6px 24px rgba(57,197,187,.18); backdrop-filter: none; }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { background: repeating-linear-gradient(90deg, rgba(255,255,255,.01) 0 46px, rgba(0,0,0,.1) 46px 92px), linear-gradient(180deg, #11181b, #080c0e); border-top: 3px solid #39c5bb; box-shadow: 0 -1px 0 rgba(166,243,236,.35), 0 -6px 24px rgba(57,197,187,.18); backdrop-filter: none; }
 :root[data-theme="miku"]:where([data-mode="night"]) #bar .playbtn { box-shadow: 0 0 0 3px rgba(57,197,187,.2), 0 0 22px rgba(57,197,187,.55); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .playbtn { box-shadow: 0 0 0 3px rgba(57,197,187,.2), 0 0 22px rgba(57,197,187,.55); }
 :root[data-theme="miku"]:where([data-mode="night"]) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 0 30px rgba(57,197,187,.75); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .playbtn:hover { box-shadow: 0 0 0 5px rgba(57,197,187,.25), 0 0 30px rgba(57,197,187,.75); }
 
 /* 正在播放：夜色舞台 */
 :root[data-theme="miku"]:where([data-mode="night"]) .np-cover { border-radius: 18px; box-shadow: 0 0 0 1px rgba(160,240,235,.14), 0 0 80px rgba(57,197,187,.18), 0 40px 90px -20px rgba(0,0,0,.8); }
@@ -226,6 +230,7 @@
 /* 有自己主色的主題：希臘字標誌用主色（大字，對面板都在 4.5:1 以上） */
 :root[data-theme="miku"] { --dp-ink: var(--teal-2); }
 :root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) #np { --dp-ink: var(--teal-2); }
+:root[data-theme="miku"][data-ext-source="moodchannels"]:not(.mc-radio) #bar { --dp-ink: var(--teal-2); }
 
 /* ───────────── 3 · 各主題的卡片 ───────────── */
 /* 未來：圓角 14px（和 DSP 卡片一樣），日＝淡青灰底＋青灰框；夜＝透一點亮的青色玻璃 */
@@ -239,3 +244,8 @@
    提高到幾乎不透明；模糊照舊（取得到時仍有毛玻璃感）。 */
 :root[data-theme="miku"]:where(:not([data-mode="night"])) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(241,249,249,.95); }
 :root[data-theme="miku"]:where([data-mode="night"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(11,22,25,.95); }
+
+/* 側欄收成圖示時（視窗 ≤ 1180px）：選中的標記一律移到圖示塊外、左邊的空白裡（不再和齒輪擠在同一塊裡），
+   圖示永遠在塊的正中間。所有主題同一個規則：塊＝選中，左邊一個小標記＝主題的記號 */
+@media (max-width: 1180px) {:root:root[data-theme="miku"]:where([data-mode="night"]) .nav-pill::before { left: -8px; }
+}
