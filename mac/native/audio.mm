@@ -1612,6 +1612,46 @@ static int selfTest() {
     return 0;
 }
 
+// ───────────── the system output's volume (volume-attempt.js) ─────────────
+// --watch-volume: a line each time the system output's volume or mute changes ({"e":"volume","uid"}) or another device
+// becomes the system output ({"e":"output","uid"}), until stdin closes (MIKU quit or let go of its device).
+static int watchVolume() {
+    dispatch_queue_t q = dispatch_queue_create("miku.watch-volume", DISPATCH_QUEUE_SERIAL);
+    __block AudioDeviceID device = 0;
+    __block std::vector<AudioObjectPropertyAddress> watched;
+    AudioObjectPropertyListenerBlock onVolume = ^(UInt32, const AudioObjectPropertyAddress *) { emit(@{@"e":@"volume", @"uid":ns(uidOf(device))}); };
+    void (^attach)(void) = ^{
+        AudioDeviceID d = defaultOutput();
+        if (d == device) return;
+        for (auto &a : watched) AudioObjectRemovePropertyListenerBlock(device, &a, q, onVolume);
+        watched.clear(); device = d;
+        for (AudioObjectPropertySelector s : {kAudioDevicePropertyVolumeScalar, kAudioDevicePropertyMute})
+            for (UInt32 el = 0; el <= 2; ++el) {
+                AudioObjectPropertyAddress a = {s, kAudioDevicePropertyScopeOutput, el};
+                if (d && AudioObjectHasProperty(d, &a) && !AudioObjectAddPropertyListenerBlock(d, &a, q, onVolume)) watched.push_back(a);
+            }
+        emit(@{@"e":@"output", @"uid":ns(uidOf(d))});
+    };
+    auto a = addr(kAudioHardwarePropertyDefaultOutputDevice);
+    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &a, q, ^(UInt32, const AudioObjectPropertyAddress *) { attach(); });
+    dispatch_sync(q, attach);
+    char b[64]; for (;;) { ssize_t n = read(STDIN_FILENO, b, sizeof(b)); if (n < 0 && errno == EINTR) continue; if (n <= 0) break; }
+    _exit(0);
+}
+// --set-output <uid>: makes the device the system output. Right after hog mode is released Core Audio may still ignore it
+// (without an error): tried for up to 6 s.
+static int setSystemOutput(const char *uid) {
+    for (int i = 0; i < 30; ++i) {
+        AudioDeviceID d = deviceWithUID(uid);
+        if (d && hogOwner(d) == -1) {
+            if (defaultOutput() == d) { emit(@{@"ok":@YES}); return 0; }
+            try { set(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultOutputDevice, d); } catch (...) { }
+        }
+        sleepMs(200);
+    }
+    emit(@{@"ok":@NO}); return 1;
+}
+
 // A stable C string for a command name (the watchdog reads it from another thread).
 static const char *literal(NSString *cmd) {
     static const char *const known[] = {"devices", "probe", "load", "seek", "config", "preload", "clearNext", "pause", "resume", "stop", "gain", "dsp"};
@@ -1715,6 +1755,8 @@ int main(int argc, const char **argv) {
         }
         if (argc == 5 && !strcmp(argv[1], "--diag-engine")) { startWatchdog(); return diagnoseEngine(argv[2], argv[3], argv[4]); }
         if (argc>1 && !strcmp(argv[1],"--self-test")) return selfTest();
+        if (argc>1 && !strcmp(argv[1],"--watch-volume")) return watchVolume();
+        if (argc==3 && !strcmp(argv[1],"--set-output")) return setSystemOutput(argv[2]);
         if (argc>1 && !strcmp(argv[1],"--devices")) { emit(@{@"devices":devices(defaultOutput())}); return 0; }
         if (argc==3 && !strcmp(argv[1],"--dsp-test")) {
             NSData *data=[NSData dataWithContentsOfFile:ns(argv[2])]; NSDictionary *m=dictOf(data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil);

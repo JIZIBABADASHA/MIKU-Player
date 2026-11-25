@@ -316,6 +316,41 @@ function checkOutputTargetSoon() {
   if (S.outputMode !== 'coreaudio-exclusive' && !outputTarget.builtIn) return;
   clearTimeout(outputCheckTimer); outputCheckTimer = setTimeout(() => checkOutputTarget().catch(e => Log.error('Output target', e)), 600);
 }
+// Exclusive mode and the listener tries to change the held device's volume through macOS: ask to switch to shared mode
+// (volume-attempt.js). Yes: shared mode, the track goes on where it was, and the device becomes the system output.
+const sharePrompt = require('./share-prompt');
+const { VolumeAttempt, makeSystemOutput } = require('./volume-attempt');
+async function heldDevice() {
+  if (S.outputMode !== 'coreaudio-exclusive' || outputTarget.sharedInstead || !engine.holdsDevice) return null;
+  const now = volumeAttempt.device, name = engine.deviceName();
+  if (now && now.name === name) return now;
+  const list = await outputTarget.list();
+  const d = list && ((S.deviceId && list.find(x => x.id === S.deviceId && x.name === name)) || list.find(x => x.name === name));
+  return d ? { id: d.id, name: d.name } : null;
+}
+const volumeAttempt = new VolumeAttempt(heldDevice, d => {
+  const en = uiLang();
+  const t = {
+    'zh-Hant': ['要切換到共享模式嗎？', `MIKU 正在獨佔「${d.name}」，macOS 不能調整它的音量。切換後就能用系統音量調整。`, '先不要', '切換到共享'],
+    'zh-Hans': ['要切换到共享模式吗？', `MIKU 正在独占“${d.name}”，macOS 不能调整它的音量。切换后就能用系统音量调整。`, '先不要', '切换到共享'],
+    en: ['Switch to shared mode?', `MIKU has exclusive use of “${d.name}”, so macOS can’t change its volume. In shared mode the system volume works.`, 'Not now', 'Switch to shared'],
+    ja: ['共有モードに切り替えますか？', `MIKU が「${d.name}」を排他使用しているため、macOS で音量を変更できません。共有モードならシステムの音量を使えます。`, '今はしない', '共有に切り替え'],
+  }[en];
+  sharePrompt.ask({ title: t[0], text: t[1], no: t[2], yes: t[3] }, async yes => {
+    if (yes === false) volumeAttempt.decline();
+    if (!yes || quitting || S.outputMode !== 'coreaudio-exclusive') return;
+    Log.info(`Exclusive output: switching to shared mode, as asked (${d.name})`);
+    try {
+      await applySettings({ outputMode: 'coreaudio' });
+      if (!engine.isLoaded) engine.releaseDevice();
+      post('settings', { outputMode: S.outputMode }); postSoon('state');
+      await makeSystemOutput(d.id);
+      post('devicesChanged', {});
+    } catch (e) { Log.error('Switch to shared mode', e); }
+  });
+});
+engine.on('changed', () => volumeAttempt.update());
+engine.on('devicechange', () => volumeAttempt.update());
 player.on('now', () => postSoon('state'));
 player.on('queue', () => postSoon('queue'));
 lib.on('progress', p => {
@@ -1606,6 +1641,7 @@ app.on('before-quit', e => {
   try { remote && remote.stop(); } catch { }
   try { remoteLib.dispose(); } catch { }
   updater.stop();
+  try { volumeAttempt.stop(); sharePrompt.close(); } catch { }
   try { liveRelay && liveRelay.kill(); } catch { }
   Promise.allSettled([lib.saveQueue, engine.dispose()]).finally(() => { exts.stopAll(); app.quit(); });
 });
