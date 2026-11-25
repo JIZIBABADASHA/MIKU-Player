@@ -7,7 +7,10 @@
    2. placeSticker: a theme's sticker on the cover (the poster's NOW PLAYING burst) sits on a corner of the cover where it
       covers no text and stays in the window.
    3. top-crowded: the top buttons (lyrics source, wrong lyrics?, translate, lyrics) hide while they would sit on the info
-      (the collapse button stays). */
+      (the collapse button stays).
+   4. balanceTitle: a title printed on a card (the poster's title plaque) gets as much card above its letters as below,
+      whatever font the system picks: a Mac's Japanese fonts sit higher in the line than Windows' or Linux's, which put
+      the first line against the card's top edge. */
 (() => {
   const init = () => {
     const np = document.getElementById('np'); if (!np) return;
@@ -87,6 +90,43 @@
       }
       left.dataset.st = 'off';   // nowhere free: leave it out rather than cover the title
     };
+    // The theme opts in with --np-t-card: 1 and draws the card's top and bottom edges from --np-t-bt / --np-t-bb. The
+    // letters are measured on a canvas in the title's own font (the same fallback fonts as the page) and placed on the
+    // line by a zero-size marker on the first line's baseline. Latin descenders (g, p, y) don't count: for Latin it is the
+    // baseline that should sit in the middle, for Chinese and Japanese the whole character.
+    const title = np.querySelector('.np-title'), pen = document.createElement('canvas').getContext('2d');
+    const mark = document.createElement('span');
+    mark.style.cssText = 'display:inline-block;width:0;height:0;margin:0;padding:0;border:0;vertical-align:baseline';
+    const CJK = /[\u2E80-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF\uFF00-\uFFEF]/g;
+    const balanceTitle = () => {
+      if (!title) return;
+      title.style.removeProperty('--np-t-bt'); title.style.removeProperty('--np-t-bb');
+      const cs = getComputedStyle(title), txt = title.textContent.trim();
+      if (cs.getPropertyValue('--np-t-card').trim() !== '1' || !txt || !title.offsetHeight) return;
+      const fs = parseFloat(cs.fontSize), lh = parseFloat(cs.lineHeight);
+      if (!(fs > 0 && lh > 0)) return;
+      pen.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      if ('lang' in pen) pen.lang = (title.closest('[lang]') || document.documentElement).lang || 'inherit';
+      const up = pen.measureText(txt).actualBoundingBoxAscent;
+      const cjk = (txt.match(CJK) || []).join('');
+      const down = cjk ? Math.max(0, pen.measureText(cjk).actualBoundingBoxDescent) : 0;
+      // (the card is tilted a little: measured straight, then tilted back, in the same frame, so nothing is drawn)
+      const rot = title.style.rotate; title.style.rotate = 'none';
+      title.prepend(mark);
+      const r = title.getBoundingClientRect(), base = mark.getBoundingClientRect().top;
+      mark.remove(); title.style.rotate = rot;
+      if (!r.height) return;
+      const k = title.offsetHeight / r.height;   // an ancestor scaled (zooming in): back to CSS pixels
+      const bt = parseFloat(cs.borderTopWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0;
+      const lines = Math.max(1, Math.round(title.clientHeight / lh));
+      const b1 = (base - r.top) * k;                                     // first baseline, from the card's top
+      const above = b1 - bt - up;                                        // room above the letters, inside the edge
+      const below = title.offsetHeight - bb - (b1 + (lines - 1) * lh) - down;   // and below the last line's
+      const min = .06 * fs, d = below - above;
+      if (Math.abs(d) < 1) return;
+      title.style.setProperty('--np-t-bt', (min + Math.max(0, d)).toFixed(2) + 'px');
+      title.style.setProperty('--np-t-bb', (min + Math.max(0, -d)).toFixed(2) + 'px');
+    };
     let raf = 0, waits = 0;
     const check = () => {
       raf = 0;
@@ -95,6 +135,7 @@
       waits = 0;
       // (removed only when it is there: writing a class, even an unchanged one, wakes every observer of #np's class)
       if (!np.classList.contains('on')) { if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
+      balanceTitle();
       fitInfo();
       // hidden buttons (visibility: hidden) keep their layout box, so they can be measured without un-hiding them
       const pills = [...top.querySelectorAll('.src, .ly-pick-wrap > .pill, #np-trans, #np-lyr')]
@@ -126,7 +167,11 @@
     // another song: a longer title or artist line, other badges
     for (const id of ['np-title', 'np-artist', 'np-badges']) {
       const e = document.getElementById(id);
-      if (e) new MutationObserver(() => { if (np.classList.contains('on')) { now(); later(300); } }).observe(e, { childList: true, characterData: true, subtree: true });
+      // (balanceTitle's own marker, put in and taken out again, is not another song)
+      if (e) new MutationObserver(recs => {
+        if (recs.every(r => r.type === 'childList' && [...r.addedNodes, ...r.removedNodes].every(n => n === mark))) return;
+        if (np.classList.contains('on')) { now(); later(300); }
+      }).observe(e, { childList: true, characterData: true, subtree: true });
     }
     // fonts arriving change the text's height
     if (document.fonts) document.fonts.addEventListener('loadingdone', () => { if (np.classList.contains('on')) now(); });

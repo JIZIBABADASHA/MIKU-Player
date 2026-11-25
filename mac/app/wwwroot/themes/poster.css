@@ -533,7 +533,8 @@
 
 /* 海報的字卡：奶油色的內距改成同色的框（框不會被裁切畫進去），墨色粗框改用 outline 畫在外面，紅色硬陰影跟著外移 */
 :root:root[data-theme="poster"] #np .np-title {
-  padding: 0; line-height: 1.32; border-style: solid; border-color: #f6ecd6; border-width: .06em .42em .06em;
+  padding: 0; line-height: 1.32; border-style: solid; border-color: #f6ecd6; border-width: var(--np-t-bt, .06em) .42em var(--np-t-bb, .06em);
+  --np-t-card: 1;   /* fit.js evens out the cream edge above and below the letters for the font the system uses */
   outline: 2.5px solid #1a120c; outline-offset: 0;
   box-shadow: 5px 5px 0 2.5px var(--ps-red), 5px 5px 0 5px #1a120c;
 }
