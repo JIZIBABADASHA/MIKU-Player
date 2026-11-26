@@ -536,24 +536,63 @@ public sealed class MainForm : Form
             DwmSetWindowAttribute(Handle, 36, ref text, 4);              // caption text colour
         }
         catch { }
-        RegisterHotKey(Handle, 1, 0, 0xB3); // play/pause
-        RegisterHotKey(Handle, 2, 0, 0xB0); // next
-        RegisterHotKey(Handle, 3, 0, 0xB1); // previous
-        RegisterHotKey(Handle, 4, 0, 0xB2); // stop
+        // Media keys. RegisterHotKey fails silently when another program (or a browser engine) holds a key first;
+        // those keys then never reached MIKU. Every key that could not be registered is read with a low-level
+        // keyboard hook instead, so play / pause, next and previous always work.
+        var hookVks = new List<uint>();
+        for (int i = 0; i < MediaVks.Length; i++)
+            if (!RegisterHotKey(Handle, i + 1, 0, MediaVks[i])) hookVks.Add(MediaVks[i]);
+        if (hookVks.Count > 0) StartMediaHook(hookVks);
+    }
+
+    static readonly uint[] MediaVks = { 0xB3, 0xB0, 0xB1, 0xB2 };   // play/pause, next, previous, stop (ids 1..4)
+
+    void MediaKey(int id)
+    {
+        // while YouTube is the source, media keys drive the YouTube player (like MIKU's own buttons)
+        switch (id)
+        {
+            case 1: _ = LiveActive ? YtClick(".play-pause-button") : _player.Toggle(); break;
+            case 2: _ = LiveActive ? YtClick(".next-button") : _player.Next(); break;
+            case 3: _ = LiveActive ? YtClick(".previous-button") : _player.Previous(); break;
+            case 4: if (LiveActive) PauseYt(); else _engine.Pause(); break;
+        }
+    }
+
+    delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll", SetLastError = true)] static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc fn, IntPtr hMod, uint threadId);
+    [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern IntPtr GetModuleHandle(string name);
+    LowLevelKeyboardProc _mediaHookProc;   // kept so the delegate is not collected while the hook is in place
+    IntPtr _mediaHook;
+    HashSet<uint> _hookVks = new();
+
+    void StartMediaHook(List<uint> vks)
+    {
+        _hookVks = new HashSet<uint>(vks);
+        _mediaHookProc = (nCode, wParam, lParam) =>
+        {
+            const int WM_KEYDOWN = 0x0100, WM_SYSKEYDOWN = 0x0104;
+            if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
+            {
+                uint vk = (uint)Marshal.ReadInt32(lParam);
+                if (_hookVks.Contains(vk))
+                {
+                    int id = Array.IndexOf(MediaVks, vk) + 1;
+                    try { BeginInvoke(new Action(() => MediaKey(id))); } catch { }
+                }
+            }
+            return CallNextHookEx(_mediaHook, nCode, wParam, lParam);
+        };
+        _mediaHook = SetWindowsHookEx(13 /* WH_KEYBOARD_LL */, _mediaHookProc, GetModuleHandle(null), 0);
     }
 
     protected override void WndProc(ref Message m)
     {
         if (m.Msg == 0x0312) // WM_HOTKEY
         {
-            switch (m.WParam.ToInt32())
-            {
-                // while YouTube is the source, media keys drive the YouTube player (like MIKU's own buttons)
-                case 1: _ = LiveActive ? YtClick(".play-pause-button") : _player.Toggle(); break;
-                case 2: _ = LiveActive ? YtClick(".next-button") : _player.Next(); break;
-                case 3: _ = LiveActive ? YtClick(".previous-button") : _player.Previous(); break;
-                case 4: if (LiveActive) PauseYt(); else _engine.Pause(); break;
-            }
+            MediaKey(m.WParam.ToInt32());
         }
         base.WndProc(ref m);
     }
@@ -738,6 +777,7 @@ public sealed class MainForm : Form
         _s.WindowDpi = DeviceDpi;
         SaveSettings();
         for (int i = 1; i <= 4; i++) UnregisterHotKey(Handle, i);
+        if (_mediaHook != IntPtr.Zero) { UnhookWindowsHookEx(_mediaHook); _mediaHook = IntPtr.Zero; }
         try { _remote?.Dispose(); } catch { }
         try { _remoteLib.Dispose(); } catch { }
         _update.Stop();
@@ -782,7 +822,7 @@ public sealed class MainForm : Form
     {
         try
         {
-            var options = new CoreWebView2EnvironmentOptions("--disable-features=msSmartScreenProtection,ElasticOverscroll,CalculateNativeWinOcclusion --disable-audio-output --autoplay-policy=no-user-gesture-required");
+            var options = new CoreWebView2EnvironmentOptions("--disable-features=msSmartScreenProtection,ElasticOverscroll,CalculateNativeWinOcclusion,HardwareMediaKeyHandling --disable-audio-output --autoplay-policy=no-user-gesture-required");
             var env = await CoreWebView2Environment.CreateAsync(null, AppPaths.WebView, options);
             await _web.EnsureCoreWebView2Async(env);
         }

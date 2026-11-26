@@ -292,7 +292,36 @@ function applyYtVolume() {
 engine.on('changed', () => { postSoon('state'); if (!engine.isPlaying && engine.holdsDevice) considerLettingGo(4000); if (engine.isPlaying && ytActive && !engineLive()) { ytActive = false; pauseYt(); } });
 engine.on('loading', t => { if (ytActive && !(t && t.id === 'yt-live')) { ytActive = false; pauseYt(); } });
 engine.on('failed', msg => post('error', { message: msg }));
-engine.on('media', m => {
+// ───────────── media keys (play / pause, next, previous) ─────────────
+// Held from start to quit, whatever is playing or loaded. They used to be registered only while a track was loaded in
+// MIKU's own core and dropped whenever it stopped (paused long enough, device let go, another core): the keys then
+// went to Apple Music instead. macOS hands global media keys only to a trusted accessibility client: ask once.
+const { globalShortcut, systemPreferences } = require('electron');
+const MEDIA_KEYS = [['MediaPlayPause', 'play'], ['MediaNextTrack', 'nexttrack'], ['MediaPreviousTrack', 'previoustrack'], ['MediaStop', 'stop']];
+const isMediaKey = k => typeof k === 'string' && /^Media(PlayPause|NextTrack|PreviousTrack|Stop)$/.test(k);
+const mediaKeyShield = {
+  register: (k, fn) => isMediaKey(k) ? true : globalShortcut.register(k, fn),
+  unregister: k => { if (!isMediaKey(k)) globalShortcut.unregister(k); },
+  isRegistered: k => globalShortcut.isRegistered(k),
+  unregisterAll: () => { for (const k of mikuShortcuts) globalShortcut.unregister(k); mikuShortcuts.clear(); },
+};
+const mikuShortcuts = new Set();
+function bindMediaKeys() {
+  try {
+    if (!systemPreferences.isTrustedAccessibilityClient(false) && !S.mediaKeysAsked) {
+      S.mediaKeysAsked = true; saveSoon();
+      systemPreferences.isTrustedAccessibilityClient(true);   // shows macOS's 輔助使用 prompt once
+    }
+  } catch (e) { Log.error('Accessibility check', e); }
+  const missing = [];
+  for (const [key, action] of MEDIA_KEYS) {
+    if (globalShortcut.isRegistered(key)) continue;
+    if (!globalShortcut.register(key, () => onMediaKey({ action }))) missing.push(key);
+  }
+  if (missing.length) Log.info('Media keys not available yet: ' + missing.join(', '));
+}
+engine.on('media', m => onMediaKey(m));
+function onMediaKey(m) {
   if (liveActive()) {
     if (m.action === 'nexttrack') ytClick('.next-button'); else if (m.action === 'previoustrack') ytClick('.previous-button'); else ytClick('.play-pause-button');
     return;
@@ -302,7 +331,7 @@ engine.on('media', m => {
   else if (m.action === 'previoustrack') player.previous();
   else if (m.action === 'stop') engine.pause();
   else if (m.action === 'seekto') player.seek(m.pos);
-});
+}
 engine.on('devicechange', () => { post('devicesChanged', {}); checkOutputTargetSoon(); });
 // The device the cores play to may have become (or stopped being) the built-in speakers: exclusive mode is then
 // applied or dropped (output-target.js), with the track continuing where it was.
@@ -448,7 +477,9 @@ function loadExtensions() {
       // a core that plays the live track reads the page's audio here (float32 stereo frames; live-relay.js)
       liveSocket,
       replayGainDb: t => require('./web-audio').WebAudioEngine.prototype.rgDb.call({ s: S }, t),
-      globalShortcut: require('electron').globalShortcut,
+      // the media keys are MIKU's for the whole run (mediaKeys below): a core's own register / unregister of them is
+      // ignored, so a core that stops after a pause no longer takes them away
+      globalShortcut: mediaKeyShield,
       openPath: p => shell.openPath(p),
     };
   });
@@ -1710,6 +1741,9 @@ app.whenReady().then(async () => {
   session.defaultSession.setPermissionCheckHandler(() => true);
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb) => cb(['media', 'speaker-selection', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen'].includes(perm)));
   registerProtocols();
+  bindMediaKeys();
+  // granted in 系統設定 > 輔助使用 while MIKU runs: pick the keys up when the window comes back to the front
+  app.on('browser-window-focus', bindMediaKeys);
   buildMenu();
   lib.load();
   // what 設定 → 其他 → 更新與擴充套件 staged for this start (updater.js)

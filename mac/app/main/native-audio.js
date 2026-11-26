@@ -41,13 +41,8 @@ class NativeAudioEngine extends WebAudioEngine {
   get exclusiveWanted() { return this.s.outputMode === 'coreaudio-exclusive'; }
   /** The output the app wants; the helper resolves it (system output, fallback when the DAC is missing). */
   output() { return { device: this.s.deviceId || 'default', exclusive: this.exclusiveWanted, autoRate: this.s.autoSampleRate !== false }; }
-  bindMediaKeys(on) {
-    if (!globalShortcut) return;
-    if (!on) { for (const key of this.mediaKeys) globalShortcut.unregister(key); this.mediaKeys = []; return; }
-    if (this.mediaKeys.length) return;
-    for (const [key, action] of [['MediaPlayPause', 'play'], ['MediaNextTrack', 'nexttrack'], ['MediaPreviousTrack', 'previoustrack']])
-      if (globalShortcut.register(key, () => this.emit('media', { action }))) this.mediaKeys.push(key);
-  }
+  /** The media keys are held by main.js for the whole run (bindMediaKeys there); nothing to do per track. */
+  bindMediaKeys() { }
 
   // ───────────── the helper process ─────────────
   start() {
