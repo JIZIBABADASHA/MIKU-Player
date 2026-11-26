@@ -51,7 +51,11 @@ public sealed class LyricCandidate
 public static class Lrc
 {
     static readonly Regex TimeTag = new(@"\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]", RegexOptions.Compiled);
-    static readonly Regex WordTag = new(@"<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>", RegexOptions.Compiled);
+    // word timings inside a line: <mm:ss.xx> (enhanced LRC) or [mm:ss.xx] after the line's own tags (the word-timed LRC some
+    // LRCLIB entries use: "[00:10.50]Step [00:11.06]through [00:12.11]the"), both read as word-by-word timings
+    static readonly Regex InlineTag = new(@"[<\[](\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?[>\]]", RegexOptions.Compiled);
+    static readonly Regex Spaces = new(@"\s{2,}", RegexOptions.Compiled);
+    static readonly Regex TagGap = new(@"\G\s+(?=\[\d)", RegexOptions.Compiled);
     static readonly Regex Meta = new(@"^\[(ar|ti|al|by|re|ve|length|au|offset|#)\s*:(.*)\]\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     static double Seconds(Match m)
@@ -92,24 +96,12 @@ public static class Lrc
                 if (!m.Success || m.Index != pos) break;
                 times.Add(Seconds(m));
                 pos = m.Index + m.Length;
+                // "[00:12.00] [00:30.00]chorus": spaces between the line's own tags
+                var gap = TagGap.Match(line, pos);
+                if (gap.Success) pos += gap.Length;
             }
             if (times.Count == 0) continue;
-            string body = line[pos..];
-            List<LyricWord> words = null;
-            var wm = WordTag.Matches(body);
-            if (wm.Count > 0)
-            {
-                words = new List<LyricWord>();
-                for (int i = 0; i < wm.Count; i++)
-                {
-                    int start = wm[i].Index + wm[i].Length;
-                    int end = i + 1 < wm.Count ? wm[i + 1].Index : body.Length;
-                    string w = body[start..end];
-                    if (w.Length > 0) words.Add(new LyricWord { T = Seconds(wm[i]) - offset, W = w });
-                }
-                body = WordTag.Replace(body, "");
-            }
-            body = body.Trim();
+            var (body, words) = SplitWords(line[pos..], times.Count == 1 ? times[0] : null, offset);
             foreach (var t in times)
                 lines.Add(new LyricLine { T = Math.Max(0, t - offset), Text = body, Words = times.Count == 1 ? words : null });
         }
@@ -134,9 +126,50 @@ public static class Lrc
         return result;
     }
 
+    /// <summary>
+    /// A line's text with its word timings taken out. The words before the first timing (when the line's own tag is all
+    /// they have) start at lineT. Words is null when the text has no timings, or when nothing can be placed.
+    /// </summary>
+    public static (string Text, List<LyricWord> Words) SplitWords(string body, double? lineT, double offset = 0)
+    {
+        var wm = InlineTag.Matches(body);
+        if (wm.Count == 0) return (body.Trim(), null);
+        var words = new List<LyricWord>();
+        string lead = body[..wm[0].Index];
+        if (lead.Trim().Length > 0 && lineT.HasValue) words.Add(new LyricWord { T = lineT.Value - offset, W = lead.TrimStart() });
+        for (int i = 0; i < wm.Count; i++)
+        {
+            int start = wm[i].Index + wm[i].Length;
+            int end = i + 1 < wm.Count ? wm[i + 1].Index : body.Length;
+            string w = body[start..end];
+            if (w.Trim().Length > 0) words.Add(new LyricWord { T = Seconds(wm[i]) - offset, W = i + 1 < wm.Count ? w : w.TrimEnd() });
+        }
+        string text = Spaces.Replace(InlineTag.Replace(body, ""), " ").Trim();
+        return (text, words.Count > 0 ? words : null);
+    }
+
+    static string StripTags(string s) => Spaces.Replace(InlineTag.Replace(s, ""), " ").Trim();
+
+    /// <summary>Lyrics saved before word timings in [mm:ss.xx] form were read: take the tags out of their text (in place).</summary>
+    public static LyricsResult Repair(LyricsResult r)
+    {
+        if (r?.Lines == null) return r;
+        foreach (var l in r.Lines)
+        {
+            if (l.Text != null && InlineTag.IsMatch(l.Text))
+            {
+                var (text, words) = SplitWords(l.Text, r.Synced && l.T >= 0 ? l.T : null);
+                l.Text = text;
+                if (r.Synced && words != null && (l.Words == null || l.Words.Count == 0)) l.Words = words;
+            }
+            if (l.Trans != null && InlineTag.IsMatch(l.Trans)) l.Trans = StripTags(l.Trans);
+        }
+        return r;
+    }
+
     public static List<LyricLine> Plain(string text) =>
         text.Replace("\r\n", "\n").Split('\n').Select(s => s.Trim()).Where(s => !Meta.IsMatch(s))
-            .Select(s => new LyricLine { T = -1, Text = TimeTag.Replace(s, "").Trim() }).ToList();
+            .Select(s => new LyricLine { T = -1, Text = StripTags(s) }).ToList();
 
     public static void MergeTranslation(List<LyricLine> lines, List<LyricLine> trans)
     {
@@ -162,7 +195,7 @@ public sealed class LyricsService
         if (refresh) { try { File.Delete(CachePath(t)); } catch { } }
         return _inflight.GetOrAdd(t.Id, key => Task.Run(async () =>
         {
-            try { return await Resolve(t); }
+            try { return Lrc.Repair(await Resolve(t)); }
             catch (Exception ex) { Log.Error("Lyrics", ex); return new LyricsResult(); }
             finally { _inflight.TryRemove(t.Id, out var removed); }
         }));

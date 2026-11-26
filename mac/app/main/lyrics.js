@@ -7,7 +7,10 @@ const ff = require('./ffmpeg');
 
 const TimeTag = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/y;
 const TimeTagG = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
-const WordTagG = /<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>/g;
+// word timings inside a line: <mm:ss.xx> (enhanced LRC) or [mm:ss.xx] after the line's own tags (the word-timed LRC some
+// LRCLIB entries use: "[00:10.50]Step [00:11.06]through [00:12.11]the"), both read as word-by-word timings
+const InlineTagG = /[<\[](\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?[>\]]/g;
+const InlineTag1 = /[<\[]\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?[>\]]/;
 const Meta = /^\[(ar|ti|al|by|re|ve|length|au|offset|#)\s*:(.*)\]\s*$/i;
 
 const secs = m => (+m[1]) * 60 + (+m[2]) + (m[3] ? (+m[3]) / Math.pow(10, m[3].length) : 0);
@@ -30,22 +33,12 @@ function parse(text) {
       const m = TimeTag.exec(line);
       if (!m) break;
       times.push(secs(m)); pos = TimeTag.lastIndex;
+      // "[00:12.00] [00:30.00]chorus": spaces between the line's own tags
+      const gap = /^\s+(?=\[\d)/.exec(line.slice(pos)); if (gap) pos += gap[0].length;
     }
     if (!times.length) continue;
-    let body = line.slice(pos);
-    let words = null;
-    const wm = [...body.matchAll(WordTagG)];
-    if (wm.length) {
-      words = [];
-      for (let i = 0; i < wm.length; i++) {
-        const start = wm[i].index + wm[i][0].length;
-        const end = i + 1 < wm.length ? wm[i + 1].index : body.length;
-        const w = body.slice(start, end);
-        if (w.length) words.push({ t: secs(wm[i]) - offset, w });
-      }
-      body = body.replace(WordTagG, '');
-    }
-    body = body.trim();
+    const sw = splitWords(line.slice(pos), times.length === 1 ? times[0] : null, offset);
+    const body = sw.text, words = times.length === 1 ? sw.words : null;
     for (const t of times) lines.push({ t: Math.max(0, t - offset), text: body, words: times.length === 1 ? words : null });
   }
   lines.sort((a, b) => a.t - b.t);
@@ -63,7 +56,40 @@ function parse(text) {
   while (result.length && !result[result.length - 1].text.length) result.pop();
   return result;
 }
-const plain = text => text.replace(/\r\n?/g, '\n').split('\n').map(s => s.trim()).filter(s => !Meta.test(s)).map(s => ({ t: -1, text: s.replace(TimeTagG, '').trim() }));
+/**
+ * A line's text with its word timings taken out: { text, words }. The words before the first timing (when the line's
+ * own tag is all they have) start at lineT. words is null when the text has no timings, or when lineT is null and
+ * nothing can be placed.
+ */
+function splitWords(body, lineT, offset = 0) {
+  const wm = [...body.matchAll(InlineTagG)];
+  if (!wm.length) return { text: body.trim(), words: null };
+  const words = [];
+  const lead = body.slice(0, wm[0].index);
+  if (lead.trim() && lineT != null) words.push({ t: lineT - offset, w: lead.replace(/^\s+/, '') });
+  for (let i = 0; i < wm.length; i++) {
+    const start = wm[i].index + wm[i][0].length;
+    const end = i + 1 < wm.length ? wm[i + 1].index : body.length;
+    const w = body.slice(start, end);
+    if (w.trim()) words.push({ t: secs(wm[i]) - offset, w: i + 1 < wm.length ? w : w.replace(/\s+$/, '') });
+  }
+  const text = body.replace(InlineTagG, '').replace(/\s{2,}/g, ' ').trim();
+  return { text, words: words.length ? words : null };
+}
+/** Lyrics saved before word timings in [mm:ss.xx] form were read: take the tags out of their text (in place). */
+function repair(r) {
+  if (!r || !Array.isArray(r.lines)) return r;
+  for (const l of r.lines) {
+    if (l.text && InlineTag1.test(l.text)) {
+      const sw = splitWords(l.text, r.synced && l.t >= 0 ? l.t : null);
+      l.text = sw.text;
+      if (r.synced && sw.words && !(l.words && l.words.length)) l.words = sw.words;
+    }
+    if (l.trans && InlineTag1.test(l.trans)) l.trans = l.trans.replace(InlineTagG, '').replace(/\s{2,}/g, ' ').trim();
+  }
+  return r;
+}
+const plain = text => text.replace(/\r\n?/g, '\n').split('\n').map(s => s.trim()).filter(s => !Meta.test(s)).map(s => ({ t: -1, text: s.replace(InlineTagG, '').replace(/\s{2,}/g, ' ').trim() }));
 function mergeTranslation(lines, trans) {
   if (!trans || !trans.length) return;
   for (const l of lines) {
@@ -149,7 +175,7 @@ class LyricsService {
   get(t, refresh = false) {
     if (refresh) try { fs.unlinkSync(this.cachePath(t)); } catch { }
     if (!this.inflight.has(t.id)) {
-      const p = this.resolve(t).catch(e => { Log.error('Lyrics', e); return empty(); });
+      const p = this.resolve(t).then(repair).catch(e => { Log.error('Lyrics', e); return empty(); });
       this.inflight.set(t.id, p);
       p.finally(() => this.inflight.delete(t.id));
     }
