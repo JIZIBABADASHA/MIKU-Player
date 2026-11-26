@@ -75,3 +75,25 @@ checker found something there). Pages: home (paired with another computer, so th
 settings, home with a MoodWave channel (`homemw`) or station (`homeradio`) playing, now playing with a Japanese title
 (`np`), a very long title (`np2`), no lyrics (`npnl`), lyrics without timing (`npplain`), a MoodWave channel (`npmw`,
 `npplainmw`) and a MoodWave station (`npradio`). `--title 'レプリカント'` tries one title of your own.
+
+## Before / after (diff.py)
+
+Before a change is pushed, everything on screen that changed between the old and the new version is listed, so that
+nothing changes that was not meant to (a fix to the play triangle must not move the pause bars):
+
+    node sweep.js --root <old wwwroot> --out A  --shots png --scen home,album,np,paused,nppaused,npmw,homemw,tracks,folders --sizes 1366x860,1100x700
+    node sweep.js --root <old wwwroot> --out A2 --shots png   (same arguments: what moves by itself between runs)
+    node sweep.js --root <new wwwroot> --out B  --shots png   (same arguments)
+    python3 diff.py A A2 B OUT
+
+`--shots png` saves every combination as a lossless PNG and runs the page on a stopped clock (`page.clock`), so the
+play position, a toolbar that fades, falling coins move the same in every run (`--clock 0` for real time; `--dpr 2` for
+2x pictures). diff.py leaves out what differs between the two old runs (and 6px around it), gathers the rest into
+boxes and writes OUT/summary.txt and OUT/sheet-N.png (old | new, enlarged) for a person to look through. Known noise
+that is left: the play position can land a pixel apart between runs (the seek bar's knob), and now playing's left
+column can sit a fraction of a pixel apart (its size is measured while transitions run on real time), which shows as
+thin edges along its text. Both are visible as such on the sheets.
+
+1aa6d3e → f6953e7 (504 screens): the changes were the play triangle (bar, now playing, the 播放 buttons of album and
+folder pages, cards), 金色's coin and crown, and the noise above. The pause bars were the same, pixel for pixel, in
+every theme.

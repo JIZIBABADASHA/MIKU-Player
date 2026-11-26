@@ -6,7 +6,8 @@
  *                 scenarios: home album set homemw homeradio np np2 npnl npmw npradio npplain npplainmw (= all);
  *                 --scen pages: mwtitle albumshort albums artists tracks artist playlists folders favorites search setaudio setlib setkeys setother
  *                 (mw = a MoodWave channel, radio = a MoodWave station, plain = lyrics without timing)
- *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
+ *                 [--workers 3] [--shots fail|sheet|all|png] [--platform mac|windows] [--mw path/to/moodchannels.css]
+ *                 [--dpr 1]   (--shots png: every combination as a lossless PNG, for diff.py)
  *
  * Writes <out>/report.json, <out>/summary.txt, a screenshot (JPEG) per failing combination, and with --shots sheet a contact
  * sheet per theme and mode (<out>/sheets/<theme>-<mode>.jpg: the pages down, the window sizes across).
@@ -18,7 +19,11 @@ const HERE = __dirname;
 const root = path.resolve(arg('root', path.join(HERE, '..', '..', 'wwwroot')));
 const outdir = path.resolve(arg('out', path.join(HERE, 'out')));
 const engine = arg('engine', 'chromium');
-const shots = arg('shots', 'fail');
+const shots = arg('shots', 'fail'), DPR = +arg('dpr', 1);
+// --shots png runs on a stopped clock (page.clock): the page's own time moves only as the sweep says, so two runs of the
+// same version give the same pictures (the play position, a fading toolbar, falling coins) and diff.py sees only what
+// the code changed
+const CLOCK = shots === 'png' && arg('clock', '1') !== '0';
 const platform = arg('platform', process.platform === 'darwin' ? 'mac' : 'windows');
 const THEMES = 'flat flat2 glass gold luka miku neon pop poster sakura terminal vinyl washi wood'.split(' ');
 const themes = arg('themes', 'all') === 'all' ? THEMES : arg('themes').split(',');
@@ -103,8 +108,12 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
   const worker = async () => {
     while (next < jobs.length) {
       const { t, m, s } = jobs[next++];
-      const ctx = await browser.newContext({ viewport: { width: sizes[0][0], height: sizes[0][1] }, deviceScaleFactor: 1 });
+      const ctx = await browser.newContext({ viewport: { width: sizes[0][0], height: sizes[0][1] }, deviceScaleFactor: DPR });
       const page = await ctx.newPage(); const errs = [];
+      // the page's time: real, or (CLOCK) moved on by hand, the same in every run. Installed before the mock, which keeps
+      // the timers it finds
+      const wait = ms => CLOCK ? page.clock.runFor(ms).then(() => page.waitForTimeout(60)) : page.waitForTimeout(ms);
+      if (CLOCK) await page.clock.install({ time: new Date('2026-03-09T12:00:00') });
       page.on('pageerror', e => errs.push(e.message));
       await page.route('**/*', route => {
         const u = new URL(route.request().url());
@@ -116,24 +125,25 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
         route.fulfill({ status: 200, contentType: MIME[path.extname(f)] || 'application/octet-stream', body: fs.readFileSync(f) });
       });
       await page.addInitScript(([ls, mock]) => { try { if (!sessionStorage.getItem('seeded')) { for (const k in ls) localStorage.setItem(k, ls[k]); sessionStorage.setItem('seeded', '1'); } } catch (e) { } (0, eval)(mock); }, [{ 'miku.theme': t, 'miku.mode': m }, mock]);
+      // the page's time: real, or (CLOCK) moved on by hand, the same in every run
       const q = new URLSearchParams(Object.assign({ ui: '{}', platform, play: '1', dev: platform === 'mac' ? 'MacBook Pro的揚聲器' : 'Realtek(R) Audio 喇叭' }, s.q || {}));
       try {
         await page.goto(`http://miku.test/index.html?${q}${s.hash || '#/home'}`, { waitUntil: 'load' });
-        await page.waitForTimeout(1100);
+        await wait(1100);
         if (s.np) {
-          await page.evaluate(() => document.querySelector('#b-art') && document.querySelector('#b-art').click()); await page.waitForTimeout(2600);
+          await page.evaluate(() => document.querySelector('#b-art') && document.querySelector('#b-art').click()); await wait(2600);
           // the page slides up: on a slow machine (glass at 2560x1440 without a GPU) it was still on its way after 2.6 s
-          await page.waitForFunction(() => { const c = document.querySelector('#np-cover'); if (!c) return true; const r = c.getBoundingClientRect(), k = Math.round(r.top) + ':' + Math.round(r.left), same = window.__npAt === k; window.__npAt = k; return same && r.bottom < innerHeight + 5; }, null, { polling: 300, timeout: 12000 }).catch(() => { });
+          if (CLOCK) await wait(1500); else await page.waitForFunction(() => { const c = document.querySelector('#np-cover'); if (!c) return true; const r = c.getBoundingClientRect(), k = Math.round(r.top) + ':' + Math.round(r.left), same = window.__npAt === k; window.__npAt = k; return same && r.bottom < innerHeight + 5; }, null, { polling: 300, timeout: 12000 }).catch(() => { });
         }
         // the swap of the bar's left part runs on frames: wait for it to end (a slow machine draws few), then let things settle
-        if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(600); await page.waitForFunction(() => typeof BarSwap === 'undefined' || !BarSwap.cur, null, { timeout: 10000 }).catch(() => { }); await page.waitForTimeout(500); }
+        if (s.eval) { await page.evaluate(s.eval); await wait(600); if (CLOCK) await wait(1500); else await page.waitForFunction(() => typeof BarSwap === 'undefined' || !BarSwap.cur, null, { timeout: 10000 }).catch(() => { }); await wait(500); }
         // the app asks for a disc 0.8 s and 4 s after it starts, and other late answers arrive: past them before the first
         // still (a redraw between the check and its picture made the two disagree)
-        await page.waitForFunction(() => performance.now() > 4600, null, { timeout: 8000 }).catch(() => { });
+        if (CLOCK) await wait(Math.max(0, 4800 - await page.evaluate(() => performance.now()))); else await page.waitForFunction(() => performance.now() > 4600, null, { timeout: 8000 }).catch(() => { });
         await page.addStyleTag({ content: STILL });
         for (const [w, h] of sizes) {
           await page.setViewportSize({ width: w, height: h });
-          await page.waitForTimeout(700);
+          await wait(700);
           // entrances that have not been given a frame yet (a busy machine) end here, as they would a moment later
           await page.evaluate(() => { for (const a of document.getAnimations()) { try { if (a.effect && isFinite(a.effect.getComputedTiming().endTime)) a.finish(); } catch (e) { } } });
           const issues = await page.evaluate(check);
@@ -142,7 +152,8 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
             for (const x of await page.evaluate(`(${contrast})(${JSON.stringify(png.toString('base64'))}, ${FAINT})`)) issues.push({ kind: 'faint', el: x.el + ' "' + x.text + '"', detail: 'contrast ' + x.ratio + ':1' });
           }
           const name = `${t}-${m}-${s.name}-${w}x${h}`;
-          if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) {
+          if (shots === 'png') await page.screenshot({ path: path.join(outdir, 'shots', name + '.png'), type: 'png' });
+          else if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) {
             await page.screenshot({ path: path.join(outdir, 'shots', name + '.jpg'), type: 'jpeg', quality: 80 });
             // what the picture shows is what was checked: the bar's title once more, as it is right after the picture
             const late = await page.evaluate(LATE);
