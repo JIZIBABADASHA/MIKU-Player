@@ -261,8 +261,9 @@
 :root[data-theme="pop"] #lyrics .ly-plain {
   padding: 26px 30px 34vh; scroll-padding: 26px;
   font: 700 clamp(17px, 1.6vw, 21px)/1.75 var(--font-display); color: rgb(var(--np-ink)); text-wrap: pretty;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 44px), transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 44px), transparent 100%);
+  /* 淡出在離框線 10px 的地方就淡完（原本淡到框線才完，最下面那行半透明地壓在框線上） */
+  -webkit-mask-image: linear-gradient(180deg, transparent 8px, #000 30px, #000 calc(100% - 54px), transparent calc(100% - 10px));
+  mask-image: linear-gradient(180deg, transparent 8px, #000 30px, #000 calc(100% - 54px), transparent calc(100% - 10px));
 }
 
 /* 找不到歌詞／純音樂（歌詞欄收起前一瞬間才看得到）：置中的粗字，不用淡灰 */

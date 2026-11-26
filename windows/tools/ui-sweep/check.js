@@ -2,10 +2,13 @@
  *   clip     an interactive control partly cut off by a non-scrolling clipping ancestor or the window
  *   half     a line of text only partly visible (cut top/bottom)
  *   hcut     a line of text cut sideways without an ellipsis
- *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info,
- *            a theme's ornament in a corner of the bar over the times)
+ *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info
+ *            (timed lines and the untimed block alike), a theme's ornament in a corner of the bar over the times, a
+ *            two-colour backdrop's seam through the player, a theme's printed label behind an extension's panel)
+ *   cut      a row of lyrics cut at the side by the window or its box
  *   offscreen a key control outside the window
- *   touch    buttons of one row touching each other, or a round button squashed out of shape
+ *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
+ *            the player (less than 8px of air)
  *   orphan   a title's last line is a single character (or a stub) on its own
  *   squeeze  the play bar dropped the song title although there is room for it
  *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel)
@@ -153,19 +156,53 @@
         if (d.right > W || d.top < 0 || d.left < 0) add('offscreen', desc(host) + pe, 'sticker outside the window');
       }
     }
+    // a theme's small printed label in the top row (霓虹's "LIVE.FEED // SYNC") never runs behind an extension's panel
+    // on the same page (MoodWave's wheel reaches the top corner in a short window)
+    const extBits = [...document.querySelectorAll('#np-ext *')].filter(e => !hidden(e) && (e.matches('svg, img, button') || (!e.closest('svg') && (!e.firstElementChild || [...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())))) && parseFloat(getComputedStyle(e).opacity) > 0.1).map(e => [e, box(e)]).filter(([, b]) => b.width > 1 && b.height > 1);
+    if (extBits.length) for (const host of document.querySelectorAll('#np .np-top')) for (const pe of ['::before', '::after']) {
+      const cs = getComputedStyle(host, pe);
+      if (!cs.content || cs.content === 'none' || cs.content === 'normal' || /^""/.test(cs.content) || cs.display === 'none' || cs.visibility === 'hidden' || cs.position !== 'absolute') continue;
+      const hr = host.getBoundingClientRect(), l = parseFloat(cs.left), w = parseFloat(cs.width), h = parseFloat(cs.height), t = parseFloat(cs.top);
+      if (!isFinite(l) || !isFinite(t) || !(w > 0) || !(h > 0)) continue;
+      const ty = new DOMMatrixReadOnly(cs.transform === 'none' ? '' : cs.transform).m42;
+      const d = { left: hr.left + l, right: hr.left + l + w, top: hr.top + t + ty, bottom: hr.top + t + ty + h };
+      for (const [e, b] of extBits) if (hit(d, b, 1)) { add('overlap', desc(host) + pe + ' ' + cs.content.slice(0, 22), 'runs behind ' + desc(e)); break; }
+    }
+    // a backdrop made of two flat colours (極簡平面 2): the line where they meet runs between the player and the
+    // lyrics, never through the cover, the title, the seek bar or the buttons
+    const wrapEl = document.querySelector('#np .np-wrap');
+    if (wrapEl && !document.querySelector('#np.nolyrics')) {
+      const cs = getComputedStyle(wrapEl, '::before');
+      const m = cs.display !== 'none' && parseFloat(cs.opacity) > 0.05 && /linear-gradient\(90deg, (?:rgba?\([^)]*\)|#[0-9a-f]+|[a-z]+) ((?:calc\([^,]*\)|[\d.]+(?:%|px))), (?:rgba?\([^)]*\)|#[0-9a-f]+|[a-z]+) \1\)/i.exec(cs.backgroundImage);
+      if (m) {
+        const pr = document.createElement('div'); pr.style.cssText = 'position:absolute;left:0;top:0;height:0;pointer-events:none;width:' + m[1];
+        wrapEl.appendChild(pr); const x = wrapEl.getBoundingClientRect().left + parseFloat(cs.left || 0) + pr.getBoundingClientRect().width; pr.remove();
+        for (const p of parts) { const b = box(p); if (x > b.left + 2 && x < b.right - 2) add('overlap', 'backdrop seam × ' + desc(p), 'the colour boundary at ' + Math.round(x) + 'px runs through it (' + Math.round(b.left) + '…' + Math.round(b.right) + ')'); }
+      }
+    }
     // lyrics over the info column
     const lyr = document.querySelector('#lyrics');
     if (lyr && !hidden(lyr) && !document.querySelector('#np.nolyrics')) {
       const lb = lyr.getBoundingClientRect();
       const infos = parts.map(box);
-      for (const ln of lyr.querySelectorAll('.ly-line')) {
+      // timed lines, the untimed block (.ly-plain) and the "no lyrics" notice alike: never on the cover or the song's
+      // info, and never flush against them either (8px of air when they sit side by side)
+      for (const ln of lyr.querySelectorAll('.ly-line, .ly-plain, .ly-empty')) {
         if (hidden(ln)) continue;
         const rr = document.createRange(); rr.selectNodeContents(ln);
         const c = clipOf(ln, true);   // what of the line can be seen (the lyrics box clips the lines that scroll out)
+        const seen = new Set(); let cut = false;
         for (const r0 of rr.getClientRects()) {
           const r = { left: Math.max(r0.left, c.L), right: Math.min(r0.right, c.R), top: Math.max(r0.top, c.T), bottom: Math.min(r0.bottom, c.B) };
           if (r.right - r.left < 2 || r.bottom - r.top < 2) continue;
-          for (let i = 0; i < infos.length; i++) if (hit(r, infos[i], 2)) add('overlap', 'lyric line × ' + desc(parts[i]), 'lyrics over info');
+          // a row that shows at all shows from its first character to its last: not cut by the window's edge or the box's side
+          if (!cut && r0.width > 2 && (r0.left < Math.max(c.L, 0) - 1.5 || r0.right > Math.min(c.R, W) + 1.5)) { cut = true; add('cut', 'lyric line', 'text cut at the side (' + Math.round(r0.left) + '…' + Math.round(r0.right) + ' in ' + Math.round(Math.max(c.L, 0)) + '…' + Math.round(Math.min(c.R, W)) + ')'); }
+          for (let i = 0; i < infos.length; i++) {
+            if (seen.has(i)) continue;
+            const b = infos[i];
+            if (hit(r, b, 2)) { seen.add(i); add('overlap', 'lyric line × ' + desc(parts[i]), 'lyrics over info'); }
+            else if (hit(r, { left: b.left - 8, right: b.right + 8, top: b.top, bottom: b.bottom }, 2)) { seen.add(i); add('touch', 'lyric line × ' + desc(parts[i]), 'lyrics ' + Math.round(Math.max(r.left - b.right, b.left - r.right)) + 'px from the player'); }
+          }
         }
       }
     }

@@ -507,3 +507,15 @@
 :root[data-theme="vinyl"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(var(--bg-rgb), .96); }
 :root:root[data-theme="vinyl"]:where(:not([data-mode="night"])) #sidebar .rl-src button:not(.on) { color: #46574c; }
 :root:root[data-theme="vinyl"]:where(:not([data-mode="night"])) #sidebar .rl-src button:not(.on):hover { color: #101913; }
+
+/* 黑膠：歌詞框往左多拉的那 100px 是給沿著圓弧排的逐句歌詞用的（每一句自己再往右 160px）。沒有時間軸的整段歌詞
+   和「找不到歌詞」不走圓弧，直接從框的左邊排，就壓在演出者、標籤、剩餘時間和循環鍵上；直放時整段還被推出視窗左邊，
+   每行第一個字被切掉（獨立檢查看到的，每個尺寸都有）。整段歌詞從原本的欄位開始排。 */
+:root:root[data-theme="vinyl"] #np:not(.nolyrics) #lyrics :is(.ly-plain, .ly-empty) { left: 100px; }
+
+/* 黑膠：專輯頁右邊的唱盤固定 380×290。視窗 1151–1500px 寬（展開的側欄＋唱盤）時留給專輯名的只剩 200px 左右，
+   專輯名被擠成兩行、長一點的就截成「Wonka (Original…」，演出者也折行（獨立檢查在 1366×600 看到的；別的主題同一個尺寸都放得下）。
+   這個寬度唱盤縮成七成二（靠右下角縮，位置不變），文字那一欄把讓出來的寬度拿去用。1150px 以下本來就不畫唱盤。 */
+@media (min-width: 1151px) and (max-width: 1500px) {:root[data-theme="vinyl"] .hero.album .tt-deck { transform: scale(.72); transform-origin: right bottom; margin-left: -106px; margin-top: -81px; }
+:root[data-theme="vinyl"] .hero.album .meta { flex: 1 1 auto; }
+}

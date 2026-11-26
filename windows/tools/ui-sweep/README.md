@@ -6,10 +6,15 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **clip**: a button or control partly cut off by its box or the window
 - **half**: a line of text only partly visible (for example a third line peeking under a two-line title)
 - **hcut**: a line of text cut sideways without an ellipsis
-- **overlap**: now-playing info parts on top of each other, a sticker over the title, lyrics over the info column,
-  play bar items on top of each other, parts of one sidebar link on top of each other
+- **overlap**: now-playing info parts on top of each other, a sticker over the title, lyrics over the info column
+  (timed lines, the untimed block and the "no lyrics" notice alike: vinyl's untimed lyrics once sat on the player
+  unnoticed), play bar items on top of each other, parts of one sidebar link on top of each other, the seam of a
+  two-colour backdrop running through the cover or the title (flat 2 with MoodWave's wheel), a theme's small printed
+  label in the top row running behind an extension's panel (neon's "LIVE.FEED" behind the MoodWave logo)
+- **cut**: a row of lyrics cut at the side by the window or its box
 - **offscreen**: a key control outside the window or under the play bar
-- **touch**: the now-playing buttons touching each other, or a round button squashed out of shape
+- **touch**: the now-playing buttons touching each other, a round button squashed out of shape, or lyrics flush
+  against the player (less than 8 px of air)
 - **orphan**: a two-line title whose second line is a single character or a short stub
 - **squeeze**: the play bar dropped the song title although there is room for it. The MoodWave pages bring the
   channel's strip in the way the app does (the bar's left part slides in from the edge), because measuring on the

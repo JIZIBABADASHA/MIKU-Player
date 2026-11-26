@@ -1186,3 +1186,9 @@
 }
 @media (max-width: 1440px) {:root[data-theme="neon"]:has(#b-ext:not([hidden])) #bar .seek { translate: 0 3px; }
 }
+
+/* 霓虹：正在播放左上那行微型字「◉ LIVE.FEED // SYNC」。播 MoodWave 頻道時左邊的頻道輪上下置中、高 507px，
+   視窗矮於 680px 時輪子最上面的 MoodWave 標誌就頂到左上角，這行字從標誌的白圓後面穿過去（獨立檢查在 1366×600 看到的）。
+   那個高度播頻道時不畫這行字（電台沒有輪子，照舊）。 */
+@media (max-height: 680px) and (min-width: 1101px) {:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top::before { content: none; }
+}

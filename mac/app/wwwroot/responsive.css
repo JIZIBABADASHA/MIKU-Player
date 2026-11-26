@@ -207,6 +207,9 @@
 /* 純文字歌詞（沒有時間軸）：橫排時歌詞欄和視窗一樣高，字從上面 24vh 開始；上下排時歌詞欄只有畫面下面三分之一，
    24vh 把字推到欄底，只看得到兩行、上面空一大片。上下排改成從欄頂（淡出的那一段下面）開始。 */
 @media (orientation: portrait), (max-width: 760px) { #np .ly-plain { padding-top: 6vh; padding-bottom: 12vh; } }
+/* 矮視窗（高 680px 以下）：歌詞欄只有三百多 px 高，底下兩成的淡出就吃掉一行多，最後看得到的字離視窗底還有 150px 左右是空的
+   （實機 965×600 看到的）。淡出收到最後一成。 */
+@media (max-height: 680px) { #np .lyrics { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 13%, #000 90%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 13%, #000 90%, transparent 100%); } }
 @media (max-width: 760px), (orientation: portrait) {
   #np .ly-offset { right: 10px; }
 }

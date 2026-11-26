@@ -407,3 +407,10 @@
 :root[data-theme="flat2"] .slider .track, :root[data-theme="flat2"] .range { background: rgba(var(--ink), .3); }
 :root:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider .fill { background: #f2f2ee; }
 :root:root[data-theme^="flat"][data-ext-source="moodchannels"]:not(.mc-radio) #bar .slider:is(:hover, .drag) .fill { background: var(--teal); }
+
+/* 極簡平面 2：正在播放的兩塊色面，分界在視窗寬度的 47%（封面那一欄和歌詞之間的空隙）。播 MoodWave 的頻道或電台時，
+   左邊多一欄頻道輪，封面那一欄被往右推（左邊的留白從 6vw 變成 4vw + 300px），分界沒跟著過去，就從封面、歌名、
+   進度條和按鈕中間切過（獨立檢查在 1366×600 看到的，其實每個尺寸都是）。分界照同一個算法跟過去：
+   4vw + 300px + (100% − 10vw − 300px) × 0.466 = 45.94% + 160px。1100px 以下頻道輪收起來，留白回到 6vw，照舊 47%。 */
+@media (min-width: 1101px) {:root[data-theme="flat2"][data-ext-source="moodchannels"] #np .np-wrap::before { background: linear-gradient(90deg, var(--fl-np-plate) calc(45.94% + 160px), transparent calc(45.94% + 160px)); }
+}
