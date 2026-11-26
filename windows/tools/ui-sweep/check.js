@@ -25,6 +25,9 @@
  *   tilt     a tilted sticker on the cover leans the wrong way for its corner (clockwise on the right, the other way on
  *            the left)
  *   junk     a value that was never filled in is on show as text ("undefined ms", "NaN", "[object Object]")
+ *   hit      a link in the play bar (the title, the artist) takes clicks well past its words: a click on the empty bar
+ *            beside it opens the album / artist page instead of now playing
+ *   center   a play button's icon off the middle of the button (the play triangle pushed right, the pause bars aside)
  * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
  */
 (() => {
@@ -498,6 +501,26 @@
       if (!e.getClientRects().length) continue;
       add('junk', desc(e), 'reads "' + t.trim().replace(/\s+/g, ' ').slice(0, 40) + '"');
     }
+  }
+  // the play bar's title and artist are links only where their words are (a block as wide as the bar's left part took a
+  // click on the empty bar for the title)
+  for (const e of document.querySelectorAll('#bar :is(#b-title, #b-artist)')) {
+    if (hidden(e) || !e.textContent.trim()) continue;
+    const rg = document.createRange(); rg.selectNodeContents(e);
+    const tw = rg.getBoundingClientRect().width, bw = e.getBoundingClientRect().width;
+    if (bw - Math.min(tw, e.clientWidth) > 6) add('hit', desc(e), 'clickable ' + Math.round(bw) + 'px wide, its words ' + Math.round(tw) + 'px');
+  }
+  // the play / pause icon on the middle of its button (the triangle a little right of it, by design: less than 3.5 % of
+  // the button; centred on its centroid it sat 5 % right and looked pushed aside)
+  for (const b of document.querySelectorAll('.playbtn')) {
+    if (hidden(b) || !b.getClientRects().length) continue;
+    const parts = [...b.querySelectorAll('svg path, svg rect')].map(q => q.getBoundingClientRect()).filter(q => q.width > 0);
+    if (!parts.length) continue;
+    const r = b.getBoundingClientRect();
+    const dx = (Math.min(...parts.map(q => q.left)) + Math.max(...parts.map(q => q.right))) / 2 - (r.left + r.width / 2);
+    const dy = (Math.min(...parts.map(q => q.top)) + Math.max(...parts.map(q => q.bottom))) / 2 - (r.top + r.height / 2);
+    const lim = .035 * Math.min(r.width, r.height);
+    if (Math.abs(dx) > lim || Math.abs(dy) > lim) add('center', desc(b), 'icon ' + dx.toFixed(1) + 'px / ' + dy.toFixed(1) + 'px off the middle of a ' + Math.round(r.width) + 'px button');
   }
   return out;
 })()

@@ -445,6 +445,9 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
 .np-mini .t { font-weight: 700; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .np-mini .a { color: var(--text-sub); font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .np-mini .t:hover, .np-mini .a:hover { text-decoration: underline; }
+/* the title and the artist are links only where their words are: a block as wide as the bar's left part took a click on
+   the empty bar beside a short title for a click on the title (the album page instead of now playing) */
+.np-mini :is(.t, .a) { width: fit-content; max-width: 100%; }
 /* a name longer than the bar: while the pointer rests on it, it slides along to its end (core.js sets --rv / --rv-t) */
 .np-mini .reveal { text-overflow: clip; animation: np-reveal var(--rv-t, 2s) linear .4s forwards; }
 @keyframes np-reveal { to { text-indent: var(--rv, 0px); } }

@@ -8,7 +8,9 @@
    a unit is 1.04 / 1.25 / 1.46 device pixels, so the pause bars' straight edges fell between pixels however the
    button sat, and looked soft, "blurry" (most in the themes with a dark icon on a bright button). Each play button
    now draws its own copy instead of <use>: the bars' widths, the gap and the height rounded to whole device pixels
-   and centred on whole pixels, and the play triangle's flat side moved (by less than a pixel) onto one. Drawn for the
+   and centred on whole pixels, and the play triangle's flat side moved (by less than a pixel) onto one.
+   The triangle sits 1 unit right of the middle (its box), not 2.3: centred on its centroid it looked pushed to the
+   right, most in the square buttons (terminal, neon, poster, flat2). Drawn for the
    icon's size and the display scaling, again when either changes, and at once when core.js swaps the icon.
    The player bar's cover too: its hover grows it (width, height and a negative margin), and off the device pixel grid
    its four edges snap at different moments, so shrinking back ended with a late one-pixel sideways step. On whole
@@ -22,7 +24,7 @@
      A nudge already applied is known, so an element is measured as it stands and its own nudge taken off the result:
      nothing is written at all unless a nudge has to change. */
   const applied = new WeakMap();   // element → [dx, dy] as written
-  const PLAY = 'M7.5 4.9v14.2a1 1 0 0 0 1.5.86l11.6-7.1a1 1 0 0 0 0-1.72L9 4.04a1 1 0 0 0-1.5.86z';
+  const PLAY = 'M6.2 4.9v14.2a1 1 0 0 0 1.5.86l11.6-7.1a1 1 0 0 0 0-1.72L7.7 4.04a1 1 0 0 0-1.5.86z';
   const iconName = svg => {
     const u = svg.querySelector('use');
     const n = u ? (u.getAttribute('href') || '').replace('#i-', '') : svg.dataset.icon;
@@ -44,7 +46,7 @@
       const x = Math.round((k - 2 * w - g) / 2), y = Math.round((k - h) / 2), rx = Math.min(1.3, U(w) / 2);
       html = `<rect x="${U(x)}" y="${U(y)}" width="${U(w)}" height="${U(h)}" rx="${rx}"/><rect x="${U(x + w + g)}" y="${U(y)}" width="${U(w)}" height="${U(h)}" rx="${rx}"/>`;
     } else {
-      const dx = Math.round(7.5 * u) - 7.5 * u;
+      const dx = Math.round(6.2 * u) - 6.2 * u;
       html = `<path${Math.abs(dx) > .01 ? ` transform="translate(${U(dx)} 0)"` : ''} d="${PLAY}"/>`;
     }
     svg.setAttribute('viewBox', '0 0 24 24');

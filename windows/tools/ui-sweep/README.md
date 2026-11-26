@@ -48,6 +48,12 @@ every theme × day/night × page × window size, measuring each one with `check.
   on a left one (fit.js marks the side the poster's NOW PLAYING burst went to: data-st r / l).
 - **junk**: a value that was never filled in is on show as text: "undefined", "NaN" or "[object Object]" (設定 > 音訊
   read "undefined ms" for the buffer size, because the test data had no buffer size; the hosts always send one).
+- **hit**: the play bar's title or artist takes clicks more than 6px past its words. Both were blocks as wide as the
+  bar's left part (478px for a 65px title in a wide window), so a click on the empty bar beside a short title opened the
+  album page instead of now playing.
+- **center**: a play button's icon is off the middle of the button by more than 3.5 % of its size. The play triangle
+  was centred on its centroid, 2–3px right of the middle, and looked pushed aside (most in the square buttons). The page
+  set includes `paused` and `nppaused`, so the triangle is on show (playing shows the pause bars).
 - **faint**: text too faint to read. `contrast.js` measures it from the pixels of a screenshot (so gradients, pictures
   and textures count): the line's median pixel is the paper, the text's own colour laid over it is the ink, and their
   contrast ratio must reach 2.05:1 (`--faint 0` switches it off). Measured at three sizes: the full sidebar, the folded

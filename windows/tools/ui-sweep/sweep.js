@@ -69,6 +69,7 @@ const MWTITLE = `(()=>{const s=document.createElement('style');s.textContent=${J
 // the other pages (--scen pages): the lists, an artist, search results, the other settings tabs. Not part of "all".
 const PAGES = {
   mwtitle: { hash: '#/albums', eval: MWTITLE },
+  paused: { hash: '#/home', q: { paused: '1' } }, nppaused: { hash: '#/home', np: true, q: { paused: '1' } },   // the play triangle on the bar's and now playing's button
   albumshort: { hash: '#/album/a15', q: { album: '歌バカ' } },   // a short name: 黑膠's turntable stays beside it
   albums: { hash: '#/albums' }, artists: { hash: '#/artists' }, tracks: { hash: '#/tracks' }, artist: { hash: '#/artist/' + encodeURIComponent('DECO*27') },
   playlists: { hash: '#/playlists' }, folders: { hash: '#/folders' }, favorites: { hash: '#/favorites' }, search: { hash: '#/search/' + encodeURIComponent('ハッピー') },
