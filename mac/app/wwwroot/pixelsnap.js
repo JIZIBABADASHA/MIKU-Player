@@ -43,7 +43,9 @@
     let html;
     if (name === 'pause') {
       const w = Math.max(2, Math.round(4.2 * u)), g = Math.max(2, Math.round(3.6 * u)), h = Math.round(15 * u);
-      const x = Math.round((k - 2 * w - g) / 2), y = Math.round((k - h) / 2), rx = Math.min(1.3, U(w) / 2);
+      // a little right of the middle (0.6 unit, rounded to the pixel grid): dead centre read as leaning left next to the
+      // play triangle, which sits a unit right (where the rounding already put the bars half a pixel right, they stay)
+      const x = Math.round((k - 2 * w - g) / 2 + .6 * u), y = Math.round((k - h) / 2), rx = Math.min(1.3, U(w) / 2);
       html = `<rect x="${U(x)}" y="${U(y)}" width="${U(w)}" height="${U(h)}" rx="${rx}"/><rect x="${U(x + w + g)}" y="${U(y)}" width="${U(w)}" height="${U(h)}" rx="${rx}"/>`;
     } else {
       const dx = Math.round(6.2 * u) - 6.2 * u;
