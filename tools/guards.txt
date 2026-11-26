@@ -1,0 +1,20 @@
+# Code that must stay in the app, one line per guard:  ID | file (relative to the repo) | regex (Python)
+# A guard only proves the code is still there, not that it works: the manual step in docs/REGRESSION.md still applies.
+# Add one whenever a feature the user asked for disappeared once (docs/REGRESSION.md, FLOW-5).
+mac-np-swipe    | mac/app/wwwroot/mac-navigation.js | NP_X\b
+mac-np-swipe-mw | mac/app/wwwroot/mac-navigation.js | MoodWave
+mac-swipe-back  | mac/app/wwwroot/mac-navigation.js | swipe back
+np-ripple-W     | windows/wwwroot/nowplaying.js     | ripple\(cover\)
+np-ripple-M     | mac/app/wwwroot/nowplaying.js     | ripple\(cover\)
+lrc-import-W    | windows/wwwroot/nowplaying.js     | importLrc
+lrc-import-M    | mac/app/wwwroot/nowplaying.js     | importLrc
+dragscroll-W    | windows/wwwroot/index.html        | dragscroll\.js
+dragscroll-M    | mac/app/wwwroot/index.html        | dragscroll\.js
+search-ja-W     | windows/wwwroot/index.html        | search-ja\.js
+search-ja-M     | mac/app/wwwroot/index.html        | search-ja\.js
+check-center    | windows/tools/ui-sweep/check.js   | center
+check-hit       | windows/tools/ui-sweep/check.js   | \bhit\b
+media-keys-M    | mac/app/main/main.js              | bindMediaKeys\(\);
+media-keys-M2   | mac/app/main/main.js              | globalShortcut: mediaKeyShield
+media-keys-W    | windows/Host/MainForm.cs          | StartMediaHook\(hookVks\)
+media-keys-W2   | windows/Host/MainForm.cs          | HardwareMediaKeyHandling
