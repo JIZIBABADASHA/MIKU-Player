@@ -505,6 +505,7 @@ const NowPlaying = {
     // beside them (the curve is flattened to fit when the window leaves less room)
     this.arcClear = num('--ly-arc-clear', 64);
     this.onScale = num('--ly-on-scale', 1); this.shrink = num('--ly-shrink', 0); this.shrinkMin = num('--ly-shrink-min', 0.85);
+    this.evenLines();
     this.fitLines(num('--ly-fit', 0) > 0);
     // natural flow positions computed once; lines are then moved with transforms only
     let y = 0;
@@ -512,6 +513,38 @@ const NowPlaying = {
     this.tops = this.heights.map(height => { const top = y; y += height + this.gap; return top; });
     this.boxH = box.clientHeight;
     this.layoutLines(false, !glide);
+  },
+
+  /**
+   * A phrase with no space in it that is longer than the row breaks wherever the row ends (overflow-wrap, app.css),
+   * which can leave one character on a row of its own (「流れてる街で立ち止ま／る」). Such a line may break between
+   * any two characters instead (.ly-even: word-break normal), and text-wrap: balance then gives it rows of about the
+   * same length. Lines that fit on one row, or that wrap at their spaces into rows without such a stub, stay as they
+   * are. Judged on the line as it wraps without the class, every time (the column's width or the line's own padding
+   * may have changed): all read first, then written.
+   */
+  evenLines() {
+    const had = this.lines.filter(el => el.classList.contains('ly-even'));
+    had.forEach(el => el.classList.remove('ly-even'));
+    if (this._fitted) this.lines.forEach(el => { el.style.width = ''; });
+    const r = document.createRange();
+    const need = this.lines.filter(el => {
+      if (el.classList.contains('gap') || !el.offsetWidth) return false;
+      const tr = el.querySelector(':scope > .tr');
+      if (tr) { if (!tr.previousSibling) return false; r.setStart(el, 0); r.setEndBefore(tr); } else r.selectNodeContents(el);
+      const rows = [];
+      for (const q of r.getClientRects()) {
+        if (q.width < 1) continue;
+        const row = rows.find(x => Math.abs(x.top - q.top) < 0.5 * q.height);
+        if (row) { row.left = Math.min(row.left, q.left); row.right = Math.max(row.right, q.right); } else rows.push({ top: q.top, left: q.left, right: q.right });
+      }
+      if (rows.length < 2) return false;
+      rows.sort((a, b) => a.top - b.top);
+      const ws = rows.map(x => x.right - x.left), end = ws[ws.length - 1], max = Math.max(...ws);
+      const k = el.getBoundingClientRect().width / el.offsetWidth || 1;   // the current line may be drawn larger (a transform)
+      return end < 2.2 * parseFloat(getComputedStyle(el).fontSize) * k && end < 0.4 * max;
+    });
+    need.forEach(el => el.classList.add('ly-even'));
   },
 
   /**

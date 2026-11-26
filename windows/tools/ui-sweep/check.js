@@ -10,7 +10,8 @@
  *   offscreen a key control outside the window
  *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
  *            the player (less than 8px of air)
- *   orphan   a title's last line is a single character (or a stub) on its own
+ *   orphan   a title's last line is a single character (or a stub) on its own; a timed lyric line ends in one
+ *            character on a row of its own
  *   font     now playing carries a different font variable than the theme's own (a stale copy on a channel page)
  *   squeeze  the play bar dropped the song title although there is room for it
  *   blank    a song is playing and the play bar's title cannot be seen (empty, or left invisible by an entrance that
@@ -220,6 +221,24 @@
           }
         }
       }
+    }
+    // a timed lyric line never ends in one character on a row of its own: a phrase with no space in it that is longer
+    // than the row used to break wherever the row ended (「流れてる街で立ち止ま／る」)
+    for (const el of document.querySelectorAll('#np:not(.nolyrics) #lyrics .ly-line:not(.gap)')) {
+      if (hidden(el)) continue;
+      const nodes = [...el.childNodes].filter(n => !(n.nodeType === 1 && n.classList.contains('tr')));
+      if (!nodes.length) continue;
+      const rg = document.createRange(); rg.setStartBefore(nodes[0]); rg.setEndAfter(nodes[nodes.length - 1]);
+      const rows = [];
+      for (const q of [...rg.getClientRects()].filter(q => q.width >= 1).sort((a, b) => a.top - b.top)) {
+        const last = rows[rows.length - 1];
+        if (last && q.top - last.top < 0.5 * q.height) { last.left = Math.min(last.left, q.left); last.right = Math.max(last.right, q.right); }
+        else rows.push({ top: q.top, left: q.left, right: q.right });
+      }
+      if (rows.length < 2) continue;
+      const ws = rows.map(v => v.right - v.left), end = ws[ws.length - 1], max = Math.max(...ws);
+      const fs = parseFloat(getComputedStyle(el).fontSize) * ((el.getBoundingClientRect().width / el.offsetWidth) || 1);
+      if (end < 1.6 * fs && end < 0.3 * max) add('orphan', 'lyric line "' + nodes.map(n => n.textContent).join('').trim().slice(0, 14) + '"', 'its last row is ' + Math.round(end) + 'px of ' + Math.round(max) + 'px');
     }
     // the lyric timing row (歌詞時間 − 0.0s + 自動): it appears while the pointer is over the lyrics, so it counts as shown
     // even while it is faded out, and it never sits on a line of lyrics (timed lines or plain text)

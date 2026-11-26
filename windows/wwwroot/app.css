@@ -1639,6 +1639,9 @@ body.album-dragging, body.album-dragging * { user-select: none; cursor: grabbing
      Japanese it wraps at the spaces lyrics put between phrases (keep-all), and only inside a phrase too long for a row */
   text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere;
 }
+/* a phrase longer than the row that would leave one character on the last row (nowplaying.js evenLines): it may break
+   between any two characters, and the rows come out even */
+.ly-line.ly-even { word-break: normal; }
 #lyrics.ly-direct .ly-line { transition: opacity .28s var(--ease), filter .35s var(--ease), background .2s; }
 .ly-line:hover { background: rgba(var(--np-ink), .06); opacity: .65 !important; filter: none !important; }
 .ly-line.on { opacity: 1; }

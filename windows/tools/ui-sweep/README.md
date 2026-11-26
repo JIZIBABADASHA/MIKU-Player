@@ -11,17 +11,24 @@ every theme × day/night × page × window size, measuring each one with `check.
   (timed lines, the untimed block and the "no lyrics" notice alike: vinyl's untimed lyrics once sat on the player
   unnoticed), play bar items on top of each other, parts of one sidebar link on top of each other, the seam of a
   two-colour backdrop running through the cover or the title (flat 2 with MoodWave's wheel), a theme's small printed
-  label in the top row running behind an extension's panel (neon's "LIVE.FEED" behind the MoodWave logo)
+  label in the top row, or a strip of ornament drawn along the top of now playing, running behind an extension's
+  panel (neon's "LIVE.FEED" and gold's bead garland behind the MoodWave logo in a short window)
 - **cut**: a row of lyrics cut at the side by the window or its box
 - **offscreen**: a key control outside the window or under the play bar
 - **touch**: the now-playing buttons touching each other, a round button squashed out of shape, or lyrics flush
   against the player (less than 8 px of air)
-- **orphan**: a two-line title whose second line is a single character or a short stub
+- **orphan**: a two-line title whose second line is a single character or a short stub; a timed lyric line ending
+  in one character on a row of its own (a phrase with no space in it, longer than the row)
 - **font**: now playing carries a different font variable than the theme's own. On a MoodWave channel the page takes
   the theme's night colours from a generated copy; that copy once carried an older title font too (vinyl, wood)
 - **squeeze**: the play bar dropped the song title although there is room for it. The MoodWave pages bring the
   channel's strip in the way the app does (the bar's left part slides in from the edge), because measuring on the
   way once left the bar compact until the window was resized
+- **blank**: a song is playing and the play bar's title cannot be seen: empty, or left invisible. The title comes in
+  with a short entrance that starts from invisible; the app once played it again whenever the same song was drawn
+  again (4 s after the start, among others), and a still taken on a busy machine caught it before its first frame.
+  The sweep now waits for the app's start-up redraws, ends entrances that have not been given a frame, and checks
+  the bar's title once more right after each screenshot, so a picture and its check cannot disagree
 - **short**: a name that must be whole is cut with an ellipsis: a channel in MoodWave's wheel on now playing
   (its names are set in the theme's font; terminal's monospace cut "Shuffle All"), and an album's name cut after two
   lines while an ornament shares its row (vinyl's turntable: it now gives way when the name needs the room)
