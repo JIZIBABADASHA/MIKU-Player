@@ -44,6 +44,7 @@
 | NP-10 | 播放頁的資訊、貼紙、歌詞彼此不重疊；按鈕不互碰；歌詞離播放器至少 8px | W+M | auto:overlap, touch | c9c3577 |
 | NP-11 | 海報主題 NOW PLAYING 貼紙：在右上角順時針傾斜，跑到左上角時逆時針 | W+M | auto:tilt | 340ca13 |
 | NP-12 | MoodWave 頻道模式下，播放頁用該主題的夜間配色（深底白字），字型仍是主題自己的 | W+M | auto:font | c5a51e1, 7903c28 |
+| NP-13 | **打開正在播放頁時，封面一次就到最終大小**（任何主題、任何視窗大小 / 比例，不是先大再小、縮放好幾次）；封面仍不疊到歌詞、標題、資訊、進度列、按鈕 | W+M | auto:guard `np-fit-settled` + overlap；manual：縮放視窗後關掉再打開播放頁 | fit.js（11-27） |
 | NP-13 | MoodWave 轉盤上的頻道名稱完整，不被「…」截斷（終端機等寬字也一樣） | W+M | auto:short | 6283d15 |
 | NP-14 | 碎裂 / 資料流動畫播放時再點一下畫面可以取消 | W+M | manual | b54ec6d (10-24) |
 | NP-15 | 窄視窗時 MoodWave 的滑動提示不蓋到封面 | W+M | manual | 1ed8ab5 |

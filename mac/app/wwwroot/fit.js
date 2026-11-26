@@ -24,35 +24,67 @@
     const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom && a.width && b.width;
     const shown = e => e && e.offsetParent && getComputedStyle(e).visibility !== 'hidden';
     const PARTS = '.np-left .np-cover, .np-left .np-title, .np-left .np-artist, .np-left .np-badges, .np-left .np-seek, .np-left .np-ctrl';
-    const union = els => {
-      const rs = els.map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
-      if (!rs.length) return null;
-      return { left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), top: Math.min(...rs.map(r => r.top)), bottom: Math.max(...rs.map(r => r.bottom)) };
+    // an element's vertical translate now, and where its running transform transition will leave it
+    const nowY = e => new DOMMatrix(getComputedStyle(e).transform).m42;
+    const endY = e => {
+      for (const a of e.getAnimations ? e.getAnimations() : []) {
+        if (a.transitionProperty !== 'transform') continue;
+        const k = a.effect.getKeyframes(), t = k.length && k[k.length - 1].transform;
+        try { return new DOMMatrix(t && t !== 'none' ? t : undefined).m42; } catch { return nowY(e); }
+      }
+      return nowY(e);
     };
     const setFit = v => { if ((np.dataset.fit || '') !== v) { if (v) np.dataset.fit = v; else delete np.dataset.fit; } };
     const fitInfo = () => {
       if (!wrap || !left || !cover) return;
       np.style.removeProperty('--np-cover-max'); setFit('');
+      // Measured where everything will be once the page has slid in, the column has lifted and the bar has sunk, not
+      // where a transition shows it at this moment: measuring mid-slide gave another answer on every pass while the page
+      // opened, so the cover shrank and grew several times before it settled (a window too short for the CSS size;
+      // in full screen the CSS size fits, nothing is shrunk, so it already landed in one go). Now the first pass, before
+      // the first frame of the open page, gets the final size, and every later pass gets the same one.
+      const bar = document.getElementById('bar');
+      const dNp = endY(np) - nowY(np), dWrap = dNp + endY(wrap) - nowY(wrap);
+      // the bar: sunk below the page while Now Playing is open, unless it was raised (bar-peek), then where its layout puts it
+      const barTop = bar && document.documentElement.classList.contains('bar-peek') ? bar.getBoundingClientRect().top - nowY(bar) + endY(bar) : innerHeight;
+      // the parts' top and bottom where the layout puts them in the column, without their own entrance animations or
+      // a theme's wobble (the rects with those changed from one frame to the next: the poster's cover went 331 / 355 /
+      // 331… px while its title and buttons came in); a part not laid out inside .np-wrap: its box as drawn
+      const wr0 = wrap.getBoundingClientRect(), wTop = wr0.top + dWrap + wrap.clientTop, k = wrap.offsetHeight ? wr0.height / wrap.offsetHeight : 1;
+      const settled = els => {
+        let top = Infinity, bottom = -Infinity;
+        for (const e of els) {
+          if (!e.offsetWidth || !e.offsetHeight) continue;
+          let y = 0, n = e;
+          for (; n && n !== wrap && n !== np; n = n.offsetParent) y += n.offsetTop + (n !== e ? n.clientTop : 0);
+          let t, b;
+          if (n === wrap) { t = wTop + y * k; b = t + e.offsetHeight * k; }
+          else { const q = e.getBoundingClientRect(); t = q.top + dWrap; b = q.bottom + dWrap; }
+          top = Math.min(top, t); bottom = Math.max(bottom, b);
+        }
+        return top < bottom ? { top, bottom } : null;
+      };
       const room = () => {
         const wr = wrap.getBoundingClientRect(), cs = getComputedStyle(wrap);
-        let t = wr.top + parseFloat(cs.paddingTop), b = wr.bottom - parseFloat(cs.paddingBottom);
+        let t = wr.top + dWrap + parseFloat(cs.paddingTop), b = wr.bottom + dWrap - parseFloat(cs.paddingBottom);
         b = Math.min(b, innerHeight - 12);
-        const bar = document.getElementById('bar'), br = bar && bar.getBoundingClientRect();
-        if (br && br.top < innerHeight - 2 && br.height && getComputedStyle(bar).visibility !== 'hidden') b = Math.min(b, br.top - 10);
+        if (bar && barTop < innerHeight - 2 && bar.offsetHeight && getComputedStyle(bar).visibility !== 'hidden') b = Math.min(b, barTop - 10);
         // the collapse button and the other top buttons, where they are above the column
         const col = left.getBoundingClientRect();
         for (const e of top.querySelectorAll('#np-close, .pill, .src')) {
           if (!shown(e)) continue; const r = e.getBoundingClientRect();
-          if (r.width && r.left < col.right && col.left < r.right) t = Math.max(t, r.bottom + 10);
+          if (r.width && r.left < col.right && col.left < r.right) t = Math.max(t, r.bottom + dNp + 10);
         }
         t = Math.max(t, 8);
         return { t, b };
       };
       const over = () => {
         const parts = [...np.querySelectorAll(PARTS)].filter(shown);
-        const u = union(parts); if (!u) return 0;
+        const u = settled(parts); if (!u) return 0;
         const r = room();
-        const oT = Math.max(0, r.t - u.top), oB = Math.max(0, u.bottom - r.b);
+        // (half a pixel or less is no overflow: a column lifted by a fraction of a pixel mid-slide showed a 0.00001px
+        // overflow at the top, which made a bottom overflow count once instead of twice: another size for one frame)
+        const oT = r.t - u.top > 0.5 ? r.t - u.top : 0, oB = u.bottom - r.b > 0.5 ? u.bottom - r.b : 0;
         // the column is centred: shrinking by d moves each end by d/2, so a one-sided overflow needs twice as much
         return oT && oB ? oT + oB : 2 * (oT + oB);
       };
@@ -182,15 +214,21 @@
     let raf = 0, waits = 0;
     const check = () => {
       raf = 0;
-      // still sliding in: measure once it is in place (at most ~2 s of waiting, whatever a theme does to #np)
-      if (np.classList.contains('on') && getComputedStyle(np).transform !== 'none' && waits < 10) { waits++; later(200); return; }
-      waits = 0;
       // (removed only when it is there: writing a class, even an unchanged one, wakes every observer of #np's class)
-      if (!np.classList.contains('on')) { if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
+      if (!np.classList.contains('on')) { waits = 0; if (np.classList.contains('top-crowded')) np.classList.remove('top-crowded'); return; }
+      // the cover is sized right away, in where things will end up (fitInfo), so it never shows a size it then leaves
+      // the title wrapped and balanced for the cover's full CSS size first, then the cover fitted to it, then the title
+      // once more for the narrower column: the same steps from the same start, so every pass gets the same answer (the
+      // title balanced for the last window's narrower column kept two lines, and the first pass shrank for those)
+      np.style.removeProperty('--np-cover-max'); setFit('');
       lyricsRoom();
       wrapTitle();
       balanceTitle();
       fitInfo();
+      if (np.style.getPropertyValue('--np-cover-max') || np.dataset.fit) { wrapTitle(); balanceTitle(); }
+      // still sliding in: the rest is measured once it is in place (at most ~2 s of waiting, whatever a theme does to #np)
+      if (getComputedStyle(np).transform !== 'none' && waits < 10) { waits++; later(200); return; }
+      waits = 0;
       // hidden buttons (visibility: hidden) keep their layout box, so they can be measured without un-hiding them
       const pills = [...top.querySelectorAll('.src, .ly-pick-wrap > .pill, #np-trans, #np-lyr')]
         .filter(e => e.offsetParent).map(e => e.getBoundingClientRect());

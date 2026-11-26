@@ -18,3 +18,5 @@ media-keys-M    | mac/app/main/main.js              | bindMediaKeys\(\);
 media-keys-M2   | mac/app/main/main.js              | globalShortcut: mediaKeyShield
 media-keys-W    | windows/Host/MainForm.cs          | StartMediaHook\(hookVks\)
 media-keys-W2   | windows/Host/MainForm.cs          | HardwareMediaKeyHandling
+np-fit-settled  | windows/wwwroot/fit.js            | const settled = els =>
+np-fit-endY     | windows/wwwroot/fit.js            | endY\(wrap\)
