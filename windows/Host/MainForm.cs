@@ -1603,9 +1603,30 @@ public sealed class MainForm : Form
         string method = methodEl.GetString();
         JsonElement args = msg.TryGetProperty("a", out var a) ? a : default;
         object result = null; string error = null;
-        try { result = await HandleRpc(method, args); }
+        try { result = method == "playlists.paths" ? DroppedPaths(e) : await HandleRpc(method, args); }
         catch (Exception ex) { error = ex.Message; Log.Error("RPC " + method, ex); }
         if (id != 0) Send(Json.Serialize(new { id, r = result, e = error }));
+    }
+
+    /// <summary>匯入播放清單: where the files dropped on the page are (sent along with the message; a web page's File
+    /// has no path of its own).</summary>
+    static List<string> DroppedPaths(CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        var list = new List<string>();
+        try
+        {
+            var objs = e.AdditionalObjects;
+            if (objs != null) foreach (var o in objs) list.Add((o as CoreWebView2File)?.Path);
+        }
+        catch (Exception ex) { Log.Error("playlists.paths", ex); }
+        return list;
+    }
+
+    static bool IsUnder(string path, string folder)
+    {
+        if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(folder)) return false;
+        folder = folder.TrimEnd('\\', '/');
+        return path.Length > folder.Length && path.StartsWith(folder, StringComparison.OrdinalIgnoreCase) && (path[folder.Length] == '\\' || path[folder.Length] == '/');
     }
 
     /// <summary>A track's lyrics for the page: translations cleaned, with the track's saved offset.</summary>
@@ -1681,7 +1702,63 @@ public sealed class MainForm : Form
                 // 匯入 / 匯出播放清單 (playlistio.js): this computer's tracks with their files (ids: only those)
                 var want = L(a, "ids")?.ToHashSet();
                 return _lib.AllTracks.Where(t => want == null || want.Contains(t.Id))
-                    .Select(t => new object[] { t.Id, t.Path ?? "", t.Title ?? "", t.Artist ?? "", Math.Round(t.Duration, 1) }).ToList();
+                    .Select(t => new object[] { t.Id, t.Path ?? "", t.Title ?? "", t.Artist ?? "", Math.Round(t.Duration, 1), t.Album ?? "" }).ToList();
+            }
+            case "playlists.open":
+            {
+                // 匯入播放清單: picked here, so the page knows where each file is (relative entries are found from there)
+                using var dlg = new OpenFileDialog
+                {
+                    Title = Tr("匯入播放清單", "导入播放列表", "Import playlists", "プレイリストを読み込む"),
+                    Multiselect = true, CheckFileExists = true,
+                    Filter = Tr("播放清單", "播放列表", "Playlists", "プレイリスト")
+                        + "|*.m3u;*.m3u8;*.pls;*.xspf;*.jspf;*.json;*.wpl;*.zpl;*.asx;*.wax;*.wvx;*.b4s;*.xml;*.nml;*.txt;*.csv;*.tsv;*.cue;*.fpl;*.fplite;*.audpl;*.dpl;*.mpcpl|"
+                        + Tr("所有檔案", "所有文件", "All files", "すべてのファイル") + "|*.*",
+                };
+                if (dlg.ShowDialog(this) != DialogResult.OK) return null;
+                var picked = new List<object>();
+                foreach (var f in dlg.FileNames)
+                {
+                    try
+                    {
+                        var fi = new FileInfo(f);
+                        if (fi.Length > 50_000_000) { picked.Add(new { path = f, name = fi.Name, size = fi.Length }); continue; }
+                        picked.Add(new { path = f, name = fi.Name, size = fi.Length, data = Convert.ToBase64String(await File.ReadAllBytesAsync(f)) });
+                    }
+                    catch (Exception ex) { picked.Add(new { path = f, name = Path.GetFileName(f), error = ex.Message }); }
+                }
+                return picked;
+            }
+            case "playlists.check":
+            {
+                // 匯入播放清單: for each path, 0 no such file, 1 a file in one of the library's folders, 2 a file outside them
+                var paths = L(a, "paths").Take(20000).ToList();
+                var folders = _s.Folders.ToList();
+                return await Task.Run(() => paths.Select(p =>
+                {
+                    try
+                    {
+                        if (!File.Exists(p)) return 0;
+                        var full = Path.GetFullPath(p);
+                        return folders.Any(f => IsUnder(full, f)) ? 1 : 2;
+                    }
+                    catch { return 0; }
+                }).ToList());
+            }
+            case "folder.addPaths":
+            {
+                // 匯入播放清單: the folders of a playlist's songs that are outside the library; one scan for all of them
+                foreach (var p in L(a, "paths"))
+                {
+                    if (!Directory.Exists(p)) continue;
+                    var full = Path.GetFullPath(p).TrimEnd('\\', '/');
+                    if (full.Length < 3) full += "\\";
+                    if (_s.Folders.Any(f => string.Equals(f.TrimEnd('\\', '/'), full.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase) || IsUnder(full, f))) continue;
+                    _s.Folders.Add(full);
+                }
+                SaveSettings();
+                _lib.StartScan();
+                return _s.Folders;
             }
             case "playlists.saveFile":
             {

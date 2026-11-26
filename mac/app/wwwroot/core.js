@@ -26,6 +26,17 @@ const Host = (() => {
         wv.postMessage(JSON.stringify({ id, m, a }));
       });
     },
+    /** call() with DOM objects sent along (WebView2: dropped Files, whose paths the host can read). null where the
+     *  web view can't send them. */
+    callWith(m, a, objs) {
+      if (!wv || typeof wv.postMessageWithAdditionalObjects !== 'function') return Promise.resolve(null);
+      const id = ++seq;
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        try { wv.postMessageWithAdditionalObjects(JSON.stringify({ id, m, a }), objs); }
+        catch (e) { pending.delete(id); reject(e); }
+      });
+    },
     /** Listens to a host event. Returns a function that stops listening. */
     on(ev, f) {
       const list = listeners[ev] = listeners[ev] || [];

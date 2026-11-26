@@ -966,7 +966,47 @@ async function handleRpc(m, a) {
       // 匯入 / 匯出播放清單 (playlistio.js): this computer's tracks with their files (ids: only those)
       const want = Array.isArray(a.ids) ? new Set(a.ids) : null;
       return lib.allTracks.filter(t => !want || want.has(t.id))
-        .map(t => [t.id, t.path || '', t.title || '', t.artist || '', Math.round((t.duration || 0) * 10) / 10]);
+        .map(t => [t.id, t.path || '', t.title || '', t.artist || '', Math.round((t.duration || 0) * 10) / 10, t.album || '']);
+    }
+    case 'playlists.open': {
+      // 匯入播放清單: picked here, so the page knows where each file is (relative entries are found from there)
+      const r = await dialog.showOpenDialog(win, { title: tr('匯入播放清單'), properties: ['openFile', 'multiSelections'],
+        filters: [{ name: tr('播放清單'), extensions: ['m3u', 'm3u8', 'pls', 'xspf', 'jspf', 'json', 'wpl', 'zpl', 'asx', 'wax', 'wvx', 'b4s', 'xml', 'nml', 'txt', 'csv', 'tsv', 'cue', 'fpl', 'fplite', 'audpl', 'dpl', 'mpcpl'] },
+          { name: tr('所有檔案'), extensions: ['*'] }] });
+      if (r.canceled || !r.filePaths.length) return null;
+      return Promise.all(r.filePaths.map(async f => {
+        try {
+          const st = await fs.promises.stat(f);
+          if (st.size > 50e6) return { path: f, name: path.basename(f), size: st.size };
+          return { path: f, name: path.basename(f), size: st.size, data: (await fs.promises.readFile(f)).toString('base64') };
+        } catch (e) { return { path: f, name: path.basename(f), error: e.message }; }
+      }));
+    }
+    case 'playlists.check': {
+      // 匯入播放清單: for each path, 0 no such file, 1 a file in one of the library's folders, 2 a file outside them
+      const paths = (Array.isArray(a.paths) ? a.paths : []).filter(p => typeof p === 'string').slice(0, 20000);
+      const under = (p, f) => { f = f.replace(/\/+$/, '').toLowerCase(); p = p.toLowerCase(); return p.length > f.length && p.startsWith(f) && p[f.length] === '/'; };
+      return Promise.all(paths.map(async p => {
+        try {
+          const st = await fs.promises.stat(p);
+          if (!st.isFile()) return 0;
+          const full = path.resolve(p).normalize('NFC');
+          return S.folders.some(f => under(full, path.resolve(f).normalize('NFC'))) ? 1 : 2;
+        } catch { return 0; }
+      }));
+    }
+    case 'folder.addPaths': {
+      // 匯入播放清單: the folders of a playlist's songs that are outside the library; one scan for all of them
+      const under = (p, f) => { f = f.replace(/\/+$/, '').toLowerCase(); p = p.toLowerCase(); return p === f || (p.startsWith(f) && p[f.length] === '/'); };
+      for (const p of Array.isArray(a.paths) ? a.paths : []) {
+        if (typeof p !== 'string') continue;
+        let full;
+        try { full = path.resolve(p); if (!fs.statSync(full).isDirectory()) continue; } catch { continue; }
+        if (S.folders.some(f => under(full.normalize('NFC'), path.resolve(f).normalize('NFC')))) continue;
+        S.folders.push(full);
+      }
+      saveSettings(); lib.startScan();
+      return S.folders;
     }
     case 'playlists.saveFile': {
       // 匯出播放清單: .m3u8 is UTF-8 as it is; .m3u gets a BOM, so players that read .m3u in the system's code page still
@@ -1434,6 +1474,21 @@ function uiLang() {
   return c.startsWith('ja') ? 'ja' : c.startsWith('zh') ? (/hans|-cn|-sg/.test(c) && !/hant/.test(c) ? 'zh-Hans' : 'zh-Hant') : 'en';
 }
 const NATIVE_TEXT = {
+  "匯入播放清單": [
+    "导入播放列表",
+    "Import playlists",
+    "プレイリストを読み込む"
+  ],
+  "播放清單": [
+    "播放列表",
+    "Playlists",
+    "プレイリスト"
+  ],
+  "所有檔案": [
+    "所有文件",
+    "All files",
+    "すべてのファイル"
+  ],
   "匯出播放清單": [
     "导出播放列表",
     "Export playlist",
