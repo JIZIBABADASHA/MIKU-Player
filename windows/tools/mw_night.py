@@ -33,7 +33,10 @@ def decls(body):
         else: cur += ch
     out.append(cur); return [x.strip() for x in out if x.strip()]
 def vars_only(body, drop=KEEP_MW):
-    keep = [x for x in decls(body) if x.startswith('--') and x.split(':', 1)[0].strip() not in drop]
+    # fonts are not part of a day or night look: left to the theme's own value on the root. Copying them put an older
+    # block's --font-display on #np, over the one the theme finally sets (黑膠 and 木質 showed the song title in Georgia
+    # on a channel and in their own title font off it)
+    keep = [x for x in decls(body) if x.startswith('--') and not x.startswith('--font') and x.split(':', 1)[0].strip() not in drop]
     return ' ' + '; '.join(keep) + '; ' if keep else None
 def split_mixed(s):
     """':is(#sidebar, #bar) .x' names things on the page/bar AND things elsewhere in one list: two selectors, so only the

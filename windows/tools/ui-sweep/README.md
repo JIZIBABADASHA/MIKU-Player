@@ -3,7 +3,8 @@
 Opens the player's web UI with a mock host (`mock.js`: a small library, a playing track, canned answers) and walks
 every theme × day/night × page × window size, measuring each one with `check.js`:
 
-- **clip**: a button or control partly cut off by its box or the window
+- **clip**: a button or control partly cut off by its box or the window, or an action button squeezed until its own
+  label is cut (the "is this cover right?" prompt on a narrow album page)
 - **half**: a line of text only partly visible (for example a third line peeking under a two-line title)
 - **hcut**: a line of text cut sideways without an ellipsis
 - **overlap**: now-playing info parts on top of each other, a sticker over the title, lyrics over the info column
@@ -16,6 +17,8 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **touch**: the now-playing buttons touching each other, a round button squashed out of shape, or lyrics flush
   against the player (less than 8 px of air)
 - **orphan**: a two-line title whose second line is a single character or a short stub
+- **font**: now playing carries a different font variable than the theme's own. On a MoodWave channel the page takes
+  the theme's night colours from a generated copy; that copy once carried an older title font too (vinyl, wood)
 - **squeeze**: the play bar dropped the song title although there is room for it. The MoodWave pages bring the
   channel's strip in the way the app does (the bar's left part slides in from the edge), because measuring on the
   way once left the bar compact until the window was resized

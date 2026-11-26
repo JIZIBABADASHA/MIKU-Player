@@ -47,7 +47,7 @@
     'remote.info': () => ({ on: false, devices: [] }),
     // rl=1: paired with another computer, so the sidebar shows the 本地 / 遠端 switch
     'remoteLib.info': () => P.get('rl') === '1' ? { paired: true, active: false, online: true, remotes: [{ key: 'pc', name: 'PC' }], offlineIds: [], servers: [] } : ({ active: false, servers: [] }),
-    'art.info': () => ({}),
+    'art.info': () => ({ source: 'online', confirmed: false }),   // the album page asks whether the found cover is right (two buttons)
     'overlay.can': () => false,
     lyrics: (a) => P.get('ly') === '0' ? null : ({ id: a && a.id, synced: P.get('lysync') !== '0', source: 'LRCLIB', lines: ['夜の街を走り抜けて', '光の粒が流れてく', 'Night drive, take me higher', '君の声が聞こえる', 'まだ終わらない夢の中', 'ずっとこのまま', '遠くまで行こう', 'Ah — ah —', '風を切って'].flatMap((x, i, a) => P.get('lysync') === '0' && i === a.length - 1 ? [x, ...a, ...a, ...a] : [x]).map((x, i, a) => P.get('lygap') === '1' && i === 3 ? '' : x).map((x, i) => i === 4 && P.get('lylong') === '1' ? '「あなたはどんな子なの？」って聞かないで' : i === 4 && P.get('lylong') === '2' ? '誰も入れたくないエリア キミは持ってないの？Why not？個性的だって言うけど いまボーダーライン上手に引いたよね' : x).map((text, i) => ({ t: 58 + i * 5, text, trans: i % 2 ? null : 'translation line ' + (i + 1) })) }),
   };

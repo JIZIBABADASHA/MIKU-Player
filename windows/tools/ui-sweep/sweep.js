@@ -4,7 +4,7 @@
  *
  *   node sweep.js --root ../../wwwroot --out /tmp/sweep [--engine webkit|chromium] [--themes poster,gold] [--scen np,home]
  *                 scenarios: home album set homemw homeradio np np2 npnl npmw npradio npplain npplainmw (= all);
- *                 --scen pages: albums artists tracks artist playlists folders favorites search setaudio setlib setkeys setother
+ *                 --scen pages: albumshort albums artists tracks artist playlists folders favorites search setaudio setlib setkeys setother
  *                 (mw = a MoodWave channel, radio = a MoodWave station, plain = lyrics without timing)
  *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
  *
@@ -66,6 +66,7 @@ const SCEN = {
 };
 // the other pages (--scen pages): the lists, an artist, search results, the other settings tabs. Not part of "all".
 const PAGES = {
+  albumshort: { hash: '#/album/a15', q: { album: '歌バカ' } },   // a short name: 黑膠's turntable stays beside it
   albums: { hash: '#/albums' }, artists: { hash: '#/artists' }, tracks: { hash: '#/tracks' }, artist: { hash: '#/artist/' + encodeURIComponent('DECO*27') },
   playlists: { hash: '#/playlists' }, folders: { hash: '#/folders' }, favorites: { hash: '#/favorites' }, search: { hash: '#/search/' + encodeURIComponent('ハッピー') },
   setaudio: { hash: '#/settings/audio' }, setlib: { hash: '#/settings/library' }, setkeys: { hash: '#/settings/keys' }, setother: { hash: '#/settings/other' },

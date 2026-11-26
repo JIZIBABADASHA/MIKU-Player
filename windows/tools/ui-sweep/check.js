@@ -10,6 +10,7 @@
  *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
  *            the player (less than 8px of air)
  *   orphan   a title's last line is a single character (or a stub) on its own
+ *   font     now playing carries a different font variable than the theme's own (a stale copy on a channel page)
  *   squeeze  the play bar dropped the song title although there is room for it
  *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel; an album's name cut to
  *            make room for an ornament in its row)
@@ -157,6 +158,12 @@
         if (d.right > W || d.top < 0 || d.left < 0) add('offscreen', desc(host) + pe, 'sticker outside the window');
       }
     }
+    // the page keeps the theme's own fonts whatever is playing: now playing must not carry a different title or text
+    // font than the rest of the app (黑膠 and 木質 showed the title in Georgia on a MoodWave channel)
+    for (const v of ['--font-display', '--font']) {
+      const a = getComputedStyle(document.documentElement).getPropertyValue(v).trim(), b = getComputedStyle(npOn).getPropertyValue(v).trim();
+      if (a && b && a !== b) add('font', '#np ' + v, 'differs from the theme\'s: ' + b.slice(0, 40) + ' / ' + a.slice(0, 40));
+    }
     // a theme's small printed label in the top row (霓虹's "LIVE.FEED // SYNC") never runs behind an extension's panel
     // on the same page (MoodWave's wheel reaches the top corner in a short window)
     const extBits = [...document.querySelectorAll('#np-ext *')].filter(e => !hidden(e) && (e.matches('svg, img, button') || (!e.closest('svg') && (!e.firstElementChild || [...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())))) && parseFloat(getComputedStyle(e).opacity) > 0.1).map(e => [e, box(e)]).filter(([, b]) => b.width > 1 && b.height > 1);
@@ -255,6 +262,11 @@
     const h1 = document.querySelector('.hero.album h1'), deck = document.querySelector('.hero.album .tt-deck');
     if (h1 && deck && !hidden(h1) && !hidden(deck) && deck.getBoundingClientRect().width > 1 && h1.scrollHeight > h1.clientHeight + 2)
       add('short', desc(h1), 'the album name is cut while the turntable takes ' + Math.round(deck.getBoundingClientRect().width) + 'px of its row');
+    // an action button's label is whole: a button squeezed in a row keeps its size and cuts its own text instead
+    for (const b of document.querySelectorAll('#view .btn')) {
+      if (hidden(b) || b.clientWidth < 2) continue;
+      if (b.scrollWidth > b.clientWidth + 2) add('clip', desc(b), 'the label is cut: ' + b.clientWidth + 'px of ' + b.scrollWidth + 'px');
+    }
     // play bar: its pieces never overlap each other
     const items = [...document.querySelectorAll('#bar :is(button, .art, .t, .a, .slider, .times > span, .mc-band, .sig, .out-btn, .db)')].filter(e => !hidden(e) && e.getBoundingClientRect().width > 1);
     const ex = [...document.querySelectorAll('#bar #b-ext > *')].filter(e => !hidden(e));
