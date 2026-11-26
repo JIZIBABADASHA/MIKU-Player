@@ -36,7 +36,7 @@
   try { Object.assign(ui, JSON.parse(P.get('ui') || '{}')); } catch (e) { }
   const settings = {
     ui, favorites: ['a1-t2', 'a3-t1'], recent: ['a1-t2', 'a2-t1', 'a3-t4'], folders: ['D:\\Music'], lang: 'zh-Hant',
-    output: { device: 'USB DAC', mode: 'exclusive' },
+    output: { device: 'USB DAC', mode: 'exclusive' }, bufferMs: 100,   // the hosts' own default (Models.cs, mac main.js)
     playlists: [{ id: 'p1', name: 'Late-night Highway Playlist for Rainy Days — gypsy jpq', tracks: ['a1-t2', 'a2-t1', 'a3-t4', 'a5-t3', 'a9-t1'], updated: 1790000000 }, { id: 'p2', name: 'Jazz', tracks: ['a3-t1', 'a8-t2'], updated: 1789000000 }, { id: 'p3', name: '空的清單', tracks: [], updated: 1788000000 }], dsp: { enabled: true, eqOn: true, preampDb: -3, autoPreamp: false, balance: 0, invert: false, presetName: '', crossfeed: { on: false, fc: 700, feed: 4.5 }, bands: [{ on: true, type: 'PK', fc: 60, gain: 3, q: 1 }, { on: true, type: 'PK', fc: 400, gain: -2, q: 1.2 }, { on: true, type: 'PK', fc: 2500, gain: 2.5, q: 1 }, { on: false, type: 'HS', fc: 9000, gain: 2, q: .7 }] }, replayGain: 'off', search: [],
   };
   const ans = {

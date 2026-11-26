@@ -5,6 +5,8 @@ every theme × day/night × page × window size, measuring each one with `check.
 
 - **clip**: a button or control partly cut off by its box or the window, or an action button squeezed until its own
   label is cut (the "is this cover right?" prompt on a narrow album page)
+  A control in a page that scrolls up and down is still flagged when it is cut at the page's **side**: no scrolling
+  brings that back (the 專輯 page's toolbar ran out of the page to the right at 980x640 and lost its last buttons).
 - **half**: a line of text only partly visible (for example a third line peeking under a two-line title); a lyric
   line whose first row has scrolled out of the box while its other rows or its translation still show at reading
   strength (terminal left 「take me higher」 and its translation under the top edge)
@@ -35,10 +37,14 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **short**: a name that must be whole is cut with an ellipsis: a channel in MoodWave's wheel on now playing
   (its names are set in the theme's font; terminal's monospace cut "Shuffle All"), and an album's name cut after two
   lines while an ornament shares its row (vinyl's turntable: it now gives way when the name needs the room)
+- **junk**: a value that was never filled in is on show as text: "undefined", "NaN" or "[object Object]" (設定 > 音訊
+  read "undefined ms" for the buffer size, because the test data had no buffer size; the hosts always send one).
 - **faint**: text too faint to read. `contrast.js` measures it from the pixels of a screenshot (so gradients, pictures
   and textures count): the line's median pixel is the paper, the text's own colour laid over it is the ink, and their
   contrast ratio must reach 2.05:1 (`--faint 0` switches it off). Measured at three sizes: the full sidebar, the folded
-  one, the two-row bar.
+  one, the two-row bar. Dense bold characters (瀏覽 at 13px) cover more than half of their line box, so the median is a
+  blend of ink and paper and read as 1.9:1 for cream on red: when the top or the bottom pixel row of the line box is one
+  flat colour inside the fill the text sits on, that row is the paper.
 
 ```
 npm i playwright && npx playwright install webkit      # once

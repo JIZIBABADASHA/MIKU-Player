@@ -214,3 +214,7 @@
 :root[data-theme="glass"]:where([data-mode="day"]) .dp-sect .dp-group.dp-off { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.6); box-shadow: 0 0 0 1px rgba(52,62,124,.1); }
 :root[data-theme="glass"] :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(30,36,70,.88); }
 :root[data-theme="glass"]:where([data-mode="day"]) :is(:is(#topbar.solid, .set-band), .set-band) { background: rgba(255,255,255,.88); }
+
+/* 選中的分段按鈕要一眼看得出來（第四次獨立檢查：資料夾頁的「瀏覽／樹狀」在夜的玻璃與和紙上，選中的那格和沒選的差太少）
+   玻璃夜：水藍的底再亮一級、外框更實；和紙夜：底亮一級、字更亮，外加一圈淡藍的框 */
+:root[data-theme="glass"]:where(:not([data-mode="day"])) :is(.seg button.on, .set-tabs button.on) { background: linear-gradient(rgba(139,227,255,.34), rgba(139,227,255,.34)), rgba(12,16,40,.4); box-shadow: inset 0 0 0 1px rgba(139,227,255,.85); }

@@ -1,5 +1,6 @@
 /* In-page layout checker. Returns a list of problems:
- *   clip     an interactive control partly cut off by a non-scrolling clipping ancestor or the window
+ *   clip     an interactive control partly cut off by a non-scrolling clipping ancestor or the window; a control in a
+ *            page that scrolls up and down but is cut at the page's side, where no scrolling brings it back
  *   half     a line of text only partly visible (cut top/bottom); a lyric line whose first row has scrolled out
  *            while its other rows or its translation still show at reading strength
  *   hcut     a line of text cut sideways without an ellipsis
@@ -19,6 +20,7 @@
  *            was started again and has not run)
  *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel; an album's name cut to
  *            make room for an ornament in its row)
+ *   junk     a value that was never filled in is on show as text ("undefined ms", "NaN", "[object Object]")
  * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
  */
 (() => {
@@ -48,7 +50,7 @@
     return false;
   };
   const clipOf = (e, inclusive) => {
-    let L = -1e9, T = -1e9, R = 1e9, B = 1e9, scroll = false, ell = false, mask = false;
+    let L = -1e9, T = -1e9, R = 1e9, B = 1e9, scroll = false, scrollX = false, ell = false, mask = false;
     for (let a = inclusive ? e : e.parentElement; a && a.nodeType === 1; a = a.parentElement) {
       const cs = getComputedStyle(a);
       if (cs.textOverflow === 'ellipsis' || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none')) ell = true;
@@ -59,13 +61,14 @@
       const sx = (ox === 'auto' || ox === 'scroll') || (ox === 'hidden' && a.scrollWidth > a.clientWidth + 2 && a.scrollLeft > 0);
       const sy = (oy === 'auto' || oy === 'scroll') || (oy === 'hidden' && a.scrollHeight > a.clientHeight + 2 && a.scrollTop > 0);
       if ((sx && a.scrollWidth > a.clientWidth + 1) || (sy && a.scrollHeight > a.clientHeight + 1)) scroll = true;
+      if (sx && a.scrollWidth > a.clientWidth + 1) scrollX = true;
       const bl = parseFloat(cs.borderLeftWidth) || 0, br = parseFloat(cs.borderRightWidth) || 0, bt = parseFloat(cs.borderTopWidth) || 0, bb = parseFloat(cs.borderBottomWidth) || 0;
       if (ox !== 'visible' && !sx) { L = Math.max(L, r.left + bl); R = Math.min(R, r.right - br); }
       if (oy !== 'visible' && !sy) { T = Math.max(T, r.top + bt); B = Math.min(B, r.bottom - bb); }
       if (cs.position === 'fixed') break;
     }
     L = Math.max(L, 0); T = Math.max(T, 0); R = Math.min(R, W); B = Math.min(B, H);
-    return { L, T, R, B, scroll, ell, mask };
+    return { L, T, R, B, scroll, scrollX, ell, mask };
   };
   const area = r => Math.max(0, r.R - r.L) * Math.max(0, r.B - r.T);
   const inter = (r, c) => ({ L: Math.max(r.left, c.L), T: Math.max(r.top, c.T), R: Math.min(r.right, c.R), B: Math.min(r.bottom, c.B) });
@@ -75,7 +78,15 @@
   for (const e of ctl) {
     if (skipRegion(e) || hidden(e)) continue;
     const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
-    const c = clipOf(e, false); if (c.scroll || c.mask) continue;
+    const c = clipOf(e, false); if (c.mask) continue;
+    if (c.scroll) {
+      // a page that scrolls up and down brings back what is cut at its top or bottom; nothing brings back what is cut at its
+      // side (the 專輯 page's toolbar ran out of the page to the right at the smallest window and its last buttons were gone)
+      const w = Math.max(0, Math.min(r.right, c.R) - Math.max(r.left, c.L));
+      if (!c.scrollX && r.width - w > 2 && w < 0.97 * r.width && e.closest('#view'))
+        add('clip', desc(e), 'cut at the side: ' + Math.round(w) + 'px of ' + Math.round(r.width) + 'px, and the page does not scroll sideways');
+      continue;
+    }
     const full = r.width * r.height, v = area(inter(r, c)), f = v / full;
     if (f > 0.02 && f < 0.97) add('clip', desc(e), Math.round(f * 100) + '% visible');
     if (f <= 0.02 && e.closest('#bar, .np-ctrl, .np-top, #topbar') && !e.closest('.mc-band')) add('offscreen', desc(e), 'not visible');
@@ -421,6 +432,16 @@
   if (npOn) for (const b of document.querySelectorAll('#np-ext .mc-rail-item:not(.far) .mc-rail-text b')) {
     if (hidden(b)) continue;
     if (b.scrollWidth > b.clientWidth + 1) add('short', desc(b), 'needs ' + b.scrollWidth + 'px, has ' + b.clientWidth + 'px');
+  }
+  // a value that was never filled in, printed as it is (設定 > 音訊 read "undefined ms" for the buffer size)
+  {
+    const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n; (n = tw.nextNode());) {
+      const t = n.nodeValue; if (!t || !/(^|[^A-Za-z])(undefined|NaN)([^A-Za-z]|$)|\[object Object\]/.test(t)) continue;
+      const e = n.parentElement; if (!e || /^(SCRIPT|STYLE|TEMPLATE)$/.test(e.tagName) || skipRegion(e) || hidden(e)) continue;
+      if (!e.getClientRects().length) continue;
+      add('junk', desc(e), 'reads "' + t.trim().replace(/\s+/g, ' ').slice(0, 40) + '"');
+    }
   }
   return out;
 })()

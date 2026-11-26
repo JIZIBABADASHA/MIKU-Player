@@ -212,10 +212,15 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 #view { will-change: opacity; }
 .pad { padding: 0 36px; }
 
-.page-head { display: flex; align-items: flex-end; gap: 16px; padding: 22px 36px 20px; }
+/* the toolbar goes under the title when the two do not fit in one row, and wraps its own groups when it is wider than
+   the page: at the smallest window the 專輯 page's size buttons ran out of the window to the right and were gone */
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding: 22px 36px 20px; }
 .page-head h1 { font: 650 30px/1.15 var(--font-display); margin: 0; letter-spacing: -.01em; }
 .page-head .sub { color: var(--text-3); padding-bottom: 4px; }
-.page-head .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.page-head .tools { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; min-width: 0; }
+/* the folded sidebar's widths (the smallest window is 980px): the tabs a little closer, so the 專輯 page's whole toolbar
+   is one row under the title */
+@media (max-width: 1180px) { .page-head .seg button { padding: 0 9px; } }
 
 .seg { display: inline-flex; background: rgba(var(--ink), .05); border-radius: 10px; padding: 3px; gap: 2px; }
 .seg button { height: 30px; padding: 0 13px; border-radius: 8px; color: var(--text-2); font-size: 13px; white-space: nowrap; }
