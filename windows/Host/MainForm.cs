@@ -1268,6 +1268,7 @@ public sealed class MainForm : Form
 
     static bool IsUnder(string path, string folder)
     {
+        if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(folder)) return false;
         string f = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
         return Path.GetFullPath(path).StartsWith(f, StringComparison.OrdinalIgnoreCase);
     }
@@ -1620,13 +1621,6 @@ public sealed class MainForm : Form
         }
         catch (Exception ex) { Log.Error("playlists.paths", ex); }
         return list;
-    }
-
-    static bool IsUnder(string path, string folder)
-    {
-        if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(folder)) return false;
-        folder = folder.TrimEnd('\\', '/');
-        return path.Length > folder.Length && path.StartsWith(folder, StringComparison.OrdinalIgnoreCase) && (path[folder.Length] == '\\' || path[folder.Length] == '/');
     }
 
     /// <summary>A track's lyrics for the page: translations cleaned, with the track's saved offset.</summary>
