@@ -418,3 +418,8 @@
 :root:root[data-theme="sakura"] .sect h2::before { vertical-align: calc(.38em - 8px); }
 @media (max-width: 1180px) {:root:root[data-theme="sakura"] .nav-pill::before { left: -12px; width: 12px; height: 12px; margin-top: -6px; }
 }
+
+/* 櫻花：標題前有圖示（MoodWave 的心）時，螢光筆只畫在名字底下，不畫過圖示（標題這一排改成照中線對齊後，夜裡那道細帶會碰到心的尖端） */
+:root[data-theme="sakura"] .page-head h1:has(> .mc-title) { background: none; }
+:root[data-theme="sakura"] .page-head h1 > .mc-title > .mc-brand { background: linear-gradient(transparent 56%, var(--sk-hl) 56%, var(--sk-hl) 92%, transparent 92%) left bottom / 100% 100% no-repeat; border-radius: 2px 10px 2px 10px; }
+:root[data-theme="sakura"]:where([data-mode="night"]) .page-head h1 > .mc-title > .mc-brand { background: linear-gradient(transparent 84%, var(--sk-hl) 84%, var(--sk-hl) 97%, transparent 97%) left bottom / 100% 100% no-repeat; }

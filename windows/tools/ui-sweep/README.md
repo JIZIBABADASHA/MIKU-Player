@@ -41,6 +41,9 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **short**: a name that must be whole is cut with an ellipsis: a channel in MoodWave's wheel on now playing
   (its names are set in the theme's font; terminal's monospace cut "Shuffle All"), and an album's name cut after two
   lines while an ornament shares its row (vinyl's turntable: it now gives way when the name needs the room)
+- **align**: a theme's mark before the page title (終端機's "$") is off the middle of the title by more than about a
+  fifth of its height. The page set includes `mwtitle`: MoodWave's own title (its heart, then the name), where the heart
+  pulled the row's baseline down and the "$" with it.
 - **tilt**: a tilted sticker on the cover leans the wrong way for its corner: clockwise on a right corner, the other way
   on a left one (fit.js marks the side the poster's NOW PLAYING burst went to: data-st r / l).
 - **junk**: a value that was never filled in is on show as text: "undefined", "NaN" or "[object Object]" (設定 > 音訊

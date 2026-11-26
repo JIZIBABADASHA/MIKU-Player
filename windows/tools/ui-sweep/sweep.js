@@ -4,7 +4,7 @@
  *
  *   node sweep.js --root ../../wwwroot --out /tmp/sweep [--engine webkit|chromium] [--themes poster,gold] [--scen np,home]
  *                 scenarios: home album set homemw homeradio np np2 npnl npmw npradio npplain npplainmw (= all);
- *                 --scen pages: albumshort albums artists tracks artist playlists folders favorites search setaudio setlib setkeys setother
+ *                 --scen pages: mwtitle albumshort albums artists tracks artist playlists folders favorites search setaudio setlib setkeys setother
  *                 (mw = a MoodWave channel, radio = a MoodWave station, plain = lyrics without timing)
  *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
  *
@@ -64,8 +64,11 @@ const SCEN = {
   homeradio: { hash: '#/home', eval: MWR, q: LONG }, npradio: { hash: '#/home', np: true, q: LONG, eval: MWR },
   npplain: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG) }, npplainmw: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG), eval: MW },
 };
+// MoodWave's own page title, as moodchannels.js builds it (its heart, then the name, in an inline-flex span), on the 專輯 page
+const MWTITLE = `(()=>{const s=document.createElement('style');s.textContent=${JSON.stringify(mwCss)};document.head.append(s);const h=document.querySelector('#view .page-head h1');if(h)h.innerHTML='<span class="mc-title"><svg class="mc-logo mc-title-logo" viewBox="0 0 200 200" aria-hidden="true"><path d="M100 180 L20 90 A45 45 0 0 1 100 40 A45 45 0 0 1 180 90 Z" fill="#f5a524"/></svg><span class="mc-brand">MoodWave</span></span>';})()`;
 // the other pages (--scen pages): the lists, an artist, search results, the other settings tabs. Not part of "all".
 const PAGES = {
+  mwtitle: { hash: '#/albums', eval: MWTITLE },
   albumshort: { hash: '#/album/a15', q: { album: '歌バカ' } },   // a short name: 黑膠's turntable stays beside it
   albums: { hash: '#/albums' }, artists: { hash: '#/artists' }, tracks: { hash: '#/tracks' }, artist: { hash: '#/artist/' + encodeURIComponent('DECO*27') },
   playlists: { hash: '#/playlists' }, folders: { hash: '#/folders' }, favorites: { hash: '#/favorites' }, search: { hash: '#/search/' + encodeURIComponent('ハッピー') },

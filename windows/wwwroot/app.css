@@ -231,6 +231,10 @@ html.fullscreen #fullscreen-exit.is-visible:active {
    the page: at the smallest window the 專輯 page's size buttons ran out of the window to the right and were gone */
 .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding: 22px 36px 20px; }
 .page-head h1 { font: 650 30px/1.15 var(--font-display); margin: 0; letter-spacing: -.01em; }
+/* a title with a picture in front of its name (MoodWave's page: the heart, then the name, in one inline-flex row): the row's
+   baseline is the picture's bottom edge, and a theme's mark set on the baseline before or after the title (終端機's "$",
+   its cursor) sat a quarter of a letter low. The title lines up its parts on their middles instead */
+.page-head h1:has(> .mc-title) { display: flex; align-items: center; }
 .page-head .sub { color: var(--text-3); padding-bottom: 4px; }
 .page-head .tools { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; min-width: 0; }
 /* the folded sidebar's widths (the smallest window is 980px): the tabs a little closer, so the 專輯 page's whole toolbar

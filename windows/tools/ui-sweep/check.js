@@ -21,6 +21,7 @@
  *            was started again and has not run)
  *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel; an album's name cut to
  *            make room for an ornament in its row)
+ *   align    a theme's mark before the page title (終端機's "$") off the middle of the title
  *   tilt     a tilted sticker on the cover leans the wrong way for its corner (clockwise on the right, the other way on
  *            the left)
  *   junk     a value that was never filled in is on show as text ("undefined ms", "NaN", "[object Object]")
@@ -443,6 +444,23 @@
         const o = { left: x - 4, top: y - 4, right: x + w + 4, bottom: y + h + 4 };   // less than 4px of air counts as touching
         for (const e of ctl) if (hit(o, box(e), 0)) add('overlap', desc(host).split(' "')[0] + ps + ' × ' + desc(e), 'page ornament on a button of the title row');
       }
+    }
+    // a theme's mark before the page title (終端機's "$") sits on the title's middle, also when the title has a picture in
+    // front of its name (MoodWave's heart pulled the row's baseline down and the "$" with it). Measured with a stand-in
+    // that copies the mark's box, put in and taken out again at once
+    for (const h1 of document.querySelectorAll('#view .page-head h1')) {
+      if (hidden(h1)) continue;
+      const ps = getComputedStyle(h1, '::before'), txt = (ps.content || '').replace(/^["']|["']$/g, '');
+      if (!txt || ps.content === 'none' || ps.display === 'none' || /absolute|fixed/.test(ps.position)) continue;
+      const tw = document.createTreeWalker(h1, NodeFilter.SHOW_TEXT); let n, tr = null;
+      while ((n = tw.nextNode())) if (n.nodeValue.trim()) { const rg = document.createRange(); rg.selectNodeContents(n); const q = [...rg.getClientRects()].find(x => x.height > 1); if (q) { tr = q; break; } }
+      if (!tr) continue;
+      const p = document.createElement('i'); p.setAttribute('aria-hidden', 'true');
+      for (const k of ['display', 'width', 'marginLeft', 'marginRight', 'verticalAlign', 'fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'fontStyle', 'letterSpacing', 'position', 'top']) p.style[k] = ps[k];
+      p.textContent = txt; h1.prepend(p);
+      const pr = p.getBoundingClientRect(); p.remove();
+      const dy = (pr.top + pr.bottom) / 2 - (tr.top + tr.bottom) / 2;
+      if (Math.abs(dy) > .18 * tr.height) add('align', desc(h1) + '::before "' + txt + '"', 'the mark before the title is ' + Math.round(Math.abs(dy)) + 'px ' + (dy > 0 ? 'below' : 'above') + ' the middle of the title');
     }
     // sidebar: 設定 is always in sight, without scrolling the list (in a short window it stays at the bottom of it), and
     // no row of the list shows behind another (a row scrolled under the pinned 設定 is hidden or cut at its top)
