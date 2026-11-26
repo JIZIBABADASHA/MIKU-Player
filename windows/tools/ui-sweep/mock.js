@@ -43,7 +43,7 @@
     ready: () => ({ settings, queue: { ids: tracks.slice(0, 8).map(t => t[0]), index: 1 }, state, scan: null, ffmpeg: true, version: '9.9.9', platform: P.get('platform') || 'windows', cores: [{ id: 'miku', name: 'FFmpeg', dsdPcmRate: true }], extensions: [], sysLang: 'zh-Hant', installLang: 'zh-Hant' }),
     devices: () => ({ devices: [{ id: 'd1', name: (new URLSearchParams(location.search).get('dev') || 'USB DAC'), isDefault: true, modes: ['shared', 'exclusive'] }], current: 'd1' }),
     presets: () => [],
-    'update.info': () => ({ current: '9.9.9', latest: null }),
+    'update.info': () => ({ current: '9.9.9', version: '9.9.9', latest: '9.9.10', newer: true, checkedAt: 1790000000000, restart: true, extensions: [{ id: 'moodchannels', installed: true, build: '9.9.8', available: true }, { id: 'daphne', available: true }, { id: 'vst', pending: 'install' }] }),
     'remote.info': () => ({ on: false, devices: [] }),
     // rl=1: paired with another computer, so the sidebar shows the 本地 / 遠端 switch
     'remoteLib.info': () => P.get('rl') === '1' ? { paired: true, active: false, online: true, remotes: [{ key: 'pc', name: 'PC' }], offlineIds: [], servers: [] } : ({ active: false, servers: [] }),

@@ -11,7 +11,8 @@
  *            the player (less than 8px of air)
  *   orphan   a title's last line is a single character (or a stub) on its own
  *   squeeze  the play bar dropped the song title although there is room for it
- *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel)
+ *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel; an album's name cut to
+ *            make room for an ornament in its row)
  * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
  */
 (() => {
@@ -250,6 +251,10 @@
       for (const p of parts) if (hit(a, box(p), 2)) add('overlap', desc(e) + ' × ' + desc(p), 'top button over info');
     }
   } else {
+    // an album's name is never cut (two lines, then …) to make room for an ornament that shares its row (黑膠's turntable)
+    const h1 = document.querySelector('.hero.album h1'), deck = document.querySelector('.hero.album .tt-deck');
+    if (h1 && deck && !hidden(h1) && !hidden(deck) && deck.getBoundingClientRect().width > 1 && h1.scrollHeight > h1.clientHeight + 2)
+      add('short', desc(h1), 'the album name is cut while the turntable takes ' + Math.round(deck.getBoundingClientRect().width) + 'px of its row');
     // play bar: its pieces never overlap each other
     const items = [...document.querySelectorAll('#bar :is(button, .art, .t, .a, .slider, .times > span, .mc-band, .sig, .out-btn, .db)')].filter(e => !hidden(e) && e.getBoundingClientRect().width > 1);
     const ex = [...document.querySelectorAll('#bar #b-ext > *')].filter(e => !hidden(e));

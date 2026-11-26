@@ -630,10 +630,11 @@
    「Shuffle All」要 146px、欄位只有 134px，被截成「Shuffle A…」（Windows 實機看到的）。字小一級就放得下。 */
 :root[data-theme="terminal"] #np-ext .mc-rail-text b { font-size: 19px; }
 
-/* 終端機：歌詞螢幕（紙）。捲上去的舊行原本一路淡到框的最上緣才消失，矮視窗（1366×600、980×640）淡出的那一段只有 48px，
-   最上面那行還看得到一半就碰到螢幕的圓角框（獨立檢查看到的）。淡出往下收 12px，字在碰到框之前就淡完。
+/* 終端機：歌詞螢幕（紙）。捲上去的舊行原本一路淡到框的最上緣才消失，矮視窗（1366×600、980×640）最上面那行還看得到一半就碰到
+   螢幕的圓角框（獨立檢查看到的）。淡出改成固定的一小段：離框 6px 就淡完、22px 以下全亮。不能再往下收：歌曲一開始第一行就印在
+   螢幕最上面（--ly-start .06，矮視窗是離框 23px），淡出蓋到那裡的話，正在唱的第一行會變成半亮（Windows 實機看到的）。
    下面沒有還沒唱的行（這個主題不顯示），底下的淡出從 80% 收到 88%，目前這一行折成兩行加翻譯時最後一行不會被淡掉。
    矮視窗裡螢幕下面那 44px 是歌詞時間列的位置，目前這行算起來只在螢幕的六成高，下面空一大片：往下放一點，回到螢幕的三分之二。 */
-:root[data-theme="terminal"] #lyrics { -webkit-mask-image: linear-gradient(transparent 12px, #000 calc(13% + 12px), #000 88%, transparent 100%); mask-image: linear-gradient(transparent 12px, #000 calc(13% + 12px), #000 88%, transparent 100%); }
+:root[data-theme="terminal"] #lyrics { -webkit-mask-image: linear-gradient(transparent 6px, #000 22px, #000 88%, transparent 100%); mask-image: linear-gradient(transparent 6px, #000 22px, #000 88%, transparent 100%); }
 @media (max-height: 680px) and (orientation: landscape) and (min-width: 761px) {:root[data-theme="terminal"] #lyrics { --ly-anchor: .74; }
 }

@@ -57,6 +57,20 @@ const Vinyl = {
     const el = h('div', { class: 'tt-deck', title: T('唱盤') },
       h('div', { class: 'tt-platter' }), rec, h('div', { class: 'tt-sheen' }), h('div', { class: 'tt-pivot' }), arm, h('div', { class: 'tt-led' }), h('div', { class: 'tt-knob' }));
     hero.append(el);
+    // the turntable shares its row with the album's name and gives way to it: when the name is cut (two lines, then …)
+    // with the turntable beside it and whole without, the turntable is not shown (as in a narrow window). Checked
+    // again whenever the hero changes size.
+    const h1 = hero.querySelector('h1'), cut = () => !!h1 && h1.scrollHeight > h1.clientHeight + 2;
+    const room = () => {
+      el.classList.remove('tt-yield');
+      if (!cut()) return;
+      el.classList.add('tt-yield');
+      if (cut()) el.classList.remove('tt-yield');   // cut either way: the turntable is not the reason
+    };
+    room();
+    this._room?.disconnect();
+    this._room = new ResizeObserver(room);
+    this._room.observe(hero);
     const d = this.deck = { el, rec, arm, hero, cover, id: al.id, spin: null, state: 'empty' };
     const f = this.from;
     this.from = null;

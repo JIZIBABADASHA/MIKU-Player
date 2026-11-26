@@ -3,7 +3,8 @@
  * things that overlap (check.js), with a mock host (mock.js) so no player is needed.
  *
  *   node sweep.js --root ../../wwwroot --out /tmp/sweep [--engine webkit|chromium] [--themes poster,gold] [--scen np,home]
- *                 scenarios: home album set homemw homeradio np np2 npnl npmw npradio npplain npplainmw
+ *                 scenarios: home album set homemw homeradio np np2 npnl npmw npradio npplain npplainmw (= all);
+ *                 --scen pages: albums artists tracks artist playlists folders favorites search setaudio setlib setkeys setother
  *                 (mw = a MoodWave channel, radio = a MoodWave station, plain = lyrics without timing)
  *                 [--workers 3] [--shots fail|sheet|all] [--platform mac|windows] [--mw path/to/moodchannels.css]
  *
@@ -63,7 +64,14 @@ const SCEN = {
   homeradio: { hash: '#/home', eval: MWR, q: LONG }, npradio: { hash: '#/home', np: true, q: LONG, eval: MWR },
   npplain: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG) }, npplainmw: { hash: '#/home', np: true, q: Object.assign({ lysync: '0' }, LONG), eval: MW },
 };
-const scen = (arg('scen', 'all') === 'all' ? Object.keys(SCEN) : arg('scen').split(',')).map(n => Object.assign({ name: n }, SCEN[n]));
+// the other pages (--scen pages): the lists, an artist, search results, the other settings tabs. Not part of "all".
+const PAGES = {
+  albums: { hash: '#/albums' }, artists: { hash: '#/artists' }, tracks: { hash: '#/tracks' }, artist: { hash: '#/artist/' + encodeURIComponent('DECO*27') },
+  playlists: { hash: '#/playlists' }, folders: { hash: '#/folders' }, favorites: { hash: '#/favorites' }, search: { hash: '#/search/' + encodeURIComponent('ハッピー') },
+  setaudio: { hash: '#/settings/audio' }, setlib: { hash: '#/settings/library' }, setkeys: { hash: '#/settings/keys' }, setother: { hash: '#/settings/other' },
+};
+const ALL = Object.assign({}, SCEN, PAGES);
+const scen = (arg('scen', 'all') === 'all' ? Object.keys(SCEN) : arg('scen') === 'pages' ? Object.keys(PAGES) : arg('scen').split(',')).map(n => Object.assign({ name: n }, ALL[n]));
 const mock = fs.readFileSync(path.join(HERE, 'mock.js'), 'utf8');
 // text too faint to read, from the pixels (contrast.js): at these sizes (the full sidebar, the folded one, the two-row bar)
 const contrast = fs.readFileSync(path.join(HERE, 'contrast.js'), 'utf8');

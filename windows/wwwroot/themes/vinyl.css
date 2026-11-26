@@ -519,3 +519,8 @@
 @media (min-width: 1151px) and (max-width: 1500px) {:root[data-theme="vinyl"] .hero.album .tt-deck { transform: scale(.72); transform-origin: right bottom; margin-left: -106px; margin-top: -81px; }
 :root[data-theme="vinyl"] .hero.album .meta { flex: 1 1 auto; }
 }
+
+/* 黑膠：專輯頁的唱盤讓位給專輯名。唱盤和專輯名排在同一列，專輯名長一點（「Summer Pockets Original SoundTrack」）就算唱盤縮小了
+   還是被截成兩行加「…」，同一個視窗別的主題、或是窄到不畫唱盤時都看得到整個名字（Windows 實機看到的）。
+   vinyl.js 量到專輯名被截掉時加上 tt-yield，這時不畫唱盤，寬度還給專輯名。 */
+:root[data-theme="vinyl"] .hero.album .tt-deck.tt-yield { display: none; }
