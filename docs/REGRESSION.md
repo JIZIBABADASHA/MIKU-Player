@@ -34,7 +34,7 @@
 |---|---|---|---|---|
 | NP-1 | 雙擊封面加入最愛：愛心出現在封面中央、正立，從封面擴散出兩圈淡淡的水波，到視窗邊 | W+M | manual | 6eb0207…3d6b7d1 (10-26) |
 | NP-2 | 雙擊已是最愛的封面：移出最愛，愛心裂成兩半、停約半秒再落下變灰，全程約 2 秒 | W+M | manual | f16f2dc, 731e0e8, ff9f850, cb72636 |
-| NP-3 | **MoodWave 電台播放中，在封面上左右滑 = 👍 / 👎**（Windows 滑鼠拖曳、Mac 觸控板雙指左右滑都要能用） | W+M | auto:guard `mac-np-swipe` + manual（Mac 觸控板） | ec9bd54, 1732fea；11-26 Mac 消失，回歸 |
+| NP-3 | **MoodWave 電台或頻道（如「早晨」）播放中，在封面上左右滑 = 👍 / 👎**（Windows 滑鼠拖曳、Mac 觸控板雙指左右滑都要能用；頻道的票與輪盤旁的 👍 / 👎 相同） | W+M | auto:guard `mac-np-swipe` + `np-swipe-ch`（Extensions/MoodWave 須含頻道投票 coverVote，submodule 不可指回沒有它的版本）+ manual（Mac 觸控板，頻道播放中） | ec9bd54, 1732fea；MoodWave 0e96f14/e48b10a；11-26 Mac 消失：Mac 安裝檔用了沒有頻道投票的 MoodWave 5e7ec4b，回歸 |
 | NP-4 | Mac：在正在播放頁雙指上滑把播放列拉上來、下滑放下 / 關閉；在歌詞上下滑仍是捲歌詞 | M | manual | 1732fea, mac-navigation.js |
 | NP-5 | Windows：在正在播放頁滾輪可以升 / 降播放列；全螢幕下捲動可叫出控制 | W | manual | c1cbcf5 |
 | NP-6 | 右上角歌詞按鈕打開 5 秒後淡出，滑到上方再出現 | W+M | manual | a590640 (11-12) |

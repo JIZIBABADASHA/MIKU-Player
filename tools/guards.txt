@@ -20,3 +20,4 @@ media-keys-W    | windows/Host/MainForm.cs          | StartMediaHook\(hookVks\)
 media-keys-W2   | windows/Host/MainForm.cs          | HardwareMediaKeyHandling
 np-fit-settled  | windows/wwwroot/fit.js            | const settled = els =>
 np-fit-endY     | windows/wwwroot/fit.js            | endY\(wrap\)
+np-swipe-ch     | Extensions/MoodWave/web/moodchannels.js | function coverVote\(\)
