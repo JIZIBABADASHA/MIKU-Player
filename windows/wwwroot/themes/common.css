@@ -1736,7 +1736,7 @@
 }
 @keyframes ps-point { 0%, 100% { transform: none; } 50% { transform: translateX(3px); } }
 #np.nolyrics .np-left { position: relative; }
-@keyframes ps-burst-in { from { transform: scale(0) rotate(-90deg); } to { transform: none; } }
+@keyframes ps-burst-in { from { transform: scale(0) rotate(var(--st-spin, -90deg)); } to { transform: none; } }
 @keyframes ps-throb { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 @keyframes ps-stamp {
   0%   { opacity: 0; transform: rotate(-4deg) scale(1.18); }

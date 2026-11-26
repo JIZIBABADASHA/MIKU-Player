@@ -112,6 +112,21 @@ svg.i.fill { fill: currentColor; stroke: none; }
 #nav.fade-b { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); }
 #nav.fade-t { -webkit-mask-image: linear-gradient(180deg, transparent, #000 28px); mask-image: linear-gradient(180deg, transparent, #000 28px); }
 #nav.fade-t.fade-b { -webkit-mask-image: linear-gradient(180deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+/* a short window: the list scrolls, and 設定 (under its label 系統) stays at the bottom of it, always in sight. NavEdges
+   (core.js) sets .nav-pin while the list does not fit; --pin-a: the room the link takes under its label; --pin: from the
+   list's bottom edge up to the top of 系統 (of 設定 when the labels are folded away). What scrolls under them is put
+   away: the rows fade out above 系統 and are cut at its top (clip-path), a row wholly under it is hidden (.nav-under) */
+#nav.nav-pin > a[data-r="settings"] { position: sticky; bottom: 0; }
+#nav.nav-pin > .nav-label:has(+ a[data-r="settings"]) { position: sticky; bottom: var(--pin-a, 40px); }
+#nav > .nav-under { visibility: hidden; pointer-events: none; }
+#nav.nav-pin.fade-b {
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - var(--pin) - 28px), transparent calc(100% - var(--pin)), #000 calc(100% - var(--pin)));
+  mask-image: linear-gradient(180deg, #000 calc(100% - var(--pin) - 28px), transparent calc(100% - var(--pin)), #000 calc(100% - var(--pin)));
+}
+#nav.nav-pin.fade-b.fade-t {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 28px, #000 calc(100% - var(--pin) - 28px), transparent calc(100% - var(--pin)), #000 calc(100% - var(--pin)));
+  mask-image: linear-gradient(180deg, transparent, #000 28px, #000 calc(100% - var(--pin) - 28px), transparent calc(100% - var(--pin)), #000 calc(100% - var(--pin)));
+}
 /* keyboard focus on a sidebar link: a ring inside the item. The page-wide outline sits 4 px outside it, where the
    list's own edges cut it off (the last item of the list lost its bottom half: a stray teal frame over the highlight). */
 #nav a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(var(--teal-rgb), .7); }

@@ -2659,6 +2659,42 @@ const NavEdges = {
     const top = n.scrollTop > 1, bottom = n.scrollTop + n.clientHeight < n.scrollHeight - 1;
     if (n.classList.contains('fade-t') !== top) n.classList.toggle('fade-t', top);
     if (n.classList.contains('fade-b') !== bottom) n.classList.toggle('fade-b', bottom);
+    this.pin(n, bottom);
+  },
+  /** 設定 always in sight: in a window too short for the whole list it stays at the bottom of the list (with its label
+   *  系統, sticky in app.css) while the rest scrolls above it. A row that has scrolled under them is hidden. */
+  pin(n, more) {
+    const set = n.querySelector(':scope > a[data-r="settings"]');
+    const over = !!(set && set.offsetParent) && n.scrollHeight > n.clientHeight + 1;
+    if (n.classList.contains('nav-pin') !== over) n.classList.toggle('nav-pin', over);
+    const prev = set && set.previousElementSibling;
+    const lab = over && prev && prev.classList.contains('nav-label') && prev.offsetHeight ? prev : null;
+    let line = Infinity;
+    if (over) {
+      n.style.setProperty('--pin-a', set.offsetHeight + (parseFloat(getComputedStyle(n).rowGap) || 0) + 'px');
+      const L = (lab || set).getBoundingClientRect().top;
+      n.style.setProperty('--pin', (n.getBoundingClientRect().bottom - L).toFixed(1) + 'px');
+      if (more) line = L - 1;   // a pixel above the top of 系統: the mask is fully clear there
+    }
+    // a row wholly under them is hidden; a row reaching under them is cut at the line, so it fades out above 系統 (the
+    // list's mask) as a hint that there is more
+    const cut = (c, r) => {
+      const u = r.top >= line - .5, k = !u && r.bottom > line + .5 ? `inset(0 0 ${(r.bottom - line).toFixed(1)}px 0)` : '';
+      if (c.classList.contains('nav-under') !== u) c.classList.toggle('nav-under', u);
+      if (c.style.clipPath !== k) c.style.clipPath = k;
+    };
+    for (const c of n.children) {
+      if (c === set || c === lab || c.classList.contains('nav-pill')) continue;
+      cut(c, line < Infinity ? c.getBoundingClientRect() : { top: -Infinity, bottom: -Infinity });
+    }
+    // the highlight goes with its row: on the pinned 設定 it follows the link as the list scrolls; under them it is cut
+    // or hidden like the row
+    const a = n.querySelector(':scope > a.on'), pill = NavPill.el;
+    if (!pill) return;
+    if (!a || !a.offsetParent || a === set) { pill.classList.remove('nav-under'); pill.style.clipPath = ''; }
+    if (!a || !a.offsetParent) return;
+    if (a === set && over) { pill.style.transition = 'none'; pill.style.transform = `translateY(${a.offsetTop}px)`; void pill.offsetWidth; pill.style.transition = ''; }
+    if (a !== set) cut(pill, line < Infinity ? a.getBoundingClientRect() : { top: -Infinity, bottom: -Infinity });
   },
 };
 window.addEventListener('resize', () => NavPill.move(true));

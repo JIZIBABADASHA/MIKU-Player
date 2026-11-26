@@ -10,7 +10,7 @@
  *            top of now playing behind an extension's panel, a theme's ornament in a corner of a library page on or
  *            against a button of the page's title row)
  *   cut      a row of lyrics cut at the side by the window or its box
- *   offscreen a key control outside the window
+ *   offscreen a key control outside the window; 設定 out of sight in the sidebar (only reached by scrolling the list)
  *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
  *            the player (less than 8px of air)
  *   orphan   a title's last line is a single character (or a stub) on its own; a timed lyric line ends in one
@@ -21,6 +21,8 @@
  *            was started again and has not run)
  *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel; an album's name cut to
  *            make room for an ornament in its row)
+ *   tilt     a tilted sticker on the cover leans the wrong way for its corner (clockwise on the right, the other way on
+ *            the left)
  *   junk     a value that was never filled in is on show as text ("undefined ms", "NaN", "[object Object]")
  * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
  */
@@ -173,6 +175,10 @@
         const d = { left: cx - w * k, right: cx + w * k, top: cy - h * k, bottom: cy + h * k };
         for (const te of texts) { const tb = textBox(te) || box(te); if (tb && hit(d, tb, 1)) add('overlap', desc(host) + pe + ' ' + cs.content.slice(0, 16), 'covers ' + desc(te)); }
         if (d.right > W || d.top < 0 || d.left < 0) add('offscreen', desc(host) + pe, 'sticker outside the window');
+        // a tilted sticker leans out from its corner: clockwise on a right corner, the other way on a left one (fit.js
+        // marks the side, data-st r / l; the poster's burst kept its right-corner tilt on the left corner)
+        const tilt = parseFloat(cs.rotate) || 0, side = host.dataset ? host.dataset.st : '';
+        if (tilt && (side === 'l' || side === 'r') && (side === 'l') !== (tilt < 0)) add('tilt', desc(host) + pe, 'on the ' + (side === 'l' ? 'left' : 'right') + ' corner of the cover, tilted ' + tilt + 'deg');
       }
     }
     // the page keeps the theme's own fonts whatever is playing: now playing must not carry a different title or text
@@ -436,6 +442,20 @@
         const x = hr.left + parseFloat(hc.borderLeftWidth) + l, y = hr.top + parseFloat(hc.borderTopWidth) + t;
         const o = { left: x - 4, top: y - 4, right: x + w + 4, bottom: y + h + 4 };   // less than 4px of air counts as touching
         for (const e of ctl) if (hit(o, box(e), 0)) add('overlap', desc(host).split(' "')[0] + ps + ' × ' + desc(e), 'page ornament on a button of the title row');
+      }
+    }
+    // sidebar: 設定 is always in sight, without scrolling the list (in a short window it stays at the bottom of it), and
+    // no row of the list shows behind another (a row scrolled under the pinned 設定 is hidden or cut at its top)
+    {
+      const nav = document.querySelector('#nav'), set = nav && nav.querySelector('a[data-r="settings"]');
+      if (set && !hidden(set) && set.getClientRects().length) {
+        const r = box(set), nr = nav.getBoundingClientRect(), x = (r.left + r.right) / 2, y = (r.top + r.bottom) / 2;
+        const top = document.elementFromPoint(x, y);
+        if (r.top < nr.top - 1 || r.bottom > nr.bottom + 1 || r.bottom > H || !(top && (top === set || set.contains(top))))
+          add('offscreen', desc(set), '設定 is out of sight in the sidebar (the list has to be scrolled to reach it)');
+        const seen = (e) => { if (hidden(e) || !e.getClientRects().length) return null; const b = box(e), m = (e.style.clipPath || '').match(/inset\(\s*[\d.]+px\s+[\d.]+px\s+([\d.]+)px/); if (m) b.bottom -= parseFloat(m[1]); b.top = Math.max(b.top, nr.top); b.bottom = Math.min(b.bottom, nr.bottom); return b.bottom - b.top > 1 ? b : null; };
+        const rows = [...nav.children].filter(e => !e.classList.contains('nav-pill')).map(e => [e, seen(e)]).filter(([, b]) => b);
+        for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) if (hit(rows[i][1], rows[j][1], 2)) add('overlap', desc(rows[i][0]) + ' × ' + desc(rows[j][0]), 'sidebar rows on top of each other');
       }
     }
     // sidebar: the parts of one link never overlap (icon, label, badges)

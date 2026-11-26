@@ -568,6 +568,9 @@
   top: var(--np-st-y, calc(var(--np-cv-t, 0px) - var(--st) * .3));
 }
 :root:root[data-theme="poster"] #np .np-left[data-st="off"]::before { display: none; }
+
+/* 貼在封面左邊的角時（fit.js 的 data-st="l"）往另一邊歪：右邊的角順時針 12°，左邊的角逆時針 12°，彈進來時也往另一邊轉 */
+:root:root[data-theme="poster"] #np .np-left[data-st="l"]::before { rotate: -12deg; --st-spin: 90deg; }
 @media (max-width: 1180px) {:root:root[data-theme="poster"] #sidebar .brand svg { width: 40px; }
 :root:root[data-theme="poster"] .nav a.on::after { display: none; }
 :root:root[data-theme="poster"] .nav a.on svg.i { margin-left: 0; }

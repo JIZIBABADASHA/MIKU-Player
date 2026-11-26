@@ -90,12 +90,13 @@
       const lyr = np.querySelector('.np-right'); if (lyr && shown(lyr) && !np.classList.contains('nolyrics')) avoid.push(lyr.getBoundingClientRect());
       // sticker spots: its centre near a cover corner, sticking out a little; its whole box plus 4px stays off the text
       const spots = [[cr.right - .14 * st, cr.top + .2 * st], [cr.left + .14 * st, cr.top + .2 * st], [cr.right - .14 * st, cr.bottom - .2 * st], [cr.left + .14 * st, cr.bottom - .2 * st]];
-      for (const [cx, cy] of spots) {
+      for (const [i, [cx, cy]] of spots.entries()) {
         const k = .5 * st + 4, d = { left: cx - k, right: cx + k, top: cy - k, bottom: cy + k, width: 2 * k };
         if (d.left < 4 || d.top < 4 || d.right > innerWidth - 4 || d.bottom > innerHeight - 4) continue;
         if (avoid.some(r => hit(d, r))) continue;
         left.style.setProperty('--np-st-x', (cx - st / 2 - lr.left).toFixed(1) + 'px');
         left.style.setProperty('--np-st-y', (cy - st / 2 - lr.top).toFixed(1) + 'px');
+        left.dataset.st = i % 2 ? 'l' : 'r';   // which side of the cover: a theme can tilt it the other way on the left
         return;
       }
       left.dataset.st = 'off';   // nowhere free: leave it out rather than cover the title

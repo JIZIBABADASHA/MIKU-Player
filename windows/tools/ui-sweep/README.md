@@ -19,8 +19,10 @@ every theme × day/night × page × window size, measuring each one with `check.
   panel (neon's "LIVE.FEED" and gold's bead garland behind the MoodWave logo in a short window)
   On the library pages: a theme's ornament hung in a corner of the page (a pseudo-element of the page's own boxes, such as
   washi's crescent moon at night) on, or within 4px of, a button of the page's title row or of the top bar.
+  The sidebar: no row of its list shows on top of another (a row scrolled under the pinned 設定 must be hidden or cut).
 - **cut**: a row of lyrics cut at the side by the window or its box
-- **offscreen**: a key control outside the window or under the play bar
+- **offscreen**: a key control outside the window or under the play bar; 設定 out of sight in the sidebar, so that the
+  list has to be scrolled to reach it (a short window: it now stays at the bottom of the list)
 - **touch**: the now-playing buttons touching each other, a round button squashed out of shape, or lyrics flush
   against the player (less than 8 px of air)
 - **orphan**: a two-line title whose second line is a single character or a short stub; a timed lyric line ending
@@ -39,6 +41,8 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **short**: a name that must be whole is cut with an ellipsis: a channel in MoodWave's wheel on now playing
   (its names are set in the theme's font; terminal's monospace cut "Shuffle All"), and an album's name cut after two
   lines while an ornament shares its row (vinyl's turntable: it now gives way when the name needs the room)
+- **tilt**: a tilted sticker on the cover leans the wrong way for its corner: clockwise on a right corner, the other way
+  on a left one (fit.js marks the side the poster's NOW PLAYING burst went to: data-st r / l).
 - **junk**: a value that was never filled in is on show as text: "undefined", "NaN" or "[object Object]" (設定 > 音訊
   read "undefined ms" for the buffer size, because the test data had no buffer size; the hosts always send one).
 - **faint**: text too faint to read. `contrast.js` measures it from the pixels of a screenshot (so gradients, pictures
