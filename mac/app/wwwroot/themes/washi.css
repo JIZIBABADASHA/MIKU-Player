@@ -130,9 +130,10 @@
 :root[data-theme="washi"] .card.artist .art { border-width: 5px; }
 :root[data-theme="washi"] .hero-bg { -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent 92%); mask-image: linear-gradient(180deg, #000 45%, transparent 92%); }
 
-/* 夜：右上角一彎淡淡的月牙 */
+/* 夜：右上角一彎淡淡的月牙。掛在搜尋那一排的高度（頂端 4px，月牙 4–60px）：原本在 30–86px，月牙的下緣剛好貼在
+   頁面標題那一排右邊的按鈕（全部隨機、新增播放清單、欄數）上緣 */
 :root[data-theme="washi"]:where([data-mode="night"]) #main { isolation: isolate; }
-:root[data-theme="washi"]:where([data-mode="night"]) #main::before { content: ""; position: absolute; top: 30px; right: 72px; width: 56px; height: 56px; border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle at 35% 42%, rgba(251,246,234,.42), rgba(233,227,213,.22)); -webkit-mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); }
+:root[data-theme="washi"]:where([data-mode="night"]) #main::before { content: ""; position: absolute; top: 4px; right: 72px; width: 56px; height: 56px; border-radius: 50%; z-index: -1; pointer-events: none; background: radial-gradient(circle at 35% 42%, rgba(251,246,234,.42), rgba(233,227,213,.22)); -webkit-mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); mask-image: radial-gradient(circle at 76% 28%, transparent 47%, #000 48%); }
 :root[data-theme="washi"]:where(:not([data-mode="night"])) .nav-label { color: #85766a; }
 
 /* 和紙：顏色像水彩一樣只暈在封面後面，四周留白，紙紋看得見 */
@@ -166,3 +167,7 @@
 @media (max-width: 1180px) {:root:root[data-theme="washi"] .nav-pill::before { left: -10px; }
 }
 :root[data-theme="washi"]:where([data-mode="night"]) :is(.seg button.on, .set-tabs button.on) { background: #3d4b70; color: #c3d6f8; box-shadow: inset 0 0 0 1px rgba(134,168,230,.6), 0 1px 2px rgba(0,0,0,.26); }
+
+/* 和紙夜：月牙移到搜尋那一排之後，視窗窄到搜尋列會伸到月牙底下時（760px 以下；兩個平台的最小視窗都是 980）把月牙收起來 */
+@media (max-width: 760px) {:root[data-theme="washi"]:where([data-mode="night"]) #main::before { display: none; }
+}

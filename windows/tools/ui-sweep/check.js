@@ -7,7 +7,8 @@
  *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info
  *            (timed lines and the untimed block alike), a theme's ornament in a corner of the bar over the times, a
  *            two-colour backdrop's seam through the player, a theme's printed label or strip of ornament along the
- *            top of now playing behind an extension's panel)
+ *            top of now playing behind an extension's panel, a theme's ornament in a corner of a library page on or
+ *            against a button of the page's title row)
  *   cut      a row of lyrics cut at the side by the window or its box
  *   offscreen a key control outside the window
  *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
@@ -418,6 +419,23 @@
         if (hidden(e)) continue;
         const tb = textBox(e) || box(e);
         if (tb && hit(o, tb, 1)) add('overlap', 'div#bar' + ps + ' × ' + desc(e), 'bar ornament over text');
+      }
+    }
+    // a theme's ornament hung in a corner of the page (a pseudo-element of the page's own boxes: 和紙's crescent moon at
+    // night) on, or right against, a button of the page's title row or of the top bar
+    {
+      const ctl = [...document.querySelectorAll('#view .page-head :is(button, .seg, input, select), #topbar :is(button, .search)')].filter(e => !hidden(e) && e.getBoundingClientRect().width > 1);
+      for (const host of document.querySelectorAll('#main, #content, #view, #view .page-head')) for (const ps of ['::before', '::after']) {
+        const cs = getComputedStyle(host, ps);
+        if (cs.content === 'none' || cs.display === 'none' || !/absolute|fixed/.test(cs.position) || +cs.opacity < 0.05) continue;
+        const bg = cs.backgroundColor.match(/[\d.]+/g) || [];
+        if (cs.backgroundImage === 'none' && !(bg.length > 3 ? +bg[3] > .02 : bg.length === 3) && !/[^"'\s]/.test(cs.content.replace(/^["']|["']$/g, ''))) continue;
+        const w = parseFloat(cs.width), h = parseFloat(cs.height), l = parseFloat(cs.left), t = parseFloat(cs.top);
+        if (!(w > 0 && h > 0 && isFinite(l) && isFinite(t)) || w > 240 || h > 240) continue;   // an ornament, not a backdrop
+        const hr = host.getBoundingClientRect(), hc = getComputedStyle(host);
+        const x = hr.left + parseFloat(hc.borderLeftWidth) + l, y = hr.top + parseFloat(hc.borderTopWidth) + t;
+        const o = { left: x - 4, top: y - 4, right: x + w + 4, bottom: y + h + 4 };   // less than 4px of air counts as touching
+        for (const e of ctl) if (hit(o, box(e), 0)) add('overlap', desc(host).split(' "')[0] + ps + ' × ' + desc(e), 'page ornament on a button of the title row');
       }
     }
     // sidebar: the parts of one link never overlap (icon, label, badges)

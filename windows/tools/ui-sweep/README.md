@@ -17,6 +17,8 @@ every theme × day/night × page × window size, measuring each one with `check.
   two-colour backdrop running through the cover or the title (flat 2 with MoodWave's wheel), a theme's small printed
   label in the top row, or a strip of ornament drawn along the top of now playing, running behind an extension's
   panel (neon's "LIVE.FEED" and gold's bead garland behind the MoodWave logo in a short window)
+  On the library pages: a theme's ornament hung in a corner of the page (a pseudo-element of the page's own boxes, such as
+  washi's crescent moon at night) on, or within 4px of, a button of the page's title row or of the top bar.
 - **cut**: a row of lyrics cut at the side by the window or its box
 - **offscreen**: a key control outside the window or under the play bar
 - **touch**: the now-playing buttons touching each other, a round button squashed out of shape, or lyrics flush
