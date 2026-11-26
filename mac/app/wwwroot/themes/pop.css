@@ -357,3 +357,7 @@
 /* 普普的「正在播放」卡片：跟著封面縮到 260px 時，五顆按鈕之間只剩 1.5px，播放鈕幾乎貼著左右兩顆。
    最窄 288px（欄位更窄時跟著欄位），按鈕之間至少 8px；封面可以比卡片窄。 */
 :root:root:root[data-theme="pop"] #np .np-info { min-width: min(288px, 100%); }
+
+/* 普普：每一行歌詞都是一張自己的卡片。卡片捲到歌詞區最上面時，第一行已經出框、翻譯那一行卻還清楚（檢查工具在 900×1200
+   抓到的，跟終端機同一種殘句）。卡片的頂端一出框就整張收掉；還在框裡的卡片照舊由上緣淡出。 */
+:root[data-theme="pop"] #lyrics .ly-line.ly-above { opacity: 0 !important; pointer-events: none; }
