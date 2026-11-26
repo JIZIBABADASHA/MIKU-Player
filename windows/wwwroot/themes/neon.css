@@ -1192,3 +1192,8 @@
    那個高度播頻道時不畫這行字（電台沒有輪子，照舊）。 */
 @media (max-height: 680px) and (min-width: 1101px) {:root[data-theme="neon"][data-ext-source="moodchannels"]:not(.mc-radio) .np-top::before { content: none; }
 }
+
+/* 霓虹：搜尋那一排右邊的細線與斜紋，在視窗窄到搜尋列會伸到它底下時（840px 以下；兩個平台的最小視窗都是 980）收起來。
+   980 以上完全不變 */
+@media (max-width: 840px) {:root[data-theme="neon"] #main::after { display: none; }
+}
