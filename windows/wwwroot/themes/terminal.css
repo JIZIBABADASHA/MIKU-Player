@@ -314,7 +314,7 @@
 
 /* 像終端機的輸出：歌曲開始時第一行在螢幕最上面，一行一行往下印；印到螢幕下方三分之二之後，舊的行往上捲走。
    還沒唱到的行不顯示（滑鼠移到歌詞上才淡淡出現，可以點），所以下面不會空著一片。行距比別的主題窄一點，像一行一行的文字。 */
-:root[data-theme="terminal"] #lyrics { --ly-anchor: .66; --ly-start: .06; --ly-gap: 8px; --ly-blur: .45; --ly-dim: .74; }
+:root[data-theme="terminal"] #lyrics { --ly-anchor: .66; --ly-start: .09; --ly-gap: 8px; --ly-blur: .45; --ly-dim: .74; }
 :root[data-theme="terminal"]:where([data-mode="day"]:not([data-ext-source="moodchannels"]:not(.mc-radio))) #np { --tm-ly-l: 36px; --tm-ly-r: 38px; }
 :root[data-theme="terminal"][data-ext-source="moodchannels"]:not(.mc-radio) #np {
   --tm-ly-on: #eafff1;  --tm-ly-next: #b2e4c1;  --tm-ly-past: #8cc39d;
@@ -635,6 +635,9 @@
    螢幕最上面（--ly-start .06，矮視窗是離框 23px），淡出蓋到那裡的話，正在唱的第一行會變成半亮（Windows 實機看到的）。
    下面沒有還沒唱的行（這個主題不顯示），底下的淡出從 80% 收到 88%，目前這一行折成兩行加翻譯時最後一行不會被淡掉。
    矮視窗裡螢幕下面那 44px 是歌詞時間列的位置，目前這行算起來只在螢幕的六成高，下面空一大片：往下放一點，回到螢幕的三分之二。 */
-:root[data-theme="terminal"] #lyrics { -webkit-mask-image: linear-gradient(transparent 6px, #000 22px, #000 88%, transparent 100%); mask-image: linear-gradient(transparent 6px, #000 22px, #000 88%, transparent 100%); }
+/* 第二次獨立檢查：1280×800 最上面那行還是只露下半截就碰到框。淡出的長度跟著螢幕高度走（螢幕高的 9%，最少 22px），
+   歌曲一開始的第一行也跟著放在螢幕高的 9%（--ly-start .09，terminal.css）：淡出剛好收在第一行的上緣，第一行永遠全亮，
+   舊行則是整行慢慢淡掉，不會停在半截。 */
+:root[data-theme="terminal"] #lyrics { -webkit-mask-image: linear-gradient(transparent 6px, #000 max(22px, 9%), #000 88%, transparent 100%); mask-image: linear-gradient(transparent 6px, #000 max(22px, 9%), #000 88%, transparent 100%); }
 @media (max-height: 680px) and (orientation: landscape) and (min-width: 761px) {:root[data-theme="terminal"] #lyrics { --ly-anchor: .74; }
 }

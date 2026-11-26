@@ -983,12 +983,24 @@ const App = {
   trackChanged() {
     const t = this.track();
     const txt = $('#b-txt');
-    txt.classList.remove('swap'); void txt.offsetWidth; txt.classList.add('swap');
-    $('#b-title').textContent = t ? t.title : '';
-    $('#b-artist').textContent = t ? t.artist || t.album?.artist || '' : '';
+    // The title and artist come in (.swap) for another song, or when their text changed: not when the same song is
+    // drawn again (the library read again, its cover arrived, the disc drive asked 0.8 s and 4 s after the start).
+    // Each of those made the title vanish and slide in again, and the cover flash its placeholder.
+    const title = t ? t.title : '', artist = t ? t.artist || t.album?.artist || '' : '';
+    const drawn = (t ? t.id : '') + '\n' + title + '\n' + artist;
+    if (this.barDrawn !== drawn) {
+      this.barDrawn = drawn;
+      txt.classList.remove('swap'); void txt.offsetWidth; txt.classList.add('swap');
+      $('#b-title').textContent = title;
+      $('#b-artist').textContent = artist;
+    }
     const art = $('#b-art');
     if (t && t.live) { delete art.dataset.art; liveArt(art, t.img, 160, t.title); }
-    else if (t) { const [kind, id] = trackArt(t); art.dataset.art = kind + ':' + id; art.dataset.size = 64; fillArt(art, kind, id, 64, t.album?.title); }
+    else if (t) {
+      // the same cover again: the new picture is swapped in once it is decoded (no empty frame)
+      const [kind, id] = trackArt(t), key = kind + ':' + id, same = art.dataset.art === key;
+      art.dataset.art = key; art.dataset.size = 64; fillArt(art, kind, id, 64, t.album?.title, { swap: same });
+    }
     else art.textContent = '';
     this.renderFav();
     document.title = t ? `${t.title} · ${t.artist} — MIKU` : 'MIKU';

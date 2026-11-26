@@ -4,7 +4,8 @@
  *   hcut     a line of text cut sideways without an ellipsis
  *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info
  *            (timed lines and the untimed block alike), a theme's ornament in a corner of the bar over the times, a
- *            two-colour backdrop's seam through the player, a theme's printed label behind an extension's panel)
+ *            two-colour backdrop's seam through the player, a theme's printed label or strip of ornament along the
+ *            top of now playing behind an extension's panel)
  *   cut      a row of lyrics cut at the side by the window or its box
  *   offscreen a key control outside the window
  *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
@@ -12,6 +13,8 @@
  *   orphan   a title's last line is a single character (or a stub) on its own
  *   font     now playing carries a different font variable than the theme's own (a stale copy on a channel page)
  *   squeeze  the play bar dropped the song title although there is room for it
+ *   blank    a song is playing and the play bar's title cannot be seen (empty, or left invisible by an entrance that
+ *            was started again and has not run)
  *   short    a name that must be whole is cut with an ellipsis (a channel in MoodWave's wheel; an album's name cut to
  *            make room for an ornament in its row)
  * (text too faint to read is measured from the pixels of a screenshot: contrast.js, kind 'faint')
@@ -167,14 +170,18 @@
     // a theme's small printed label in the top row (霓虹's "LIVE.FEED // SYNC") never runs behind an extension's panel
     // on the same page (MoodWave's wheel reaches the top corner in a short window)
     const extBits = [...document.querySelectorAll('#np-ext *')].filter(e => !hidden(e) && (e.matches('svg, img, button') || (!e.closest('svg') && (!e.firstElementChild || [...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())))) && parseFloat(getComputedStyle(e).opacity) > 0.1).map(e => [e, box(e)]).filter(([, b]) => b.width > 1 && b.height > 1);
-    if (extBits.length) for (const host of document.querySelectorAll('#np .np-top')) for (const pe of ['::before', '::after']) {
+    // (and a strip of ornament drawn along the top of the page: 黃金's bead garland, a pseudo-element of #np itself with
+    // no text, at most 80px high)
+    if (extBits.length) for (const host of [npOn, ...document.querySelectorAll('#np .np-top')]) for (const pe of ['::before', '::after']) {
       const cs = getComputedStyle(host, pe);
-      if (!cs.content || cs.content === 'none' || cs.content === 'normal' || /^""/.test(cs.content) || cs.display === 'none' || cs.visibility === 'hidden' || cs.position !== 'absolute') continue;
+      if (!cs.content || cs.content === 'none' || cs.content === 'normal' || cs.display === 'none' || cs.visibility === 'hidden' || cs.position !== 'absolute' || +cs.opacity < 0.1) continue;
+      const drawn = /^""/.test(cs.content);
+      if (drawn ? (host !== npOn || cs.backgroundImage === 'none' || !(parseFloat(cs.height) <= 80)) : host === npOn) continue;
       const hr = host.getBoundingClientRect(), l = parseFloat(cs.left), w = parseFloat(cs.width), h = parseFloat(cs.height), t = parseFloat(cs.top);
       if (!isFinite(l) || !isFinite(t) || !(w > 0) || !(h > 0)) continue;
       const ty = new DOMMatrixReadOnly(cs.transform === 'none' ? '' : cs.transform).m42;
       const d = { left: hr.left + l, right: hr.left + l + w, top: hr.top + t + ty, bottom: hr.top + t + ty + h };
-      for (const [e, b] of extBits) if (hit(d, b, 1)) { add('overlap', desc(host) + pe + ' ' + cs.content.slice(0, 22), 'runs behind ' + desc(e)); break; }
+      for (const [e, b] of extBits) if (hit(d, b, 1)) { add('overlap', (host === npOn ? 'div#np' : desc(host)) + pe + ' ' + (drawn ? 'ornament strip' : cs.content.slice(0, 22)), 'runs behind ' + desc(e)); break; }
     }
     // a backdrop made of two flat colours (極簡平面 2): the line where they meet runs between the player and the
     // lyrics, never through the cover, the title, the seek bar or the buttons
@@ -283,6 +290,17 @@
       const used = [...barEl.querySelectorAll('.np-mini > *, .transport .btns > *, .right-tools > *')].filter(e => !hidden(e)).reduce((a, e) => a + e.getBoundingClientRect().width, 0);
       const free = barEl.getBoundingClientRect().width - used;
       if (free > 260) add('squeeze', 'div#bar', 'song title dropped with ' + Math.round(free) + 'px free');
+    }
+    // the bar says what is playing: with a song there its title can be seen, unless the bar itself gave it up for lack
+    // of room (data-sq 8) or a narrow window's rule did (both: display none). The title's entrance (.swap: from
+    // opacity 0) started again by a redraw of the same song left it invisible in stills taken on a busy machine.
+    const bTxt = document.querySelector('#b-txt'), bTitle = document.querySelector('#b-title');
+    if (barEl && !hidden(barEl) && bTxt && bTitle && typeof App !== 'undefined' && App.state && App.state.trackId && getComputedStyle(bTxt).display !== 'none') {
+      let op = 1, vis = true;
+      for (let a = bTitle; a && a !== barEl; a = a.parentElement) { const cs = getComputedStyle(a); op *= +cs.opacity; if (cs.visibility !== 'visible' || cs.display === 'none') vis = false; }
+      const w = bTitle.getBoundingClientRect().width;
+      if (!bTitle.textContent.trim()) add('blank', 'div#b-title', 'a song is playing and the bar shows no title');
+      else if (!vis || op < 0.9 || w < 8) add('blank', 'div#b-title', 'the title on the bar cannot be seen (opacity ' + op.toFixed(2) + ', ' + Math.round(w) + 'px wide)');
     }
     // a theme's ornament in a corner of the bar (a pseudo-element: neon's label and barcode) over the times or the title:
     // in the two-row bar the total time sits right under the top right corner

@@ -82,6 +82,11 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 const hue = s => { let h = 7; for (const c of s) h = (h * 131 + c.charCodeAt(0) * 97) % 3600; return (h * 37) % 360; };
 const cover = id => { const h = hue(id), h2 = (h + 50) % 360; return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h} 62% 58%)"/><stop offset="1" stop-color="hsl(${h2} 58% 34%)"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/><circle cx="290" cy="120" r="70" fill="hsl(${h2} 70% 78%)" fill-opacity=".55"/></svg>`; };
 // transitions and animations finish at once, so every size is measured settled
+// the play bar's title right after a screenshot: null, or why it cannot be seen (check.js 'blank', in short)
+const LATE = `(() => { const b = document.querySelector('#bar'), t = document.querySelector('#b-title'), x = document.querySelector('#b-txt');
+  if (!b || !t || !x || document.querySelector('#np.on') || getComputedStyle(x).display === 'none' || !(typeof App !== 'undefined' && App.state && App.state.trackId)) return null;
+  let op = 1; for (let a = t; a && a !== b; a = a.parentElement) op *= +getComputedStyle(a).opacity;
+  return !t.textContent.trim() ? 'no text' : op < 0.9 ? 'opacity ' + op.toFixed(2) : null; })()`;
 const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-delay:0s!important;animation-duration:0.001s!important;animation-delay:0s!important;animation-iteration-count:1!important}';
 
 (async () => {
@@ -118,17 +123,27 @@ const STILL = '*,*::before,*::after{transition-duration:0s!important;transition-
         }
         // the swap of the bar's left part runs on frames: wait for it to end (a slow machine draws few), then let things settle
         if (s.eval) { await page.evaluate(s.eval); await page.waitForTimeout(600); await page.waitForFunction(() => typeof BarSwap === 'undefined' || !BarSwap.cur, null, { timeout: 10000 }).catch(() => { }); await page.waitForTimeout(500); }
+        // the app asks for a disc 0.8 s and 4 s after it starts, and other late answers arrive: past them before the first
+        // still (a redraw between the check and its picture made the two disagree)
+        await page.waitForFunction(() => performance.now() > 4600, null, { timeout: 8000 }).catch(() => { });
         await page.addStyleTag({ content: STILL });
         for (const [w, h] of sizes) {
           await page.setViewportSize({ width: w, height: h });
           await page.waitForTimeout(700);
+          // entrances that have not been given a frame yet (a busy machine) end here, as they would a moment later
+          await page.evaluate(() => { for (const a of document.getAnimations()) { try { if (a.effect && isFinite(a.effect.getComputedTiming().endTime)) a.finish(); } catch (e) { } } });
           const issues = await page.evaluate(check);
           if (FAINT > 0 && FAINT_SIZES.includes(w + 'x' + h)) {
             const png = await page.screenshot({ type: 'png' });
             for (const x of await page.evaluate(`(${contrast})(${JSON.stringify(png.toString('base64'))}, ${FAINT})`)) issues.push({ kind: 'faint', el: x.el + ' "' + x.text + '"', detail: 'contrast ' + x.ratio + ':1' });
           }
           const name = `${t}-${m}-${s.name}-${w}x${h}`;
-          if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) await page.screenshot({ path: path.join(outdir, 'shots', name + '.jpg'), type: 'jpeg', quality: 80 });
+          if (issues.length || shots === 'all' || (shots === 'sheet' && SHEET_SIZES.includes(w + 'x' + h))) {
+            await page.screenshot({ path: path.join(outdir, 'shots', name + '.jpg'), type: 'jpeg', quality: 80 });
+            // what the picture shows is what was checked: the bar's title once more, as it is right after the picture
+            const late = await page.evaluate(LATE);
+            if (late && !issues.some(x => x.kind === 'blank')) issues.push({ kind: 'blank', el: 'div#b-title', detail: 'the title on the bar cannot be seen in the screenshot (' + late + ')' });
+          }
           report.push({ name, t, m, s: s.name, w, h, issues });
         }
       } catch (e) { report.push({ name: `${t}-${m}-${s.name}`, t, m, s: s.name, error: String(e) }); }

@@ -1069,3 +1069,12 @@
 :root:root:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np:not(.nolyrics) .np-left::before { background: var(--gd2-velvet-n) padding-box, var(--gd-frame-grad) border-box; }
 :root:root:root[data-theme="gold"]:where(:not([data-mode="night"]):not([data-ext-source="moodchannels"]:not(.mc-radio))) #np:not(.nolyrics) .np-seek .times { color: #4a0a12; text-shadow: 0 1px 0 rgba(255,248,220,.8); }
 }
+
+/* 黃金：MoodWave 頻道、矮視窗（高 680px 以下）。MoodWave 的轉盤是置中的，視窗矮的時候它的標誌會頂到左上角，剛好壓在上緣那串
+   金珠上（第二次獨立檢查看到的，跟霓虹的 LIVE.FEED 標籤同一個原因）。這種視窗裡金珠從轉盤右邊開始掛，開頭淡入。
+   電台（.mc-radio）沒有轉盤，不變。 */
+@media (max-height: 680px) and (min-width: 1101px) {:root[data-theme="gold"][data-ext-source="moodchannels"]:not(.mc-radio) #np::before {
+    left: calc(4vw + 296px);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px); mask-image: linear-gradient(90deg, transparent, #000 40px);
+  }
+}

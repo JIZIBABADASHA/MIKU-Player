@@ -315,7 +315,9 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 .hero .by a { cursor: pointer; }
 .hero .by a:hover { text-decoration: underline; }
 .hero .facts { color: var(--text-2); font-size: 15px; margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.hero .actions { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+.hero .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; align-items: center; }
+/* a narrow column: the buttons go to a second row whole, they are not squeezed (their labels ran into the edge) */
+.hero .actions > .btn { flex: none; }
 .hero.artist .cover { border-radius: 50%; width: 220px; height: 220px; }
 /* artist page: other names on the page / names that may be the same artist (views.js artistAka) */
 .hero .aka { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--text-2); }
