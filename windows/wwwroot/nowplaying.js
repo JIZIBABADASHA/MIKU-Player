@@ -641,6 +641,9 @@ const NowPlaying = {
       // screen) hides it there, so a line of two rows or its translation is never left behind without its first row.
       el.classList.toggle('ly-above', this.tops[i] - scroll < -1);
     });
+    // where the first line sits before any line is sung: a theme's waiting mark (終端機: the blinking cursor) goes there,
+    // so the first line prints right where the cursor was
+    box.style.setProperty('--ly-first-y', (this.tops[0] - scroll).toFixed(1) + 'px');
     const cur = this.lines[this.active] || null;
     if (cur !== this._tyEl || theme !== this._tyTheme) { this._tyEl = cur; this._tyTheme = theme; if (cur && theme === 'terminal') this.typeLine(cur, this.active); }
     // a theme's own effects can follow the lyrics: 'miku-lyric-line' fires once each time another line becomes the current one

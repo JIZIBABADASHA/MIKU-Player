@@ -389,7 +389,7 @@
 /* 歌曲開始前（還沒有正在唱的行）：第一行的位置上一格方塊游標在閃，像等著輸出的終端機 */
 :root[data-theme="terminal"] #lyrics:has(.ly-line):not(:has(.ly-line.on))::after {
   content: ""; position: absolute; z-index: 1; pointer-events: none;
-  left: calc(var(--tm-ly-l) + 14px + var(--tm-ts-w)); top: calc(6% + 7px + var(--tm-fs) * .17);
+  left: calc(var(--tm-ly-l) + 14px + var(--tm-ts-w)); top: calc(var(--ly-first-y, 9%) + 7px + var(--tm-fs) * .17);   /* --ly-first-y: the first line's top (nowplaying.js) */
   width: calc(var(--tm-fs) * .56); height: var(--tm-fs);
   background: var(--tm-ly-cur); box-shadow: 0 0 8px rgba(92,240,147,.45);
   animation: tm-cur-blink 1.06s step-end infinite;
