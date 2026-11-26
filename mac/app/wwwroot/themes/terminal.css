@@ -641,3 +641,8 @@
 :root[data-theme="terminal"] #lyrics { -webkit-mask-image: linear-gradient(transparent 6px, #000 max(22px, 9%), #000 88%, transparent 100%); mask-image: linear-gradient(transparent 6px, #000 max(22px, 9%), #000 88%, transparent 100%); }
 @media (max-height: 680px) and (orientation: landscape) and (min-width: 761px) {:root[data-theme="terminal"] #lyrics { --ly-anchor: .74; }
 }
+
+/* 終端機：第三次獨立檢查。折成兩行的歌詞捲到螢幕最上面時，第一行已經出框、第二行和翻譯卻還整行亮著，像一截掉下來的殘句。
+   這個主題的歌詞是螢幕上一行一行的字：整行（含翻譯）頂端一出框就整行收掉（nowplaying.js 標 .ly-above），不留半截。
+   還在框裡的行照舊由上緣的淡出處理。 */
+:root[data-theme="terminal"] #lyrics .ly-line.ly-above { opacity: 0 !important; pointer-events: none; }

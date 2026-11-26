@@ -5,7 +5,9 @@ every theme × day/night × page × window size, measuring each one with `check.
 
 - **clip**: a button or control partly cut off by its box or the window, or an action button squeezed until its own
   label is cut (the "is this cover right?" prompt on a narrow album page)
-- **half**: a line of text only partly visible (for example a third line peeking under a two-line title)
+- **half**: a line of text only partly visible (for example a third line peeking under a two-line title); a lyric
+  line whose first row has scrolled out of the box while its other rows or its translation still show at reading
+  strength (terminal left 「take me higher」 and its translation under the top edge)
 - **hcut**: a line of text cut sideways without an ellipsis
 - **overlap**: now-playing info parts on top of each other, a sticker over the title, lyrics over the info column
   (timed lines, the untimed block and the "no lyrics" notice alike: vinyl's untimed lyrics once sat on the player
@@ -18,7 +20,8 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **touch**: the now-playing buttons touching each other, a round button squashed out of shape, or lyrics flush
   against the player (less than 8 px of air)
 - **orphan**: a two-line title whose second line is a single character or a short stub; a timed lyric line ending
-  in one character on a row of its own (a phrase with no space in it, longer than the row)
+  in one character on a row of its own (a phrase with no space in it, longer than the row); a line of untimed
+  lyrics ending in a short word on a row of its own
 - **font**: now playing carries a different font variable than the theme's own. On a MoodWave channel the page takes
   the theme's night colours from a generated copy; that copy once carried an older title font too (vinyl, wood)
 - **squeeze**: the play bar dropped the song title although there is room for it. The MoodWave pages bring the

@@ -637,6 +637,9 @@ const NowPlaying = {
       el.style.transform = `translate(${dx.toFixed(1)}px, ${this.tops[i] - scroll}px) scale(${sc.toFixed(3)})`;
       el.style.filter = i === this.active || scrolling || !k ? 'none' : `blur(${(Math.min(0.3 + dist * 0.5, 2.4) * k).toFixed(2)}px)`;
       el.classList.toggle('on', i === this.active);
+      // its top is above the box's top edge: on its way out. A theme that shows whole lines only (終端機: rows of a
+      // screen) hides it there, so a line of two rows or its translation is never left behind without its first row.
+      el.classList.toggle('ly-above', this.tops[i] - scroll < -1);
     });
     const cur = this.lines[this.active] || null;
     if (cur !== this._tyEl || theme !== this._tyTheme) { this._tyEl = cur; this._tyTheme = theme; if (cur && theme === 'terminal') this.typeLine(cur, this.active); }

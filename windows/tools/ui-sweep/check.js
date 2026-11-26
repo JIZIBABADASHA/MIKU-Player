@@ -1,6 +1,7 @@
 /* In-page layout checker. Returns a list of problems:
  *   clip     an interactive control partly cut off by a non-scrolling clipping ancestor or the window
- *   half     a line of text only partly visible (cut top/bottom)
+ *   half     a line of text only partly visible (cut top/bottom); a lyric line whose first row has scrolled out
+ *            while its other rows or its translation still show at reading strength
  *   hcut     a line of text cut sideways without an ellipsis
  *   overlap  two things that must not overlap (now-playing info, play bar items, decorations over text, lyrics over info
  *            (timed lines and the untimed block alike), a theme's ornament in a corner of the bar over the times, a
@@ -11,7 +12,7 @@
  *   touch    buttons of one row touching each other, a round button squashed out of shape, or lyrics flush against
  *            the player (less than 8px of air)
  *   orphan   a title's last line is a single character (or a stub) on its own; a timed lyric line ends in one
- *            character on a row of its own
+ *            character on a row of its own; a line of untimed lyrics ends in a short word on a row of its own
  *   font     now playing carries a different font variable than the theme's own (a stale copy on a channel page)
  *   squeeze  the play bar dropped the song title although there is room for it
  *   blank    a song is playing and the play bar's title cannot be seen (empty, or left invisible by an entrance that
@@ -239,6 +240,77 @@
       const ws = rows.map(v => v.right - v.left), end = ws[ws.length - 1], max = Math.max(...ws);
       const fs = parseFloat(getComputedStyle(el).fontSize) * ((el.getBoundingClientRect().width / el.offsetWidth) || 1);
       if (end < 1.6 * fs && end < 0.3 * max) add('orphan', 'lyric line "' + nodes.map(n => n.textContent).join('').trim().slice(0, 14) + '"', 'its last row is ' + Math.round(end) + 'px of ' + Math.round(max) + 'px');
+    }
+    // untimed lyrics: a row of the block never ends in a short word or a character on a row of its own
+    // (「Night drive, take me／higher」), whatever the script
+    for (const blk of document.querySelectorAll('#np:not(.nolyrics) #lyrics .ly-plain')) {
+      if (hidden(blk)) continue;
+      const tn = [...blk.childNodes].find(n => n.nodeType === 3); if (!tn) continue;
+      const fs = parseFloat(getComputedStyle(blk).fontSize), rg = document.createRange();
+      let at = 0;
+      for (const seg of tn.nodeValue.split('\n')) {
+        const from = at; at += seg.length + 1;
+        if (!seg.trim()) continue;
+        rg.setStart(tn, from); rg.setEnd(tn, from + seg.length);
+        const rows = [];
+        for (const q of [...rg.getClientRects()].filter(q => q.width >= 1).sort((a, b) => a.top - b.top)) {
+          const last = rows[rows.length - 1];
+          if (last && q.top - last.top < 0.5 * q.height) { last.left = Math.min(last.left, q.left); last.right = Math.max(last.right, q.right); }
+          else rows.push({ top: q.top, left: q.left, right: q.right });
+        }
+        if (rows.length < 2) continue;
+        const ws = rows.map(v => v.right - v.left), end = ws[ws.length - 1], max = Math.max(...ws);
+        if (end < 0.34 * max && end < 5 * fs) add('orphan', 'untimed lyric line "' + seg.trim().slice(0, 14) + '"', 'its last row is ' + Math.round(end) + 'px of ' + Math.round(max) + 'px');
+      }
+    }
+    // a line on its way out at the top never shows without its first row at reading strength: when the first row has
+    // left the box, the rows still inside (and the translation) are dim, or the whole line is gone (終端機 showed
+    // 「take me higher」 and its translation, dark and whole, under the top edge with 「Night drive,」 cut away)
+    {
+      const lb = document.querySelector('#np:not(.nolyrics) #lyrics');
+      if (lb && !hidden(lb)) {
+        const br = lb.getBoundingClientRect(), mk = getComputedStyle(lb).webkitMaskImage || getComputedStyle(lb).maskImage || '';
+        // the box's own fade, top to bottom: the strength at a height (1 when there is none or it cannot be read)
+        const stops = (() => {
+          const m = mk.match(/^linear-gradient\((.*)\)$/s); if (!m) return null;
+          const parts = []; let depth = 0, cur = '';
+          for (const ch of m[1]) { if (ch === '(') depth++; if (ch === ')') depth--; if (ch === ',' && !depth) { parts.push(cur.trim()); cur = ''; } else cur += ch; }
+          parts.push(cur.trim());
+          if (/^(to |[-\d.]+(deg|turn|rad))/.test(parts[0])) { if (!/^(to bottom|180deg)$/.test(parts[0])) return null; parts.shift(); }
+          const len = v => { v = v.trim(); let mm;
+            if ((mm = v.match(/^(max|min)\((.*)\)$/s))) { const xs = mm[2].split(',').map(len); return xs.some(x => x === null) ? null : Math[mm[1]](...xs); }
+            if ((mm = v.match(/^calc\(100% - ([-\d.]+)px\)$/))) return br.height - parseFloat(mm[1]);
+            if (/^[-\d.]+px$/.test(v)) return parseFloat(v); if (/^[-\d.]+%$/.test(v)) return br.height * parseFloat(v) / 100; return null; };
+          const out = [];
+          for (const p of parts) {
+            const mm = p.match(/^(rgba?\([^)]*\)|transparent|#[0-9a-f]+)\s*(.*)$/i); if (!mm) return null;
+            const c = mm[1], a = c === 'transparent' ? 0 : /^rgba\(/.test(c) ? parseFloat(c.split(',')[3]) : 1, pos = mm[2] ? len(mm[2]) : null;
+            if (mm[2] && pos === null) return null;
+            out.push([pos, a]);
+          }
+          if (out.length < 2) return null;
+          if (out[0][0] === null) out[0][0] = 0; if (out[out.length - 1][0] === null) out[out.length - 1][0] = br.height;
+          return out.some(x => x[0] === null) ? null : out;
+        })();
+        const strength = y => { if (!stops) return 1; if (y <= stops[0][0]) return stops[0][1];
+          for (let i = 1; i < stops.length; i++) if (y <= stops[i][0]) { const [y0, a0] = stops[i - 1], [y1, a1] = stops[i]; return y1 > y0 ? a0 + (a1 - a0) * (y - y0) / (y1 - y0) : a1; }
+          return stops[stops.length - 1][1]; };
+        for (const el of lb.querySelectorAll('.ly-line:not(.gap)')) {
+          if (hidden(el)) continue;
+          const op = parseFloat(getComputedStyle(el).opacity);
+          const rg = document.createRange(); rg.selectNodeContents(el);
+          const rows = [];
+          for (const q of [...rg.getClientRects()].filter(q => q.width >= 1 && q.height >= 4).sort((a, b) => a.top - b.top)) {
+            const last = rows[rows.length - 1];
+            if (last && q.top - last.top < 0.5 * q.height) last.bottom = Math.max(last.bottom, q.bottom); else rows.push({ top: q.top, bottom: q.bottom });
+          }
+          // its first row is still there: in the box, and not faded to nothing by the box's own fade
+          if (rows.length < 2 || (rows[0].bottom > br.top + 2 && op * strength((rows[0].top + rows[0].bottom) / 2 - br.top) >= 0.15)) continue;
+          const left = rows.slice(1).filter(r => r.bottom > br.top + 4 && r.top < br.bottom);
+          const seen = Math.max(0, ...left.map(r => op * strength((r.top + r.bottom) / 2 - br.top)));
+          if (seen >= 0.5) add('half', 'lyric line "' + el.textContent.trim().slice(0, 14) + '"', 'its first row has left the box and what is left shows at ' + Math.round(seen * 100) + '% strength');
+        }
+      }
     }
     // the lyric timing row (歌詞時間 − 0.0s + 自動): it appears while the pointer is over the lyrics, so it counts as shown
     // even while it is faded out, and it never sits on a line of lyrics (timed lines or plain text)
