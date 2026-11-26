@@ -299,7 +299,7 @@ html.fullscreen #fullscreen-exit.is-visible:active {
 }
 .card:hover .play { opacity: 1; transform: none; }
 .card .play:hover { background: var(--teal-2); }
-.card .play svg { width: 20px; height: 20px; margin-left: 2px; }
+.card .play svg { width: 20px; height: 20px; }   /* no extra nudge: the triangle already sits a little right of the middle */
 /* the name: up to two lines before it is cut with … (vgrid leaves room for two); line-height leaves room for g j p q y */
 .card .t1 { margin-top: 11px; font-weight: 650; font-size: 15px; line-height: 1.38; color: var(--text); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 .card .t2 { color: var(--text-sub); font-size: 13.5px; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1993,11 +1993,12 @@ a.link:hover { text-decoration: underline; }
 #main.yt-mode #view { padding-top: 0; }
 
 /* larger play hit area: the whole number column (full row height, out to the row's left edge) starts the song */
-.row .n, .row .n:has(.thumb) { align-self: stretch; height: auto; margin: 0 -6px 0 -12px; padding-left: 6px; border-radius: 12px 0 0 12px; }
+.row .n, .row .n:has(.thumb) { --n-pad: 6px; align-self: stretch; height: auto; margin: 0 -6px 0 -12px; padding-left: var(--n-pad); border-radius: 12px 0 0 12px; }
 .row .n .pi { transition: transform .15s var(--ease), color .15s; }
 .row .n:hover .pi { transform: scale(1.18); color: var(--teal); }
-/* keep the play / now-playing icons exactly where the track number is (the cell itself is wider and full height) */
-.row .n .pi, .row .n .eq { left: 6px; }
+/* keep the play / now-playing icons exactly where the track number is (the cell itself is wider and full height). Something
+   drawn on the number's place from the cell's middle (金色's coin and crown) goes half of --n-pad right with them */
+.row .n .pi, .row .n .eq { left: var(--n-pad, 6px); }
 .row .n .eq { top: 50%; bottom: auto; height: 16px; margin-top: -8px; padding-bottom: 0; }
 /* hovering the playing song: show the play button instead of the equalizer bars */
 .row.playing:hover .n .eq { display: none; }

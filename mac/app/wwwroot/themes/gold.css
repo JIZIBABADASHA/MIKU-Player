@@ -760,7 +760,7 @@
 
 /* 曲號＝一枚金幣（數字壓在幣面上），播放中那列是紅寶石幣 */
 :root:root[data-theme="gold"] .tracks .row .n::before {
-  content: ""; position: absolute; left: 50%; top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; z-index: 0;
+  content: ""; position: absolute; left: calc(50% + var(--n-pad, 0px) / 2); top: 50%; width: 32px; height: 32px; margin: -16px 0 0 -16px; border-radius: 50%; z-index: 0;
   background: radial-gradient(circle, transparent 0 11.5px, rgba(110,70,0,.55) 12px 12.6px, transparent 13px), var(--gd-coin);
   box-shadow: 0 0 0 1.5px #4a2f02, inset 0 1px 0 rgba(255,255,240,.9), 0 2px 3px rgba(60,30,0,.45);
 }
@@ -784,7 +784,7 @@
 
 /* 皇冠端正地戴在紅寶石幣上：左右置中、不歪、整頂都在這一列裡面 */
 :root:root[data-theme="gold"] .tracks .row.playing .n::after {
-  content: ""; position: absolute; z-index: 2; left: 50%; top: calc(50% - 31px); width: 28px; height: 20px; margin-left: -14px; pointer-events: none;
+  content: ""; position: absolute; z-index: 2; left: calc(50% + var(--n-pad, 0px) / 2); top: calc(50% - 31px); width: 28px; height: 20px; margin-left: -14px; pointer-events: none;
   background: var(--gd-crown) center / contain no-repeat; filter: drop-shadow(0 1.5px 0 rgba(60,20,0,.55));
 }
 :root:root[data-theme="gold"] .tracks .row.playing .tt div:first-child {

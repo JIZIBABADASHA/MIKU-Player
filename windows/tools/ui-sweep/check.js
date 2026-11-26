@@ -511,16 +511,41 @@
     if (bw - Math.min(tw, e.clientWidth) > 6) add('hit', desc(e), 'clickable ' + Math.round(bw) + 'px wide, its words ' + Math.round(tw) + 'px');
   }
   // the play / pause icon on the middle of its button (the triangle a little right of it, by design: less than 3.5 % of
-  // the button; centred on its centroid it sat 5 % right and looked pushed aside)
-  for (const b of document.querySelectorAll('.playbtn')) {
-    if (hidden(b) || !b.getClientRects().length) continue;
-    const parts = [...b.querySelectorAll('svg path, svg rect')].map(q => q.getBoundingClientRect()).filter(q => q.width > 0);
+  // the button; centred on its centroid it sat 5 % right and looked pushed aside): the bar's, now playing's, a card's,
+  // a folder row's. An icon drawn with <use> is measured by the <use> (its shapes are out of reach)
+  const shapes = el => [...el.querySelectorAll('svg path, svg rect, svg circle, svg polygon, svg use')].map(q => q.getBoundingClientRect()).filter(q => q.width > 0);
+  for (const b of document.querySelectorAll('.playbtn, .card .play, .row .fplay')) {
+    // a card's and a folder row's button only fade in on hover: measured as they stand (only their opacity is 0)
+    const own = getComputedStyle(b);
+    if ((b.matches('.card .play, .row .fplay') ? hidden(b.parentElement) || own.display === 'none' || own.visibility === 'hidden' : hidden(b)) || !b.getClientRects().length) continue;
+    const parts = shapes(b);
     if (!parts.length) continue;
     const r = b.getBoundingClientRect();
     const dx = (Math.min(...parts.map(q => q.left)) + Math.max(...parts.map(q => q.right))) / 2 - (r.left + r.width / 2);
     const dy = (Math.min(...parts.map(q => q.top)) + Math.max(...parts.map(q => q.bottom))) / 2 - (r.top + r.height / 2);
     const lim = .035 * Math.min(r.width, r.height);
     if (Math.abs(dx) > lim || Math.abs(dy) > lim) add('center', desc(b), 'icon ' + dx.toFixed(1) + 'px / ' + dy.toFixed(1) + 'px off the middle of a ' + Math.round(r.width) + 'px button');
+  }
+  // a list row's number cell: the play glyph shown on hover and the playing bars sit where the number is, and so does
+  // anything a theme draws on the number's place (金色's coin and crown were drawn on the cell's middle, 3px left of the
+  // number, so the triangle and the bars looked off the coin). The number's place is the middle of the cell's content box
+  for (const n of [document.querySelector('.row .n'), document.querySelector('.row.playing .n')]) {
+    if (!n || hidden(n) || !n.getClientRects().length || n.querySelector('.thumb')) continue;
+    const r = n.getBoundingClientRect(), c = getComputedStyle(n);
+    const mx = (r.left + parseFloat(c.borderLeftWidth) + parseFloat(c.paddingLeft) + r.right - parseFloat(c.borderRightWidth) - parseFloat(c.paddingRight)) / 2, my = (r.top + r.bottom) / 2;
+    const off = (what, x, y, lim = 1) => { if (Math.abs(x - mx) > lim || Math.abs(y - my) > lim) add('center', desc(n) + ' ' + what, (x - mx).toFixed(1) + 'px / ' + (y - my).toFixed(1) + 'px off the number'); };
+    const pi = n.querySelector(':scope > .pi'), was = pi && pi.style.display;
+    if (pi) { pi.style.setProperty('display', 'grid', 'important'); const ps = shapes(pi), u = pi.querySelector('svg'); if (ps.length && u) { const unit = u.getBoundingClientRect().width / 24; off('play glyph', (Math.min(...ps.map(q => q.left)) + Math.max(...ps.map(q => q.right))) / 2 - unit, (Math.min(...ps.map(q => q.top)) + Math.max(...ps.map(q => q.bottom))) / 2); } pi.style.display = was; }
+    const eq = n.querySelector(':scope > .eq');
+    if (eq && !hidden(eq)) { const bars = [...eq.children].map(q => q.getBoundingClientRect()).filter(q => q.width > 0), er = eq.getBoundingClientRect(); if (bars.length) off('playing bars', (Math.min(...bars.map(q => q.left)) + Math.max(...bars.map(q => q.right))) / 2, (er.top + er.bottom) / 2); }
+    for (const p of ['::before', '::after']) {
+      const ps = getComputedStyle(n, p);
+      if (ps.content === 'none' || ps.display === 'none' || ps.position !== 'absolute') continue;
+      const w = parseFloat(ps.width), h = parseFloat(ps.height), l = parseFloat(ps.left);
+      if (!(w > 8 && w <= 64 && h > 8 && h <= 64 && isFinite(l))) continue;
+      const x = r.left + parseFloat(c.borderLeftWidth) + l + parseFloat(ps.marginLeft) + w / 2;
+      off(p + ' (drawn on the number)', x, my);   // across only: a crown sits above the coin on purpose
+    }
   }
   return out;
 })()

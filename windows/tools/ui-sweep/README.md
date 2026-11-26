@@ -54,6 +54,10 @@ every theme × day/night × page × window size, measuring each one with `check.
 - **center**: a play button's icon is off the middle of the button by more than 3.5 % of its size. The play triangle
   was centred on its centroid, 2–3px right of the middle, and looked pushed aside (most in the square buttons). The page
   set includes `paused` and `nppaused`, so the triangle is on show (playing shows the pause bars).
+  The same rule checks a list row's number cell: the play glyph shown on hover, the playing bars, and whatever a theme
+  draws on the number's place (金色's coin and crown) must sit within 1px of the number, across (the coin was drawn on
+  the cell's middle, 3px left of the number, so the triangle and the bars looked off it). Cards' and folder rows' play
+  buttons are measured like the bar's (a card's had 2px of extra nudge on top of the triangle's own offset).
 - **faint**: text too faint to read. `contrast.js` measures it from the pixels of a screenshot (so gradients, pictures
   and textures count): the line's median pixel is the paper, the text's own colour laid over it is the ink, and their
   contrast ratio must reach 2.05:1 (`--faint 0` switches it off). Measured at three sizes: the full sidebar, the folded
