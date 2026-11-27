@@ -1733,8 +1733,10 @@ public sealed class MainForm : Form
             case "playlists.get": return _s.Playlists;
             case "library.files":
             {
-                // 匯入 / 匯出播放清單 (playlistio.js): this computer's tracks with their files (ids: only those)
-                var want = L(a, "ids")?.ToHashSet();
+                // 匯入 / 匯出播放清單 (playlistio.js): this computer's tracks with their files (ids: only those).
+                // No ids (匯入) means every track: L() gives an empty list then, not null, which matched none.
+                var want = a.ValueKind == JsonValueKind.Object && a.TryGetProperty("ids", out var ids) && ids.ValueKind == JsonValueKind.Array
+                    ? L(a, "ids").ToHashSet() : null;
                 return _lib.AllTracks.Where(t => want == null || want.Contains(t.Id))
                     .Select(t => new object[] { t.Id, t.Path ?? "", t.Title ?? "", t.Artist ?? "", Math.Round(t.Duration, 1), t.Album ?? "" }).ToList();
             }
