@@ -88,6 +88,7 @@ const Theme = {
     root.dataset.theme = id;
     root.dataset.mode = mode;
     try { localStorage.setItem(this.key, id); localStorage.setItem(this.modeKey, mode); } catch (e) { }
+    this.bakeFrame();
     this.ambient();
     // canvases read colors from CSS — redraw them
     requestAnimationFrame(() => { try { typeof Dsp !== 'undefined' && Dsp.cfg && Dsp.drawGraph(); } catch (e) { } });
@@ -117,6 +118,41 @@ const Theme = {
     if (id !== this.cur || mode !== this.mode) this.set(id, mode);
     // a setting from before the modes (or 未來・夜): saved the new way, so it reads the same everywhere from now on
     try { if (ui.theme !== id || ui.themeMode !== mode) { setUiPref('theme', id); setUiPref('themeMode', mode); } } catch (e) { }
+  },
+
+  /**
+   * Wood's picture frame (--wd-frame, themes/common.css) is an SVG with a noise filter (feTurbulence, displacement,
+   * blur), the border-image of every album card. Chromium draws SVG filters on the CPU, and drew this one again for
+   * each card the album grid added while scrolling: frames of 40–60 ms, scrolling at about 80 instead of 120 fps even on
+   * a fast PC (measured; any other theme, or the frame left out, scrolled at a steady 120). Drawn once into a PNG
+   * (about 25 ms, 56 KB) the same frame costs nothing to repeat. The SVG stays the source (tools/build-tex.js): this
+   * only puts its picture on <html> in its place, for the theme and mode it was made from.
+   */
+  baked: new Map(),
+  async bakeFrame() {
+    const root = document.documentElement, name = '--wd-frame';
+    root.style.removeProperty(name);
+    if (root.dataset.theme !== 'wood') return;
+    const mode = root.dataset.mode;
+    const m = getComputedStyle(root).getPropertyValue(name).trim().match(/^url\("(data:image\/svg[\s\S]*)"\)$/);
+    if (!m) return;
+    let url = this.baked.get(m[1]);
+    if (!url) {
+      try {
+        const img = new Image();
+        img.src = m[1];
+        await img.decode();
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+        if (!blob) return;
+        url = URL.createObjectURL(blob);
+        this.baked.set(m[1], url);
+      } catch (e) { return; }   // the SVG frame keeps working, only slower
+    }
+    // switched theme or mode while this was drawing: that switch bakes its own
+    if (root.dataset.theme === 'wood' && root.dataset.mode === mode) root.style.setProperty(name, `url("${url}")`);
   },
 
   /* glass theme: ambient layer that follows the now-playing artwork */
