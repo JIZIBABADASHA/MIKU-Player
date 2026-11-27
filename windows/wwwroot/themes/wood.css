@@ -422,7 +422,6 @@
 /* ───────────── 16 · 正在播放：同一座音響櫃 ─────────────
    封面裝在較寬的木框裡（框只在封面上，不會碰到文字、進度條或按鈕）；標題用襯線字。
    左上的收起鈕和右上的「歌詞不對？」「翻譯」「歌詞」都是實心底＋黃銅框；選中的是黃銅鍵＋深色字。 */
-:root[data-theme="wood"] #np::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--wd-np-cheeks); }
 :root[data-theme="wood"] #np .np-cover {
   border-radius: 0; border: 16px solid transparent; border-image: var(--wd-frame) 24 / 16px stretch;
   background: var(--surface-2);
