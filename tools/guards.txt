@@ -21,3 +21,5 @@ media-keys-W2   | windows/Host/MainForm.cs          | HardwareMediaKeyHandling
 np-fit-settled  | windows/wwwroot/fit.js            | const settled = els =>
 np-fit-endY     | windows/wwwroot/fit.js            | endY\(wrap\)
 np-swipe-ch     | Extensions/MoodWave/web/moodchannels.js | function coverVote\(\)
+np-hint-frame   | Extensions/MoodWave/web/moodchannels.js | const FRAME = \d+;
+bar-band-refit  | Extensions/MoodWave/web/moodchannels.js | new ResizeObserver\(\(\) => fitBand\(\)\)

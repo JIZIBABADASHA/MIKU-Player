@@ -23,6 +23,11 @@ print('  all guards present' if not bad else f'  {bad} guard(s) missing')
 sys.exit(1 if bad else 0)
 PY
 
+# An extension checked out at another commit than the one main records: a build from here
+# would not match what the next clean build ships (FLOW-6).
+drift="$(git submodule status 2>/dev/null | grep '^+' || true)"
+if [ -n "$drift" ]; then echo "  FAIL submodule differs from the commit recorded in the index (git add it, or check out the recorded one):"; echo "$drift" | sed 's/^/    /'; fail=1; fi
+
 echo "== 2. Mac UI copy in sync (sync_wwwroot.py)"
 python3 mac/build/sync_wwwroot.py >"$OUT/sync.log" 2>&1 || { echo "  FAIL sync_wwwroot.py: see $OUT/sync.log"; fail=1; }
 if ! git diff --quiet -- mac/app/wwwroot || [ -n "$(git ls-files --others --exclude-standard mac/app/wwwroot)" ]; then

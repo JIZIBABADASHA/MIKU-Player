@@ -27,6 +27,7 @@
 | BAR-10 | 進度條時間提示在播放鍵上方、看得清楚（玻璃主題也一樣） | W+M | manual | 92deae8, ceba1a1 |
 | BAR-11 | 封面 hover 放大後縮回，沒有最後往旁邊跳一下 | W+M | manual | 0bb6480 |
 | BAR-12 | 隨機播放的圖示是重畫過的那一版 | W+M | auto:diff | 9d3b410 |
+| BAR-13 | 播 MoodWave 頻道時換到字型不同的主題或改文字大小，播放列的頻道名稱不壓到旁邊的 👍 / 👎 | W+M | auto:guard `bar-band-refit` + manual | MoodWave 0a062f7 (11-25)；11-26 重建時 submodule 指在 e48b10a 而少了它，11-28 補回 |
 
 ## 2. 正在播放頁（全螢幕）
 
@@ -34,7 +35,7 @@
 |---|---|---|---|---|
 | NP-1 | 雙擊封面加入最愛：愛心出現在封面中央、正立，從封面擴散出兩圈淡淡的水波，到視窗邊 | W+M | manual | 6eb0207…3d6b7d1 (10-26) |
 | NP-2 | 雙擊已是最愛的封面：移出最愛，愛心裂成兩半、停約半秒再落下變灰，全程約 2 秒 | W+M | manual | f16f2dc, 731e0e8, ff9f850, cb72636 |
-| NP-3 | **MoodWave 電台或頻道（如「早晨」）播放中，在封面上左右滑 = 👍 / 👎**（Windows 滑鼠拖曳、Mac 觸控板雙指左右滑都要能用；頻道的票與輪盤旁的 👍 / 👎 相同） | W+M | auto:guard `mac-np-swipe` + `np-swipe-ch`（Extensions/MoodWave 須含頻道投票 coverVote，submodule 不可指回沒有它的版本）+ manual（Mac 觸控板，頻道播放中） | ec9bd54, 1732fea；MoodWave 0e96f14/e48b10a；11-26 Mac 消失：Mac 安裝檔用了沒有頻道投票的 MoodWave 5e7ec4b，回歸 |
+| NP-3 | **MoodWave 電台或頻道（如「早晨」）播放中，在封面上左右滑 = 👍 / 👎**（Windows 滑鼠拖曳、Mac 觸控板雙指左右滑都要能用；頻道的票與輪盤旁的 👍 / 👎 相同） | W+M | auto:guard `mac-np-swipe` + `np-swipe-ch`（Extensions/MoodWave 須含頻道投票 coverVote，submodule 不可指回沒有它的版本）+ manual（Mac 觸控板，頻道播放中） | ec9bd54, 1732fea；MoodWave 0e96f14/e48b10a（submodule 現指 0a062f7）；11-26 Mac 消失：Mac 安裝檔用了沒有頻道投票的 MoodWave 5e7ec4b，回歸 |
 | NP-4 | Mac：在正在播放頁雙指上滑把播放列拉上來、下滑放下 / 關閉；在歌詞上下滑仍是捲歌詞 | M | manual | 1732fea, mac-navigation.js |
 | NP-5 | Windows：在正在播放頁滾輪可以升 / 降播放列；全螢幕下捲動可叫出控制 | W | manual | c1cbcf5 |
 | NP-6 | 右上角歌詞按鈕打開 5 秒後淡出，滑到上方再出現 | W+M | manual | a590640 (11-12) |
@@ -48,6 +49,7 @@
 | NP-13 | MoodWave 轉盤上的頻道名稱完整，不被「…」截斷（終端機等寬字也一樣） | W+M | auto:short | 6283d15 |
 | NP-14 | 碎裂 / 資料流動畫播放時再點一下畫面可以取消 | W+M | manual | b54ec6d (10-24) |
 | NP-15 | 窄視窗時 MoodWave 的滑動提示不蓋到封面 | W+M | manual | 1ed8ab5 |
+| NP-16 | MoodWave 封面兩側的 👎 / 👍 滑動提示不壓到主題自己畫的框（例如終端機主題歌詞螢幕的外框） | W+M | auto:guard `np-hint-frame` + manual | MoodWave 0200732 (11-25)；11-26 重建時 submodule 指在 e48b10a 而少了它，11-28 補回 |
 
 ## 3. 歌詞
 
@@ -142,6 +144,7 @@
 | FLOW-3 | 推上 main 後同步更新 Windows（Remote Control 在使用者 PC 上 build）和 Mac（建 pkg、打開安裝程式讓使用者按）。 |
 | FLOW-4 | 修一個地方前先跑 diff：只有想改的東西在畫面上變了（例如修三角形不能動到暫停鍵）。 |
 | FLOW-5 | 使用者說「以前可以」就是回歸：找出哪個 commit 拿掉的，修回來，並在這份清單加一條自動檢查。 |
+| FLOW-6 | `Extensions/` 底下的改動（MoodWave 等）只推到 fork 分支、或只把檔案寫進安裝目錄，都不算完成：同一次要把 MIKU-Player 的 submodule 指到那個 commit 並推上 main，否則下次重建就回到舊版（11-26 的封面左右滑、提示壓框就是這樣不見的）。`tools/regress.sh` 會檢查 submodule 取出的版本和 main 記的一致。 |
 
 ---
 
